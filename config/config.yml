@@ -1,0 +1,36 @@
+# This is the Snakemake configuration file that specifies paths and 
+# and options for the pipeline. Anybody wishing to use
+# the provided snakemake pipeline should first fill out this file with paths to
+# their own data, as the Snakefile requires it.
+# Every config option has reasonable defaults unless it is labeled as "required."
+# All paths are relative to the directory that Snakemake is executed in.
+# Note: this file is written in the YAML syntax (https://learnxinyminutes.com/docs/yaml/)
+
+
+# Paths to VCFs for SNPs in 1000G
+# If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
+# required!
+snp_vcf: "/projects/ps-gymreklab/resources/datasets/1000Genomes/phase3VCFs/ALL.{chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+
+# Path to a 1000G samples TSV file
+# You can get this file by clicking "Download the list" here:
+# https://www.internationalgenome.org/data-portal/sample
+# required!
+samples: data/igsr_samples.tsv
+
+# Which 1000G superpopulation should be used?
+# Please provide a three letter code, corresponding to the symbol in the samples file
+# This will default to EUR (aka european ancestry), if not specified
+superpop: EUR
+
+# Discard rare SNPs with a MAF below this number
+# Defaults to 0 if not specified
+min_maf: 0.1
+
+# Whether to use development mode
+# This will cause the pipeline to ignore all but chr22
+develop: true
+
+# Path to the directory in which to store all output of the pipeline
+# Defaults to "out" if not specified
+out: out

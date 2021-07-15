@@ -1,0 +1,58 @@
+import warnings
+from pathlib import Path
+import snakemake.io as io
+from snakemake.utils import min_version
+
+##### set minimum snakemake version #####
+min_version("6.5.0")
+
+
+# IMPORT CONFIG VARIABLES
+configfile: "config/config.yml"
+
+def check_config(value, default=False, place=config):
+    """ return true if config value exists and is true """
+    return place[value] if (value in place and place[value]) else default
+
+# handle defaults
+config['out'] = check_config('out', 'out')
+config['develop'] = bool(check_config('develop'))
+config['superpop'] = check_config('superpop', 'EUR')
+config['min_maf'] = check_config('min_maf', 0)
+# remove any trailing slashes in directories and set the variables
+out = str(Path(config['out']))
+logs = out+"/logs"
+bench = out+"/bench"
+
+def get_vcf_chrs(vcf_path):
+    """ return a dict of VCFs split by contig """
+    return glob_wildcards(vcf_path).chr
+    # if contains_wildcard(vcf_path):
+    #     chrs = 
+    #     return expand
+
+chrs = None
+if io.contains_wildcard(config['snp_vcf']):
+    chrs = get_vcf_chrs(config['snp_vcf'])
+elif config['develop']:
+    chrs = ['chr22']
+
+
+
+rule all:
+    input:
+        expand(out+"/{chr}/{var}_matrix.tsv.gz", chr=chrs, var=['snp'])
+
+rule vcf2gt:
+    """ convert a VCF into a genotype matrix """
+    input:
+        vcf = lambda wildcards: config[wildcards.var+'_vcf'],
+        popn = config['superpop'],
+        maf = config['min_maf'],
+        samps = config['samples']
+    output:
+        matrix = out+"/{chr}/(var}_matrix.tsv.gz"
+    conda: "envs/default.yml"
+    shell:
+        "scripts/make_gt_matrix.bash {input.popn} {input.maf} {input.vcf} {input.samps} | datamash tranpose | gzip > {output.matrix}"
+

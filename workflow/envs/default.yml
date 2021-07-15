@@ -1,0 +1,10 @@
+channels:
+    - conda-forge
+    - nodefaults
+dependencies:
+    - bioconda::bcftools==1.13
+    - conda-forge::datamash==1.7
+    - conda-forge::coreutils==8.31
+    - conda-forge::sed==4.8
+    - conda-forge::bash==5.0.018
+    - conda-forge::gzip==1.10
