@@ -4,7 +4,7 @@ import snakemake.io as io
 from snakemake.utils import min_version
 
 ##### set minimum snakemake version #####
-min_version("6.5.0")
+min_version("6.5.3")
 
 
 # IMPORT CONFIG VARIABLES
@@ -16,7 +16,6 @@ def check_config(value, default=False, place=config):
 
 # handle defaults
 config['out'] = check_config('out', 'out')
-config['develop'] = bool(check_config('develop'))
 config['superpop'] = check_config('superpop', 'EUR')
 config['min_maf'] = check_config('min_maf', 0)
 # remove any trailing slashes in directories and set the variables
@@ -26,33 +25,36 @@ bench = out+"/bench"
 
 def get_vcf_chrs(vcf_path):
     """ return a dict of VCFs split by contig """
-    return glob_wildcards(vcf_path).chr
-    # if contains_wildcard(vcf_path):
-    #     chrs = 
-    #     return expand
+    if io.contains_wildcard(vcf_path):
+        return glob_wildcards(vcf_path).chr
+    return []
 
-chrs = None
-if io.contains_wildcard(config['snp_vcf']):
-    chrs = get_vcf_chrs(config['snp_vcf'])
-elif config['develop']:
-    chrs = ['chr22']
+chrs = get_vcf_chrs(config['snp_vcf'])
 
 
 
 rule all:
     input:
-        expand(out+"/{chr}/{var}_matrix.tsv.gz", chr=chrs, var=['snp'])
+        expand(
+            out+"/{locus}/{var}_matrix.tsv.gz", var=['snp'],
+            locus=[loc.replace(':', '_') for loc in config['loci']]
+        )
 
 rule vcf2gt:
-    """ convert a VCF into a genotype matrix """
+    """ convert a VCF into a genotype matrix (cols are SNPs and rows are samples) """
     input:
         vcf = lambda wildcards: config[wildcards.var+'_vcf'],
-        popn = config['superpop'],
-        maf = config['min_maf'],
         samps = config['samples']
+    params:
+        popn = config['superpop'],
+        locus = lambda wildcards: wildcards.chr+":"+wildcards.locus,
+        maf = config['min_maf']
     output:
-        matrix = out+"/{chr}/(var}_matrix.tsv.gz"
+        matrix = out+"/{chr}_{locus}/{var}_matrix.tsv.gz"
+    log: logs+"/{chr}_{locus}/{var}/vcf2gt"
     conda: "envs/default.yml"
     shell:
-        "scripts/make_gt_matrix.bash {input.popn} {input.maf} {input.vcf} {input.samps} | datamash tranpose | gzip > {output.matrix}"
+        "workflow/scripts/make_gt_matrix.bash {params.popn} {params.maf} '{params.locus}' "
+        "{input.vcf} {input.samps} 2>{log} | gzip > {output.matrix}"
 
+# rule 
