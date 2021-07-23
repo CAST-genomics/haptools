@@ -1,0 +1,4 @@
+usage:
+  software-stack-deployment:
+    conda: true # whether pipeline works with --use-conda
+  report: false
