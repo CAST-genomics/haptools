@@ -10,13 +10,29 @@
 # Paths to VCFs for SNPs in 1000G
 # If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
 # required!
-snp_vcf: "/projects/ps-gymreklab/resources/datasets/1000Genomes/phase3VCFs/ALL.{chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+snp_vcf: "/projects/ps-gymreklab/resources/datasets/1000Genomes/phase3VCFs/ALL.chr{chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+
+# Paths to VCFs for STRs in 1000G
+# If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
+# required!
+str_vcf: /projects/ps-gymreklab/mousavi/results/1000genomes/hipstr_outs/merged/all_merged.sorted.vcf.gz
 
 # Path to a 1000G samples TSV file
 # You can get this file by clicking "Download the list" here:
 # https://www.internationalgenome.org/data-portal/sample
 # required!
 samples: data/igsr_samples.tsv
+
+# A list of loci, specifying SNPs to use within the simulations
+# Each locus can be specified as a string composed of a contig name, a colon, the start
+# position, a dash, and the end position.
+# The positions should be provided in the same coordinate system as the reference
+# genome of the VCF files.
+# THe contig should correspond with the contig name from the {chr} wildcard in the VCF
+# required!
+loci:
+  - 1:98001984-99001984
+  # - 1:10177-1010177
 
 # Which 1000G superpopulation should be used?
 # Please provide a three letter code, corresponding to the symbol in the samples file
@@ -25,11 +41,7 @@ superpop: EUR
 
 # Discard rare SNPs with a MAF below this number
 # Defaults to 0 if not specified
-min_maf: 0.1
-
-# Whether to use development mode
-# This will cause the pipeline to ignore all but chr22
-develop: true
+min_maf: 0.05
 
 # Path to the directory in which to store all output of the pipeline
 # Defaults to "out" if not specified

@@ -1,4 +1,4 @@
-[![Snakemake](https://img.shields.io/badge/snakemake-≥6.5.0-brightgreen.svg?style=flat-square)](https://snakemake.bitbucket.io)
+[![Snakemake](https://img.shields.io/badge/snakemake-≥6.5.3-brightgreen.svg?style=flat-square)](https://snakemake.bitbucket.io)
 
 # simulate_gwas
 Simulate phenotypes for a GWAS analysis and fine-mapping
@@ -11,9 +11,9 @@ git clone https://github.com/aryarm/simulate_gwas
 Example data for the pipeline is also available for download upon request.
 
 # setup
-The pipeline is written as a Snakefile which can be executed via [Snakemake](https://snakemake.readthedocs.io). For reproduciblity, we recommend installing the version that we used (6.5.0):
+The pipeline is written as a Snakefile which can be executed via [Snakemake](https://snakemake.readthedocs.io). For reproduciblity, we recommend installing the version that we used (6.5.3):
 ```
-conda create -n snakemake -c conda-forge --no-channel-priority 'bioconda::snakemake==6.5.0'
+conda create -n snakemake -c conda-forge --no-channel-priority 'bioconda::snakemake==6.5.3'
 ```
 `snakemake` will [automatically install all dependencies](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#integrated-package-management) of the pipeline upon its first execution using `conda`.
 

@@ -3,8 +3,8 @@
 #PBS -d .
 #PBS -t 1
 #PBS -q condo
+#PBS -j oe
 #PBS -o /dev/null
-#PBS -e /dev/null
 #PBS -N run.snakemake
 #PBS -l nodes=1:ppn=3
 #PBS -l walltime=8:00:00
@@ -41,20 +41,33 @@ fi
 # check: are we being executed from within qsub?
 if [ "$ENVIRONMENT" = "BATCH" ]; then
     snakemake \
-    --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -o /dev/null -e $out_path/logs/qlog" \
+    --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -j oe -o \"$out_path/logs/qlog\"" \
     --config out="$out_path" \
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \
     -k \
     -j 12 \
-    "$@" &>"$out_path/logs/log"
+    -c 12 \
+    "$@" >>"$out_path/logs/log" 2>>"$out_path/logs/qlog"
 else
     snakemake \
     --config out="$out_path" \
     --latency-wait 60 \
+    --use-conda \
     --conda-frontend conda \
     -k \
-    -j 12 \
+    -c 12 \
     "$@" 2>>"$out_path/logs/log" >>"$out_path/logs/qlog"
 fi
+
+exit_code="$?"
+if command -v 'slack' &>/dev/null; then
+    if [ "$exit_code" -eq 0 ]; then
+        slack "snakemake finished successfully" &>/dev/null
+    else
+        slack "snakemake simulate_gwas job failed" &>/dev/null
+        slack "$(tail -n4 "$out_path/logs/log")" &>/dev/null
+    fi
+fi
+exit "$exit_code"
