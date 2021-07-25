@@ -36,25 +36,50 @@ chrs = get_vcf_chrs(config['snp_vcf'])
 rule all:
     input:
         expand(
-            out+"/{locus}/{var}_matrix.tsv.gz", var=['snp'],
+            out+"/{locus}/merged.tsv.gz",
             locus=[loc.replace(':', '_') for loc in config['loci']]
         )
 
 rule vcf2gt:
-    """ convert a VCF into a genotype matrix (cols are SNPs and rows are samples) """
+    """ convert a VCF into a genotype matrix (cols are vars and rows are samples) """
     input:
         vcf = lambda wildcards: config[wildcards.var+'_vcf'],
+        vcf_idx = lambda wildcards: config[wildcards.var+'_vcf']+".tbi",
         samps = config['samples']
     params:
         popn = config['superpop'],
-        locus = lambda wildcards: wildcards.chr+":"+wildcards.locus,
+        locus = lambda wildcards: ('chr' if wildcards.var == 'str' else '')+\
+            wildcards.chr+":"+wildcards.locus,
         maf = config['min_maf']
     output:
         matrix = out+"/{chr}_{locus}/{var}_matrix.tsv.gz"
     log: logs+"/{chr}_{locus}/{var}/vcf2gt"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/make_gt_matrix.bash {params.popn} {params.maf} '{params.locus}' "
+        "workflow/scripts/{wildcards.var}_gt_matrix.bash {params.popn} {params.maf} '{params.locus}' "
         "{input.vcf} {input.samps} 2>{log} | gzip > {output.matrix}"
 
-# rule 
+rule str2gt:
+    """ sum the difference of each allele length from the reference allele length """
+    input:
+        matrix = expand(rules.vcf2gt.output, chr='{chr}', locus='{locus}', var='str')
+    output:
+        matrix = out+"/{chr}_{locus}/str_gt_matrix.tsv.gz"
+    log: logs+"/{chr}_{locus}/str2gt"
+    conda: "envs/default.yml"
+    shell:
+        "workflow/scripts/str_gt.py -o {output.matrix} {input.matrix} 2>{log}"
+
+rule merge_vars:
+    """ merge variant files """
+    input:
+        snp_mat = expand(rules.vcf2gt.output, chr='{chr}', locus='{locus}', var='snp'),
+        str_mat = rules.str2gt.output.matrix,
+    output:
+        mat = out+"/{chr}_{locus}/merged.tsv.gz"
+    log: logs+"/{chr}_{locus}/merged"
+    conda: "envs/default.yml"
+    shell:
+        "sort -m -n -k1,1 -t, <(zcat {input.snp_mat}) <(zcat {input.str_mat} | tail -n+2) "
+        "2>{log} | cut -f2- -d, | gzip > {output.mat}"
+
