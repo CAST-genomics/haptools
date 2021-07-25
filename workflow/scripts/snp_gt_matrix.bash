@@ -14,14 +14,6 @@ loc="$3"
 vcf_1000g="$4"
 samps_file="$5"
 
-# zcat "$vcf_1000g" 2>/dev/null | \
-#     grep -E -m1 '^#CHROM' | \
-#     cut -f10- | \
-#     tr '\t' '\n' | \
-#     sort | \
-#     join -j1 -t $'\t' - <(
-#         sort -k1,1 "$samps_file"
-#     ) > "$samps_file"
 
 comm -12 <(
     bcftools query -l "$vcf_1000g" | \
@@ -30,12 +22,11 @@ comm -12 <(
     awk -F $'\t' -v 'OFS=\t' '$6 == "'"$samp"'" {print $1;}' "$samps_file" | \
     sort
 ) | {
-    echo -ne "ID\t"
+    echo -ne "POS,ID\t"
     paste -s -d $'\t'
 } | \
 tee >(
     bcftools view --min-af "$min_maf":minor --samples-file <(tr $'\t' '\n' | tail -n+2) "$vcf_1000g" "$loc" | \
-    bcftools query -f '%CHROM\_%POS\t[%GT\t]\n' | \
-    sed 's/\t$//; s/0|0/0/g; s/0|1/1/g; s/1|0/1/g; s/1|1/2/g'
-) | \
-datamash transpose
+    bcftools query -f '%POS,%ID\t[%GT\t]\n' | \
+    sed 's/\t$//; s/0|0/0/g; s/0|1/1/g; s/1|0/1/g; s/1|1/2/g' # TODO: take into account situations where there is more than one alt allele
+)
