@@ -9,13 +9,17 @@
 
 # Paths to VCFs for SNPs in 1000G
 # If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
+# THe VCF must be sorted and indexed (with a .tbi file in the same directory)
+# It is assumed that the SNPs are phased
 # required!
 snp_vcf: "/projects/ps-gymreklab/resources/datasets/1000Genomes/phase3VCFs/ALL.chr{chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
 
 # Paths to VCFs for STRs in 1000G
 # If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
+# The VCF must be sorted and indexed (with a .tbi file in the same directory)
+# It is assumed that the STRs are unphased
 # required!
-str_vcf: /projects/ps-gymreklab/mousavi/results/1000genomes/hipstr_outs/merged/all_merged.sorted.vcf.gz
+str_vcf: /projects/ps-gymreklab/mousavi/results/1000genomes/outs/merged/all_merged.sorted.vcf.gz
 
 # Path to a 1000G samples TSV file
 # You can get this file by clicking "Download the list" here:
