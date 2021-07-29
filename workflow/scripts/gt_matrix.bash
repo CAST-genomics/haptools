@@ -22,11 +22,11 @@ comm -12 <(
     awk -F $'\t' -v 'OFS=\t' '$6 == "'"$samp"'" {print $1;}' "$samps_file" | \
     sort
 ) | {
-    echo -ne "POS,ID\talleles\t"
+    echo -ne "POS\tID\talleles\t"
     paste -s -d $'\t'
 } | \
 tee >(
-    bcftools view --min-af "$min_maf":minor --samples-file <(tr $'\t' '\n' | tail -n+2) "$vcf_1000g" "$loc" | \
-    bcftools query -f '%POS,%ID\t%REF,%ALT\t[%GT\t]\n' | \
+    bcftools view --min-af "$min_maf":minor --samples-file <(tr $'\t' '\n' | tail -n+4) "$vcf_1000g" "$loc" | \
+    bcftools query -f '%POS\t%ID\t%REF,%ALT\t[%GT\t]\n' | \
     sed 's/\t$//'
 )

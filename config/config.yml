@@ -22,9 +22,10 @@ samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 
 # A list of loci, specifying variants to use within the simulations
 # Each locus can be specified as a dict composed of two keys:
-# 1. "snp" - a string with a contig name, a colon, the start position, a dash, and the
+# 1. "locus" - a string with a contig name, a colon, the start position, a dash, and the
 # end position
 # 2. "str" - a string with a contig name, a colon, and the start position
+# The STR position should be containinged within the locus.
 # The positions should be provided in the same coordinate system as the reference
 # genome of the VCF files.
 # The contig should correspond with the contig name from the {chr} wildcard in the VCF
@@ -41,4 +42,4 @@ superpop: EUR
 
 # Discard rare variants with a MAF below this number
 # Defaults to 0 if not specified
-min_maf: 0.05
+min_maf: 0
