@@ -40,7 +40,7 @@ fi
 # check: are we being executed from within qsub?
 if [ "$ENVIRONMENT" = "BATCH" ]; then
     snakemake \
-    --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -j oe -o \"$out_path/logs/qlog\"" \
+    --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -j oe -o /dev/null" \
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \
@@ -55,7 +55,7 @@ else
     --conda-frontend conda \
     -k \
     -c 12 \
-    "$@" 2>>"$out_path/logs/log" >>"$out_path/logs/qlog"
+    "$@" >>"$out_path/logs/log" 2>>"$out_path/logs/qlog"
 fi
 
 exit_code="$?"
