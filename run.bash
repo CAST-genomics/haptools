@@ -19,7 +19,6 @@
 # with the required input info.
 # Also, make sure that this script is executed from the directory that it lives in!
 
-# you can specify a directory for all output here:
 out_path="out"
 mkdir -p "$out_path/logs"
 
@@ -42,7 +41,6 @@ fi
 if [ "$ENVIRONMENT" = "BATCH" ]; then
     snakemake \
     --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -j oe -o \"$out_path/logs/qlog\"" \
-    --config out="$out_path" \
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \
@@ -52,7 +50,6 @@ if [ "$ENVIRONMENT" = "BATCH" ]; then
     "$@" >>"$out_path/logs/log" 2>>"$out_path/logs/qlog"
 else
     snakemake \
-    --config out="$out_path" \
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \

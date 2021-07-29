@@ -42,7 +42,3 @@ superpop: EUR
 # Discard rare variants with a MAF below this number
 # Defaults to 0 if not specified
 min_maf: 0.05
-
-# Path to the directory in which to store all output of the pipeline
-# Defaults to "out" if not specified
-out: out

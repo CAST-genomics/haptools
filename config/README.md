@@ -15,5 +15,3 @@ In order to run the pipeline on your own data, you must specify inputs and optio
     Please provide a three letter code, corresponding to the symbol in the samples file. This will default to EUR (aka european ancestry), if not specified.
 2. `min_maf` (float) - The pipeline will discard rare SNPs with an MAF below this number
 	This will default to 0 if not specified, but we recommend a value of at least 0.1
-4. `out` (str) - The path to a directory in which to place all of the output of the pipeline
-	This will default to "out" in the current working directory if not specified.
