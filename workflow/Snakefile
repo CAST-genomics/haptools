@@ -22,6 +22,8 @@ config['min_maf'] = check_config('min_maf', 0)
 out = str(Path(config['out']))
 logs = out+"/logs"
 bench = out+"/bench"
+# parse loci
+loci = {loc['locus'].replace(':', '_'):loc for loc in config['loci']}
 
 def get_vcf_chrs(vcf_path):
     """ return a dict of VCFs split by contig """
@@ -29,57 +31,52 @@ def get_vcf_chrs(vcf_path):
         return glob_wildcards(vcf_path).chr
     return []
 
-chrs = get_vcf_chrs(config['snp_vcf'])
+chrs = get_vcf_chrs(config['ref_panel'])
 
 
 
 rule all:
     input:
         expand(
-            out+"/{locus}/merged.tsv.gz",
-            locus=[loc.replace(':', '_') for loc in config['loci']]
+            out+"/{locus}/gt_matrix.tsv.gz", locus=loci.keys()
         )
 
 rule vcf2gt:
     """ convert a VCF into a genotype matrix (cols are vars and rows are samples) """
     input:
-        vcf = lambda wildcards: config[wildcards.var+'_vcf'],
-        vcf_idx = lambda wildcards: config[wildcards.var+'_vcf']+".tbi",
-        samps = config['samples']
+        vcf = config['ref_panel'],
+        vcf_idx = config['ref_panel']+".tbi",
+        samps = config['samples'],
     params:
         popn = config['superpop'],
-        locus = lambda wildcards: ('chr' if wildcards.var == 'str' else '')+\
-            wildcards.chr+":"+wildcards.locus,
+        locus = lambda wildcards: loci[wildcards.chr+"_"+wildcards.locus]['locus'],
         maf = config['min_maf']
     output:
-        matrix = out+"/{chr}_{locus}/{var}_matrix.tsv.gz"
-    log: logs+"/{chr}_{locus}/{var}/vcf2gt"
+        matrix = out+"/{chr}_{locus}/matrix.tsv.gz"
+    log: logs+"/{chr}_{locus}/vcf2gt"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/{wildcards.var}_gt_matrix.bash {params.popn} {params.maf} '{params.locus}' "
+        "workflow/scripts/gt_matrix.bash {params.popn} {params.maf} '{params.locus}' "
         "{input.vcf} {input.samps} 2>{log} | gzip > {output.matrix}"
 
 rule str2gt:
     """ sum the difference of each allele length from the reference allele length """
     input:
-        matrix = expand(rules.vcf2gt.output, chr='{chr}', locus='{locus}', var='str')
+        matrix = rules.vcf2gt.output
     output:
-        matrix = out+"/{chr}_{locus}/str_gt_matrix.tsv.gz"
+        matrix = out+"/{chr}_{locus}/gt_matrix.tsv.gz"
     log: logs+"/{chr}_{locus}/str2gt"
     conda: "envs/default.yml"
     shell:
         "workflow/scripts/str_gt.py -o {output.matrix} {input.matrix} 2>{log}"
 
-rule merge_vars:
-    """ merge variant files """
+rule phens:
+    """ generate phenotypes from the genotype matrix """
     input:
-        snp_mat = expand(rules.vcf2gt.output, chr='{chr}', locus='{locus}', var='snp'),
-        str_mat = rules.str2gt.output.matrix,
+        matrix = rules.str2gt.output
     output:
-        mat = out+"/{chr}_{locus}/merged.tsv.gz"
-    log: logs+"/{chr}_{locus}/merged"
+        phenotypes = out+"/{chr}_{locus}/phens.tsv.gz"
+    log: logs+"/{chr}_{locus}/phens"
     conda: "envs/default.yml"
     shell:
-        "sort -m -n -k1,1 -t, <(zcat {input.snp_mat}) <(zcat {input.str_mat} | tail -n+2) "
-        "2>{log} | cut -f2- -d, | gzip > {output.mat}"
-
+        "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} {input.matrix}"

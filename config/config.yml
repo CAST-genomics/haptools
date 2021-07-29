@@ -7,35 +7,31 @@
 # Note: this file is written in the YAML syntax (https://learnxinyminutes.com/docs/yaml/)
 
 
-# Paths to VCFs for SNPs in 1000G
+# Paths to a SNP-STR haplotype reference panel for 1000G
+# You can download this from http://gymreklab.com/2018/03/05/snpstr_imputation.html
 # If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
-# THe VCF must be sorted and indexed (with a .tbi file in the same directory)
-# It is assumed that the SNPs are phased
+# The VCF(s) must be sorted and indexed (with a .tbi file in the same directory)
 # required!
-snp_vcf: "/projects/ps-gymreklab/resources/datasets/1000Genomes/phase3VCFs/ALL.chr{chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
-
-# Paths to VCFs for STRs in 1000G
-# If the VCFs are per-chromosome, replace the contig name in the file name with "{chr}"
-# The VCF must be sorted and indexed (with a .tbi file in the same directory)
-# It is assumed that the STRs are unphased
-# required!
-str_vcf: /projects/ps-gymreklab/mousavi/results/1000genomes/outs/merged/all_merged.sorted.vcf.gz
+ref_panel: "/projects/ps-gymreklab/resources/datasets/snpstr/1kg.snp.str.chr{chr}.vcf.gz"
 
 # Path to a 1000G samples TSV file
 # You can get this file by clicking "Download the list" here:
 # https://www.internationalgenome.org/data-portal/sample
 # required!
-samples: data/igsr_samples.tsv
+samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 
-# A list of loci, specifying SNPs to use within the simulations
-# Each locus can be specified as a string composed of a contig name, a colon, the start
-# position, a dash, and the end position.
+# A list of loci, specifying variants to use within the simulations
+# Each locus can be specified as a dict composed of two keys:
+# 1. "snp" - a string with a contig name, a colon, the start position, a dash, and the
+# end position
+# 2. "str" - a string with a contig name, a colon, and the start position
 # The positions should be provided in the same coordinate system as the reference
 # genome of the VCF files.
-# THe contig should correspond with the contig name from the {chr} wildcard in the VCF
+# The contig should correspond with the contig name from the {chr} wildcard in the VCF
 # required!
 loci:
-  - 1:98001984-99001984
+  - locus: 1:98001984-99001984
+    str: 1:98506615
   # - 1:10177-1010177
 
 # Which 1000G superpopulation should be used?
@@ -43,7 +39,7 @@ loci:
 # This will default to EUR (aka european ancestry), if not specified
 superpop: EUR
 
-# Discard rare SNPs with a MAF below this number
+# Discard rare variants with a MAF below this number
 # Defaults to 0 if not specified
 min_maf: 0.05
 
