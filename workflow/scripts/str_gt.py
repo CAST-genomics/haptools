@@ -4,6 +4,8 @@ import sys
 import argparse
 import pandas as pd
 
+from IPython import embed
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -69,10 +71,11 @@ def main(args):
     ]).sort_index()
 
     # convert ID column to snp_status and remove unnecessary alleles col
-    gt['ID'] = gt['ID'].astype('uint8')
-    gt.rename({'ID':'is_str'}, axis=1, inplace=True)
-    gt.drop('alleles', axis=1, inplace=True)
+    gt.index = gt.index.astype(str) + ":" + gt['ID'].astype('uint8').astype(str)
+    gt.drop(['ID', 'alleles'], axis=1, inplace=True)
 
+    gt = gt.transpose()
+    gt.index.rename('sample', inplace=True)
     gt.to_csv(args.out, sep="\t")
 
 

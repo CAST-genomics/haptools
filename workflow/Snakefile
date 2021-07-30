@@ -79,4 +79,5 @@ rule phens:
     log: logs+"/{chr}_{locus}/phens"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} {input.matrix}"
+        "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} "
+        "{wildcards.locus} {input.matrix}"
