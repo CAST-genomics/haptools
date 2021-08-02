@@ -25,7 +25,7 @@ samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 # 1. "locus" - a string with a contig name, a colon, the start position, a dash, and the
 # end position
 # 2. "str" - a string with a contig name, a colon, and the start position
-# The STR position should be containinged within the locus.
+# The STR position should be contained within the locus.
 # The positions should be provided in the same coordinate system as the reference
 # genome of the VCF files.
 # The contig should correspond with the contig name from the {chr} wildcard in the VCF
@@ -34,6 +34,10 @@ loci:
   - locus: 1:98001984-99001984
     str: 1:98506615
   # - 1:10177-1010177
+
+# Generate phenotypes for either SNP or STR ("snp" or "str")
+# defaults to "snp"
+mode: snp
 
 # Which 1000G superpopulation should be used?
 # Please provide a three letter code, corresponding to the symbol in the samples file

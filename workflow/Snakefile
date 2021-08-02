@@ -18,6 +18,7 @@ def check_config(value, default=False, place=config):
 config['out'] = check_config('out', 'out')
 config['superpop'] = check_config('superpop', 'EUR')
 config['min_maf'] = check_config('min_maf', 0)
+config['mode'] = check_config('mode', 'snp')
 # remove any trailing slashes in directories and set the variables
 out = str(Path(config['out']))
 logs = out+"/logs"
@@ -38,7 +39,7 @@ chrs = get_vcf_chrs(config['ref_panel'])
 rule all:
     input:
         expand(
-            out+"/{locus}/gt_matrix.tsv.gz", locus=loci.keys()
+            out+"/{locus}/phens.tsv.gz", locus=loci.keys()
         )
 
 rule vcf2gt:
@@ -62,22 +63,31 @@ rule vcf2gt:
 rule str2gt:
     """ sum the difference of each allele length from the reference allele length """
     input:
-        matrix = rules.vcf2gt.output
+        matrix = out+"/{locus}/matrix.tsv.gz"
     output:
-        matrix = out+"/{chr}_{locus}/gt_matrix.tsv.gz"
-    log: logs+"/{chr}_{locus}/str2gt"
+        matrix = out+"/{locus}/gt_matrix.tsv.gz"
+    log: logs+"/{locus}/str2gt"
     conda: "envs/default.yml"
     shell:
         "workflow/scripts/str_gt.py -o {output.matrix} {input.matrix} 2>{log}"
+
+def phen_loc(wildcards):
+    if config['mode'] == 'snp':
+        return '--max-vars 1'
+    else:
+        return '--str-loc '+loci[wildcards.locus]['str'].split(':')[1]
 
 rule phens:
     """ generate phenotypes from the genotype matrix """
     input:
         matrix = rules.str2gt.output
+    params:
+        loc = phen_loc,
+        beta = 0.1
     output:
-        phenotypes = out+"/{chr}_{locus}/phens.tsv.gz"
-    log: logs+"/{chr}_{locus}/phens"
+        phenotypes = out+"/{locus}/phens.tsv.gz"
+    log: logs+"/{locus}/phens"
     conda: "envs/default.yml"
     shell:
         "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} "
-        "{wildcards.locus} {input.matrix}"
+        "--beta-"+config['mode']+" {params.beta} {params.loc} {input.matrix}"
