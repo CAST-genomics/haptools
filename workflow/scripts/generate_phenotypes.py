@@ -49,13 +49,17 @@ def parse_args():
 def main(args):
     np.random.seed(40)
     if args.str_loc or args.snp_loc:
-        gt = pd.read_csv(
-            args.gt_matrix, sep="\t", index_col=0,
-            usecols=[
-                idx+":0" for idx in args.snp_loc
-            ] + [
+        variants = ['sample']
+        if args.str_loc:
+            variants.extend([
                 idx+":1" for idx in args.str_loc
-            ]
+            ])
+        else:
+            variants.extend([
+                idx+":0" for idx in args.snp_loc
+            ])
+        gt = pd.read_csv(
+            args.gt_matrix, sep="\t", index_col=0, usecols=variants
         )
     elif args.max_vars:
         gt = pd.read_csv(

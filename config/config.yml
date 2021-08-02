@@ -37,7 +37,7 @@ loci:
 
 # Generate phenotypes for either SNP or STR ("snp" or "str")
 # defaults to "snp"
-mode: snp
+mode: str
 
 # Which 1000G superpopulation should be used?
 # Please provide a three letter code, corresponding to the symbol in the samples file

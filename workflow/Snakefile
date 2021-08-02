@@ -90,4 +90,4 @@ rule phens:
     conda: "envs/default.yml"
     shell:
         "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} "
-        "--beta-"+config['mode']+" {params.beta} {params.loc} {input.matrix}"
+        "--beta-"+config['mode']+" {params.beta} {params.loc} -- {input.matrix}"
