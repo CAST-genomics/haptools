@@ -80,7 +80,7 @@ def main(args):
         beta_val = args.beta_str if int(col[-1]) else args.beta_snp
         gt['phen'] = gt[col]*beta_val + gt['phen']
     # add some noise! sample randomly from a gaussian distribution
-    gt['phen'] = normal(scale=sqrt(1-(beta_val**2)), size=gt[col].shape)
+    gt['phen'] += normal(scale=sqrt(1-(beta_val**2)), size=gt[col].shape)
 
     gt.to_csv(args.out, header=True, sep="\t")
 
