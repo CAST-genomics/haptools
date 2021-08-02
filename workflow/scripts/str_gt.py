@@ -4,8 +4,6 @@ import sys
 import argparse
 import pandas as pd
 
-from IPython import embed
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -54,7 +52,7 @@ def create_str_gt_matrix(str_gt):
         samp_gt = pd.DataFrame(index_list_of_lists_by_list(alleles, samp_gt.iterrows()), index=ref_len.index)
         # THIS IS WHERE THE MAGIC HAPPENS!
         # the GT is the sum of the differences between sample GT len and the REF len
-        str_gt[sample] = samp_gt.sub(ref_len, axis=0).abs().sum(axis=1)
+        str_gt[sample] = samp_gt.sub(ref_len, axis=0).sum(axis=1)
     return str_gt
 
 
