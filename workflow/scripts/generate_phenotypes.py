@@ -49,6 +49,7 @@ def parse_args():
 def main(args):
     np.random.seed(40)
     if args.str_loc or args.snp_loc:
+        # if a specific STR or SNP has been requested...
         variants = ['sample']
         if args.str_loc:
             variants.extend([
@@ -62,6 +63,7 @@ def main(args):
             args.gt_matrix, sep="\t", index_col=0, usecols=variants
         )
     elif args.max_vars:
+        # if we should just choose a random variant...
         gt = pd.read_csv(
             args.gt_matrix, sep="\t", index_col=0
         )
