@@ -19,12 +19,16 @@ config['out'] = check_config('out', 'out')
 config['superpop'] = check_config('superpop', 'EUR')
 config['min_maf'] = check_config('min_maf', 0)
 config['mode'] = check_config('mode', 'snp')
+config['beta'] = check_config('beta', 0.1)
 # remove any trailing slashes in directories and set the variables
 out = str(Path(config['out']))
 logs = out+"/logs"
 bench = out+"/bench"
 # parse loci
 loci = {loc['locus'].replace(':', '_'):loc for loc in config['loci']}
+# ensure this is a list of floats, not a single float!
+if not isinstance(config['beta'], list):
+    config['beta'] = [config['beta']]
 
 def get_vcf_chrs(vcf_path):
     """ return a dict of VCFs split by contig """
@@ -39,7 +43,7 @@ chrs = get_vcf_chrs(config['ref_panel'])
 rule all:
     input:
         expand(
-            out+"/{locus}/phens.tsv.gz", locus=loci.keys()
+            out+"/{locus}/sim{beta}_"+config['mode']+"/susieR/finemap.pdf", locus=loci.keys(), beta=config['beta']
         )
 
 rule vcf2gt:
@@ -83,11 +87,34 @@ rule phens:
         matrix = rules.str2gt.output
     params:
         loc = phen_loc,
-        beta = 0.1
+        beta = lambda wildcards: wildcards.beta
     output:
-        phenotypes = out+"/{locus}/phens.tsv.gz"
-    log: logs+"/{locus}/phens"
+        phenotypes = out+"/{locus}/sim{beta}_"+config['mode']+"/phens.tsv.gz"
+    log: logs+"/{locus}/{beta}/"+config['mode']+"/phens"
     conda: "envs/default.yml"
     shell:
         "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} "
-        "--beta-"+config['mode']+" {params.beta} {params.loc} -- {input.matrix}"
+        "--beta-"+config['mode']+" {params.beta} {params.loc} -- {input.matrix} &>{log}"
+
+run_methods_out = out+"/{locus}/sim{beta}_"+config['mode']+"/susieR"
+rule run_methods:
+    """
+        run the methods FINEMAP and SuSie
+        and generate plots with results
+    """
+    input:
+        gt = rules.phens.input,
+        phen = rules.phens.output
+    params:
+        outdir = run_methods_out
+    output:
+        sumstats = temp(run_methods_out+"/sumstats.rds"),
+        finemap = run_methods_out+"/finemap.rds",
+        susie = run_methods_out+"/susie.rds",
+        finemap_pdf = run_methods_out+"/finemap.pdf",
+        susie_pdf = run_methods_out+"/susie.pdf",
+        susie_eff_pdf = temp(run_methods_out+"/susie_eff.pdf")
+    log: logs+"/{locus}/{beta}/"+config['mode']+"/methods"
+    conda: "envs/susie.yml"
+    shell:
+        "workflow/scripts/finemapping_methods.R {input} {params.outdir} &>{log}"

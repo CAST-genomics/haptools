@@ -3,11 +3,11 @@ channels:
     - nodefaults
 dependencies:
     - conda-forge::r-susier==0.11.42
-    - conda-forge::r-abind==1.2
+    - conda-forge::r-abind==1.4_5
     - conda-forge::r-dplyr==1.0.7
     - conda-forge::r-readr==1.4.0
     - aryarm::r-dscrutils==0.4.3
-    - conda-forge::irkernel==1.4_5
+    - conda-forge::r-irkernel==1.2
     - conda-forge::sos-notebook==0.22.3
     - conda-forge::coreutils==8.31
     - conda-forge::sed==4.8

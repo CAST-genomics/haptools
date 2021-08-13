@@ -37,7 +37,7 @@ loci:
 
 # Generate phenotypes for either SNP or STR ("snp" or "str")
 # defaults to "snp"
-mode: str
+mode: snp
 
 # Which 1000G superpopulation should be used?
 # Please provide a three letter code, corresponding to the symbol in the samples file
@@ -47,3 +47,8 @@ superpop: EUR
 # Discard rare variants with a MAF below this number
 # Defaults to 0 if not specified
 min_maf: 0
+
+# The strength of association between the chosen STR or SNP and the simulated phenotype
+# Defaults to 0.1 if not specified
+# You can also provide a list of floats, if you want to test several beta values
+beta: [0.05, 0.1, 0.15, 0.2, 0.3]
