@@ -15,3 +15,5 @@ In order to run the pipeline on your own data, you must specify inputs and optio
     Please provide a three letter code, corresponding to the symbol in the samples file. This will default to EUR (aka european ancestry), if not specified.
 2. `min_maf` (float) - The pipeline will discard rare SNPs with an MAF below this number
 	This will default to 0 if not specified, but we recommend a value of at least 0.1
+3. `beta` (float) - The strength of association between the chosen STR or SNP and the simulated phenotype
+	This will default to 0.1 if not specified. You can also provide a list of floats intead of a single float, if you want the pipeline to try a number of different values.
