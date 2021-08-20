@@ -25,7 +25,9 @@ samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 # 1. "locus" - a string with a contig name, a colon, the start position, a dash, and the
 # end position
 # 2. "str" - a string with a contig name, a colon, and the start position
-# The STR position should be contained within the locus.
+# 3. (optionally) "snp" - same format as "str"
+#   If this key is not provided, a random SNP will be chosen.
+# The STR and SNP positions should be contained within the locus.
 # The positions should be provided in the same coordinate system as the reference
 # genome of the VCF files.
 # The contig should correspond with the contig name from the {chr} wildcard in the VCF
@@ -33,11 +35,15 @@ samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 loci:
   - locus: 1:98001984-99001984
     str: 1:98506615
-  # - 1:10177-1010177
+    snp: 1:98501984
+  - locus: 10:104457618-105457618
+    str: 10:104639652
+    snp: 10:104612335
 
-# Generate phenotypes for either SNP or STR ("snp" or "str")
+# Generates phenotypes for either SNP or STR ("snp" or "str")
+# If you want to run multiple modes, just provide them in a list.
 # defaults to "snp"
-mode: snp
+mode: [snp, str]
 
 # Which 1000G superpopulation should be used?
 # Please provide a three letter code, corresponding to the symbol in the samples file
@@ -51,4 +57,4 @@ min_maf: 0
 # The strength of association between the chosen STR or SNP and the simulated phenotype
 # Defaults to 0.1 if not specified
 # You can also provide a list of floats, if you want to test several beta values
-beta: [0.05, 0.1, 0.15, 0.2, 0.3]
+beta: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]

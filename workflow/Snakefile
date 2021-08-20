@@ -4,7 +4,7 @@ import snakemake.io as io
 from snakemake.utils import min_version
 
 ##### set minimum snakemake version #####
-min_version("6.5.3")
+min_version("6.7.0")
 
 
 # IMPORT CONFIG VARIABLES
@@ -29,6 +29,9 @@ loci = {loc['locus'].replace(':', '_'):loc for loc in config['loci']}
 # ensure this is a list of floats, not a single float!
 if not isinstance(config['beta'], list):
     config['beta'] = [config['beta']]
+# ensure this is a list of strs, not a single str!
+if not isinstance(config['mode'], list):
+    config['mode'] = [config['mode']]
 
 def get_vcf_chrs(vcf_path):
     """ return a dict of VCFs split by contig """
@@ -43,7 +46,8 @@ chrs = get_vcf_chrs(config['ref_panel'])
 rule all:
     input:
         expand(
-            out+"/{locus}/sim{beta}_"+config['mode']+"/susieR/finemap.pdf", locus=loci.keys(), beta=config['beta']
+           out+"/{locus}/sim/{mode}/{beta}/susieR/finemap.pdf",
+           locus=loci.keys(), beta=config['beta'], mode=config['mode']
         )
 
 rule vcf2gt:
@@ -77,6 +81,8 @@ rule str2gt:
 
 def phen_loc(wildcards):
     if config['mode'] == 'snp':
+        if 'snp' in loci[wildcards.locus]:
+            return '--snp-loc '+loci[wildcards.locus]['snp'].split(':')[1]
         return '--max-vars 1'
     else:
         return '--str-loc '+loci[wildcards.locus]['str'].split(':')[1]
@@ -87,16 +93,17 @@ rule phens:
         matrix = rules.str2gt.output
     params:
         loc = phen_loc,
-        beta = lambda wildcards: wildcards.beta
+        beta = lambda wildcards: wildcards.beta,
+        mode = lambda wildcards: wildcards.mode,
     output:
-        phenotypes = out+"/{locus}/sim{beta}_"+config['mode']+"/phens.tsv.gz"
-    log: logs+"/{locus}/{beta}/"+config['mode']+"/phens"
+        phenotypes = out+"/{locus}/sim/{mode}/{beta}/phens.tsv.gz"
+    log: logs+"/{locus}/sim/{mode}/{beta}/phens"
     conda: "envs/default.yml"
     shell:
         "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} "
-        "--beta-"+config['mode']+" {params.beta} {params.loc} -- {input.matrix} &>{log}"
+        "--beta-{params.mode} {params.beta} {params.loc} -- {input.matrix} &>{log}"
 
-run_methods_out = out+"/{locus}/sim{beta}_"+config['mode']+"/susieR"
+run_methods_out = out+"/{locus}/sim/{mode}/{beta}/susieR"
 rule run_methods:
     """
         run the methods FINEMAP and SuSie
@@ -114,7 +121,7 @@ rule run_methods:
         finemap_pdf = run_methods_out+"/finemap.pdf",
         susie_pdf = run_methods_out+"/susie.pdf",
         susie_eff_pdf = temp(run_methods_out+"/susie_eff.pdf")
-    log: logs+"/{locus}/{beta}/"+config['mode']+"/methods"
+    log: logs+"/{locus}/sim/{mode}/{beta}/methods"
     conda: "envs/susie.yml"
     shell:
         "workflow/scripts/finemapping_methods.R {input} {params.outdir} &>{log}"
