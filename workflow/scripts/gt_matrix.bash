@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 
 # arg1: the superpopulation to sample from
-# arg2: the minimum minor allele frequency
-# arg3: the locus from which to obtain the genotypes
-# arg4: VCF file from which to obtain genotypes
-# arg5: samples file from 1000G website (contains columns: Sample name|Sex|Biosample ID|Population code|Population name|Superpopulation code|Superpopulation name|Population elastic ID|Data collections)
-# ex: workflow/scripts/make_genotype_matrix.bash EUR 0.1 /projects/ps-gymreklab/mousavi/results/1000genomes/outs/merged/all_merged.sorted.vcf.gz data/igsr_samples.tsv
+# arg2: the locus from which to obtain the genotypes
+# arg3: VCF file from which to obtain genotypes
+# arg4: samples file from 1000G website (contains columns: Sample name|Sex|Biosample ID|Population code|Population name|Superpopulation code|Superpopulation name|Population elastic ID|Data collections)
+# ex: workflow/scripts/gt_matrix.bash EUR '1:98001984-99001984' /projects/ps-gymreklab/resources/datasets/snpstr/1kg.snp.str.chr1.vcf.gz data/igsr_samples.tsv
+
 
 
 samp="$1"
-min_maf="$2"
-loc="$3"
-vcf_1000g="$4"
-samps_file="$5"
+loc="$2"
+vcf_1000g="$3"
+samps_file="$4"
 
 
 comm -12 <(
@@ -22,11 +21,12 @@ comm -12 <(
     awk -F $'\t' -v 'OFS=\t' '$6 == "'"$samp"'" {print $1;}' "$samps_file" | \
     sort
 ) | {
-    echo -ne "POS\tID\talleles\t"
+    echo -ne "POS\tID\tMAF\talleles\t"
     paste -s -d $'\t'
 } | \
 tee >(
-    bcftools view --min-af "$min_maf":minor --samples-file <(tr $'\t' '\n' | tail -n+4) "$vcf_1000g" "$loc" | \
-    bcftools query -f '%POS\t%ID\t%REF,%ALT\t[%GT\t]\n' | \
+    bcftools view --samples-file <(tr $'\t' '\n' | tail -n+5) "$vcf_1000g" "$loc" | \
+    bcftools +fill-tags - -- -t MAF | \
+    bcftools query -f '%POS\t%ID\t%INFO/MAF\t%REF,%ALT\t[%GT\t]\n' | \
     sed 's/\t$//'
 )

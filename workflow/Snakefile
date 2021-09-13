@@ -58,26 +58,27 @@ rule vcf2gt:
         samps = config['samples'],
     params:
         popn = config['superpop'],
-        locus = lambda wildcards: loci[wildcards.chr+"_"+wildcards.locus]['locus'],
-        maf = config['min_maf']
+        locus = lambda wildcards: loci[wildcards.chr+"_"+wildcards.locus]['locus']
     output:
         matrix = out+"/{chr}_{locus}/matrix.tsv.gz"
     log: logs+"/{chr}_{locus}/vcf2gt"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/gt_matrix.bash {params.popn} {params.maf} '{params.locus}' "
+        "workflow/scripts/gt_matrix.bash {params.popn} '{params.locus}' "
         "{input.vcf} {input.samps} 2>{log} | gzip > {output.matrix}"
 
 rule str2gt:
     """ sum the difference of each allele length from the reference allele length """
     input:
         matrix = out+"/{locus}/matrix.tsv.gz"
+    params:
+        maf = config['min_maf']
     output:
         matrix = out+"/{locus}/gt_matrix.tsv.gz"
     log: logs+"/{locus}/str2gt"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/str_gt.py -o {output.matrix} {input.matrix} 2>{log}"
+        "workflow/scripts/str_gt.py -o {output.matrix} -m {params.maf} {input.matrix} 2>{log}"
 
 def phen_loc(wildcards):
     if config['mode'] == 'snp':

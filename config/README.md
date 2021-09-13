@@ -5,7 +5,7 @@ In order to run the pipeline on your own data, you must specify inputs and optio
 
     If there are multiple, per-chromosome VCFs, just specify one path but replace the contig name in the file name with `{chr}`.
 
-    The VCF(s) must be sorted and indexed (with a `.tbi` file in the same directory)
+    The VCF(s) must be sorted and indexed (with a `.tbi` file in the same directory). In additition, the varaint IDs of each STR in the VCF must have 'STR_' prepended.
 2. `samples` (str) - The path to a 1000G samples TSV file
 
     You can get this file by clicking "Download the list" [here](https://www.internationalgenome.org/data-portal/sample).

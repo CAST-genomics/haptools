@@ -5,6 +5,18 @@ import argparse
 import pandas as pd
 
 
+OTHER_COLS = ['ID', 'MAF', 'alleles']
+
+def restricted_float(x):
+    try:
+        x = float(x)
+    except ValueError:
+        raise argparse.ArgumentTypeError("%r not a floating-point literal" % (x,))
+
+    if x < 0.0 or x > 1.0:
+        raise argparse.ArgumentTypeError("%r not in range [0.0, 1.0]"%(x,))
+    return x
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=
@@ -13,6 +25,10 @@ def parse_args():
     parser.add_argument(
         '-o', '--out', default=sys.stdout,
         help='path to TSV file where variants are rows and samples are cols'
+    )
+    parser.add_argument(
+        '-m', '--min-maf', type=restricted_float, default=0,
+        help='discard all SNPs that have an MAF below this number'
     )
     parser.add_argument(
         'gt_matrix', nargs='?', default=sys.stdin,
@@ -27,9 +43,9 @@ def index_list_of_lists_by_list(list_of_lists, indices):
         idx = idx[1]
         yield (items[idx[0]], items[idx[1]])
 
-def create_snp_gt_matrix(snp_gt):
+def create_snp_gt_matrix(snp_gt, min_maf):
     """ convert the genotype entires into 0, 1, or 2 """
-    return snp_gt.replace(['0|0', '0|1', '1|0', '1|1'], [0, 1, 1, 2])
+    return snp_gt[snp_gt['MAF'] > min_maf].replace(['0|0', '0|1', '1|0', '1|1'], [0, 1, 1, 2])
 
 
 def create_str_gt_matrix(str_gt):
@@ -43,7 +59,7 @@ def create_str_gt_matrix(str_gt):
     # get the length of the ref allele, in each case
     ref_len = str_gt.alleles.str[0].str.len()
     for sample in str_gt.columns:
-        if sample in ('alleles', 'ID'):
+        if sample in OTHER_COLS:
             continue
         # note: this strategy is probably slow -- it creates a list of lists instead
         # of vectorizing
@@ -65,12 +81,12 @@ def main(args):
 
     # convert to proper genotype values
     gt = pd.concat([
-        create_snp_gt_matrix(snp_gt), create_str_gt_matrix(gt[gt['ID']].copy())
+        create_snp_gt_matrix(snp_gt, args.min_maf), create_str_gt_matrix(gt[gt['ID']].copy())
     ]).sort_index()
 
     # convert ID column to snp_status and remove unnecessary alleles col
     gt.index = gt.index.astype(str) + ":" + gt['ID'].astype('uint8').astype(str)
-    gt.drop(['ID', 'alleles'], axis=1, inplace=True)
+    gt.drop(OTHER_COLS, axis=1, inplace=True)
 
     gt = gt.transpose()
     gt.index.rename('sample', inplace=True)
