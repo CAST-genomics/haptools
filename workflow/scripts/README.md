@@ -12,6 +12,9 @@ Uses pre-existing gentoype matrices to create a file of phenotypes.
 ## [gt_matrix.bash](gt_matrix.bash)
 Creates a genotype matrix (with entries 0, 1, or 2) from a VCF of SNPs. Each column is a sample and the rows are SNPs.
 
+## [ld_heatmap.py](ld_heatmap.py)
+Creates a heatmap of the LD pattern among the variants in a genotype matrix.
+
 ## [plot_phenotypes.py](plot_phenotypes.py)
 Performs a linear regression and outputs a plot for phenotypes from `generate_phenotypes.py`.
 
