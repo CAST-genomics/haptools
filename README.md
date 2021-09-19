@@ -1,14 +1,15 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥6.7.0-brightgreen.svg?style=flat-square)](https://snakemake.bitbucket.io)
 
 # simulate_gwas
-Simulate phenotypes for a GWAS analysis and fine-mapping
+Simulate phenotypes for fine-mapping. Use real variants to simulate real, biological LD patterns.
+The pipeline also uses the results of the simulation to test several fine-mapping methods, including FINEMAP and SuSiE.
 
 # download
 Execute the following command.
 ```
 git clone https://github.com/aryarm/simulate_gwas
 ```
-Example data for the pipeline is also available for download upon request.
+You can also download example data for the pipeline. See [the config file](config/config.yml) for links and instructions.
 
 # setup
 The pipeline is written as a Snakefile which can be executed via [Snakemake](https://snakemake.readthedocs.io). For reproduciblity, we recommend installing the version that we used (6.7.0):
