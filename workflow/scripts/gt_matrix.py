@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 
 
+
 OTHER_COLS = ['ID', 'MAF', 'alleles']
 
 def restricted_float(x):
@@ -43,9 +44,20 @@ def index_list_of_lists_by_list(list_of_lists, indices):
         idx = idx[1]
         yield (items[idx[0]], items[idx[1]])
 
+
 def create_snp_gt_matrix(snp_gt, min_maf):
-    """ convert the genotype entires into 0, 1, or 2 """
-    return snp_gt[snp_gt['MAF'] > min_maf].replace(['0|0', '0|1', '1|0', '1|1'], [0, 1, 1, 2])
+    """ convert the genotype entires into 0, 1, or 2 and threshold by MAF """
+    # which columns are the ones we need to change? all except the OTHER_COLS
+    sample_cols = snp_gt.columns.difference(OTHER_COLS)
+    # first, filter by MAF and replace the GTs with (0, 1, or 2)
+    new_matrix = snp_gt[snp_gt['MAF'] > min_maf]
+    new_matrix.loc[:,sample_cols] = new_matrix.loc[:,sample_cols].replace(['0|0', '0|1', '1|0', '1|1'], [0, 1, 1, 2])
+    # now, we must flip entries where the alt allele is minor
+    # we first retrieve the rows of the entries that need to be flipped by calculating
+    # the freq of the alt allele and thresholding by 0.5, and then we just flip them
+    alt_is_minor = (new_matrix[sample_cols].sum(axis=1)/(2*len(sample_cols))) > 0.5
+    new_matrix.loc[alt_is_minor,sample_cols] = new_matrix.loc[alt_is_minor,sample_cols].replace({0:2, 1:1, 2:0})
+    return new_matrix
 
 
 def create_str_gt_matrix(str_gt):
@@ -77,7 +89,7 @@ def main(args):
 
     # split the matrix into STRs and SNPs and drop SNPs that aren't bi-allelic
     gt['ID'] = gt['ID'].str.startswith('STR_')
-    snp_gt = gt[(~gt['ID']) & (gt.alleles.str.len() > 2)]
+    snp_gt = gt.loc[(~gt['ID']) & (gt.alleles.str.len() > 2)]
 
     # convert to proper genotype values
     gt = pd.concat([
