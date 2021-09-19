@@ -64,7 +64,7 @@ rule vcf2gt:
     log: logs+"/{chr}_{locus}/vcf2gt"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/gt_matrix.bash {params.popn} '{params.locus}' "
+        "workflow/scripts/matrix.bash {params.popn} '{params.locus}' "
         "{input.vcf} {input.samps} 2>{log} | gzip > {output.matrix}"
 
 rule str2gt:
@@ -78,7 +78,7 @@ rule str2gt:
     log: logs+"/{locus}/str2gt"
     conda: "envs/default.yml"
     shell:
-        "workflow/scripts/str_gt.py -o {output.matrix} -m {params.maf} {input.matrix} 2>{log}"
+        "workflow/scripts/gt_matrix.py -o {output.matrix} -m {params.maf} {input.matrix} 2>{log}"
 
 def phen_loc(wildcards):
     if config['mode'] == 'snp':

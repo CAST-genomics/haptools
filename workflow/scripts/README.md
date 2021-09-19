@@ -9,8 +9,11 @@ An R script to execute FINEMAP and SuSie and generate Manhattan plots against th
 ## [generate_phenotypes.py](generate_phenotypes.py)
 Uses pre-existing gentoype matrices to create a file of phenotypes.
 
-## [gt_matrix.bash](gt_matrix.bash)
-Creates a genotype matrix (with entries 0, 1, or 2) from a VCF of SNPs. Each column is a sample and the rows are SNPs.
+## [matrix.bash](matrix.bash)
+Extract fields (POS, ID, MAF, GT, and alleles) from a VCF of STRs and SNPs. Each column is a sample and the rows are variants.
+
+## [gt_matrix.py](gt_matrix.py)
+Transform the TSV from `matrix.bash` into a genotype matrix, with entries 0, 1, and 2. Columns are variants and rows are samples. Column names have the variant type appended.
 
 ## [ld_heatmap.py](ld_heatmap.py)
 Creates a heatmap of the LD pattern among the variants in a genotype matrix.
