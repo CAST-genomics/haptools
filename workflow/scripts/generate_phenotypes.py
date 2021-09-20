@@ -59,9 +59,19 @@ def main(args):
             variants.extend([
                 idx+":0" for idx in args.snp_loc
             ])
-        gt = pd.read_csv(
-            args.gt_matrix, sep="\t", index_col=0, usecols=variants
-        )
+        try:
+            gt = pd.read_csv(
+                args.gt_matrix, sep="\t", index_col=0, usecols=variants
+            )
+        except ValueError:
+            # Handle cases in which the variant that the user requested didn't appear
+            # in the genotype matrix, presumably because it was filtered out during
+            # the MAF thresholding
+            raise ValueError(
+                "Do the variants at POS {} pass your MAF threshold?".format(
+                    variants[1:]
+                )
+            )
     elif args.max_vars:
         # if we should just choose a random variant...
         gt = pd.read_csv(

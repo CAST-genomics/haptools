@@ -21,6 +21,3 @@ Creates a heatmap of the LD pattern among the variants in a genotype matrix.
 ## [plot_phenotypes.py](plot_phenotypes.py)
 Performs a linear regression and outputs a plot for phenotypes from `generate_phenotypes.py`.
 
-## [str_gt.py](str_gt.py)
-Compute the sum of the differences of the allele lengths from the reference allele length.
-

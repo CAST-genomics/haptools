@@ -7,7 +7,7 @@
 #PBS -o /dev/null
 #PBS -N run.snakemake
 #PBS -l nodes=1:ppn=3
-#PBS -l walltime=8:00:00
+#PBS -l walltime=2:00:00
 
 
 # An example bash script demonstrating how to run the entire snakemake pipeline
@@ -40,7 +40,7 @@ fi
 # check: are we being executed from within qsub?
 if [ "$ENVIRONMENT" = "BATCH" ]; then
     snakemake \
-    --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -j oe -o /dev/null" \
+    --cluster "qsub -d . -V -q condo -l walltime=00:45:00 -l nodes=1:ppn={threads} -j oe -o /dev/null" \
     --latency-wait 60 \
     --use-conda \
     --conda-frontend conda \
