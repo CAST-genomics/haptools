@@ -20,6 +20,7 @@ config['superpop'] = check_config('superpop', 'EUR')
 config['min_maf'] = check_config('min_maf', 0)
 config['mode'] = check_config('mode', 'snp')
 config['beta'] = check_config('beta', 0.1)
+config['exclude_causal'] = bool(check_config('exclude_causal'))
 # remove any trailing slashes in directories and set the variables
 out = str(Path(config['out']))
 logs = out+"/logs"
@@ -46,7 +47,7 @@ chrs = get_vcf_chrs(config['ref_panel'])
 rule all:
     input:
         expand(
-           out+"/{locus}/sim/{mode}/{beta}/susieR/finemap.pdf",
+           out+"/{locus}/sim/{mode}/{beta}/results/finemap.pdf",
            locus=loci.keys(), beta=config['beta'], mode=config['mode']
         )
 
@@ -104,7 +105,7 @@ rule phens:
         "workflow/scripts/generate_phenotypes.py -o {output.phenotypes} "
         "--beta-{params.mode} {params.beta} {params.loc} -- {input.matrix} &>{log}"
 
-run_methods_out = out+"/{locus}/sim/{mode}/{beta}/susieR"
+run_methods_out = out+"/{locus}/sim/{mode}/{beta}/method_output"
 rule run_methods:
     """
         run the methods FINEMAP and SuSie
@@ -114,15 +115,30 @@ rule run_methods:
         gt = rules.phens.input,
         phen = rules.phens.output
     params:
-        outdir = run_methods_out
+        outdir = run_methods_out,
+        exclude_causal = int(config['exclude_causal'])
     output:
         sumstats = temp(run_methods_out+"/sumstats.rds"),
         finemap = run_methods_out+"/finemap.rds",
-        susie = run_methods_out+"/susie.rds",
-        finemap_pdf = run_methods_out+"/finemap.pdf",
-        susie_pdf = run_methods_out+"/susie.pdf",
-        susie_eff_pdf = temp(run_methods_out+"/susie_eff.pdf")
+        susie = run_methods_out+"/susie.rds"
     log: logs+"/{locus}/sim/{mode}/{beta}/methods"
     conda: "envs/susie.yml"
     shell:
-        "workflow/scripts/finemapping_methods.R {input} {params.outdir} &>{log}"
+        "workflow/scripts/finemapping_methods.R {input} {params} &>{log}"
+
+plot_results_out = out+"/{locus}/sim/{mode}/{beta}/results"
+rule plot_results:
+    """create plots to summarize the results of the simulations"""
+    input:
+        finemap = rules.run_methods.output.finemap,
+        susie = rules.run_methods.output.susie
+    params:
+        outdir = plot_results_out
+    output:
+        finemap_pdf = plot_results_out+"/finemap.pdf",
+        susie_pdf = plot_results_out+"/susie.pdf",
+        susie_eff_pdf = temp(plot_results_out+"/susie_eff.pdf")
+    log: logs+"/{locus}/sim/{mode}/{beta}/results"
+    conda: "envs/susie.yml"
+    script:
+        "scripts/summarize_results.R"

@@ -21,3 +21,5 @@ Creates a heatmap of the LD pattern among the variants in a genotype matrix.
 ## [plot_phenotypes.py](plot_phenotypes.py)
 Performs a linear regression and outputs a plot for phenotypes from `generate_phenotypes.py`.
 
+## [summarize_results.R](summarize_results.R)
+This R script summarizes the output of several executions of FINEMAP and SuSiE by producing several useful visualizations.

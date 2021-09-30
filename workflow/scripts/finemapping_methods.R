@@ -6,6 +6,8 @@
 # param2: The path to a TSV containing the phenotype data.
 # param3: The path to a directory in which to write output
 #         This will be created if it doesn't exist.
+# param4: 1 if the causal variant should be removed from the genotype matrix and
+#         0 otherwise
 
 
 library(abind)
@@ -16,6 +18,7 @@ args = commandArgs(trailingOnly = TRUE)
 gt = args[1]
 phen = args[2]
 out = args[3]
+exclude_causal = as.logical(as.integer(args[4]))
 
 # gt = "out/1_98001984-99001984/gt_matrix.tsv.gz"
 # phen = "out/1_98001984-99001984/phens.tsv.gz"
@@ -33,15 +36,17 @@ p = ncol(gt)
 X = as.matrix(gt[,-1])
 storage.mode(X) = 'double'
 y = as.matrix(phen[,ncol(phen)])
+# what is the column name of the causal variant?
+causal_variant = colnames(phen)[2]
 
 
-# create vector with causal status
-# this vector indicates which variant is truly causal
-b = rep(0,p)
-names(b) = colnames(X)
-b[colnames(phen)[2]] = 1
+# remove the causal variant if requested
+if (exclude_causal) {
+  X = X[,!(colnames(X) %in% c(causal_variant))]
+}
 
 
+# compute summary statistics for FINEMAP
 mm_regression = function(X, Y, Z=NULL) {
   if (!is.null(Z)) {
       Z = as.matrix(Z)
@@ -59,35 +64,21 @@ input = paste0(out,'/sumstats.rds')
 saveRDS(list(data=dat, sumstats=sumstats), input)
 
 
+# run FINEMAP
+# and set an output path; the results will be written to an RDS file with this basename
 output = paste0(out, "/finemap")
-args = "--n-causal-snps 2"
+args = "--n-causal-snps 1"
 commandArgs = function(...) 1
 source(paste0(.libPaths(), '/susieR/code/finemap.R'))
 
 
-finemap = readRDS(paste0(out,"/finemap.rds"))[[1]]
-snp = finemap$snp
-pip = snp[order(as.numeric(snp$snp)),]$snp_prob
+# run SuSiE
+# write the output to an RDS file
+fitted = susieR::susie(X, y, L=1)
 
-
-pdf(paste0(out,'/finemap.pdf'), width =5, height = 5, pointsize=16)
-susieR::susie_plot(pip, y='PIP', b=b, main = 'Bayesian sparse regression')
-dev.off()
-
-
-fitted = susieR::susie(X, y, L=5,
-               estimate_residual_variance=TRUE, 
-               scaled_prior_variance=0.2,
-               tol=1e-3, track_fit=TRUE, min_abs_corr=0.02)
-
-pdf(paste0(out,'/susie.pdf'), width =5, height = 5, pointsize=16)
-susieR::susie_plot(fitted, y='PIP', b=b, max_cs=0.4, main = paste('SuSiE, ', length(fitted$sets$cs), 'CS identified'))
-dev.off()
-
-
-bhat = coef(fitted)[-1]
-pdf(paste0(out,'/susie_eff.pdf'), width =5, height = 5, pointsize=16)
-susieR::susie_plot(bhat, y='bhat', b=b, main = 'SuSiE, effect size estimate') 
-dev.off()
-
-saveRDS(fitted, paste0(out, '/susie.rds'))
+# when writing the output, also include information about which variant is causal
+# and whether it was included in the simulation
+saveRDS(
+  list(causal_var=causal_variant, causal_excluded=exclude_causal, fitted=fitted),
+  paste0(out, '/susie.rds')
+)
