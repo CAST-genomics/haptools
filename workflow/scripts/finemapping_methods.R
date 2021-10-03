@@ -29,11 +29,11 @@ dir.create(out, showWarnings = FALSE)
 # import genotype matrices as proper matrices
 gt = read.csv(gt, sep="\t", header=T)
 phen = read.csv(phen, sep="\t", header=T)
-# the number of samples and the number of variants:
-n = nrow(gt)
-p = ncol(gt)
 # create matrices without unecessary columns
 X = as.matrix(gt[,-1])
+# the number of samples and the number of variants:
+n = nrow(X)
+p = ncol(X)
 storage.mode(X) = 'double'
 y = as.matrix(phen[,ncol(phen)])
 # what is the column name of the causal variant?
