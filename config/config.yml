@@ -58,10 +58,11 @@ min_maf: 0.1
 # The strength of association between the chosen STR or SNP and the simulated phenotype
 # Defaults to 0.1 if not specified
 # You can also provide a list of floats, if you want to test several beta values
-beta: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+beta: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5]
 
 # Whether to include the causal variant in the set of genotypes provided to the
 # finemapping methods. Set this to true if you're interested in seeing how the
 # methods perform when the causal variant is absent from the data.
 # Defaults to false if not specified
-exclude_causal: true
+# You can also provide a list of booleans, if you want to test both values
+exclude_causal: [true, false]

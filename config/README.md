@@ -30,4 +30,4 @@ In order to run the pipeline on your own data, you must specify inputs and optio
 	This will default to 0.1 if not specified. You can also provide a list of floats intead of a single float, if you want the pipeline to try a number of different values.
 5. `exclude_causal` (bool) - Whether to include the causal variant in the genotypes provided to the finemapping methods
 
-	Set this to true if you're interested in seeing how finemapping methods perform when the causal variant is absent from the data. This will default to false if not specified.
+	Set this to true if you're interested in seeing how finemapping methods perform when the causal variant is absent from the data. This will default to false if not specified. You can also provide a list of booleans instead of a single boolean, if you want the pipeline to try a number of different values.s
