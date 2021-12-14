@@ -1,6 +1,6 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥6.7.0-brightgreen.svg?style=flat-square)](https://snakemake.bitbucket.io)
 
-# simulate_gwas
+# admixtools
 Simulate phenotypes for fine-mapping. Use real variants to simulate real, biological LD patterns.
 The pipeline also uses the results of the simulation to test several fine-mapping methods, including FINEMAP and SuSiE.
 
