@@ -1,4 +1,4 @@
-data
-out
+snakemake/data
+snakemake/out
 .snakemake
 .ipynb_checkpoints
