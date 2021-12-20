@@ -11,16 +11,19 @@ import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description=
-        "Use a genotype matrix to create an LD heatmap."
+        description="Use a genotype matrix to create an LD heatmap."
     )
     parser.add_argument(
-        '-o', '--out', default=sys.stdout,
-        help='path to a PNG file to which to write the LD heatmap'
+        "-o",
+        "--out",
+        default=sys.stdout,
+        help="path to a PNG file to which to write the LD heatmap",
     )
     parser.add_argument(
-        'gt_matrix', nargs='?', default=sys.stdin,
-        help='a tab-separated GT matrix where variants are cols and samples are rows'
+        "gt_matrix",
+        nargs="?",
+        default=sys.stdin,
+        help="a tab-separated GT matrix where variants are cols and samples are rows",
     )
     args = parser.parse_args()
     return args
@@ -39,11 +42,15 @@ def main(args):
     # rot = transforms.Affine2D().rotate_deg(45)
     # create the heatmap and write it to the output file
     sns.heatmap(
-        corr, mask=mask, xticklabels=False, yticklabels=False, cmap="YlGnBu",
+        corr,
+        mask=mask,
+        xticklabels=False,
+        yticklabels=False,
+        cmap="YlGnBu",
         # transform=(rot+base)
     )
     plt.savefig(args.out)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(parse_args())
