@@ -1,4 +1,12 @@
-data
-out
+snakemake/data
+snakemake/out
 .snakemake
 .ipynb_checkpoints
+# sphinx documentation
+docs/_build/
+# python cache
+__pycache__
+# pytest cache
+.pytest_cache
+# poetry
+dist/
