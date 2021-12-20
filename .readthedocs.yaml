@@ -1,0 +1,19 @@
+# .readthedocs.yaml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Note: I used https://github.com/readthedocs/readthedocs.org/issues/4912#issuecomment-664002569 for inspiration
+
+version: 2
+
+sphinx:
+  configuration: docs/conf.py
+
+python:
+  version: 3.7
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
+
