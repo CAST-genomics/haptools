@@ -24,7 +24,7 @@ samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 
 # If variants are unphased, provide the path to a SHAPEIT4 map file like these:
 # https://github.com/odelaneau/shapeit4/tree/master/maps
-phase_map: data/genetic_maps.b37.tar.gz
+phase_map: data/genetic_maps/chr{chr}.b37.gmap.gz
 
 # A list of loci, specifying variants to use within the simulations
 # Each locus can be specified as a dict composed of two keys:

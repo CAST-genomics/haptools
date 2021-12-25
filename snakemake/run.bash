@@ -40,7 +40,8 @@ fi
 # check: are we being executed from within qsub?
 if [ "$ENVIRONMENT" = "BATCH" ]; then
     snakemake \
-    --cluster "qsub -d . -V -q condo -l walltime=00:30:00 -l nodes=1:ppn={threads} -j oe -o /dev/null" \
+    --cluster "qsub -d . -V -q condo -l walltime={resources.runtime} -l nodes=1:ppn={threads} -j oe -o /dev/null" \
+    --default-resources 'runtime="00:30:00"' \
     --latency-wait 60 \
     --use-conda \
     --conda-frontend mamba \

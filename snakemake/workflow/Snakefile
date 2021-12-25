@@ -60,11 +60,12 @@ rule plink2vcf:
     input:
         pgen=config["ref_panel"],
     params:
-        pfile=lambda wildcards, input: Path(input.pgen).with_suffix('').name,
-        out=lambda wildcards, output: Path(output.bcf).with_suffix('').name,
+        pfile=lambda wildcards, input: str(Path(input.pgen).with_suffix('')),
+        out=lambda wildcards, output: str(Path(output.bcf).with_suffix('')),
         start=lambda wildcards: wildcards.locus.split('-')[0],
         end=lambda wildcards: wildcards.locus.split('-')[1],
         chrom=lambda wildcards: wildcards.chr,
+        log=lambda wildcards, output: Path(output.bcf).with_suffix('log').name,
     output:
         vcf=temp(out + "/{chr}_{locus}/unphased.vcf.gz"),
         bcf=out + "/{chr}_{locus}/unphased.bcf",
@@ -74,9 +75,9 @@ rule plink2vcf:
     conda:
         "envs/default.yml"
     shell:
-        "plink2 --pfile {params.pfile} --out {params.out} --from-bp {params.start} "
+        "{ plink2 --pfile {params.pfile} --out {params.out} --from-bp {params.start} "
         "--to-bp {params.end} --chr {params.chrom} "
-        "--export vcf bgz id-paste=iid &>{log} && "
+        "--export vcf bgz id-paste=iid &>{log}; rm {params.log}; } && "
         "bcftools view -Ob -o {output.bcf} {output.vcf} &>>{log} && "
         "tabix -p bcf {output.bcf} &>>{log}"
 
@@ -97,6 +98,8 @@ rule phase_gt:
     output:
         phased=out + "/{chr}_{locus}/phased.bcf",
         phased_idx=out + "/{chr}_{locus}/phased.bcf.idx",
+    resources:
+        runtime: "1:30:00"
     threads: 4
     log:
         logs + "/{chr}_{locus}/phase_gt"
@@ -104,7 +107,7 @@ rule phase_gt:
         "envs/shapeit.yml"
     shell:
         "shapeit4 --input {input.unphased} --map {input.map} --region {params.locus} "
-        "--output {output.phased} --threads {threads} --log {log}"
+        "--output {output.phased} --thread {threads} --log {log} &>>{log}"
 
 rule vcf2gt:
     """ convert a VCF into a genotype matrix (cols are vars and rows are samples) """
