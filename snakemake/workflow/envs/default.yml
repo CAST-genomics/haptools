@@ -10,4 +10,5 @@ dependencies:
     - conda-forge::sed==4.8
     - conda-forge::bash==5.0.018
     - conda-forge::gzip==1.10
+    - bioconda::plink2==2.00a2.3
     - conda-forge::ipython # for debugging

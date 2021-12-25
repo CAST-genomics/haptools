@@ -55,11 +55,67 @@ rule all:
         ),
 
 
+rule plink2vcf:
+    """ convert a PLINK file to VCF """
+    input:
+        pgen=config["ref_panel"],
+    params:
+        pfile=lambda wildcards, input: str(Path(input.pgen).with_suffix('')),
+        out=lambda wildcards, output: str(Path(output.bcf).with_suffix('')),
+        start=lambda wildcards: wildcards.locus.split('-')[0],
+        end=lambda wildcards: wildcards.locus.split('-')[1],
+        chrom=lambda wildcards: wildcards.chr,
+        log=lambda wildcards, output: Path(output.bcf).with_suffix('log').name,
+    output:
+        vcf=temp(out + "/{chr}_{locus}/unphased.vcf.gz"),
+        bcf=out + "/{chr}_{locus}/unphased.bcf",
+        bcf_idx=out + "/{chr}_{locus}/unphased.bcf.csi",
+    log:
+        logs + "/{chr}_{locus}/plink2vcf"
+    conda:
+        "envs/default.yml"
+    shell:
+        "{ plink2 --pfile {params.pfile} --out {params.out} --from-bp {params.start} "
+        "--to-bp {params.end} --chr {params.chrom} "
+        "--export vcf bgz id-paste=iid &>{log}; rm {params.log}; } && "
+        "bcftools view -Ob -o {output.bcf} {output.vcf} &>>{log} && "
+        "tabix -p bcf {output.bcf} &>>{log}"
+
+def phase_gt_input(wildcards):
+    input_files = { 'map': config['phase_map'] }
+    if config["ref_panel"].endswith('.pgen'):
+        input_files['unphased'] = rules.plink2vcf.output.bcf
+    else:
+        input_files['unphased'] = config["ref_panel"]
+    input_files['unphased_idx'] = input_files['unphased'] + ".csi"
+    return input_files
+
+rule phase_gt:
+    """ phase an unphased set of genotypes """
+    input: unpack(phase_gt_input)
+    params:
+        locus=lambda wildcards: loci[wildcards.chr + "_" + wildcards.locus]["locus"],
+    output:
+        phased=out + "/{chr}_{locus}/phased.bcf",
+        phased_idx=out + "/{chr}_{locus}/phased.bcf.idx",
+    resources:
+        runtime: "1:30:00"
+    threads: 4
+    log:
+        logs + "/{chr}_{locus}/phase_gt"
+    conda:
+        "envs/shapeit.yml"
+    shell:
+        "shapeit4 --input {input.unphased} --map {input.map} --region {params.locus} "
+        "--output {output.phased} --thread {threads} --log {log} &>>{log}"
+
 rule vcf2gt:
     """ convert a VCF into a genotype matrix (cols are vars and rows are samples) """
     input:
-        vcf=config["ref_panel"],
-        vcf_idx=config["ref_panel"] + ".tbi",
+        vcf=lambda wildcards: rules.phase_gt.output.phased if check_config('phase_map')
+            else config["ref_panel"],
+        vcf_idx=lambda wildcards: rules.phase_gt.output.phased_idx if check_config('phase_map')
+            else config["ref_panel"] + ".tbi",
         samps=config["samples"],
     params:
         popn=config["superpop"],

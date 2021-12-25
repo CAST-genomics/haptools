@@ -13,13 +13,18 @@
 # The VCF(s) must be sorted and indexed (with a .tbi file in the same directory)
 # The variant IDs of STRs must have 'STR_' prepended
 # required!
-ref_panel: "/projects/ps-gymreklab/resources/datasets/snpstr/1kg.snp.str.chr{chr}.vcf.gz"
+# ref_panel: "/projects/ps-gymreklab/resources/datasets/snpstr/1kg.snp.str.chr{chr}.vcf.gz"
+ref_panel: "/projects/ps-gymreklab/resources/datasets/ukbiobank/array_imputed/pfile_converted/chr{chr}.pgen"
 
 # Path to a 1000G samples TSV file
 # You can get this file by clicking "Download the list" here:
 # https://www.internationalgenome.org/data-portal/sample
 # required!
 samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
+
+# If variants are unphased, provide the path to a SHAPEIT4 map file like these:
+# https://github.com/odelaneau/shapeit4/tree/master/maps
+phase_map: data/genetic_maps/chr{chr}.b37.gmap.gz
 
 # A list of loci, specifying variants to use within the simulations
 # Each locus can be specified as a dict composed of two keys:
@@ -34,12 +39,13 @@ samples: /projects/ps-gymreklab/resources/datasets/snpstr/igsr_samples.tsv
 # The contig should correspond with the contig name from the {chr} wildcard in the VCF
 # required!
 loci:
-  - locus: 1:98001984-99001984
-    str: 1:98506615
-    snp: 1:98501984
-  - locus: 10:104457618-105457618
-    str: 10:104639652
-    snp: 10:104612335
+#  - locus: 1:98001984-99001984
+#    str: 1:98506615
+#    snp: 1:98501984
+#  - locus: 10:104457618-105457618
+#    str: 10:104639652
+#    snp: 10:104612335
+   - locus: 16:56927279-57084844
 
 # Generates phenotypes for either SNP or STR ("snp" or "str")
 # If you want to run multiple modes, just provide them in a list.
