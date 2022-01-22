@@ -5,7 +5,7 @@ import click
 from pathlib import Path
 from typing import Union, Tuple
 
-from . import data, tree
+#from . import data, tree
 
 
 @click.group()
@@ -20,6 +20,11 @@ def main():
 
 
 @main.command()
+@click.option('--invcf')
+@click.option('--sample_info')
+@click.option('--model', required=True)
+@click.option('--coords', required=True)
+@click.option('--out', required=True)
 def simulate():
     """
     Use the tool to simulate genotypes
