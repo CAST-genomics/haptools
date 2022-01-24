@@ -1,6 +1,6 @@
 import vcf
 import numpy as np
-from classes import GeneticMarkers, HaplotypeSegments
+from classes import GeneticMarker, HaplotypeSegment
 
 # TODO at a certain point we are going to need to ensure populations in model file are also in invcf files
 #      This is only required for outputting the haplotypes in a vcf 
@@ -32,6 +32,15 @@ def simulate_gt(model_file, coords_file, seed=None):
     mfile = open(model_file, 'r')
     num_samples, not_used, *pops = mfile.readline().strip().split()
 
+    # coord file structure chr variant cMcoord bpcoord
+    coords = []
+    with open(coords_file, 'r') as cfile:
+        for line in cfile:
+            # create marker from each line and append to coords
+            data = line.strip().split()
+            gen_mark = GeneticMarker(int(data[0]), float(data[2]), int(data[3])) 
+            coords.append(gen_mark)
+
     # number of haplotypes simulated per generation
     haps_per_gen = max(10000, 20 * num_samples)
 
@@ -50,12 +59,12 @@ def simulate_gt(model_file, coords_file, seed=None):
         assert np.sum(pop_fracs) == 1
 
         # sim first generation
-        prev_gen_samples = _simulate(num_samples, pop_fracs, pre_gen)
+        prev_gen_samples = _simulate(num_samples, pop_fracs, pre_gen, coords)
 
         # simulate remaining generations
         for generations in range(1, sim_gens):
             # simulate next generations using previous generations to sample from for admixture
-            next_gen_samples = _simulate(num_samples, pop_fracs, pre_gen+i, prev_gen_samples)
+            next_gen_samples = _simulate(num_samples, pop_fracs, pre_gen+i, coords, prev_gen_samples)
             prev_gen_samples = next_gen_samples
 
         prev_gen = cur_gen 
@@ -64,7 +73,7 @@ def simulate_gt(model_file, coords_file, seed=None):
     return
 
 
-def _simulate(samples, pop_fracs, pop_gen, prev_gen_samples=None)
+def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
     # generate all samples
     for sample in range(samples):
         prev_chrom = -1
@@ -89,8 +98,8 @@ def _simulate(samples, pop_fracs, pop_gen, prev_gen_samples=None)
 
         # iterate over all coords in the coords file
         for coord in coords:
-            cur_chrom = # TODO finish
-            cur_map_pos = # TODO finish
+            cur_chrom = coord.get_chrom()
+            cur_map_pos = coord.get_map_pos()
             if prev_chrom < 0:
                 prev_chrom = cur_chrom
             if cur_chrom != prev_chrom:
@@ -113,4 +122,11 @@ def _simulate(samples, pop_fracs, pop_gen, prev_gen_samples=None)
 
         # TODO output debug message for individual simulated
 
+# TODO remove
+def test():
+    model_file = './AA.dat' 
+    coords_file = '/storage/mlamkin/data/simwas/plink.chr10.GRCh38.map'
+    simulate_gt(model_file, coords_file)
 
+if __name__ == '__main__':
+    test()
