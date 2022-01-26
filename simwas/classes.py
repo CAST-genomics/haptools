@@ -1,4 +1,3 @@
-
 # Genetic markers that allow us to determine recombination break points
 class GeneticMarker:
     def __init__(self, chrom, cm_map_pos, bp_map_pos)
@@ -18,6 +17,6 @@ class GeneticMarker:
 
 # stored segment lengths that allow us to recover population at marker locations
 class HaplotypeSegment:
-    # TODO figure out all necessary variables for recovering these segments
-    def __init__(self):
-        pass
+    def __init__(self, pop_num, end_mark):
+        self.pop_num = pop_num
+        self.end_mark = end_mark

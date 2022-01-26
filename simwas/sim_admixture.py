@@ -75,7 +75,9 @@ def simulate_gt(model_file, coords_file, seed=None):
 
 def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
     # generate all samples
+    hap_samples = []
     for sample in range(samples):
+        segments = []
         prev_chrom = -1
         prev_map_pos = 0.0
 
@@ -97,22 +99,28 @@ def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
         homolog = np.random.randint(2)
 
         # iterate over all coords in the coords file
-        for coord in coords:
+        for ind, coord in enumerate(coords):
             cur_chrom = coord.get_chrom()
             cur_map_pos = coord.get_map_pos()
             if prev_chrom < 0:
                 prev_chrom = cur_chrom
+
+            # Ended chromosome write segment
             if cur_chrom != prev_chrom:
                 # TODO end of chromosome save haplotype segments
+                # TODO figure out what marker should be by seeing how output works 
+                segments.append(get_segment(parent_pop, haplotypes[homolog], marker, prev_gen_samples))
                 
+                # update homolog, previous chrom, and previous position
                 prev_chrom = cur_chrom
                 homolog = np.random.randint(2)
                 prev_map_pos = cur_map_pos
+                continue
         
-            # check if a recombination event occurs
-            # TODO function or logic for recombination event
+            # check if a recombination event occurs and if so write segment and swap homolog
             dist = cur_map_pos - prev_map_pos
-            if recomb:
+            recomb_prob = 1-np.exp(-dist)
+            if np.random.choice([0, 1], 1, p=[1-recomb_prob, recomb_prob]:
                 # TODO save haplotype segments since were moving to a new homolog after this breakpoint
                 homolog = 1-homolog
             prev_map_pos = cur_map_pos
@@ -121,6 +129,15 @@ def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
         # TODO record remaining segments
 
         # TODO output debug message for individual simulated
+
+        # append segments of 1 sample
+        hap_samples.append(segments)
+    return hap_samples
+
+# NOTE in their code they set marker = previous # in for loop however here
+#    we should set to object most likely
+def get_segment(pop, haplotype, marker, prev_gen_samples):
+    return segment
 
 # TODO remove
 def test():
