@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath("../"))
 
 # -- Project information -----------------------------------------------------
 
-project = "simwas"
+project = "haptools"
 copyright = "2021, Arya Massarat, Michael Lamkin"
 author = "Arya Massarat, Michael Lamkin"
 

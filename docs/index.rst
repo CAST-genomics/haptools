@@ -1,8 +1,8 @@
 .. _manual-main:
 
-=======
-simwas
-=======
+========
+haptools
+========
 
 .. toctree::
    :caption: Execution

@@ -1,7 +1,7 @@
-simwas
-=======
+haptools
+========
 
 .. toctree::
    :maxdepth: 4
 
-   simwas
+   haptools
