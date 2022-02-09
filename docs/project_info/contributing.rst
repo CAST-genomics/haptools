@@ -13,12 +13,12 @@ Types of Contributions
 ~~~~~~~~~~~~
 Report a bug
 ~~~~~~~~~~~~
-If you have found a bug, please report it on `our issues page <https://github.com/aryarm/simwas/issues>`_ rather than emailing us directly. Others may have the same issue and this helps us get that information to them.
+If you have found a bug, please report it on `our issues page <https://github.com/aryarm/haptools/issues>`_ rather than emailing us directly. Others may have the same issue and this helps us get that information to them.
 
 Before you submit a bug, please search through our issues to ensure it hasn't already been reported. If you encounter an issue that has already been reported, please upvote it by reacting with a thumbs-up emoji. This helps us prioritize the issue.
 
 The most helpful Github issues include
-    - the version of happler you are using, although it's best to use the latest version
+    - the version of haptools you are using, although it's best to use the latest version
     - detailed steps to help us reproduce your error, ideally with the example datasets in the :code:`tests/data` directory
 
 ~~~~~~~~~
@@ -36,23 +36,23 @@ Have an idea for a new feature that isn't on our wishlist? We'd love to hear abo
 -------------------------------------------
 How to fix a bug or implement a new feature
 -------------------------------------------
-Please create a pull request! A PR is a collection of changes that you have made to the code that we can review and potentially integrate into happler.
+Please create a pull request! A PR is a collection of changes that you have made to the code that we can review and potentially integrate into haptools.
 
 To create a pull request you need to do these steps:
     1. Create a Github account
     2. `Fork the repository <https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository>`_
         - Click the "Fork" button in the top, right corner
-        - Or, if you had already forked the repository a while ago, `sync your fork <https://docs.github.com/en/github/collaborating-with-pull-requests/working-with-forks/syncing-a-fork>`_ to make sure you're working with the latest version of happler
+        - Or, if you had already forked the repository a while ago, `sync your fork <https://docs.github.com/en/github/collaborating-with-pull-requests/working-with-forks/syncing-a-fork>`_ to make sure you're working with the latest version of haptools
     3. `Clone your fork locally <https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository>`_
-    4. :code:`cd happler` into the new directory
+    4. :code:`cd haptools` into the new directory
     5. Create a new branch off of master with :code:`git checkout -b <descriptive_branch_name>`. Please follow best practices when naming your branch
     6. Setup our development environment by following the instructions in :ref:`dev-setup-instructions` below
     7. Make your changes to the code
     8. Add additional tests to the :code:`tests/` directory and add comments to the documentation to explain how to use your new code. We use pytest for testing and sphinx/numpydoc for documentation
     9. Run the automated code-checking steps detailed in :ref:`code-check-instructions` below
     10. Commit your changes. Please use informative commit messages and do your best to ensure the commit history is clean and easy to interpret
-    11. Now you can push your changes to your Github copy of happler by running :code:`git push origin <descriptive_branch_name>`
-    12. Go to your Github copy of happler in your browser and create a pull request. Be sure to change the pull request target branch to :code:`main` on this original repository!
+    11. Now you can push your changes to your Github copy of haptools by running :code:`git push origin <descriptive_branch_name>`
+    12. Go to your Github copy of haptools in your browser and create a pull request. Be sure to change the pull request target branch to :code:`main` on this original repository!
     13. Please write an informative pull request detailing the changes you have made and why you made them. Tag any related issues by referring to them by a hashtag followed by their ID
 
 
@@ -68,12 +68,12 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        conda create -n simwas-dev 'conda-forge::poetry==1.1.12'
+        conda create -n haptools-dev 'conda-forge::poetry==1.1.12'
 2. Activate the environment
 
     .. code-block:: bash
 
-        conda activate simwas-dev
+        conda activate haptools-dev
 3. Install our dependencies
 
     .. code-block:: bash

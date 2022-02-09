@@ -12,7 +12,7 @@ from . import data, tree
 @click.version_option()
 def main():
     """
-    simwas: Simulate phenotypes for GWAS and subsequent fine-mapping
+    haptools: Simulate phenotypes for GWAS and subsequent fine-mapping
 
     Use real variants to simulate real, biological LD patterns.
     """
@@ -28,5 +28,5 @@ def simulate():
 
 
 if __name__ == "__main__":
-    # run the CLI if someone tries 'python -m simwas' on the command line
-    main(prog_name="simwas")
+    # run the CLI if someone tries 'python -m haptools' on the command line
+    main(prog_name="haptools")

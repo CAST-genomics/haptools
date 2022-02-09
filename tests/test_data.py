@@ -3,7 +3,7 @@ import numpy as np
 
 from pathlib import Path
 
-from happler.data import Genotypes, Phenotypes
+from haptools.data import Genotypes, Phenotypes
 
 
 DATADIR = Path(__file__).parent.joinpath("data")
