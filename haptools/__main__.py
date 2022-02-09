@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import sys
 import click
 
 from pathlib import Path
 from typing import Union, Tuple
 
 #from . import data, tree
+sys.path.append('./admixture_sim')
+from .admixture_sim.sim_admixture import simulate_gt, write_breakpoint
 
 
 @click.group()
@@ -29,7 +32,8 @@ def simulate():
     """
     Use the tool to simulate genotypes
     """
-    pass
+    breakpoints = simulate_gt(model_file, coords_file, seed=None)
+    write_breakpoint(breakpoints, out)
 
 
 if __name__ == "__main__":
