@@ -8,7 +8,7 @@ from pathlib import Path
 
 #from . import data, tree
 sys.path.append('./admixture_sim')
-from .admixture_sim.sim_admixture import simulate_gt, write_breakpoints
+from .simulate.sim_admixture import simulate_gt, write_breakpoints
 
 
 @click.group()
