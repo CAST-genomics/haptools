@@ -4,7 +4,7 @@ import sys
 import click
 
 from pathlib import Path
-from typing import Union, Tuple
+#from typing import Union, Tuple
 
 #from . import data, tree
 sys.path.append('./admixture_sim')
@@ -21,7 +21,6 @@ def main():
     """
     pass
 
-
 @main.command()
 @click.option('--invcf')
 @click.option('--sample_info')
@@ -32,11 +31,14 @@ def simulate(invcf, sample_info, model, coords, out):
     """
     Use the tool to simulate genotypes
     """
-    print(model, coords, out)
-    breakpoints = simulate_gt(model, coords, seed=None)
-    write_breakpoints(breakpoints, out)
+    breakpoints = simulate_gt(model, coords)
+    write_breakpoint(breakpoints, out)
 
 
 if __name__ == "__main__":
-    # run the CLI if someone tries 'python -m simwas' on the command line
+    # run the CLI if someone tries 'python -m haptools' on the command line
     main(prog_name="haptools")
+
+
+
+

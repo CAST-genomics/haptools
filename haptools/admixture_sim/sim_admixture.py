@@ -1,4 +1,3 @@
-import vcf
 import numpy as np
 from .admix_storage import GeneticMarker, HaplotypeSegment
 

@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "simwas"
+name = "haptools"
 version = "0.0.1"
 description = "Simulate phenotypes for GWAS and subsequent fine-mapping"
 authors = ["Arya Massarat", "Michael Lamkin"]
 license = "MIT"
-repository = "https://github.com/aryarm/happler"
-homepage = "https://github.com/aryarm/happler"
+repository = "https://github.com/aryarm/haptools"
+homepage = "https://github.com/aryarm/haptools"
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -50,7 +50,7 @@ test = [
 ]
 
 [tool.poetry.scripts]
-simwas = 'simwas.__main__:main'
+haptools = 'haptools.__main__:main'
 
 [tool.black]
 line-length = 88
