@@ -20,9 +20,18 @@ Detailed information about each option, and example commands using publicly avai
 ## File formats
 
 Model Format
+
+Structure of model.dat file
 ```
-{num_samples} Admixed Pop_label1 Pop_label2
-{num_generations} {admixed_freq} {pop_label1_freq} {pop_label2_freq}
+{num_samples} Admixed Pop_label1 Pop_label2 ... Pop_labeln
+{num_generations} {admixed_freq} {pop_label1_freq} {pop_label2_freq} ... {pop_labeln_freq}
+```
+
+Example model.dat file
+
+```
+40   Admixed   CEU    YRI
+6    0         0.2    0.8
 ```
 
 Map Format
