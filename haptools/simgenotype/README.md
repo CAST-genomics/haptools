@@ -17,6 +17,12 @@ Detailed information about each option, and example commands using publicly avai
 
 ## Detailed usage
 
+`--invcf` - Input VCF file used to simulate specifiic haplotypes for resulting samples  
+`--sample_info` - File used to map samples in `REFVCF` to populations found in `MODELFILE`   
+`--model` - Parameters for simulating admixture across generations  
+`--map` - .map file used to determine recombination events during the simulation  
+`--out` - Output prefix of the structure `/path/to/output` which results in the vcf file `output.vcf.gz` and breakpoints file `output.bp`   
+
 ## File formats
 
 Model Format
@@ -43,7 +49,7 @@ Simulating 6 generations in this case implies the first generation has populatio
 Map Format
 
 chr - chromosome of coordinate (1-22, X)  
-var - variant identifier  
+var - variant identifier   
 pos cM - Position in centimorgans   
 pos bp - Base pair coordinate  
 
@@ -56,7 +62,7 @@ Beagle Genetic Maps used in simulation (GRCh38): http://bochet.gcc.biostat.washi
 Outfile Format
 
 Sample Header - Name of sample following the structure `Sample_{number}_{hap}` eg. `Sample_10_1` for sample number 10 haplotype  
-pop - Population label corresponding to the index of the population in the dat file so in the example above CEU = 1, YRI = 2
+pop - Population label corresponding to the index of the population in the dat file so in the example above CEU = 1, YRI = 2  
 chr - chromosome (1-22, X)  
 
 ```
@@ -70,3 +76,11 @@ Sample Header 2
 ## Examples
 
 Example Command
+```
+haptools simgenotype
+  --invcf 1000Genomes.vcf.gz \
+  --sample_info /path/to/sampleinfo.csv \
+  --model /path/to/model/file.dat \
+  --map /path/to/plink/file/ \
+  --out /path/to/output
+```
