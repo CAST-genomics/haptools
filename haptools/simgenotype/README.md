@@ -48,10 +48,10 @@ Simulating 6 generations in this case implies the first generation has populatio
 
 Map Format
 
-chr - chromosome of coordinate (1-22, X)  
-var - variant identifier   
-pos cM - Position in centimorgans   
-pos bp - Base pair coordinate  
+`chr` - chromosome of coordinate (1-22, X)  
+`var` - variant identifier   
+`pos cM` - Position in centimorgans   
+`pos bp` - Base pair coordinate  
 
 ```
 {chr}\t{var}\t{pos cM}\t{pos bp}
@@ -61,9 +61,9 @@ Beagle Genetic Maps used in simulation (GRCh38): http://bochet.gcc.biostat.washi
 
 Outfile Format
 
-Sample Header - Name of sample following the structure `Sample_{number}_{hap}` eg. `Sample_10_1` for sample number 10 haplotype  
-pop - Population label corresponding to the index of the population in the dat file so in the example above CEU = 1, YRI = 2  
-chr - chromosome (1-22, X)  
+`Sample Header` - Name of sample following the structure `Sample_{number}_{hap}` eg. `Sample_10_1` for sample number 10 haplotype  
+`pop` - Population label corresponding to the index of the population in the dat file so in the example above CEU = 1, YRI = 2  
+`chr` - chromosome (1-22, X)  
 
 ```
 Sample Header
