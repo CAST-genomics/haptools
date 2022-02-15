@@ -19,4 +19,15 @@ Detailed information about each option, and example commands using publicly avai
 
 ## File formats
 
+Model Format
+```
+{num_samples} Admixed Pop_label1 Pop_label2
+{num_generations} {admixed_freq} {pop_label1_freq} {pop_label2_freq}
+```
+
+Map Format
+
+Outfile Format
+
+
 ## Examples
