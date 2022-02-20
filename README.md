@@ -1,5 +1,3 @@
-[![Snakemake](https://img.shields.io/badge/snakemake-≥6.7.0-brightgreen.svg?style=flat-square)](https://snakemake.bitbucket.io)
-
 ### Note: This repository is still under-construction!
 Please wait until we have published our first tagged release before using our code.
 
