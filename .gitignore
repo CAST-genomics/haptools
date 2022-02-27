@@ -10,3 +10,6 @@ __pycache__
 .pytest_cache
 # poetry
 dist/
+
+# OSX
+*.DS_Store*
