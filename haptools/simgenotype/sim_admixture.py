@@ -30,7 +30,7 @@ def simulate_gt(model_file, coords_file, seed=None):
 
     # load population samples and labels to be simulated 
     mfile = open(model_file, 'r')
-    num_samples, not_used, *pops = mfile.readline().strip().split()
+    num_samples, *pops = mfile.readline().strip().split()
     num_samples = int(num_samples)
 
     # coord file structure chr variant cMcoord bpcoord
@@ -43,7 +43,7 @@ def simulate_gt(model_file, coords_file, seed=None):
             coords.append(gen_mark)
 
     # number of haplotypes simulated per generation
-    haps_per_gen = max(5000, 20 * num_samples)
+    haps_per_gen = max(100, 20 * num_samples) # TODO change back to 10000 
 
     # starting generation is 0
     prev_gen = 0
@@ -65,13 +65,13 @@ def simulate_gt(model_file, coords_file, seed=None):
 
         # sim generation
         print(f"Simulating generation {prev_gen+1}")
-        next_gen_samples = _simulate(haps_per_gen, pop_fracs, prev_gen, coords, next_gen_samples)
+        next_gen_samples = _simulate(haps_per_gen, pops, pop_fracs, prev_gen, coords, next_gen_samples)
 
         # simulate remaining generations
         for i in range(1, sim_gens):
             print(f"Simulating generation {prev_gen+i+1}")
             # simulate next generations using previous generations to sample from for admixture
-            next_gen_samples = _simulate(haps_per_gen, pop_fracs, prev_gen+i, coords, next_gen_samples)
+            next_gen_samples = _simulate(haps_per_gen, pops, pop_fracs, prev_gen+i, coords, next_gen_samples)
 
         prev_gen = cur_gen 
 
@@ -86,9 +86,10 @@ def write_breakpoints(samples, breakpoints, out):
     print(f"Outputting breakpoint file {breakpt_file}")
 
     # randomly sample breakpoints to get the correct amount of samples to output
+    breakpoints = np.array(breakpoints, dtype=object)
     breakpoints = np.random.choice(breakpoints, size=2*samples, replace=False)
 
-    with open(breakpt_file, 'a') as output:
+    with open(breakpt_file, 'w') as output:
         for ind, sample in enumerate(breakpoints):
             # Get sample number and haplotype number
             haplotype = (ind)%2 + 1
@@ -103,19 +104,19 @@ def write_breakpoints(samples, breakpoints, out):
                 pop = segment.get_pop()
                 chrom = segment.get_chrom()
                 end_coord = segment.get_end_coord()
-                output.write(f"{pop}\t{chrom}\t{end_coord}\n")
+                end_pos = segment.get_end_pos()
+                output.write(f"{pop}\t{chrom}\t{end_coord}\t{end_pos}\n")
     return
 
-def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
+def _simulate(samples, pops, pop_fracs, pop_gen, coords, prev_gen_samples=None):
     # generate all samples
     hap_samples = []
     
     # pre compute haplotypes and parent population 
-    # if there is no previous generation randomly choose population based on frac
+    # if there is no previous generation randomly choose population based on frac]
     parent_pop = np.zeros(samples)
     if not prev_gen_samples:
-        parent_pop = np.random.choice(np.arange(len(pop_fracs)), 
-                                      size=samples, p=pop_fracs)
+        parent_pop = np.random.choice(pops, size=samples, p=pop_fracs)
 
     # choose a haplotype to copy
     # if previous generation of samples randomize two haplotypes
@@ -166,7 +167,8 @@ def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
             if cur_chrom != prev_chrom:
                 # Store haplotype
                 segments.extend(get_segment(p_pop, haps[homolog], prev_chrom, 
-                                            start_bp, end_bp, prev_gen_samples))
+                                            start_bp, end_bp, prev_map_pos, 
+                                            prev_gen_samples))
                 
                 # update homolog, previous chrom, and previous position
                 prev_chrom = cur_chrom
@@ -175,12 +177,14 @@ def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
                 continue
         
             # check if a recombination event occurs and if so write segment and swap homolog
+            # NOTE cur_map_pos and prev_map_pos are in cM and we want M for calculating prob
             dist = cur_map_pos - prev_map_pos
-            recomb_prob = 1-np.exp(-dist)
+            recomb_prob = 1-np.exp(-dist/100)
             if prob_vals[sample*samples+cind] < recomb_prob:
                 # Store haplotype segments switching homologs
                 segments.extend(get_segment(p_pop, haps[homolog], prev_chrom,
-                                            start_bp, end_bp, prev_gen_samples))
+                                            start_bp, end_bp, prev_map_pos,
+                                            prev_gen_samples))
                 homolog = 1-homolog
 
             # update positions and chromosome
@@ -191,13 +195,14 @@ def _simulate(samples, pop_fracs, pop_gen, coords, prev_gen_samples=None):
         # Record remaining segments
         if segments: start_bp = segments[-1].get_end_coord() + 1
         segments.extend(get_segment(p_pop, haps[homolog], prev_chrom,
-                                    start_bp, end_bp, prev_gen_samples))
+                                    start_bp, end_bp, prev_map_pos,
+                                    prev_gen_samples))
 
         # append segments of 1 sample
         hap_samples.append(segments)
     return hap_samples
 
-def get_segment(pop, haplotype, chrom, start_coord, end_coord, prev_gen_samples):
+def get_segment(pop, haplotype, chrom, start_coord, end_coord, end_pos, prev_gen_samples):
     """
     Create a segment or segments for an individual of the current generation
     using either a population label (>0) or the previous generation's samples if 
@@ -210,6 +215,7 @@ def get_segment(pop, haplotype, chrom, start_coord, end_coord, prev_gen_samples)
         start_coord - starting coordinate from where to begin taking segments
                       from previous generation samples
         end_coord - ending coordinate of haplotype segment
+        end_pos - ending coordinate in centimorgans
         prev_gen_samples - the previous generation simulated used as the parents
                            for the current generation
     Returns
@@ -217,7 +223,7 @@ def get_segment(pop, haplotype, chrom, start_coord, end_coord, prev_gen_samples)
     """
     # Take from population data not admixed data
     if pop:
-        return [HaplotypeSegment(pop, chrom, end_coord)]
+        return [HaplotypeSegment(pop, chrom, end_coord, end_pos)]
     
     # Take from previous admixed data
     else:
@@ -241,7 +247,7 @@ def get_segment(pop, haplotype, chrom, start_coord, end_coord, prev_gen_samples)
             out_pop = segments[-1].get_pop()
 
         # Append last segment using previous segments population
-        segments.append(HaplotypeSegment(out_pop, chrom, end_coord))
+        segments.append(HaplotypeSegment(out_pop, chrom, end_coord, end_pos))
         return segments
 
 def start_segment(start, chrom, segments):
@@ -292,6 +298,3 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-
-if __name__ == '__main__':
-    test()

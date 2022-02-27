@@ -14,22 +14,24 @@ def splitstr(option, opt, value, parser):
   return(setattr(parser.values, option.dest, value.split(',')))
 
 # TODO determine whether its better to plot bp or cM and about updating output so it outputs both
-def plot_karyogram(sample_name, sample_file, title, chrX, centromeres, pop_order, colors, out):
+# TODO update so we plot in cM because plots are much cleaner
+# TODO figure out centromere
+def plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1", chrX=False, colors=None):
     """
     Arguments
-        sample_name - sample to plot on karyogram
         sample_file - contains all samples, chrom, pop, and hap block location
         title - plot title
-        chrX - include chromosome X? 
         centromeres - centromeres location file
-        pop_order - comma-separated list of population labels in the order of rfmix populations
-        colors - colors for respective populations
         out - output file to save figure
-    """
+        sample_name - sample to plot on karyogram
+        chrX - include chromosome X? 
+        colors - colors for respective populations
 
+    """
     #read in bed files and get individual name
     samples = []
     sample = []
+    pop_order = []
     plot_sample = False
 
     with open(sample_file,'r') as sample_file:
@@ -54,23 +56,26 @@ def plot_karyogram(sample_name, sample_file, title, chrX, centromeres, pop_order
                     break
             
             if plot_sample:
+                if not line[0] in pop_order:
+                    pop_order.append(line[0])
+
                 if not sample:
-                    start = 1
+                    start = 0.0001
                 else:
-                    start = sample[-1]['end'] + 1
+                    start = sample[-1]['end'] + 0.0001
                 hap_block = {'pop': line[0], 'chrom': int(line[1]), 
-                             'start': start, 'end': int(line[2])}
+                             'start': start, 'end': float(line[-1])}
                 sample.append(hap_block)
 
     #define plotting space
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_xlim(-5,100000000)
+    ax.set_xlim(-5,300)
     if chrX:
       ax.set_ylim(24,0)
     else:
       ax.set_ylim(23,0)
-    plt.xlabel('Genetic position (bp)')
+    plt.xlabel('Genetic position (cM)')
     plt.ylabel('Chromosome')
     plt.title(title)
     if chrX:

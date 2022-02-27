@@ -8,7 +8,8 @@ from pathlib import Path
 
 #from . import data, tree
 sys.path.append('./admixture_sim')
-from .simulate.sim_admixture import simulate_gt, write_breakpoints
+from .simgenotype.sim_admixture import simulate_gt, write_breakpoints
+from .karyogram.karyogram import plot_karyogram
 
 
 @click.group()
@@ -27,13 +28,26 @@ def main():
 @click.option('--model', required=True)
 @click.option('--map', 'recombmap', required=True)
 @click.option('--out', required=True)
-def simulate(invcf, sample_info, model, recombmap, out):
+def simgenotype(invcf, sample_info, model, recombmap, out):
     """
     Use the tool to simulate genotypes
     """
     samples, breakpoints = simulate_gt(model, recombmap)
     write_breakpoints(samples, breakpoints, out)
 
+@main.command()
+@click.option('--sample_name', type=str)
+@click.option('--chrX', default=False, type=bool)
+@click.option('--sample_file', required=True)
+@click.option('--title', required=True)
+@click.option('--centromeres', required=True)
+@click.option('--out', required=True)
+def karyogram(sample_name, chrx, sample_file, title, centromeres, out):
+    """
+    Use the tool to visualize breakpoints.
+    """
+    plot_karyogram(sample_file, title, centromeres, out)
+    #plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1" chrX=False, colors=None)
 
 if __name__ == "__main__":
     # run the CLI if someone tries 'python -m haptools' on the command line
