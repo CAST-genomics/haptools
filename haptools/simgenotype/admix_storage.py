@@ -1,9 +1,10 @@
 # Genetic markers that allow us to determine recombination break points
 class GeneticMarker:
-    def __init__(self, chrom, cm_map_pos, bp_map_pos):
+    def __init__(self, chrom, cm_map_pos, bp_map_pos, prev_coord):
         self.chrom = chrom
         self.cm_map_pos = cm_map_pos
         self.bp_map_pos = bp_map_pos
+        self.prev_coord = prev_coord
 
     def get_chrom(self):
         return self.chrom
@@ -13,6 +14,9 @@ class GeneticMarker:
 
     def get_bp_pos(self):
         return self.bp_map_pos
+
+    def get_prev_coord(self):
+        return self.prev_coord
 
 
 # stored segment lengths that allow us to recover population at marker locations

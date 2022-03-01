@@ -26,13 +26,13 @@ def main():
 @click.option('--invcf')
 @click.option('--sample_info')
 @click.option('--model', required=True)
-@click.option('--map', 'recombmap', required=True)
+@click.option('--mapdir', required=True)
 @click.option('--out', required=True)
-def simgenotype(invcf, sample_info, model, recombmap, out):
+def simgenotype(invcf, sample_info, model, mapdir, out):
     """
     Use the tool to simulate genotypes
     """
-    samples, breakpoints = simulate_gt(model, recombmap)
+    samples, breakpoints = simulate_gt(model, mapdir)
     write_breakpoints(samples, breakpoints, out)
 
 @main.command()
