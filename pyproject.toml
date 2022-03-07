@@ -25,6 +25,7 @@ python = "^3.7"
 click = "^8.0.3"
 pysam = "^0.18.0"
 cyvcf2 = "^0.30.14"
+pgenlib = { git = "https://github.com/chrchang/plink-ng.git", rev = "v2.00a3-20220218", subdirectory = "2.0/Python" }
 
 # docs
 # these belong in the docs group only, but RTD doesn't support that yet -- see
