@@ -83,6 +83,14 @@ python2 = ["typed-ast (>=1.4.3)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
+name = "brewer2mpl"
+version = "1.4.1"
+description = "Connect colorbrewer2.org color maps to Python and matplotlib"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "certifi"
 version = "2021.10.8"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -476,6 +484,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "pytabix"
+version = "0.1"
+description = "Python interface for tabix"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pytest"
 version = "6.2.5"
 description = "pytest: simple powerful testing with Python"
@@ -501,14 +517,6 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xm
 name = "pytz"
 version = "2021.3"
 description = "World timezone definitions, modern and historical"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
-name = "pyvcf"
-version = "0.6.8"
-description = "Variant Call Format (VCF) parser for Python"
 category = "main"
 optional = false
 python-versions = "*"
@@ -767,7 +775,7 @@ test = []
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "509f99cc8aa5ab1f60dbe59b84de15cf1b3ee8b2eae8e84cff90d7c556bc0aa9"
+content-hash = "b6dce80c91b107aa40da160a63482dc5c0ad9ea5b3d8693a05be4192e9390920"
 
 [metadata.files]
 alabaster = [
@@ -797,6 +805,11 @@ backcall = [
 black = [
     {file = "black-21.12b0-py3-none-any.whl", hash = "sha256:a615e69ae185e08fdd73e4715e260e2479c861b5740057fde6e8b4e3b7dd589f"},
     {file = "black-21.12b0.tar.gz", hash = "sha256:77b80f693a569e2e527958459634f18df9b0ba2625ba4e0c2d5da5be42e6f2b3"},
+]
+brewer2mpl = [
+    {file = "brewer2mpl-1.4.1-py2.py3-none-any.whl", hash = "sha256:f89a795efc810fdbec359902d388980711604cc32907445ba1bc45f699d3fe81"},
+    {file = "brewer2mpl-1.4.1.tar.gz", hash = "sha256:2e094d1bea766885aa77e4ed40cc718af6458a1d5e08cc87a5f453c6095b1b1c"},
+    {file = "brewer2mpl-1.4.1.zip", hash = "sha256:7f013109a2351b91d507c1e79c4fcfb001bdd754f70767baa635f1e80ac16d6d"},
 ]
 certifi = [
     {file = "certifi-2021.10.8-py2.py3-none-any.whl", hash = "sha256:d62a0163eb4c2344ac042ab2bdf75399a71a2d8c7d47eac2e2ee91b9d6339569"},
@@ -1060,6 +1073,9 @@ pysam = [
     {file = "pysam-0.18.0-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:f5a23a5dcf32f01c66d44e89113fa8f7522997ea43fbc0f98e5250a907911a5f"},
     {file = "pysam-0.18.0.tar.gz", hash = "sha256:1d6d49a0b3c626fae410a93d4c80583a8b5ddaacc9b46a080b250dbcebd30a59"},
 ]
+pytabix = [
+    {file = "pytabix-0.1.tar.gz", hash = "sha256:0774f1687ebd41811fb07a0e50951b6be72d7cc7e22ed2b18972eaf7482eb7d1"},
+]
 pytest = [
     {file = "pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},
     {file = "pytest-6.2.5.tar.gz", hash = "sha256:131b36680866a76e6781d13f101efb86cf674ebb9762eb70d3082b6f29889e89"},
@@ -1067,10 +1083,6 @@ pytest = [
 pytz = [
     {file = "pytz-2021.3-py2.py3-none-any.whl", hash = "sha256:3672058bc3453457b622aab7a1c3bfd5ab0bdae451512f6cf25f64ed37f5b87c"},
     {file = "pytz-2021.3.tar.gz", hash = "sha256:acad2d8b20a1af07d4e4c9d2e9285c5ed9104354062f275f3fcd88dcef4f1326"},
-]
-pyvcf = [
-    {file = "PyVCF-0.6.8.linux-x86_64.tar.gz", hash = "sha256:1b3c833dcf4cca830e8255e3ac0573d2e69f588f71f7a5efb2a92b45d7b70021"},
-    {file = "PyVCF-0.6.8.tar.gz", hash = "sha256:e9d872513d179d229ab61da47a33f42726e9613784d1cb2bac3f8e2642f6f9d9"},
 ]
 requests = [
     {file = "requests-2.26.0-py2.py3-none-any.whl", hash = "sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24"},
