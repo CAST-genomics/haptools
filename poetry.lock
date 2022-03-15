@@ -506,6 +506,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "pyvcf"
+version = "0.6.8"
+description = "Variant Call Format (VCF) parser for Python"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "requests"
 version = "2.26.0"
 description = "Python HTTP for Humans."
@@ -759,7 +767,7 @@ test = []
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "4712eb9ccb3de59f0b849ed829024e23c96a3c9f782389dbf789ad59d0371c31"
+content-hash = "509f99cc8aa5ab1f60dbe59b84de15cf1b3ee8b2eae8e84cff90d7c556bc0aa9"
 
 [metadata.files]
 alabaster = [
@@ -1059,6 +1067,10 @@ pytest = [
 pytz = [
     {file = "pytz-2021.3-py2.py3-none-any.whl", hash = "sha256:3672058bc3453457b622aab7a1c3bfd5ab0bdae451512f6cf25f64ed37f5b87c"},
     {file = "pytz-2021.3.tar.gz", hash = "sha256:acad2d8b20a1af07d4e4c9d2e9285c5ed9104354062f275f3fcd88dcef4f1326"},
+]
+pyvcf = [
+    {file = "PyVCF-0.6.8.linux-x86_64.tar.gz", hash = "sha256:1b3c833dcf4cca830e8255e3ac0573d2e69f588f71f7a5efb2a92b45d7b70021"},
+    {file = "PyVCF-0.6.8.tar.gz", hash = "sha256:e9d872513d179d229ab61da47a33f42726e9613784d1cb2bac3f8e2642f6f9d9"},
 ]
 requests = [
     {file = "requests-2.26.0-py2.py3-none-any.whl", hash = "sha256:6c1246513ecd5ecd4528a0906f910e8f0f9c6b8ec72030dc9fd154dc1a6efd24"},
