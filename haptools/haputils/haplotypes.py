@@ -9,8 +9,13 @@ TODO:
 * writephenotypes
 * documentation and type hinting
 * tests
+
+* Compare simulation output to GCTA
+* fail gracefully on assertions - we need ERROR utility
+
 """
 import gzip
+import numpy as np
 import tabix
 
 class Haplotype:
@@ -93,6 +98,10 @@ class Haplotype:
 			hap_gts[sample] = sum(hap_matches[sample])
 		return hap_gts
 
+	def GetFrequency(self, vcf_reader):
+		hap_gts = self.Transform(vcf_reader)
+		return np.sum(list(hap_gts.values()))/(2*len(hap_gts.keys()))
+
 	def __str__(self):
 		return self.hap_id
 
@@ -131,7 +140,7 @@ class HapReader:
 				hapline = next(self.haps).decode('utf-8')
 			hapline = hapline.strip().split()
 
-		# Conver the line to a haplotype object
+		# Convert the line to a haplotype object
 		return self.GetHaplotype(hapline)
 
 class PhenoSimulator:
@@ -141,10 +150,31 @@ class PhenoSimulator:
 			self.pts[sample] = 0
 
 	def AddEffect(self, sample_to_hap, effect):
+		mean = np.mean(list(sample_to_hap.values()))
+		sd = np.sqrt(np.var(list(sample_to_hap.values())))
 		for sample in self.pts.keys():
 			assert(sample in sample_to_hap.keys())
-			self.pts[sample] += effect*sample_to_hap[sample]
+			self.pts[sample] += effect*(sample_to_hap[sample]-mean)/sd
 
 	def WritePhenotypes(self, outprefix, simu_rep, simu_hsq, \
 						simu_k, simu_qt, simu_cc):
-		pass # TODO write output files
+		# First compute var(additive)
+		var_add = np.var(list(self.pts.values()))
+
+		# Prepare output file
+		outf_sim = open("%s.phen"%outprefix, "w")
+
+		# Simulate and write
+		for sample in self.pts.keys():
+			outinfo = [sample, sample]
+			genetic_component = self.pts[sample]
+			for i in range(simu_rep):
+				resid_component = np.random.normal(0, var_add*(1/simu_hsq-1))
+				if simu_qt:
+					outinfo.append(genetic_component+resid_component)
+				else:
+					raise NotImplementedError("Case control not implemented")
+			outf_sim.write("\t".join([str(item) for item in outinfo])+"\n")
+
+		# Done
+		outf_sim.close()
