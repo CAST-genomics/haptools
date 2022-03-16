@@ -52,19 +52,37 @@ def karyogram(sample_name, chrx, sample_file, title, centromeres, out):
     plot_karyogram(sample_file, title, centromeres, out)
     #plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1" chrX=False, colors=None)
 
+############ Haptools simphenotype ###############
+DEFAULT_SIMU_REP = 1
+DEFAULT_SIMU_HSQ = 0.1
+DEFAULT_SIMU_K = 0.1
+##################################################
 @main.command()
-@click.option('--vcf', help='Phased VCF file', type=str)
-@click.option('--hap', help='Haplotype file with effect sizes', type=str)
-@click.option('--simu-rep', help='Number of rounds of simulation to perform', type=int, default=1)
-@click.option('--simu-hsq', help='Trait heritability', type=float, default=0.1)
-@click.option('--simu-k', help='Specify the disease prevalence', type=float, default=0.1)
-@click.option('--simu-qt', help='Simulate a quantitative trait', default=False, is_flag=True)
-@click.option('--simu-cc', help='Simulate a case/control trait', default=False, is_flag=True)
-@click.option('--out', help='Prefix for output files', type=str)
+@click.option('--vcf', help='Phased VCF file', type=str, required=True)
+@click.option('--hap', help='Haplotype file with effect sizes', \
+        type=str, required=True)
+@click.option('--out', help='Prefix for output files', \
+        type=str, required=True)
+@click.option('--simu-qt', help='Simulate a quantitative trait', \
+        default=False, is_flag=True)
+@click.option('--simu-cc', help='Simulate a case/control trait', \
+        default=False, is_flag=True)
+@click.option('--simu-rep', help='Number of rounds of simulation to perform', \
+        type=int, default=DEFAULT_SIMU_REP)
+@click.option('--simu-hsq', help='Trait heritability', \
+        type=float, default=DEFAULT_SIMU_HSQ)
+@click.option('--simu-k', help='Specify the disease prevalence', \
+        type=float, default=DEFAULT_SIMU_K)
 def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     """
     Haplotype-aware phenotype simulation
     """
+    # Basic checks on input
+    # TODO - check VCF zipped, check only one of simu-qt/simu-cc,
+    # check values of other inputs
+    # Only use simu-k for case/control
+
+    # Run simulation
     simulate_pt(vcf, hap, simu_rep, \
         simu_hsq, simu_k, simu_qt, simu_cc, out)
 
