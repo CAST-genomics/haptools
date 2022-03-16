@@ -6,6 +6,12 @@ class GeneticMarker:
         self.bp_map_pos = bp_map_pos
         self.prev_coord = prev_coord
 
+    def __repr__(self):
+        return f"(Chrom {self.chrom}, {self.cm_map_pos} cM, {self.bp_map_pos} bp)"
+
+    def __str__(self):
+        return f"(Chrom {self.chrom}, {self.cm_map_pos} cM, {self.bp_map_pos} bp)"
+    
     def get_chrom(self):
         return self.chrom
 
@@ -35,6 +41,14 @@ class HaplotypeSegment:
         self.chrom = chrom
         self.end_coord = end_coord
         self.end_pos = end_pos
+
+    def __repr__(self):
+        return f"(Population {self.pop_num}, chrom {self.chrom}, " + \
+               f"end_coord {self.end_coord}, end_pos {self.end_pos})"
+
+    def __str__(self):
+        return f"Population {self.pop_num}, chrom {self.chrom}, " + \
+               f"end_coord {self.end_coord}, end_pos {self.end_pos}"
 
     def get_end_pos(self):
         return self.end_pos

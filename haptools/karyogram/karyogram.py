@@ -13,8 +13,6 @@ import os
 def splitstr(option, opt, value, parser):
   return(setattr(parser.values, option.dest, value.split(',')))
 
-# TODO determine whether its better to plot bp or cM and about updating output so it outputs both
-# TODO update so we plot in cM because plots are much cleaner
 # TODO figure out centromere
 def plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1", chrX=False, colors=None):
     """
@@ -59,7 +57,7 @@ def plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1",
                 if not line[0] in pop_order:
                     pop_order.append(line[0])
 
-                if not sample:
+                if not sample or sample[-1]['chrom'] != int(line[1]):
                     start = 0.0001
                 else:
                     start = sample[-1]['end'] + 0.0001
@@ -80,7 +78,7 @@ def plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1",
     plt.title(title)
     if chrX:
       plt.yticks(range(1,24))
-      yticks = range(1,23)
+      yticks = list(range(1,23))
       yticks.append('X')
       ax.set_yticklabels(yticks)
     else:

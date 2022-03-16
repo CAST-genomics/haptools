@@ -4,6 +4,7 @@ import numpy as np
 import time
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
+
 # TODO at a certain point we are going to need to ensure populations in model file are also in invcf files
 #      This is only required for outputting the haplotypes in a vcf 
 
@@ -59,7 +60,11 @@ def simulate_gt(model_file, coords_dir, seed=None):
             for line in cfile:
                 # create marker from each line and append to coords
                 data = line.strip().split()
-                gen_mark = GeneticMarker(data[0], float(data[2]), 
+                if data[0] == 'X':
+                    chrom = 23
+                else:
+                    chrom = int(data[0])
+                gen_mark = GeneticMarker(chrom, float(data[2]), 
                                          int(data[3]), prev_coord)
                 prev_coord = gen_mark
                 file_coords.append(gen_mark)
@@ -83,7 +88,6 @@ def simulate_gt(model_file, coords_dir, seed=None):
             dist = cur_map_pos - prev_map_pos
             recomb_probs[chrom,cind] = 1-np.exp(-dist/100)
             prev_map_pos = cur_map_pos
-
     coords = np_coords
 
     # number of haplotypes simulated per generation
@@ -127,15 +131,9 @@ def simulate_gt(model_file, coords_dir, seed=None):
     mfile.close()
     return num_samples, next_gen_samples
 
-# TODO
-def haplotype_distribution(breakpoints, out):
-    return
-
 def write_breakpoints(samples, breakpoints, out):
     breakpt_file = out + '.bp'
     print(f"Outputting breakpoint file {breakpt_file}")
-
-    # TODO get distribution of breakpoint sizes
 
     # randomly sample breakpoints to get the correct amount of samples to output
     breakpoints = np.array(breakpoints, dtype=object)
@@ -196,14 +194,20 @@ def _simulate(samples, pops, pop_fracs, pop_gen, coords, end_coords, recomb_prob
         recomb_events = prob_vals < recomb_probs
         true_coords = coords[recomb_events]
 
+        # sort true coords by chrom and pos
+        def coord_sort(x):
+            return (x.get_chrom(), x.get_map_pos())
+        true_coords = sorted(true_coords, key=coord_sort)
+
         # TODO fix so we only fill chroms present in our coords files
-        prev_chrom = "1"
+        prev_chrom = 1
         for coord in true_coords:
             # information to generate segments
             prev_coord = coord.get_prev_coord()
             cur_chrom = coord.get_chrom()
 
-            if segments and segments[-1].get_chrom() == cur_chrom:
+            # check if we've yet to complete a chrom
+            if segments and segments[-1].get_chrom() == prev_chrom:
                 start_bp = segments[-1].get_end_coord()+1
             else:
                 start_bp = 0
@@ -211,20 +215,18 @@ def _simulate(samples, pops, pop_fracs, pop_gen, coords, end_coords, recomb_prob
             # swapping chroms so store segments for each chrom we miss in between swap
             if cur_chrom != prev_chrom:
                 # check if we've output the end of the prev chrom
-                if segments and segments[-1].get_end_coord() == end_coords[int(prev_chrom)-1].get_bp_pos():
-                    prev_chrom = int(prev_chrom) + 1
+                if segments and segments[-1].get_end_coord() == end_coords[prev_chrom-1].get_bp_pos():
+                    prev_chrom = prev_chrom + 1
+                    start_bp = 0
 
-                # figure out how many chroms in between current and next chrom
-                if cur_chrom == 'X':
-                    cur_chrom = 23
-
-                for i in range(int(cur_chrom) - int(prev_chrom)):
+                # for each chromosome in between recombination events
+                for i in range(cur_chrom - prev_chrom):
                     # end_bp = end of chromosome
-                    end_bp = end_coords[int(prev_chrom)+i-1].get_bp_pos()
-                    prev_map_pos = end_coords[int(prev_chrom)+i-1].get_map_pos()
+                    end_bp = end_coords[prev_chrom+i-1].get_bp_pos()
+                    prev_map_pos = end_coords[prev_chrom+i-1].get_map_pos()
 
                     # output segments of prev_chrom+i
-                    segments.extend(get_segment(p_pop, haps[homolog], int(prev_chrom)+i,
+                    segments.extend(get_segment(p_pop, haps[homolog], prev_chrom+i,
                                     start_bp, end_bp, prev_map_pos,
                                     prev_gen_samples))
                     
@@ -234,7 +236,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, coords, end_coords, recomb_prob
 
                 prev_chrom = cur_chrom
             
-            # get end bp coord and prev map pos since it updates inside swapping chrom               
+            # get end bp coord and prev map pos since it updates inside swapping chrom
             end_bp = prev_coord.get_bp_pos()
             prev_map_pos = prev_coord.get_map_pos()
 
@@ -243,6 +245,28 @@ def _simulate(samples, pops, pop_fracs, pop_gen, coords, end_coords, recomb_prob
                                         start_bp, end_bp, prev_map_pos,
                                         prev_gen_samples))
             homolog = 1-homolog
+            prev_chrom = cur_chrom
+
+        # Check if we've output all chromosomes and if not output them
+        prev_chrom = cur_chrom
+        if segments[-1].get_end_coord() == end_coords[prev_chrom-1].get_bp_pos():
+            prev_chrom += 1
+        else:
+            start_bp = segments[-1].get_end_coord()+1
+
+        for i in range(23 - (prev_chrom-1)):
+            # end_bp = end of chromosome
+            end_bp = end_coords[prev_chrom+i-1].get_bp_pos()
+            prev_map_pos = end_coords[prev_chrom+i-1].get_map_pos()
+
+            # output segments of prev_chrom+i
+            segments.extend(get_segment(p_pop, haps[homolog], prev_chrom+i,
+                            start_bp, end_bp, prev_map_pos,
+                            prev_gen_samples))
+            
+            # change homolog
+            homolog = np.random.randint(2)
+            start_bp = 0
 
         hap_samples.append(segments)
     return hap_samples
@@ -279,7 +303,7 @@ def get_segment(pop, haplotype, chrom, start_coord, end_coord, end_pos, prev_gen
         # use binary search to find starting segment to collect information
         start_seg = start_segment(start_coord, chrom, prev_gen_segments)
         for prev_segment in prev_gen_segments[start_seg:]:
-            if prev_segment.get_end_coord() > end_coord:
+            if prev_segment.get_end_coord() >= end_coord or prev_segment.get_chrom() > chrom:
                 break
 
             segments.append(prev_segment)
@@ -299,11 +323,6 @@ def start_segment(start, chrom, segments):
     """
     Find first segment that is on chrom and its end coordinate is > start via binary search.
     """
-    chromtoind = {'1':0, '2':1, '3':2, '4':3, '5':4,
-                  '6':5, '7':6, '8':7, '9':8, '10':9,
-                  '11':10, '12':11, '13':12, '14':13, '15':14,
-                  '16':15, '17':16, '18':17, '19':18, '20':19,
-                  '21':20, '22':21, 'X':22}
     low = 0
     high = len(segments)-1
     mid = 0
@@ -329,7 +348,7 @@ def start_segment(start, chrom, segments):
                 low = mid + 1
 
             elif cur_coord >= start:
-                if chromtoind[prev_chrom] < chromtoind[cur_chrom]:
+                if prev_chrom < cur_chrom:
                     return mid
 
                 if prev_chrom == cur_chrom and prev_coord < start:
@@ -340,7 +359,7 @@ def start_segment(start, chrom, segments):
             else:
                 return len(segments)
 
-        elif chromtoind[chrom] < chromtoind[segments[mid].get_chrom()]:
+        elif chrom < segments[mid].get_chrom():
             high = mid - 1
 
         else:

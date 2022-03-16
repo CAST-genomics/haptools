@@ -37,7 +37,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out):
 
 @main.command()
 @click.option('--sample_name', type=str)
-@click.option('--chrX', default=False, type=bool)
+@click.option('--chrX', is_flag=True)
 @click.option('--sample_file', required=True)
 @click.option('--title', required=True)
 @click.option('--centromeres', required=True)
@@ -46,13 +46,9 @@ def karyogram(sample_name, chrx, sample_file, title, centromeres, out):
     """
     Use the tool to visualize breakpoints.
     """
-    plot_karyogram(sample_file, title, centromeres, out)
-    #plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1" chrX=False, colors=None)
+    plot_karyogram(sample_file, title, centromeres, out, sample_name, chrx)
 
 if __name__ == "__main__":
     # run the CLI if someone tries 'python -m haptools' on the command line
     main(prog_name="haptools")
-
-
-
 
