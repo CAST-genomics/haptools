@@ -26,10 +26,71 @@ class Haplotype:
 		self.hap_LA = hap_LA
 		self.hap_effect = hap_effect
 
+		##### Do some basic checks #####
+		# hap_varids and hap_varalleles must be the same length
+		assert(len(self.hap_varids)==len(self.hap_varalleles))
+		# Do not repeat variant IDs
+		assert(len(set(self.hap_varids))==len(self.hap_varids))
+		# TODO - STR and LA checks
+
+	def GetVariantID(self, record):
+		return "%s_%s_%s_%s"%(record.CHROM, record.POS, record.REF, ":".join(record.ALT))
+
+	def CheckHapMatch(self, vcf_reader):
+		sample_list = vcf_reader.samples
+
+		# Keep track of whether each chrom
+		# of each sample matches or not
+		hap_matches = {}
+		for sample in sample_list:
+			hap_matches[sample] = [True, True]
+
+		found_ids = 0
+		records = vcf_reader("%s:%s-%s"%(self.hap_chr, self.hap_start, self.hap_end))
+		for record in records:
+			# Check if the record is part of the haplotype
+			if (record.ID in self.hap_varids):
+				varind = self.hap_varids.index(record.ID)
+			elif (GetVariantID(record) in self.varids):
+				varind = self.hap_varids.index(self.GetVariantID(record))
+			else: continue
+			var_allele = self.hap_varalleles[varind]
+			var_id = self.hap_varids[varind]
+			found_ids += 1
+
+			# Determine the index of the target allele
+			record_alleles = [record.REF]+record.ALT
+			assert(var_allele in record_alleles) # TODO fail more gracefully with a message
+			allele_ind = record_alleles.index(var_allele)
+
+			# Check if each sample matches
+			# If not, set hap_matches to False
+			for i in range(len(sample_list)):
+				sample = sample_list[i]
+				call = record.genotypes[i]
+				assert(call[2]) # make sure it is phased
+				for j in range(2):
+					if call[j]!=allele_ind: hap_matches[sample][j] = False
+
+		# Check we got through all the IDs
+		assert(found_ids == len(self.hap_varids)) # TODO fail more gracefully with a message
+		return hap_matches
+
 	def Transform(self, vcf_reader):
 		hap_gts = {}
+
+		##### Case 1 - STR length #####
+		pass # TODO
+
+		##### Case 2 - variant haplotype #####
+		hap_matches = self.CheckHapMatch(vcf_reader)
+
+		##### Case 3 - LA (may be in combination with case 2) #####
+		pass # TODO
+
+		# Get haplotype counts
 		for sample in vcf_reader.samples:
-			hap_gts[sample] = 0 # TODO sample -> 0/1/2 for the haplotype
+			hap_gts[sample] = sum(hap_matches[sample])
 		return hap_gts
 
 	def __str__(self):
