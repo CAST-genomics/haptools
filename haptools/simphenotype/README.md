@@ -59,7 +59,7 @@ H-001	0.6	-0.2
 <a name="examples"></a>
 ## Examples
 
-1. Simulate a single haplotype-effect based on a 2 SNP haplotype:
+Simulate a single haplotype-effect based on a 2 SNP haplotype:
 
 ```
 haptools simphenotype \
