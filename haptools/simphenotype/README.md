@@ -19,9 +19,9 @@ haptools simphenotype \
 
 Required parameters:
 
-* `--vcf <string>`: A bgzipped, tabix-indexed, phased VCF file. If you are simulating local-ancestry effects, the VCF file must contain the `FORMAT/LA` tag included in output of `haptools simgenotype`. See [haptools file formats](../docs/project_info/haptools_file_formats.rst) for more details.
+* `--vcf <string>`: A bgzipped, tabix-indexed, phased VCF file. If you are simulating local-ancestry effects, the VCF file must contain the `FORMAT/LA` tag included in output of `haptools simgenotype`. See [haptools file formats](../../docs/project_info/haptools_file_formats.rst) for more details.
 
-* `--hap <string>`: A bgzipped, tabix-indexed HAP file, which specifies causal effects. This is a custom format described in more detail in[haptools file formats](../docs/project_info/haptools_file_formats.rst). The HAP format enables flexible specification of a range of effect types including traditional variant-level effects, haplotype-level effects, associations with repeat lengths at short tandem repeats, and interaction of these effects with local ancestry labels. See [Examples](#examples) below for detailed examples of how to specify effects.
+* `--hap <string>`: A bgzipped, tabix-indexed HAP file, which specifies causal effects. This is a custom format described in more detail in [haptools file formats](../../docs/project_info/haptools_file_formats.rst). The HAP format enables flexible specification of a range of effect types including traditional variant-level effects, haplotype-level effects, associations with repeat lengths at short tandem repeats, and interaction of these effects with local ancestry labels. See [Examples](#examples) below for detailed examples of how to specify effects.
 
 * `--out <string>`: Prefix to name output files.
 
@@ -58,3 +58,19 @@ H-001	0.6	-0.2
 
 <a name="examples"></a>
 ## Examples
+
+1. Simulate a single haplotype-effect based on a 2 SNP haplotype:
+
+```
+haptools simphenotype \
+  --vcf tests/data/simple.vcf.gz \
+  --hap tests/data/simple.hap.gz \
+  --out test \
+  --simu-qt --simu-hsq 0.8 --simu-rep 1
+```
+
+based on this HAP file (available in `tests/data`)
+
+```
+H-001	1	10114	10116	1:10114:T:C,1:10116:A:G	T,G	*	-0.2
+```
