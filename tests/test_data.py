@@ -78,6 +78,27 @@ def test_load_genotypes():
         gts.to_MAC()
 
 
+def test_load_genotypes_discard_multiallelic():
+    expected = get_expected_genotypes()
+
+    # can we load the data from the VCF?
+    gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+    gts.read()
+
+    # make a copy for later
+    data_copy = gts.data.copy().astype(np.bool_)
+    variant_shape = list(gts.variants.shape)
+    variant_shape[0] -= 1
+
+    # force one of the SNPs to have more than one allele and check that it gets dicarded
+    gts.data[1, 1, 1] = 2
+    gts.check_biallelic(discard_also=True)
+
+    data_copy_without_biallelic = np.delete(data_copy, [1], axis=1)
+    np.testing.assert_equal(gts.data, data_copy_without_biallelic)
+    assert gts.variants.shape == tuple(variant_shape)
+
+
 def test_load_genotypes_subset():
     expected = get_expected_genotypes()
 

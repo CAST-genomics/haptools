@@ -113,7 +113,7 @@ class Genotypes(Data):
         # transpose the GT matrix so that samples are rows and variants are columns
         self.data = self.data.transpose((1, 0, 2))
 
-    def check_biallelic(self):
+    def check_biallelic(self, discard_also=False):
         """
         Check that each genotype is composed of only two alleles
 
@@ -126,6 +126,11 @@ class Genotypes(Data):
             converted to bool
         ValueError
             If any of the genotypes have more than two alleles
+
+        Parameters
+        ----------
+        discard_also : bool, optional
+            If True, discard any multiallelic variants without raising a ValueError
         """
         if self.data.dtype == np.bool_:
             raise AssertionError("All genotypes are already biallelic")
@@ -134,11 +139,15 @@ class Genotypes(Data):
         multiallelic = np.any(self.data[:, :, :2] > 1, axis=2)
         if np.any(multiallelic):
             samp_idx, variant_idx = np.nonzero(multiallelic)
-            raise ValueError(
-                "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
-                    *tuple(self.variants[variant_idx[0]])[:3], self.samples[samp_idx[0]]
+            if discard_also:
+                self.data = np.delete(self.data, variant_idx, axis=1)
+                self.variants = np.delete(self.variants, variant_idx)
+            else:
+                raise ValueError(
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
+                        *tuple(self.variants[variant_idx[0]])[:3], self.samples[samp_idx[0]]
+                    )
                 )
-            )
         self.data = self.data.astype(np.bool_)
 
     def check_phase(self):

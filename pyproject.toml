@@ -55,7 +55,7 @@ haptools = 'haptools.__main__:main'
 
 [tool.black]
 line-length = 88
-experimental-string-processing = true
+preview = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
