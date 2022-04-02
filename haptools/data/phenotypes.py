@@ -1,7 +1,8 @@
 from __future__ import annotations
-import numpy as np
 from csv import reader
 from pathlib import Path
+
+import numpy as np
 
 from .data import Data
 

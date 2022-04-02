@@ -1,8 +1,9 @@
 from __future__ import annotations
-import numpy as np
 from csv import reader
 from pathlib import Path
 from abc import ABC, abstractmethod
+
+import numpy as np
 
 
 class Data(ABC):
