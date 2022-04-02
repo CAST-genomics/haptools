@@ -70,6 +70,11 @@ class Genotypes(Data):
         """
         Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
 
+        Raises
+        ------
+        ValueError
+            If the genotypes array is empty
+
         Parameters
         ----------
         region : str, optional
@@ -110,6 +115,11 @@ class Genotypes(Data):
         self.data = np.array(
             [variant.genotypes for variant in variants], dtype=np.uint8
         )
+        if self.data.shape == (0, 0, 0):
+            raise ValueError(
+                "Failed to load genotypes. If you specified a region, check that the"
+                " contig name matches! For example, double-check the 'chr' prefix."
+            )
         # transpose the GT matrix so that samples are rows and variants are columns
         self.data = self.data.transpose((1, 0, 2))
 
@@ -144,8 +154,10 @@ class Genotypes(Data):
                 self.variants = np.delete(self.variants, variant_idx)
             else:
                 raise ValueError(
-                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
-                        *tuple(self.variants[variant_idx[0]])[:3], self.samples[samp_idx[0]]
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
+                    .format(
+                        *tuple(self.variants[variant_idx[0]])[:3],
+                        self.samples[samp_idx[0]],
                     )
                 )
         self.data = self.data.astype(np.bool_)
