@@ -1,4 +1,4 @@
 .. _subcommands-simgenotype:
 
-.. include:: simgenotype_md.md
+.. include:: ../../haptools/simgenotype/README.md
    :parser: myst_parser.sphinx_

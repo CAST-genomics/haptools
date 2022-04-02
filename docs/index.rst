@@ -4,6 +4,9 @@
 haptools
 ========
 
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
+
 .. toctree::
    :caption: Execution
    :name: executing
