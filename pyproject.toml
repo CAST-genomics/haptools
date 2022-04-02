@@ -2,16 +2,18 @@
 name = "haptools"
 version = "0.0.1"
 description = "Simulate phenotypes for GWAS and subsequent fine-mapping"
-authors = ["Arya Massarat", "Michael Lamkin"]
+authors = ["Michael Lamkin", "Arya Massarat"]
 license = "MIT"
-repository = "https://github.com/aryarm/haptools"
-homepage = "https://github.com/aryarm/haptools"
+repository = "https://github.com/gymrek-lab/haptools"
+homepage = "https://github.com/gymrek-lab/haptools"
+documentation = "https://haptools.readthedocs.io"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.7,<3.11"
 click = "^8.0.3"
 pysam = "^0.18.0"
 cyvcf2 = "^0.30.14"
+pandas = "<=1.3.5" # the next version is 1.4.0 and it requires python 3.8 or up
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
