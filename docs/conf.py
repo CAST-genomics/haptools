@@ -34,6 +34,7 @@ extensions = [
     "sphinx_rtd_theme",
     "numpydoc",
     "sphinx_click",
+    "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -47,6 +48,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Extension configuration -------------------------------------------------
 autosummary_generate = True
 numpydoc_show_class_members = False
+# allow for both rst and md syntax
+source_suffix = ['.rst']
 
 # -- Options for HTML output -------------------------------------------------
 

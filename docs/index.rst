@@ -13,6 +13,14 @@ haptools
    executing/inputs.rst
 
 .. toctree::
+   :caption: Commands
+   :name: commands
+   :hidden:
+   :maxdepth: 1
+
+   commands/simgenotype.rst
+
+.. toctree::
    :caption: API
    :name: api
    :hidden:
