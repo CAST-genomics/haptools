@@ -13,7 +13,6 @@ python = ">=3.7,<3.11"
 click = "^8.0.3"
 pysam = "^0.18.0"
 cyvcf2 = "^0.30.14"
-pandas = "<=1.3.5" # the next version is 1.4.0 and it requires python 3.8 or up
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
