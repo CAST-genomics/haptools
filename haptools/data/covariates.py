@@ -1,6 +1,7 @@
 from __future__ import annotations
 from csv import reader
 from pathlib import Path
+from fileinput import hook_compressed
 
 import numpy as np
 
@@ -71,7 +72,8 @@ class Covariates(Data):
         """
         super().read()
         # load all info into memory
-        with open(self.fname) as covars:
+        # use hook_compressed to automatically handle gz files
+        with hook_compressed(self.fname, mode='rt') as covars:
             covar_text = reader(covars, delimiter="\t")
             header = next(covar_text)
             # there should at least two columns

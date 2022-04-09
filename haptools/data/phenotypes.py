@@ -1,6 +1,7 @@
 from __future__ import annotations
 from csv import reader
 from pathlib import Path
+from fileinput import hook_compressed
 
 import numpy as np
 
@@ -71,7 +72,8 @@ class Phenotypes(Data):
         """
         super().read()
         # load all info into memory
-        with open(self.fname) as phens:
+        # use hook_compressed to automatically handle gz files
+        with hook_compressed(self.fname, mode='rt') as phens:
             phen_text = reader(phens, delimiter="\t")
             # convert to list and subset samples if need be
             if samples:
