@@ -155,36 +155,26 @@ def test_load_phenotypes_subset():
     np.testing.assert_allclose(phens.data, expected)
     assert phens.samples == tuple(samples)
 
+
 def test_load_covariates():
     # create a covariate vector with shape: num_samples x num_covars
-    expected = np.array([
-        (0, 4),
-        (1, 20),
-        (1, 33),
-        (0, 15),
-        (0, 78)
-    ])
+    expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
 
     # can we load the data from the covariates file?
     covars = Covariates(DATADIR.joinpath("covars.tsv"))
     covars.read()
     np.testing.assert_allclose(covars.data, expected)
     assert covars.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
-    assert covars.names == ('sex', 'age')
+    assert covars.names == ("sex", "age")
 
     # try loading the data again - it should fail b/c we've already done it
     with pytest.raises(AssertionError):
         covars.read()
 
+
 def test_load_covariates_subset():
     # create a covriate vector with shape: num_samples x num_covars
-    expected = np.array([
-        (0, 4),
-        (1, 20),
-        (1, 33),
-        (0, 15),
-        (0, 78)
-    ])
+    expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
 
     # subset for just the samples we want
     expected = expected[[1, 3]]
