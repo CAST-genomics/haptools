@@ -5,7 +5,6 @@ TODO:
 - add defaults to help messages
 - clean up help messages
 - group options
-- add tabix to haptools-dev?
 """
 
 import sys

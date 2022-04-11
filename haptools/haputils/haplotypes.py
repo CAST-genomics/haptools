@@ -14,9 +14,13 @@ TODO:
 * fail gracefully on assertions - we need ERROR utility
 
 """
+import re
 import gzip
+from pathlib import Path
+
+import pysam
 import numpy as np
-import tabix
+
 
 class Haplotype:
 	def __init__(self, hap_id, hap_chr, hap_start, hap_end, \
@@ -106,11 +110,26 @@ class Haplotype:
 		return self.hap_id
 
 class HapReader:
-	def __init__(self, hapfile, region=None):
+	def __init__(self, hapfile: Path, region: str = None):
+		"""
+		Open a haplotype file with the given region
+
+		Parameters
+		----------
+		hapfile : Path
+		  The path to a .haps file containing haplotypes
+		region : str, optional
+		  A region from which to query specific haplotypes; ex: "chr1:1000-2000"
+		"""
 		if region is None:
 			self.haps = gzip.open(hapfile)
 		else:
-			self.haps = tabix.open(hapfile).querys(region)
+			# split the region string so each portion is an element
+			region = re.split(':|-', region)
+			if len(region) > 1:
+				region[1:] = [int(pos) for pos in region[1:] if pos]
+			# fetch region
+			self.haps = pysam.TabixFile(hapfile).fetch(*region)
 
 	def GetHaplotype(self, hapline):
 		hap_id = hapline[0]
