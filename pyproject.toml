@@ -1,41 +1,44 @@
 [tool.poetry]
 name = "haptools"
 version = "0.0.1"
-description = "Simulate phenotypes for GWAS and subsequent fine-mapping"
-authors = ["Arya Massarat", "Michael Lamkin"]
+description = "Simulate genotypes and phenotypes for GWAS and subsequent fine-mapping"
+authors = ["Michael Lamkin", "Arya Massarat"]
 license = "MIT"
-repository = "https://github.com/aryarm/haptools"
-homepage = "https://github.com/aryarm/haptools"
+repository = "https://github.com/gymrek-lab/haptools"
+homepage = "https://github.com/gymrek-lab/haptools"
+documentation = "https://haptools.readthedocs.io"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.7,<3.11"
 click = "^8.0.3"
 pysam = "^0.18.0"
 cyvcf2 = "^0.30.14"
+brewer2mpl = "^1.4.1"
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
 # https://github.com/readthedocs/readthedocs.org/issues/4912
-Sphinx = {version = "^4.3.2", optional = true }
-sphinx-autodoc-typehints = {version = "^1.12.0", optional = true }
-sphinx-rtd-theme = {version = "^1.0.0", optional = true }
-numpydoc = {version = "^1.1.0", optional = true }
-sphinx-click = {version = "^3.0.2", optional = true }
-brewer2mpl = "^1.4.1"
-pytabix = "^0.1"
+Sphinx = { version = "^4.3.2", optional = true }
+sphinx-autodoc-typehints = { version = "^1.12.0", optional = true }
+sphinx-rtd-theme = { version = "^1.0.0", optional = true }
+numpydoc = { version = "^1.1.0", optional = true }
+sphinx-click = { version = "^3.0.2", optional = true }
+myst-parser = { version = "^0.17.0", optional = true }
 
 [tool.poetry.dev-dependencies]
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
 # https://github.com/readthedocs/readthedocs.org/issues/4912
-Sphinx = {version = "^4.3.2" }
-sphinx-autodoc-typehints = {version = "^1.12.0" }
-sphinx-rtd-theme = {version = "^1.0.0" }
-numpydoc = {version = "^1.1.0" }
-sphinx-click = {version = "^3.0.2" }
+Sphinx = { version = "^4.3.2" }
+sphinx-autodoc-typehints = { version = "^1.12.0" }
+sphinx-rtd-theme = { version = "^1.0.0" }
+numpydoc = { version = "^1.1.0" }
+sphinx-click = { version = "^3.0.2" }
+myst-parser = { version = "^0.17.0" }
+
 pytest = "^6.2.5"
-black = "^21.12b0"
+black = "^22.3.0"
 ipython = "^7.30.1"
 
 [tool.poetry.extras]
@@ -56,7 +59,7 @@ haptools = 'haptools.__main__:main'
 
 [tool.black]
 line-length = 88
-experimental-string-processing = true
+preview = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
