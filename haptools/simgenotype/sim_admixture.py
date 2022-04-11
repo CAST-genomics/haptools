@@ -1,7 +1,9 @@
-import glob
 import re
-import numpy as np
+import glob
 import time
+
+import numpy as np
+
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
 # TODO at a certain point we are going to need to ensure populations in model file are also in invcf files

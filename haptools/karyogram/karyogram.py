@@ -1,13 +1,14 @@
+import os
 import argparse
+
+import pylab
+import brewer2mpl
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import pylab
 from matplotlib.path import Path
 import matplotlib.patches as patches
 import matplotlib.collections as mcol
-import brewer2mpl
-import os
 
 
 def splitstr(option, opt, value, parser):

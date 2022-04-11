@@ -126,6 +126,10 @@ Code
 
     1. Please type-hint all function parameters
     2. Please adhere to PEP8 whenever possible. :code:`black` will help you with this.
+    3. For readability, please separate imports into three paragraph blocks:
+        i. from the python standard library
+        ii. from external, third party packages
+        iii. from our own internal code
 
 ~~~~~~~~~~~~~~~~~~~
 Git commit messages
