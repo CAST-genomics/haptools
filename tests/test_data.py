@@ -80,12 +80,13 @@ def test_load_genotypes(caplog):
 
 def test_load_genotypes_iterate(caplog):
     expected = get_expected_genotypes().transpose((1, 0, 2))
+    samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
     # can we load the data from the VCF?
     gts = Genotypes(DATADIR.joinpath("simple.vcf"))
     for idx, line in enumerate(gts.iterate()):
-        np.testing.assert_allclose(line['data'], expected[idx])
-        assert line['samples'] == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        np.testing.assert_allclose(line["data"], expected[idx])
+        assert line["samples"] == samples
 
 
 def test_load_genotypes_discard_multiallelic():
@@ -159,8 +160,8 @@ def test_load_phenotypes_iterate():
     # can we load the data from the phenotype file?
     phens = Phenotypes(DATADIR.joinpath("simple.tsv"))
     for idx, line in enumerate(phens.iterate()):
-        np.testing.assert_allclose(line['data'], expected[idx])
-        assert line['samples'] == samples[idx]
+        np.testing.assert_allclose(line["data"], expected[idx])
+        assert line["samples"] == samples[idx]
 
 
 def test_load_phenotypes_subset():
@@ -202,9 +203,9 @@ def test_load_covariates_iterate():
     # can we load the data from the covariates file?
     covars = Covariates(DATADIR.joinpath("covars.tsv"))
     for idx, line in enumerate(covars.iterate()):
-        np.testing.assert_allclose(line['data'], expected[idx])
-        assert line['samples'] == samples[idx]
-        assert line['names'] == ("sex", "age")
+        np.testing.assert_allclose(line["data"], expected[idx])
+        assert line["samples"] == samples[idx]
+        assert line["names"] == ("sex", "age")
 
 
 def test_load_covariates_subset():

@@ -84,8 +84,8 @@ class Covariates(Data):
             # the first column should be called "sample"
             if header[0] != "sample":
                 self.log.warning(
-                    "The first column of the covariates TSV should contain sample IDs and"
-                    " should be named 'sample' in the header line"
+                    "The first column of the covariates TSV should contain sample IDs"
+                    " and should be named 'sample' in the header line"
                 )
             # convert to list and subset samples if need be
             if samples:
@@ -134,8 +134,8 @@ class Covariates(Data):
             # the first column should be called "sample"
             if header[0] != "sample":
                 self.log.warning(
-                    "The first column of the covariates TSV should contain sample IDs and"
-                    " should be named 'sample' in the header line"
+                    "The first column of the covariates TSV should contain sample IDs"
+                    " and should be named 'sample' in the header line"
                 )
             header = tuple(header[1:])
             for covar in covar_text:
