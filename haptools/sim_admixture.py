@@ -2,7 +2,7 @@ import re
 #import vcf
 import time
 import numpy as np
-from .admix_storage import GeneticMarker, HaplotypeSegment
+from admix_storage import GeneticMarker, HaplotypeSegment
 
 # TODO update toml file with matplotlib version see aryas PR as well as pyvcf
 
