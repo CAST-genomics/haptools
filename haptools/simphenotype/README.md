@@ -1,3 +1,0 @@
-# Haptools simphenotype
-
-UNDER CONSTRUCTION

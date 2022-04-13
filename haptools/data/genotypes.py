@@ -1,6 +1,9 @@
 from __future__ import annotations
-import numpy as np
 from pathlib import Path
+from typing import Iterator
+from collections import namedtuple
+
+import numpy as np
 from cyvcf2 import VCF, Variant
 
 from .data import Data
@@ -24,14 +27,16 @@ class Genotypes(Data):
             2. CHROM
             3. POS
             4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> genotypes = Genotypes.load('tests/data/simple.vcf')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array([])
 
@@ -69,6 +74,11 @@ class Genotypes(Data):
         """
         Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
 
+        Raises
+        ------
+        ValueError
+            If the genotypes array is empty
+
         Parameters
         ----------
         region : str, optional
@@ -83,17 +93,25 @@ class Genotypes(Data):
             Defaults to loading genotypes from all samples
         """
         super().read()
-        # load all info into memory
+        # initialize variables
         vcf = VCF(str(self.fname), samples=samples)
         self.samples = tuple(vcf.samples)
-        variants = list(vcf(region))
+        self.variants = []
+        self.data = []
+        # load all info into memory
+        for variant in vcf(region):
+            # save meta information about each variant
+            self.variants.append((variant.ID, variant.CHROM, variant.POS, variant.aaf))
+            # extract the genotypes to a matrix of size n x p x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased
+            self.data.append(variant.genotypes)
         vcf.close()
-        # save meta information about each variant
+        # convert to np array for speedy operations later on
         self.variants = np.array(
-            [
-                (variant.ID, variant.CHROM, variant.POS, variant.aaf)
-                for variant in variants
-            ],
+            self.variants,
             dtype=[
                 ("id", "U50"),
                 ("chrom", "U10"),
@@ -101,18 +119,65 @@ class Genotypes(Data):
                 ("aaf", np.float64),
             ],
         )
-        # extract the genotypes to a np matrix of size n x p x 3
-        # the last dimension has three items:
-        # 1) presence of REF in strand one
-        # 2) presence of REF in strand two
-        # 3) whether the genotype is phased
-        self.data = np.array(
-            [variant.genotypes for variant in variants], dtype=np.uint8
-        )
+        self.data = np.array(self.data, dtype=np.uint8)
+        if self.data.shape == (0, 0, 0):
+            self.log.warning(
+                "Failed to load genotypes. If you specified a region, check that the"
+                " contig name matches! For example, double-check the 'chr' prefix."
+            )
         # transpose the GT matrix so that samples are rows and variants are columns
         self.data = self.data.transpose((1, 0, 2))
 
-    def check_biallelic(self):
+    def iterate(
+        self, region: str = None, samples: list[str] = None
+    ) -> Iterator[namedtuple]:
+        """
+        Read genotypes from a VCF line by line without storing anything
+
+        Parameters
+        ----------
+        region : str, optional
+            The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+            For this to work, the VCF must be indexed and the seqname must match!
+
+            Defaults to loading all genotypes
+        samples : list[str], optional
+            A subset of the samples from which to extract genotypes
+
+            Defaults to loading genotypes from all samples
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        vcf = VCF(str(self.fname), samples=samples)
+        samples = tuple(vcf.samples)
+        Record = namedtuple("Record", "data samples variants")
+        # load all info into memory
+        for variant in vcf(region):
+            # save meta information about each variant
+            variants = np.array(
+                (variant.ID, variant.CHROM, variant.POS, variant.aaf),
+                dtype=[
+                    ("id", "U50"),
+                    ("chrom", "U10"),
+                    ("pos", np.uint),
+                    ("aaf", np.float64),
+                ],
+            )
+            # extract the genotypes to a matrix of size 1 x p x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased
+            data = np.array(variant.genotypes, dtype=np.uint8)
+            yield Record(data, samples, variants)
+        vcf.close()
+
+    def check_biallelic(self, discard_also=False):
         """
         Check that each genotype is composed of only two alleles
 
@@ -125,19 +190,30 @@ class Genotypes(Data):
             converted to bool
         ValueError
             If any of the genotypes have more than two alleles
+
+        Parameters
+        ----------
+        discard_also : bool, optional
+            If True, discard any multiallelic variants without raising a ValueError
         """
         if self.data.dtype == np.bool_:
-            raise AssertionError("All genotypes are already biallelic")
+            self.log.warning("All genotypes are already biallelic")
+            return
         # check: are there any variants that have genotype values above 1?
         # A genotype value above 1 would imply the variant has more than one ALT allele
         multiallelic = np.any(self.data[:, :, :2] > 1, axis=2)
         if np.any(multiallelic):
             samp_idx, variant_idx = np.nonzero(multiallelic)
-            raise ValueError(
-                "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
-                    *tuple(self.variants[variant_idx[0]])[:3], self.samples[samp_idx[0]]
+            if discard_also:
+                self.data = np.delete(self.data, variant_idx, axis=1)
+                self.variants = np.delete(self.variants, variant_idx)
+            else:
+                raise ValueError(
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
+                        *tuple(self.variants[variant_idx[0]])[:3],
+                        self.samples[samp_idx[0]],
+                    )
                 )
-            )
         self.data = self.data.astype(np.bool_)
 
     def check_phase(self):
@@ -154,9 +230,8 @@ class Genotypes(Data):
             If any heterozgyous genotpyes are unphased
         """
         if self.data.shape[2] < 3:
-            raise AssertionError(
-                "Phase information has already been removed from the data"
-            )
+            self.log.warning("Phase information has already been removed from the data")
+            return
         # check: are there any variants that are heterozygous and unphased?
         unphased = (self.data[:, :, 0] ^ self.data[:, :, 1]) & (~self.data[:, :, 2])
         if np.any(unphased):
@@ -183,10 +258,11 @@ class Genotypes(Data):
             If the matrix has already been converted
         """
         if self.variants.dtype.names[3] == "maf":
-            raise AssertionError(
-                "The matrix already counts instances of the minor allele rather than"
+            self.log.warning(
+                "The matrix already counts instances of the minor allele rather than "
                 "the ALT allele."
             )
+            return
         need_conversion = self.variants["aaf"] > 0.5
         # flip the count on the variants that have an alternate allele frequency
         # above 0.5
@@ -217,14 +293,16 @@ class GenotypesPLINK(Data):
             2. CHROM
             3. POS
             4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> genotypes = Genotypes.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array([])
 

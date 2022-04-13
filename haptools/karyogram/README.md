@@ -1,3 +1,0 @@
-# Haptools karyogram
-
-UNDER CONSTRUCTION

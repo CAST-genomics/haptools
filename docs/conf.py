@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.abspath("../"))
 # -- Project information -----------------------------------------------------
 
 project = "haptools"
-copyright = "2021, Arya Massarat, Michael Lamkin"
-author = "Arya Massarat, Michael Lamkin"
+copyright = "2021, Michael Lamkin, Arya Massarat"
+author = "Michael Lamkin, Arya Massarat"
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,6 +34,7 @@ extensions = [
     "sphinx_rtd_theme",
     "numpydoc",
     "sphinx_click",
+    "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -47,6 +48,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Extension configuration -------------------------------------------------
 autosummary_generate = True
 numpydoc_show_class_members = False
+# allow for both rst and md syntax
+source_suffix = ['.rst']
 
 # -- Options for HTML output -------------------------------------------------
 
