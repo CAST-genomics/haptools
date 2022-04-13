@@ -1,7 +1,11 @@
 [tool.poetry]
 name = "haptools"
 version = "0.0.1"
+<<<<<<< HEAD
 description = "Simulate phenotypes for GWAS and subsequent fine-mapping"
+=======
+description = "Simulate genotypes and phenotypes for GWAS and subsequent fine-mapping"
+>>>>>>> haplotype_classes
 authors = ["Michael Lamkin", "Arya Massarat"]
 license = "MIT"
 repository = "https://github.com/gymrek-lab/haptools"
@@ -13,6 +17,8 @@ python = ">=3.7,<3.11"
 click = "^8.0.3"
 pysam = "^0.18.0"
 cyvcf2 = "^0.30.14"
+brewer2mpl = "^1.4.1"
+matplotlib = "^3.5.1"
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see

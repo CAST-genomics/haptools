@@ -68,7 +68,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        conda create -n haptools-dev 'conda-forge::poetry==1.1.12' 'python=3.7'
+        conda create -n haptools-dev -c conda-forge 'poetry==1.1.13' 'python=3.7'
 2. Activate the environment
 
     .. code-block:: bash
@@ -126,6 +126,10 @@ Code
 
     1. Please type-hint all function parameters
     2. Please adhere to PEP8 whenever possible. :code:`black` will help you with this.
+    3. For readability, please separate imports into three paragraph blocks:
+        i. from the python standard library
+        ii. from external, third party packages
+        iii. from our own internal code
 
 ~~~~~~~~~~~~~~~~~~~
 Git commit messages

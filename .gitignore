@@ -13,3 +13,7 @@ dist/
 
 # OSX
 *.DS_Store*
+
+# Test output files
+test.par
+test.phen

@@ -1,7 +1,9 @@
-import glob
 import re
-import numpy as np
+import glob
 import time
+
+import numpy as np
+
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
 
