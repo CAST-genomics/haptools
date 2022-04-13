@@ -6,6 +6,7 @@ haptools simphenotype --vcf tests/data/simple.vcf.gz --hap tests/data/simple.hap
 """
 
 from cyvcf2 import VCF
+
 from ..haputils.haplotypes import *
 
 def simulate_pt(vcffile, hapfile, simu_rep, \
