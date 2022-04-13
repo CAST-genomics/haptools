@@ -1,11 +1,7 @@
 [tool.poetry]
 name = "haptools"
 version = "0.0.1"
-<<<<<<< HEAD
-description = "Simulate phenotypes for GWAS and subsequent fine-mapping"
-=======
 description = "Simulate genotypes and phenotypes for GWAS and subsequent fine-mapping"
->>>>>>> haplotype_classes
 authors = ["Michael Lamkin", "Arya Massarat"]
 license = "MIT"
 repository = "https://github.com/gymrek-lab/haptools"
