@@ -84,12 +84,13 @@ class Phenotypes(Data):
             else:
                 phen_text = list(phen_text)
         # there should only be two columns
-        assert len(phen_text[0]) == 2, "The phenotype TSV should only have two columns."
+        if len(phen_text[0]) != 2:
+            self.log.warning("The phenotype TSV should only have two columns.")
         # the second column should be castable to a float
         try:
             float(phen_text[0][1])
         except:
-            raise AssertionError("The second column of the TSV file must numeric.")
+            self.log.error("The second column of the TSV file must numeric.")
         # fill out the samples and data properties
         self.samples, self.data = zip(*phen_text)
         # coerce strings to floats

@@ -79,14 +79,14 @@ class Covariates(Data):
             covar_text = reader(covars, delimiter="\t")
             header = next(covar_text)
             # there should at least two columns
-            assert (
-                len(header) >= 2
-            ), "The covariates TSV should have at least two columns."
+            if len(header) < 2:
+                raise ValueError("The covariates TSV should have at least two columns.")
             # the first column should be called "sample"
-            assert header[0] == "sample", (
-                "The first column of the covariates TSV should contain sample IDs and"
-                " should be named 'sample' in the header line"
-            )
+            if header[0] != "sample":
+                self.log.warning(
+                    "The first column of the covariates TSV should contain sample IDs and"
+                    " should be named 'sample' in the header line"
+                )
             # convert to list and subset samples if need be
             if samples:
                 samples = set(samples)
@@ -97,7 +97,7 @@ class Covariates(Data):
         try:
             float(covar_text[0][1])
         except:
-            raise AssertionError(
+            self.log.error(
                 "Every column in the covariates file (besides the sample column) must"
                 " be numeric."
             )
@@ -129,14 +129,14 @@ class Covariates(Data):
             covar_text = reader(covars, delimiter="\t")
             header = next(covar_text)
             # there should at least two columns
-            assert (
-                len(header) >= 2
-            ), "The covariates TSV should have at least two columns."
+            if len(header) < 2:
+                raise ValueError("The covariates TSV should have at least two columns.")
             # the first column should be called "sample"
-            assert header[0] == "sample", (
-                "The first column of the covariates TSV should contain sample IDs and"
-                " should be named 'sample' in the header line"
-            )
+            if header[0] != "sample":
+                self.log.warning(
+                    "The first column of the covariates TSV should contain sample IDs and"
+                    " should be named 'sample' in the header line"
+                )
             header = tuple(header[1:])
             for covar in covar_text:
                 if samples is None or covar[0] in samples:
@@ -147,7 +147,7 @@ class Covariates(Data):
                             "data": np.array(covar[1:], dtype="float64"),
                         }
                     except:
-                        raise AssertionError(
+                        self.log.error(
                             "Every column in the covariates file (besides the sample"
                             " column) must be numeric."
                         )
