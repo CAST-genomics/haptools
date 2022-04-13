@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Iterator
+from collections import namedtuple
 
 import numpy as np
 from cyvcf2 import VCF, Variant
@@ -127,7 +128,7 @@ class Genotypes(Data):
         # transpose the GT matrix so that samples are rows and variants are columns
         self.data = self.data.transpose((1, 0, 2))
 
-    def iterate(self, region: str = None, samples: list[str] = None) -> Iterator[dict]:
+    def iterate(self, region: str = None, samples: list[str] = None) -> Iterator[namedtuple]:
         """
         Read genotypes from a VCF line by line without storing anything
 
@@ -146,17 +147,17 @@ class Genotypes(Data):
 
         Yields
         ------
-        Iterator[dict]
+        Iterator[namedtuple]
             An iterator over each line in the file, where each line is encoded as a
-            dictionary containing each of the class properties
+            namedtuple containing each of the class properties
         """
         vcf = VCF(str(self.fname), samples=samples)
         samples = tuple(vcf.samples)
+        Record = namedtuple("Record", "data samples variants")
         # load all info into memory
         for variant in vcf(region):
-            record = {"samples": samples}
             # save meta information about each variant
-            record["variants"] = np.array(
+            variants = np.array(
                 (variant.ID, variant.CHROM, variant.POS, variant.aaf),
                 dtype=[
                     ("id", "U50"),
@@ -170,8 +171,8 @@ class Genotypes(Data):
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased
-            record["data"] = np.array(variant.genotypes, dtype=np.uint8)
-            yield record
+            data = np.array(variant.genotypes, dtype=np.uint8)
+            yield Record(data, samples, variants)
         vcf.close()
 
     def check_biallelic(self, discard_also=False):

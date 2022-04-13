@@ -1,6 +1,7 @@
 from __future__ import annotations
 from csv import reader
 from pathlib import Path
+from collections import namedtuple
 from fileinput import hook_compressed
 
 import numpy as np
@@ -96,7 +97,7 @@ class Phenotypes(Data):
         # coerce strings to floats
         self.data = np.array(self.data, dtype="float64")
 
-    def iterate(self, samples: list[str] = None) -> Iterator[dict]:
+    def iterate(self, samples: list[str] = None) -> Iterator[namedtuple]:
         """
         Read phenotypes from a TSV line by line without storing anything
 
@@ -109,18 +110,19 @@ class Phenotypes(Data):
 
         Yields
         ------
-        Iterator[dict]
+        Iterator[namedtuple]
             An iterator over each line in the file, where each line is encoded as a
-            dictionary containing each of the class properties
+            namedtuple containing each of the class properties
         """
         with hook_compressed(self.fname, mode="rt") as phens:
             phen_text = reader(phens, delimiter="\t")
+            Record = namedtuple("Record", "data samples")
             for phen in phen_text:
                 if samples is None or phen[0] in samples:
                     try:
-                        yield {"samples": phen[0], "data": float(phen[1])}
+                        yield Record(float(phen[1]), phen[0])
                     except:
-                        raise AssertionError(
+                        self.log.error(
                             "The second column of the TSV file must numeric."
                         )
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 from csv import reader
 from pathlib import Path
 from typing import Iterator
+from collections import namedtuple
 from abc import ABC, abstractmethod
 from logging import getLogger, Logger
 
@@ -53,14 +54,14 @@ class Data(ABC):
             self.log.warning("The data has already been loaded. Overriding.")
 
     @abstractmethod
-    def iterate(self) -> Iterator[dict]:
+    def iterate(self) -> Iterator[namedtuple]:
         """
         Return an iterator over the raw file contents
 
         Yields
         ------
-        Iterator[dict]
+        Iterator[namedtuple]
             An iterator over each line in the file, where each line is encoded as a
-            dictionary containing each of the class properties
+            namedtuple containing each of the class properties
         """
         pass

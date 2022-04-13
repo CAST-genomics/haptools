@@ -1,6 +1,7 @@
 from __future__ import annotations
 from csv import reader
 from pathlib import Path
+from collections import namedtuple
 from fileinput import hook_compressed
 
 import numpy as np
@@ -20,6 +21,8 @@ class Covariates(Data):
         The path to the read-only file containing the data
     samples : tuple[str]
         The names of each of the n samples
+    names : tuple[str]
+        The names of the covariates
     log: Logger
         A logging instance for recording debug statements.
 
@@ -108,7 +111,7 @@ class Covariates(Data):
         # coerce strings to floats
         self.data = np.transpose(np.array(data[1:], dtype="float64"))
 
-    def iterate(self, samples: list[str] = None) -> Iterator[dict]:
+    def iterate(self, samples: list[str] = None) -> Iterator[namedtuple]:
         """
         Read covariates from a TSV line by line without storing anything
 
@@ -121,9 +124,9 @@ class Covariates(Data):
 
         Yields
         ------
-        Iterator[dict]
+        Iterator[namedtuple]
             An iterator over each line in the file, where each line is encoded as a
-            dictionary containing each of the class properties
+            namedtuple containing each of the class properties
         """
         with hook_compressed(self.fname, mode="rt") as covars:
             covar_text = reader(covars, delimiter="\t")
@@ -138,14 +141,13 @@ class Covariates(Data):
                     " and should be named 'sample' in the header line"
                 )
             header = tuple(header[1:])
+            Record = namedtuple("Record", "data samples names")
             for covar in covar_text:
                 if samples is None or covar[0] in samples:
                     try:
-                        yield {
-                            "samples": covar[0],
-                            "names": header,
-                            "data": np.array(covar[1:], dtype="float64"),
-                        }
+                        yield Record(
+                            np.array(covar[1:], dtype="float64"), covar[0], header
+                        )
                     except:
                         self.log.error(
                             "Every column in the covariates file (besides the sample"
