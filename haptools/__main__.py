@@ -10,9 +10,9 @@ TODO:
 import sys
 import click
 
-from .simgenotype.sim_admixture import simulate_gt, write_breakpoints
-from .karyogram.karyogram import plot_karyogram
-from .simphenotype.sim_phenotypes import simulate_pt
+from .sim_admixture import simulate_gt, write_breakpoints
+from .karyogram import plot_karyogram
+from .sim_phenotypes import simulate_pt
 
 @click.group()
 @click.version_option()
