@@ -1,8 +1,7 @@
 .. _manual-main:
 
-========
-haptools
-========
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :caption: Execution
@@ -11,6 +10,14 @@ haptools
    :maxdepth: 1
 
    executing/inputs.rst
+
+.. toctree::
+   :caption: Commands
+   :name: commands
+   :hidden:
+   :maxdepth: 1
+
+   commands/simgenotype.rst
 
 .. toctree::
    :caption: API

@@ -1,7 +1,10 @@
 from __future__ import annotations
-import numpy as np
 from csv import reader
 from pathlib import Path
+from collections import namedtuple
+from fileinput import hook_compressed
+
+import numpy as np
 
 from .data import Data
 
@@ -18,14 +21,16 @@ class Phenotypes(Data):
         The path to the read-only file containing the data
     samples : tuple
         The names of each of the n samples
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> phenotypes = Phenotypes.load('tests/data/simple.tsv')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
 
     @classmethod
@@ -70,7 +75,8 @@ class Phenotypes(Data):
         """
         super().read()
         # load all info into memory
-        with open(self.fname) as phens:
+        # use hook_compressed to automatically handle gz files
+        with hook_compressed(self.fname, mode="rt") as phens:
             phen_text = reader(phens, delimiter="\t")
             # convert to list and subset samples if need be
             if samples:
@@ -79,16 +85,46 @@ class Phenotypes(Data):
             else:
                 phen_text = list(phen_text)
         # there should only be two columns
-        assert len(phen_text[0]) == 2, "The phenotype TSV should only have two columns."
+        if len(phen_text[0]) != 2:
+            self.log.warning("The phenotype TSV should only have two columns.")
         # the second column should be castable to a float
         try:
             float(phen_text[0][1])
         except:
-            raise AssertionError("The second column of the TSV file must numeric.")
+            self.log.error("The second column of the TSV file must numeric.")
         # fill out the samples and data properties
         self.samples, self.data = zip(*phen_text)
         # coerce strings to floats
         self.data = np.array(self.data, dtype="float64")
+
+    def iterate(self, samples: list[str] = None) -> Iterator[namedtuple]:
+        """
+        Read phenotypes from a TSV line by line without storing anything
+
+        Parameters
+        ----------
+        samples : list[str], optional
+            A subset of the samples from which to extract phenotypes
+
+            Defaults to loading phenotypes from all samples
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        with hook_compressed(self.fname, mode="rt") as phens:
+            phen_text = reader(phens, delimiter="\t")
+            Record = namedtuple("Record", "data samples")
+            for phen in phen_text:
+                if samples is None or phen[0] in samples:
+                    try:
+                        yield Record(float(phen[1]), phen[0])
+                    except:
+                        self.log.error(
+                            "The second column of the TSV file must numeric."
+                        )
 
     def standardize(self):
         """
