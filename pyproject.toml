@@ -60,6 +60,11 @@ haptools = 'haptools.__main__:main'
 line-length = 88
 preview = true
 
+[tool.pytest.ini_options]
+log_cli_level = "DEBUG"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

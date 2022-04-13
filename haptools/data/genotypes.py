@@ -25,14 +25,16 @@ class Genotypes(Data):
             2. CHROM
             3. POS
             4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> genotypes = Genotypes.load('tests/data/simple.vcf')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array([])
 
@@ -116,7 +118,7 @@ class Genotypes(Data):
         )
         self.data = np.array(self.data, dtype=np.uint8)
         if self.data.shape == (0, 0, 0):
-            raise ValueError(
+            self.log.warning(
                 "Failed to load genotypes. If you specified a region, check that the"
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
@@ -143,7 +145,8 @@ class Genotypes(Data):
             If True, discard any multiallelic variants without raising a ValueError
         """
         if self.data.dtype == np.bool_:
-            raise AssertionError("All genotypes are already biallelic")
+            self.log.warning("All genotypes are already biallelic")
+            return
         # check: are there any variants that have genotype values above 1?
         # A genotype value above 1 would imply the variant has more than one ALT allele
         multiallelic = np.any(self.data[:, :, :2] > 1, axis=2)
@@ -176,9 +179,10 @@ class Genotypes(Data):
             If any heterozgyous genotpyes are unphased
         """
         if self.data.shape[2] < 3:
-            raise AssertionError(
+            self.log.warning(
                 "Phase information has already been removed from the data"
             )
+            return
         # check: are there any variants that are heterozygous and unphased?
         unphased = (self.data[:, :, 0] ^ self.data[:, :, 1]) & (~self.data[:, :, 2])
         if np.any(unphased):
@@ -205,10 +209,11 @@ class Genotypes(Data):
             If the matrix has already been converted
         """
         if self.variants.dtype.names[3] == "maf":
-            raise AssertionError(
-                "The matrix already counts instances of the minor allele rather than"
+            self.log.warning(
+                "The matrix already counts instances of the minor allele rather than "
                 "the ALT allele."
             )
+            return
         need_conversion = self.variants["aaf"] > 0.5
         # flip the count on the variants that have an alternate allele frequency
         # above 0.5
@@ -239,14 +244,16 @@ class GenotypesPLINK(Data):
             2. CHROM
             3. POS
             4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> genotypes = Genotypes.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array([])
 

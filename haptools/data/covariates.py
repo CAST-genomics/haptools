@@ -20,14 +20,16 @@ class Covariates(Data):
         The path to the read-only file containing the data
     samples : tuple[str]
         The names of each of the n samples
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> covariates = Covariates.load('tests/data/covars.tsv')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
         self.names = tuple()
 

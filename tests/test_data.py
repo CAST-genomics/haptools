@@ -18,7 +18,7 @@ def get_expected_genotypes():
     return expected
 
 
-def test_load_genotypes():
+def test_load_genotypes(caplog):
     expected = get_expected_genotypes()
 
     # can we load the data from the VCF?
@@ -27,9 +27,9 @@ def test_load_genotypes():
     np.testing.assert_allclose(gts.data, expected)
     assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
-    # try loading the data again - it should fail b/c we've already done it
-    with pytest.raises(AssertionError):
-        gts.read()
+    # try loading the data again - it should warn b/c we've already done it
+    gts.read()
+    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
 
     # force one of the SNPs to have more than one allele and check that we get an error
     gts.data[1, 1, 1] = 2
@@ -62,9 +62,9 @@ def test_load_genotypes():
     expected = expected[:, :, :2]
     np.testing.assert_allclose(gts.data, expected)
 
-    # try to check phase again - it should fail b/c we've already done it before
-    with pytest.raises(AssertionError):
-        gts.check_phase()
+    # try to check phase again - it should warn b/c we've already done it before
+    gts.check_phase()
+    assert len(caplog.records) == 2 and caplog.records[1].levelname == "WARNING"
 
     # convert the matrix of alt allele counts to a matrix of minor allele counts
     assert gts.variants["aaf"][1] == 0.6
@@ -73,9 +73,9 @@ def test_load_genotypes():
     np.testing.assert_allclose(gts.data, expected)
     assert gts.variants["maf"][1] == 0.4
 
-    # try to do the MAC conversion again - it should fail b/c we've already done it
-    with pytest.raises(AssertionError):
-        gts.to_MAC()
+    # try to do the MAC conversion again - it should warn b/c we've already done it
+    gts.to_MAC()
+    assert len(caplog.records) == 3 and caplog.records[2].levelname == "WARNING"
 
 
 def test_load_genotypes_discard_multiallelic():
@@ -122,7 +122,7 @@ def test_load_genotypes_subset():
     assert gts.samples == tuple(samples)
 
 
-def test_load_phenotypes():
+def test_load_phenotypes(caplog):
     # create a phenotype vector with shape: num_samples x 1
     expected = np.array([1, 1, 2, 2, 0])
 
@@ -132,9 +132,9 @@ def test_load_phenotypes():
     np.testing.assert_allclose(phens.data, expected)
     assert phens.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
-    # try loading the data again - it should fail b/c we've already done it
-    with pytest.raises(AssertionError):
-        phens.read()
+    # try loading the data again - it should warn b/c we've already done it
+    phens.read()
+    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
 
     expected = (expected - np.mean(expected)) / np.std(expected)
     phens.standardize()
@@ -156,7 +156,7 @@ def test_load_phenotypes_subset():
     assert phens.samples == tuple(samples)
 
 
-def test_load_covariates():
+def test_load_covariates(caplog):
     # create a covariate vector with shape: num_samples x num_covars
     expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
 
@@ -167,9 +167,9 @@ def test_load_covariates():
     assert covars.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
     assert covars.names == ("sex", "age")
 
-    # try loading the data again - it should fail b/c we've already done it
-    with pytest.raises(AssertionError):
-        covars.read()
+    # try loading the data again - it should warn b/c we've already done it
+    covars.read()
+    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
 
 
 def test_load_covariates_subset():

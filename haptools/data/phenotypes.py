@@ -20,14 +20,16 @@ class Phenotypes(Data):
         The path to the read-only file containing the data
     samples : tuple
         The names of each of the n samples
+    log: Logger
+        A logging instance for recording debug statements.
 
     Examples
     --------
     >>> phenotypes = Phenotypes.load('tests/data/simple.tsv')
     """
 
-    def __init__(self, fname: Path):
-        super().__init__(fname)
+    def __init__(self, fname: Path, log: Logger = None):
+        super().__init__(fname, log)
         self.samples = tuple()
 
     @classmethod
