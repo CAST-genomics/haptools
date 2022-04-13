@@ -75,7 +75,7 @@ class Covariates(Data):
         super().read()
         # load all info into memory
         # use hook_compressed to automatically handle gz files
-        with hook_compressed(self.fname, mode='rt') as covars:
+        with hook_compressed(self.fname, mode="rt") as covars:
             covar_text = reader(covars, delimiter="\t")
             header = next(covar_text)
             # there should at least two columns
@@ -107,3 +107,47 @@ class Covariates(Data):
         self.names = tuple(header[1:])
         # coerce strings to floats
         self.data = np.transpose(np.array(data[1:], dtype="float64"))
+
+    def iterate(self, samples: list[str] = None) -> Iterator[dict]:
+        """
+        Read covariates from a TSV line by line without storing anything
+
+        Parameters
+        ----------
+        samples : list[str], optional
+            A subset of the samples from which to extract covariates
+
+            Defaults to loading covariates from all samples
+
+        Yields
+        ------
+        Iterator[dict]
+            An iterator over each line in the file, where each line is encoded as a
+            dictionary containing each of the class properties
+        """
+        with hook_compressed(self.fname, mode="rt") as covars:
+            covar_text = reader(covars, delimiter="\t")
+            header = next(covar_text)
+            # there should at least two columns
+            assert (
+                len(header) >= 2
+            ), "The covariates TSV should have at least two columns."
+            # the first column should be called "sample"
+            assert header[0] == "sample", (
+                "The first column of the covariates TSV should contain sample IDs and"
+                " should be named 'sample' in the header line"
+            )
+            header = tuple(header[1:])
+            for covar in covar_text:
+                if samples is None or covar[0] in samples:
+                    try:
+                        yield {
+                            "samples": covar[0],
+                            "names": header,
+                            "data": np.array(covar[1:], dtype="float64"),
+                        }
+                    except:
+                        raise AssertionError(
+                            "Every column in the covariates file (besides the sample"
+                            " column) must be numeric."
+                        )

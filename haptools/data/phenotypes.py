@@ -75,7 +75,7 @@ class Phenotypes(Data):
         super().read()
         # load all info into memory
         # use hook_compressed to automatically handle gz files
-        with hook_compressed(self.fname, mode='rt') as phens:
+        with hook_compressed(self.fname, mode="rt") as phens:
             phen_text = reader(phens, delimiter="\t")
             # convert to list and subset samples if need be
             if samples:
@@ -94,6 +94,34 @@ class Phenotypes(Data):
         self.samples, self.data = zip(*phen_text)
         # coerce strings to floats
         self.data = np.array(self.data, dtype="float64")
+
+    def iterate(self, samples: list[str] = None) -> Iterator[dict]:
+        """
+        Read phenotypes from a TSV line by line without storing anything
+
+        Parameters
+        ----------
+        samples : list[str], optional
+            A subset of the samples from which to extract phenotypes
+
+            Defaults to loading phenotypes from all samples
+
+        Yields
+        ------
+        Iterator[dict]
+            An iterator over each line in the file, where each line is encoded as a
+            dictionary containing each of the class properties
+        """
+        with hook_compressed(self.fname, mode="rt") as phens:
+            phen_text = reader(phens, delimiter="\t")
+            for phen in phen_text:
+                if samples is None or phen[0] in samples:
+                    try:
+                        yield {"samples": phen[0], "data": float(phen[1])}
+                    except:
+                        raise AssertionError(
+                            "The second column of the TSV file must numeric."
+                        )
 
     def standardize(self):
         """

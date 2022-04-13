@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+from typing import Iterator
 
 import numpy as np
 from cyvcf2 import VCF, Variant
@@ -91,11 +92,12 @@ class Genotypes(Data):
             Defaults to loading genotypes from all samples
         """
         super().read()
-        # load all info into memory
+        # initialize variables
         vcf = VCF(str(self.fname), samples=samples)
         self.samples = tuple(vcf.samples)
         self.variants = []
         self.data = []
+        # load all info into memory
         for variant in vcf(region):
             # save meta information about each variant
             self.variants.append((variant.ID, variant.CHROM, variant.POS, variant.aaf))
@@ -124,6 +126,53 @@ class Genotypes(Data):
             )
         # transpose the GT matrix so that samples are rows and variants are columns
         self.data = self.data.transpose((1, 0, 2))
+
+    def iterate(self, region: str = None, samples: list[str] = None) -> Iterator[dict]:
+        """
+        Read genotypes from a VCF line by line without storing anything
+
+        Parameters
+        ----------
+        region : str, optional
+            The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+            For this to work, the VCF must be indexed and the seqname must match!
+
+            Defaults to loading all genotypes
+        samples : list[str], optional
+            A subset of the samples from which to extract genotypes
+
+            Defaults to loading genotypes from all samples
+
+        Yields
+        ------
+        Iterator[dict]
+            An iterator over each line in the file, where each line is encoded as a
+            dictionary containing each of the class properties
+        """
+        vcf = VCF(str(self.fname), samples=samples)
+        samples = tuple(vcf.samples)
+        # load all info into memory
+        for variant in vcf(region):
+            record = {"samples": samples}
+            # save meta information about each variant
+            record["variants"] = np.array(
+                (variant.ID, variant.CHROM, variant.POS, variant.aaf),
+                dtype=[
+                    ("id", "U50"),
+                    ("chrom", "U10"),
+                    ("pos", np.uint),
+                    ("aaf", np.float64),
+                ],
+            )
+            # extract the genotypes to a matrix of size 1 x p x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased
+            record["data"] = np.array(variant.genotypes, dtype=np.uint8)
+            yield record
+        vcf.close()
 
     def check_biallelic(self, discard_also=False):
         """
@@ -179,9 +228,7 @@ class Genotypes(Data):
             If any heterozgyous genotpyes are unphased
         """
         if self.data.shape[2] < 3:
-            self.log.warning(
-                "Phase information has already been removed from the data"
-            )
+            self.log.warning("Phase information has already been removed from the data")
             return
         # check: are there any variants that are heterozygous and unphased?
         unphased = (self.data[:, :, 0] ^ self.data[:, :, 1]) & (~self.data[:, :, 2])

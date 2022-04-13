@@ -1,6 +1,7 @@
 from __future__ import annotations
 from csv import reader
 from pathlib import Path
+from typing import Iterator
 from abc import ABC, abstractmethod
 from logging import getLogger, Logger
 
@@ -50,3 +51,16 @@ class Data(ABC):
         """
         if self.data is not None:
             self.log.warning("The data has already been loaded. Overriding.")
+
+    @abstractmethod
+    def iterate(self) -> Iterator[dict]:
+        """
+        Return an iterator over the raw file contents
+
+        Yields
+        ------
+        Iterator[dict]
+            An iterator over each line in the file, where each line is encoded as a
+            dictionary containing each of the class properties
+        """
+        pass

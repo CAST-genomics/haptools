@@ -78,6 +78,16 @@ def test_load_genotypes(caplog):
     assert len(caplog.records) == 3 and caplog.records[2].levelname == "WARNING"
 
 
+def test_load_genotypes_iterate(caplog):
+    expected = get_expected_genotypes().transpose((1, 0, 2))
+
+    # can we load the data from the VCF?
+    gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+    for idx, line in enumerate(gts.iterate()):
+        np.testing.assert_allclose(line['data'], expected[idx])
+        assert line['samples'] == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+
+
 def test_load_genotypes_discard_multiallelic():
     expected = get_expected_genotypes()
 
@@ -141,6 +151,18 @@ def test_load_phenotypes(caplog):
     np.testing.assert_allclose(phens.data, expected)
 
 
+def test_load_phenotypes_iterate(caplog):
+    # create a phenotype vector with shape: num_samples x 1
+    expected = np.array([1, 1, 2, 2, 0])
+    samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+
+    # can we load the data from the phenotype file?
+    phens = Phenotypes(DATADIR.joinpath("simple.tsv"))
+    for idx, line in enumerate(phens.iterate()):
+        np.testing.assert_allclose(line['data'], expected[idx])
+        assert line['samples'] == samples[idx]
+
+
 def test_load_phenotypes_subset():
     # create a phenotype vector with shape: num_samples x 1
     expected = np.array([1, 1, 2, 2, 0])
@@ -170,6 +192,19 @@ def test_load_covariates(caplog):
     # try loading the data again - it should warn b/c we've already done it
     covars.read()
     assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
+
+
+def test_load_covariates_iterate(caplog):
+    # create a covariate vector with shape: num_samples x num_covars
+    expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
+    samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+
+    # can we load the data from the covariates file?
+    covars = Covariates(DATADIR.joinpath("covars.tsv"))
+    for idx, line in enumerate(covars.iterate()):
+        np.testing.assert_allclose(line['data'], expected[idx])
+        assert line['samples'] == samples[idx]
+        assert line['names'] == ("sex", "age")
 
 
 def test_load_covariates_subset():
