@@ -24,7 +24,6 @@ Haptools consists of multiple utilities listed below. Click on a utility to see 
 Outputs produced by these utilities are compatible with each other. For example
 `haptools simgenome` outputs a VCF file with local ancestry information annotated for each variant. The output VCF file can be used as input to `haptools simphenotype` to simulate phenotype information. `haptools simgenome` also outputs a list of local ancestry breakpoints which can be visualized using `haptools karyogram`. 
 
-
 ## Contributing
 
 If you are interested in contributing to `haptools`, please get in touch by submitting a Github issue or contacting us at mlamkin@ucsd.edu.
