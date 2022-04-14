@@ -192,6 +192,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     # Parse haplotype blocks from the bp file for the 
     # specified sample
     sample_blocks = GetHaplotypeBlocks(bp_file, sample_name)
+    assert(len(sample_blocks)>0)
 
     # Extract metadata about the blocks
     min_cm, max_cm = GetCmRange(sample_blocks)

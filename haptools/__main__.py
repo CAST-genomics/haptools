@@ -11,7 +11,7 @@ import sys
 import click
 
 from .sim_admixture import simulate_gt, write_breakpoints
-from .karyogram import plot_karyogram
+from .karyogram import PlotKaryogram
 from .sim_phenotypes import simulate_pt
 
 @click.group()
@@ -39,17 +39,31 @@ def simgenotype(invcf, sample_info, model, mapdir, out):
     
 
 @main.command()
-@click.option('--sample_name', type=str)
-@click.option('--chrX', is_flag=True)
-@click.option('--sample_file', required=True)
-@click.option('--title', required=True)
-@click.option('--centromeres', required=True)
-@click.option('--out', required=True)
-def karyogram(sample_name, chrx, sample_file, title, centromeres, out):
+@click.option('--bp', help="Path to .bp file with breakpoints", \
+    type=str, required=True)
+@click.option('--sample', help="Sample ID to plot", \
+    type=str, required=True)
+@click.option('--out', help="Name of output file", \
+    type=str, required=True)
+@click.option('--title', help="Optional plot title", \
+    type=str, required=False)
+@click.option('--centromeres', help="Optional file with telomere/centromere cM positions", \
+    type=str, required=False)
+@click.option('--colors', help="Optional color dictionary. Format is e.g. 'YRI:blue,CEU:green'", \
+    type=str, required=False)
+def karyogram(bp, sample, out, title, centromeres, colors):
     """
-    Use the tool to visualize breakpoints.
+    Visualize a karyogram of local ancestry tracks
+
+    Example:
+    haptools karyogram --bp tests/data/5gen.bp --sample Sample_1 \
+       --out test.png --centromeres tests/data/centromeres_hg19.txt \
+       --colors 'CEU:blue,YRI:red'
     """
-    plot_karyogram(sample_file, title, centromeres, out, sample_name, chrx)
+    if colors is not None:
+        colors = dict([item.split(":") for item in colors.split(",")])
+    PlotKaryogram(bp, sample, out, \
+        centromeres_file=centromeres, title=title, colors=colors)
 
 ############ Haptools simphenotype ###############
 DEFAULT_SIMU_REP = 1
