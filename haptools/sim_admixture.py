@@ -87,7 +87,6 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     Return
 
     """
-    # TODO new parameter for range of chroms we want to work on
     # initialize seed used for breakpoints
     if seed:
         np.random.seed(seed)
@@ -103,7 +102,7 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     coords = []
 
     def numeric_alpha(x):
-        chrom = re.search(r'(?<=chr)X|\d+', x).group()
+        chrom = re.search(r'(?<=chr)(X|\d+)', x).group()
         if chrom == 'X':
             return 23
         else:
@@ -113,7 +112,7 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     # remove all chr files not found in chroms list
     all_coord_files = glob.glob(f'{coords_dir}/*.map')
     all_coord_files = [coord_file for coord_file in all_coord_files \
-                       if re.search(r'(?<=chr)X|\d+', coord_file).group() in chroms]
+                       if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
     all_coord_files.sort(key=numeric_alpha)
 
     # coords list has form chroms x coords
@@ -221,7 +220,6 @@ def write_breakpoints(samples, breakpoints, out):
     return breakpoints
 
 def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, recomb_probs, prev_gen_samples=None):
-    # TODO incorporate chroms variable from sim_genotype in order to limit range of admixture done on
     # convert chroms to integer and change X to 23
     chroms = [int(chrom) if chrom != 'X' else 23 for chrom in chroms]
 
