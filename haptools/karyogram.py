@@ -15,6 +15,10 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import matplotlib.collections as mcol
 import numpy as np
+import os
+import sys
+
+PADDING = 0.4 # PADDING between chromosomes
 
 def GetChrom(chrom):
     """
@@ -61,6 +65,10 @@ def GetHaplotypeBlocks(bp_file, sample_name):
     parsing_sample = False # keep track of if we're in the middle of parsing a sample
     blocks = [] # keep track of current blocks
 
+    if not os.path.exists(bp_file):
+        sys.stderr.write("ERROR: Breakpoints file %s not found.\n"%bp_file)
+        sys.exit(1)
+
     with open(bp_file, 'r') as f:
         for line in f:
             line = line.strip().split()
@@ -90,7 +98,6 @@ def GetHaplotypeBlocks(bp_file, sample_name):
                     start = 0.0001
                 else:
                     start = blocks[-1]['end'] + 0.0001
-                    #assert(float(line[-1]) > start) # TODO Check the file is in sorted order. this doesn't work for diff chroms
                 hap_block = {'pop': line[0], 'chrom': GetChrom(line[1]), 
                              'start': start, 'end': float(line[-1])}
                 blocks.append(hap_block)
@@ -192,7 +199,10 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     # Parse haplotype blocks from the bp file for the 
     # specified sample
     sample_blocks = GetHaplotypeBlocks(bp_file, sample_name)
-    assert(len(sample_blocks)>0)
+    if len(sample_blocks) == 0:
+        sys.stderr.write("ERROR: no haplotype blocks identified for %s. "%sample_name)
+        sys.stderr.write("Make sure %s_1 and %s_2 are in the .bp file.\n"%(sample_name, sample_name))
+        sys.exit(1)
 
     # Extract metadata about the blocks
     min_cm, max_cm = GetCmRange(sample_blocks)
@@ -263,7 +273,9 @@ def GetCentromereClipMask(centromeres_file, chrom_order):
        Clip region for telomeres/centromeres for each chromosome
     """
     clipmask_perchrom = {}
-    padding = 0.4
+    if not os.path.exists(centromeres_file):
+        sys.stderr.write("ERROR: centromeres file %s not found.\n"%centromeres_file)
+        sys.exit(1)
     with open(centromeres_file, "r") as f:
         for line in f:
             items = line.strip().split()
@@ -272,30 +284,30 @@ def GetCentromereClipMask(centromeres_file, chrom_order):
             centro_coords = [float(item) for item in items[1:]]
             if len(centro_coords) == 2: # acrocentric
                 mask = [
-                    (centro_coords[0]+2,chrom_ind-padding), #add +/- 2 at the end of either end
-                    (centro_coords[1]-2,chrom_ind-padding),
+                    (centro_coords[0]+2,chrom_ind-PADDING), #add +/- 2 at the end of either end
+                    (centro_coords[1]-2,chrom_ind-PADDING),
                     (centro_coords[1]+2,chrom_ind),
-                    (centro_coords[1]-2,chrom_ind+padding),
-                    (centro_coords[0]+2,chrom_ind+padding),
+                    (centro_coords[1]-2,chrom_ind+PADDING),
+                    (centro_coords[0]+2,chrom_ind+PADDING),
                     (centro_coords[0]-2,chrom_ind),
-                    (centro_coords[0]+2,chrom_ind-padding)
+                    (centro_coords[0]+2,chrom_ind-PADDING)
                     ]
                 mask_codes = [Path.MOVETO, Path.LINETO, Path.CURVE3, Path.LINETO, \
                     Path.LINETO, Path.CURVE3, Path.LINETO]
                 clip_mask = Path(vertices=mask, codes=mask_codes)
             else:
                 mask = [
-                    (centro_coords[0]+2,chrom_ind-padding), #add +/- 2 at the end of either end
-                    (centro_coords[1]-2,chrom_ind-padding),
-                    (centro_coords[1]+2,chrom_ind+padding),
-                    (centro_coords[2]-2,chrom_ind+padding),
+                    (centro_coords[0]+2,chrom_ind-PADDING), #add +/- 2 at the end of either end
+                    (centro_coords[1]-2,chrom_ind-PADDING),
+                    (centro_coords[1]+2,chrom_ind+PADDING),
+                    (centro_coords[2]-2,chrom_ind+PADDING),
                     (centro_coords[2]+2,chrom_ind),
-                    (centro_coords[2]-2,chrom_ind-padding),
-                    (centro_coords[1]+2,chrom_ind-padding),
-                    (centro_coords[1]-2,chrom_ind+padding),
-                    (centro_coords[0]+2,chrom_ind+padding),
+                    (centro_coords[2]-2,chrom_ind-PADDING),
+                    (centro_coords[1]+2,chrom_ind-PADDING),
+                    (centro_coords[1]-2,chrom_ind+PADDING),
+                    (centro_coords[0]+2,chrom_ind+PADDING),
                     (centro_coords[0]-2,chrom_ind),
-                    (centro_coords[0]+2,chrom_ind-padding)
+                    (centro_coords[0]+2,chrom_ind-PADDING)
                     ]
         
                 mask_codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, \
@@ -336,12 +348,11 @@ def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax, clipmask_perchrom
     start = float(block['start'])
     stop = float(block['end'])
 
-    padding = 0.4
     verts = [
-        (start, chrom_coord - hapnum*padding),
-        (start, chrom_coord + (1-hapnum)*padding),
-        (stop, chrom_coord + (1-hapnum)*padding),
-        (stop, chrom_coord - hapnum*padding),
+        (start, chrom_coord - hapnum*PADDING),
+        (start, chrom_coord + (1-hapnum)*PADDING),
+        (stop, chrom_coord + (1-hapnum)*PADDING),
+        (stop, chrom_coord - hapnum*PADDING),
         (0,0)
     ]
     clip_path = Path(verts, codes)
