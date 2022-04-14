@@ -1,3 +1,9 @@
+"""
+This script is inspired by Alicia Martin's karyogram code
+originally published here: 
+https://github.com/armartin/ancestry_pipeline/blob/master/plot_karyogram.py
+"""
+
 import os
 import argparse
 import pylab
@@ -25,11 +31,12 @@ def GetChrom(chrom):
        Integer-value for the chromosome
        X gets set to 23
     """
+    if "X" in chrom: return 23
+    if "Y" in chrom: return 24
     if chrom.startswith("chr"):
-        if "X" not in chrom:
-            return int(chrom[3:])
-        else: return 23
-    else: return int(chrom)
+        return int(chrom[3:])
+    else:
+        return int(chrom)
 
 def GetHaplotypeBlocks(bp_file, sample_name):
     """
@@ -83,7 +90,7 @@ def GetHaplotypeBlocks(bp_file, sample_name):
                     start = 0.0001
                 else:
                     start = blocks[-1]['end'] + 0.0001
-                    assert(float(line[-1]) > start) # Check the file is in sorted order
+                    #assert(float(line[-1]) > start) # TODO Check the file is in sorted order. this doesn't work for diff chroms
                 hap_block = {'pop': line[0], 'chrom': GetChrom(line[1]), 
                              'start': start, 'end': float(line[-1])}
                 blocks.append(hap_block)
@@ -158,7 +165,6 @@ def GetChromOrder(sample_blocks):
     chroms.sort()
     return chroms
 
-# TODO figure out centromeres
 def PlotKaryogram(bp_file, sample_name, out_file,
         centromeres_file=None, title=None, colors=None):
     """
@@ -173,8 +179,9 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     out_file : str
        Name of output file
     centromeres_file : str, optional
-       Path to bed file with centromere coordinates.
-       If None, no centromere locations are shown
+       Path to file with centromere coordinates.
+       Format: chrom, chromstart_cm, centromere_cm, chromend_cm
+       If None, no centromere and telomere locations are shown
     title : str, optional
        Plot title. If None, no title is annotated
     colors : dict of str:str, optional
@@ -185,6 +192,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     # Parse haplotype blocks from the bp file for the 
     # specified sample
     sample_blocks = GetHaplotypeBlocks(bp_file, sample_name)
+    assert(len(sample_blocks)>0)
 
     # Extract metadata about the blocks
     min_cm, max_cm = GetCmRange(sample_blocks)
@@ -194,8 +202,6 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     # Set up the figure for plotting
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_xlim(min_cm-5, max_cm+5)
-    ax.set_ylim(len(chrom_order)+1, -1)
     ax.set_xlabel('Genetic position (cM)')
     ax.set_ylabel('Chromosome')
     if title is not None: ax.set_title(title)
@@ -208,25 +214,98 @@ def PlotKaryogram(bp_file, sample_name, out_file,
 
     # Set up colors
     if colors is None:
-        bmap = brewer2mpl.get_map('Set1', 'qualitative', len(pop_list))
-        colors = dict(zip(poplist, bmap.mpl_colors))
+        num_colors = len(pop_list)
+        if num_colors < 3: num_colors = 3
+        if num_colors > 9: num_colors = 9
+        bmap = brewer2mpl.get_map('Set1', 'qualitative', num_colors)
+        colors = dict(zip(pop_list, bmap.mpl_colors))
+
+    # Optionally, plot centromeres/telomeres
+    if centromeres_file is not None:
+        clipmask_perchrom = GetCentromereClipMask(centromeres_file, chrom_order)
 
     # Plot the actual haplotype blocks
     for i in range(2):
         for info in sample_blocks[i]:
-            PlotHaplotypeBlock(info, i, chrom_order, colors, ax)
+            PlotHaplotypeBlock(info, i, chrom_order, colors, ax, \
+                clipmask_perchrom=clipmask_perchrom)
 
-    #write a legend
-    p = []
+    # Write a legend
+    legend_elements = []
     for i in range(len(pop_list)):
-        p.append(plt.Rectangle((0, 0), 1, 1, color=colors[pop_list[i]]))
-    p.append(plt.Rectangle((0, 0), 1, 1, color='k'))
-    labs = pop_list
-    leg = ax.legend(p, labs, loc=4, fancybox=True)
+        legend_elements.append(plt.Rectangle((0, 0), 1, 1, color=colors[pop_list[i]]))
+    legend_elements.append(plt.Rectangle((0, 0), 1, 1, color='k'))
+    leg = ax.legend(legend_elements, pop_list, loc=4, fancybox=True)
     leg.get_frame().set_alpha(0)
+
+    # Make sure axis limits are wide enough
+    ax.set_xlim(min_cm-5, max_cm+5)
+    ax.set_ylim(len(chrom_order)+3, -3)
+
     fig.savefig(out_file)
 
-def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax):
+def GetCentromereClipMask(centromeres_file, chrom_order):
+    """
+    Get clipping mask for the centromeres and telomeres
+
+    Parameters
+    ----------
+    centromeres_file : str, optional
+       Path to file with centromere coordinates.
+       Format: chrom, chromstart_cm, centromere_cm, chromend_cm
+       If None, no centromere and telomere locations are shown
+    chrom_order : list of int
+       chromosomes in sorted order
+
+    Returns
+    -------
+    clipmask_perchrom : dictionary of str->matplotlib.Path
+       Clip region for telomeres/centromeres for each chromosome
+    """
+    clipmask_perchrom = {}
+    padding = 0.4
+    with open(centromeres_file, "r") as f:
+        for line in f:
+            items = line.strip().split()
+            chrom = GetChrom(items[0])
+            chrom_ind = chrom_order.index(chrom)
+            centro_coords = [float(item) for item in items[1:]]
+            if len(centro_coords) == 2: # acrocentric
+                mask = [
+                    (centro_coords[0]+2,chrom_ind-padding), #add +/- 2 at the end of either end
+                    (centro_coords[1]-2,chrom_ind-padding),
+                    (centro_coords[1]+2,chrom_ind),
+                    (centro_coords[1]-2,chrom_ind+padding),
+                    (centro_coords[0]+2,chrom_ind+padding),
+                    (centro_coords[0]-2,chrom_ind),
+                    (centro_coords[0]+2,chrom_ind-padding)
+                    ]
+                mask_codes = [Path.MOVETO, Path.LINETO, Path.CURVE3, Path.LINETO, \
+                    Path.LINETO, Path.CURVE3, Path.LINETO]
+                clip_mask = Path(vertices=mask, codes=mask_codes)
+            else:
+                mask = [
+                    (centro_coords[0]+2,chrom_ind-padding), #add +/- 2 at the end of either end
+                    (centro_coords[1]-2,chrom_ind-padding),
+                    (centro_coords[1]+2,chrom_ind+padding),
+                    (centro_coords[2]-2,chrom_ind+padding),
+                    (centro_coords[2]+2,chrom_ind),
+                    (centro_coords[2]-2,chrom_ind-padding),
+                    (centro_coords[1]+2,chrom_ind-padding),
+                    (centro_coords[1]-2,chrom_ind+padding),
+                    (centro_coords[0]+2,chrom_ind+padding),
+                    (centro_coords[0]-2,chrom_ind),
+                    (centro_coords[0]+2,chrom_ind-padding)
+                    ]
+        
+                mask_codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, \
+                        Path.CURVE3, Path.LINETO, Path.LINETO, Path.LINETO, \
+                        Path.LINETO, Path.CURVE3, Path.LINETO]
+                clip_mask = Path(vertices=mask, codes=mask_codes)
+            clipmask_perchrom[chrom] = clip_mask
+    return clipmask_perchrom
+
+def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax, clipmask_perchrom=None):
     """
     Plot a haplotype block on the axis
 
@@ -243,6 +322,8 @@ def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax):
        If not set, reasonable defaults are used.
        In addition to strings, you can specify RGB or RGBA tuples.
     ax : matplotlib axis to use for plotting
+    clipmask_perchrom : dictionary of str->matplotlib.Path, optional
+       Clip region for telomeres/centromeres for each chromosome
     """
     codes = [
         Path.MOVETO,
@@ -265,4 +346,9 @@ def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax):
     ]
     clip_path = Path(verts, codes)
     col = mcol.PathCollection([clip_path], facecolor=colors[block['pop']], linewidths=0)
+
+    # Optionally, deal with centromeres
+    if clipmask_perchrom:
+        col.set_clip_path(clipmask_perchrom[block['chrom']], ax.transData)
+
     ax.add_collection(col) 
