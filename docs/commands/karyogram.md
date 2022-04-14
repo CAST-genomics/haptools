@@ -12,7 +12,7 @@ haptools karyogram \
   --out karyogram.png
 ```
 
-See details of the breakpoints file [here](simgenotypes.md). If you specify `--sample $SAMPLE`, the breakpoints file must have breakpoints for `$SAMPLE_1` and `$SAMPLE_2`.
+See details of the breakpoints file [here](simgenotypes.md). If you specify `--sample $SAMPLE`, the breakpoints file must have breakpoints for `$SAMPLE_1` and `$SAMPLE_2` (the two haplotypes of `$SAMPLE`).
 
 ## Advanced usage
 
