@@ -29,6 +29,6 @@ def test_GetHaplotypeBlocks():
 	assert(sample_blocks[1][0]["start"]==0.0001)
 	assert(sample_blocks[1][0]["end"]==85.107755)
 
-test_file = DATADIR.joinpath("test.bp")
+test_file = DATADIR.joinpath("5gen.bp")
 PlotKaryogram(test_file, "Sample_1", "test.png",
        centromeres_file=None, title=None, colors={"YRI": "red", "CEU": "blue"})
