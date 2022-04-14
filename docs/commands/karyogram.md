@@ -14,7 +14,7 @@ haptools karyogram \
 
 See details of the breakpoints file [here](simgenotype.md). If you specify `--sample $SAMPLE`, the breakpoints file must have breakpoints for `$SAMPLE_1` and `$SAMPLE_2` (the two haplotypes of `$SAMPLE`).
 
-## Advanced usage
+## Additional options
 
 You may also specify the following options:
 
