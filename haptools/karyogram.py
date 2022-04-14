@@ -175,6 +175,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     centromeres_file : str, optional
        Path to bed file with centromere coordinates.
        If None, no centromere locations are shown
+       (NOTE: centromeres not yet implemented)
     title : str, optional
        Plot title. If None, no title is annotated
     colors : dict of str:str, optional
@@ -195,7 +196,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_xlim(min_cm-5, max_cm+5)
-    ax.set_ylim(len(chrom_order)+1, -1)
+    ax.set_ylim(len(chrom_order)+3, -3)
     ax.set_xlabel('Genetic position (cM)')
     ax.set_ylabel('Chromosome')
     if title is not None: ax.set_title(title)
@@ -208,8 +209,11 @@ def PlotKaryogram(bp_file, sample_name, out_file,
 
     # Set up colors
     if colors is None:
-        bmap = brewer2mpl.get_map('Set1', 'qualitative', len(pop_list))
-        colors = dict(zip(poplist, bmap.mpl_colors))
+        num_colors = len(pop_list)
+        if num_colors < 3: num_colors = 3
+        if num_colors > 9: num_colors = 9
+        bmap = brewer2mpl.get_map('Set1', 'qualitative', num_colors)
+        colors = dict(zip(pop_list, bmap.mpl_colors))
 
     # Plot the actual haplotype blocks
     for i in range(2):
