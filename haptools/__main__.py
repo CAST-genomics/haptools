@@ -10,9 +10,9 @@ TODO:
 import sys
 import click
 
-from .simgenotype.sim_admixture import simulate_gt, write_breakpoints
-from .karyogram.karyogram import plot_karyogram
-from .simphenotype.sim_phenotypes import simulate_pt
+from .sim_admixture import simulate_gt, write_breakpoints
+from .karyogram import plot_karyogram
+from .sim_phenotypes import simulate_pt
 
 @click.group()
 @click.version_option()
@@ -30,12 +30,18 @@ def main():
 @click.option('--model', required=True)
 @click.option('--mapdir', required=True)
 @click.option('--out', required=True)
-def simgenotype(invcf, sample_info, model, mapdir, out):
+@click.option('--popsize', default=10000, hidden=True)
+@click.option('--seed', default=None)
+@click.option('--chroms', help='Sorted (1-22, X) and comma delimited list of chromosomes used to simulate admixture. ex: 1,2,3,5,6,21,X \
+                                .', type=str, required=True)
+def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     """
     Use the tool to simulate genotypes
     """
-    samples, breakpoints = simulate_gt(model, mapdir)
-    write_breakpoints(samples, breakpoints, out)
+    chroms = chroms.split(',')
+    samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
+    breakpoints = write_breakpoints(samples, breakpoints, out)
+    
 
 @main.command()
 @click.option('--sample_name', type=str)

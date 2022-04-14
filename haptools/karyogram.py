@@ -1,6 +1,5 @@
 import os
 import argparse
-
 import pylab
 import brewer2mpl
 import matplotlib
