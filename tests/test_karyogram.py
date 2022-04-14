@@ -28,8 +28,3 @@ def test_GetHaplotypeBlocks():
 	assert(sample_blocks[1][0]["chrom"]==1)
 	assert(sample_blocks[1][0]["start"]==0.0001)
 	assert(sample_blocks[1][0]["end"]==85.107755)
-
-test_file = DATADIR.joinpath("5gen.bp")
-centromeres = DATADIR.joinpath("centromeres_hg19.txt")
-PlotKaryogram(test_file, "Sample_1", "test.png",
-       centromeres_file=centromeres, title=None)
