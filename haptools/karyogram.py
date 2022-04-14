@@ -8,213 +8,242 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
 import matplotlib.collections as mcol
+import numpy as np
 
-
-def splitstr(option, opt, value, parser):
-  return(setattr(parser.values, option.dest, value.split(',')))
-
-# TODO figure out centromere
-def plot_karyogram(sample_file, title, centromeres, out, sample_name="Sample_1", chrX=False, colors=None):
+def GetChrom(chrom):
     """
-    Arguments
-        sample_file - contains all samples, chrom, pop, and hap block location
-        title - plot title
-        centromeres - centromeres location file
-        out - output file to save figure
-        sample_name - sample to plot on karyogram
-        chrX - include chromosome X? 
-        colors - colors for respective populations
+    Extract a numerical chromosome
 
+    Parameters
+    ----------
+    chrom : str
+       Chromosome string
+
+    Returns
+    -------
+    chrom : int
+       Integer-value for the chromosome
+       X gets set to 23
     """
-    #read in bed files and get individual name
-    samples = []
-    sample = []
-    pop_order = []
-    plot_sample = False
+    if chrom.startswith("chr"):
+        if "X" not in chrom:
+            return int(chrom[3:])
+        else: return 23
+    else: return int(chrom)
 
-    with open(sample_file,'r') as sample_file:
-        for line in sample_file:
-            line = line.strip().split('\t')
+def GetHaplotypeBlocks(bp_file, sample_name):
+    """
+    Extract haplotype blocks for the desired sample
+    from the bp file
 
-            # check if header
+    Parameters
+    ----------
+    bp_file : str
+       Path to .bp file with breakpoints
+    sample_name : str
+       Sample ID to extract
+    
+    Returns
+    -------
+    sample_blocks : list of [hap_blocks]
+       each hap_block is a dictionary with keys
+       'pop', 'chrom', 'start', 'end'
+    """
+    sample_blocks = [] # blocks for the two copies
+
+    parsing_sample = False # keep track of if we're in the middle of parsing a sample
+    blocks = [] # keep track of current blocks
+
+    with open(bp_file, 'r') as f:
+        for line in f:
+            line = line.strip().split()
             if len(line) == 1:
-                # new header write out haplotype
-                if sample:
-                    samples.append(sample)
+                assert line[0].endswith("_1") or line[0].endswith("_2")
+                # Check if we're done parsing a previous sample
+                # If so, add the blocks and reset
+                if parsing_sample:
+                    sample_blocks.append(blocks.copy())
 
-                if sample_name in line[0]:
-                    plot_sample = True
-                    sample = []
+                # Check if we're done
+                if len(sample_blocks) == 2:
+                    parsing_sample = False
+                    break
+
+                # Check if we should start processing the next sample
+                if sample_name == "_".join(line[0].split("_")[:-1]):
+                    blocks = []
+                    parsing_sample = True
                     continue
                 else:
-                    plot_sample = False
-            
-                # Already collected our two haplotypes
-                if not plot_sample and len(samples) == 2:
-                    break
-            
-            if plot_sample:
-                if not line[0] in pop_order:
-                    pop_order.append(line[0])
+                    parsing_sample = False
 
-                if not sample or sample[-1]['chrom'] != int(line[1]):
+            # If we're in the middle of parsing a sample, add the block
+            if parsing_sample:
+                if len(blocks) == 0 or (blocks[-1]['chrom'] != GetChrom(line[1])):
                     start = 0.0001
                 else:
-                    start = sample[-1]['end'] + 0.0001
-                hap_block = {'pop': line[0], 'chrom': int(line[1]), 
+                    start = blocks[-1]['end'] + 0.0001
+                    assert(float(line[-1]) > start) # Check the file is in sorted order
+                hap_block = {'pop': line[0], 'chrom': GetChrom(line[1]), 
                              'start': start, 'end': float(line[-1])}
-                sample.append(hap_block)
+                blocks.append(hap_block)
+    # Check if we still need to add the last block
+    # Happens if the sample is at the end of the file
+    if parsing_sample:
+        sample_blocks.append(blocks)
 
-    #define plotting space
+    return sample_blocks
+
+def GetCmRange(sample_blocks):
+    """
+    Get the min and max cM coordinates from the sample_blocks
+    Parameters
+    ----------
+    sample_blocks : list of [hap_blocks]
+       each hap_block is a dictionary with keys
+       'pop', 'chrom', 'start', 'end'
+
+    Returns
+    -------
+    min_val, max_val : float, float
+       min_val is the minimum coordinate
+       max_val is the maximum coordinate
+    """
+    min_val = np.inf
+    max_val = -1*np.inf
+    for i in range(len(sample_blocks)):
+        for sb in sample_blocks[i]:
+            if sb['start'] < min_val: min_val = sb['start']
+            if sb['end'] > max_val: max_val = sb['end']
+    return min_val, max_val
+
+def GetPopList(sample_blocks):
+    """
+    Get a list of populations in the sample_blocks
+    ----------
+    sample_blocks : list of [hap_blocks]
+       each hap_block is a dictionary with keys
+       'pop', 'chrom', 'start', 'end'
+
+    Returns
+    -------
+    poplist : list of str
+       list of populations represented in the blocks
+    """
+    poplist = set()
+    for i in range(len(sample_blocks)):
+        for sb in sample_blocks[i]:
+            poplist.add(sb['pop'])
+    return list(poplist)
+
+def GetChromOrder(sample_blocks):
+    """
+    Get a list of chroms in sorted order
+    Parameters
+    ----------
+    sample_blocks : list of [hap_blocks]
+       each hap_block is a dictionary with keys
+       'pop', 'chrom', 'start', 'end'
+
+    Returns
+    -------
+    chroms : list of int
+       list of chromsomes in sorted order
+    """
+    chroms = set()
+    for i in range(len(sample_blocks)):
+        for sb in sample_blocks[i]:
+            chroms.add(sb['chrom'])
+    chroms = list(chroms)
+    chroms.sort()
+    return chroms
+
+# TODO figure out centromeres
+def PlotKaryogram(bp_file, sample_name, out_file,
+        centromeres_file=None, title=None, colors=None):
+    """
+    Plot a karyogram based on breakpoints output by haptools simgenotypes
+
+    Parameters
+    ----------
+    bp_file : str
+       Path to .bp file with breakpoints
+    sample_name : str
+       Sample ID to plot
+    out_file : str
+       Name of output file
+    centromeres_file : str, optional
+       Path to bed file with centromere coordinates.
+       If None, no centromere locations are shown
+    title : str, optional
+       Plot title. If None, no title is annotated
+    colors : dict of str:str, optional
+       Dictionary of colors to use for each population
+       If not set, reasonable defaults are used.
+       In addition to strings, you can specify RGB or RGBA tuples.
+    """
+    # Parse haplotype blocks from the bp file for the 
+    # specified sample
+    sample_blocks = GetHaplotypeBlocks(bp_file, sample_name)
+
+    # Extract metadata about the blocks
+    min_cm, max_cm = GetCmRange(sample_blocks)
+    chrom_order = GetChromOrder(sample_blocks)
+    pop_list = GetPopList(sample_blocks)
+
+    # Set up the figure for plotting
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_xlim(-5,300)
-    if chrX:
-      ax.set_ylim(24,0)
-    else:
-      ax.set_ylim(23,0)
-    plt.xlabel('Genetic position (cM)')
-    plt.ylabel('Chromosome')
-    plt.title(title)
-    if chrX:
-      plt.yticks(range(1,24))
-      yticks = list(range(1,23))
-      yticks.append('X')
-      ax.set_yticklabels(yticks)
-    else:
-      plt.yticks(range(1,23))
+    ax.set_xlim(min_cm-5, max_cm+5)
+    ax.set_ylim(len(chrom_order)+1, 0)
+    ax.set_xlabel('Genetic position (cM)')
+    ax.set_ylabel('Chromosome')
+    if title is not None: ax.set_title(title)
+    ax.set_xticks(range(len(chrom_order)))
+    ax.set_xticklabels(chrom_order)    
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks_position('bottom')
 
-    #define colors
-    def hex_to_rgb(value):
-        value = value.lstrip('#')
-        lv = len(value)
-        return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+    # Set up colors
+    if colors is None:
+        bmap = brewer2mpl.get_map('Set1', 'qualitative', len(pop_list))
+        colors = dict(zip(poplist, bmap.mpl_colors))
 
-    bmap = brewer2mpl.get_map('Set1', 'qualitative', 4)
-    if not colors:
-      colors=bmap.mpl_colors
-      colors.append((0,0,0))
-
-    #define centromeres
-    # TODO figure out what to do with centromeres
-    """
-    centro = open(args.centromeres)
-    centromeres = {}
-    for line in centro:
-        line = line.strip().split()
-        if chrX and line[0] == 'X':
-          line[0] = '23'
-        centromeres[line[0]] = line
-    """
-
-    #plot rectangles
-    for info in samples[0]:
-        try:
-          plot_rects(info['pop'], info['chrom'], info['start'], 
-                     info['end'], 'A', pop_order, colors, ax)
-        except ValueError: #flexibility for chrX
-          plot_rects(info['pop'], 23, info['start'], 
-                     info['end'], 'A', pop_order, colors, ax)
-    for info in samples[1]:
-        try:
-          plot_rects(info['pop'], info['chrom'], info['start'], 
-                     info['end'], 'B', pop_order, colors, ax)
-        except ValueError: #flexibility for chrX
-          plot_rects(info['pop'], 23, info['start'], 
-                     info['end'], 'B', pop_order, colors, ax)
+    # Plot the actual haplotype blocks
+    for i in range(2):
+        for info in sample_blocks[i]:
+            PlotHaplotypeBlock(info, i, chrom_order, colors, ax)
 
     #write a legend
     p = []
-    for i in range(len(pop_order)):
-        p.append(plt.Rectangle((0, 0), 1, 1, color=colors[i]))
+    for i in range(len(pop_list)):
+        p.append(plt.Rectangle((0, 0), 1, 1, color=colors[pop_list[i]]))
     p.append(plt.Rectangle((0, 0), 1, 1, color='k'))
-    labs = list(pop_order)
-    labs.append('UNK')
+    labs = pop_list
     leg = ax.legend(p, labs, loc=4, fancybox=True)
     leg.get_frame().set_alpha(0)
+    fig.savefig(out_file)
 
-    #get rid of annoying plot features
-    spines_to_remove = ['top', 'right']
-    for spine in spines_to_remove:
-        ax.spines[spine].set_visible(False)
-    ax.xaxis.set_ticks_position('none')
-    ax.yaxis.set_ticks_position('none')
+def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax):
+    """
+    Plot a haplotype block on the axis
 
-    fig.savefig(out)
-
-def plot_rects(anc, chrom, start, stop, hap, pop_order, colors, ax):
-    # TODO update so we can work with centromeres but rn dont use
-    """  
-    centro_coords = map(float, centromeres[str(chrom)])
-    if len(centro_coords) == 3: #acrocentric chromosome
-        mask = [
-        (centro_coords[1]+2,chrom-0.4), #add +/- 2 at the end of either end
-        (centro_coords[2]-2,chrom-0.4),
-        (centro_coords[2]+2,chrom),
-        (centro_coords[2]-2,chrom+0.4),
-        (centro_coords[1]+2,chrom+0.4),
-        (centro_coords[1]-2,chrom),
-        (centro_coords[1]+2,chrom-0.4)
-        ]
-        
-        mask_codes = [
-        Path.MOVETO,
-        Path.LINETO,
-        Path.CURVE3,
-        Path.LINETO,
-        Path.LINETO,
-        Path.CURVE3,
-        Path.LINETO,
-        ]
-        clip_mask = Path(vertices=mask, codes=mask_codes)
-    
-    else: #need to write more complicated clipping mask with centromere masked out
-        mask = [
-        (centro_coords[1]+2,chrom-0.4), #add +/- 2 at the end of either end
-        (centro_coords[2]-2,chrom-0.4),
-        (centro_coords[2]+2,chrom+0.4),
-        (centro_coords[3]-2,chrom+0.4),
-        (centro_coords[3]+2,chrom),
-        (centro_coords[3]-2,chrom-0.4),
-        (centro_coords[2]+2,chrom-0.4),
-        (centro_coords[2]-2,chrom+0.4),
-        (centro_coords[1]+2,chrom+0.4),
-        (centro_coords[1]-2,chrom),
-        (centro_coords[1]+2,chrom-0.4)
-        ]
-        
-        mask_codes = [
-        Path.MOVETO,
-        Path.LINETO,
-        Path.LINETO,
-        Path.LINETO,
-        Path.CURVE3,
-        Path.LINETO,
-        Path.LINETO,
-        Path.LINETO,
-        Path.LINETO,
-        Path.CURVE3,
-        Path.LINETO,
-        ]
-        clip_mask = Path(vertices=mask, codes=mask_codes)
-    """   
-    if hap == 'A': #bed_a ancestry goes on top
-        verts = [
-            (float(start), chrom), #left, bottom
-            (float(start), chrom + 0.4), #left, top
-            (float(stop), chrom + 0.4), #right, top
-            (float(stop), chrom), #right, bottom
-            (0, 0), #ignored
-        ]
-    else: #bed_b ancestry goes on bottom
-        verts = [
-            (float(start), chrom - 0.4), #left, bottom
-            (float(start), chrom), #left, top
-            (float(stop), chrom), #right, top
-            (float(stop), chrom - 0.4), #right, bottom
-            (0, 0), #ignored
-        ]
-
+    Parameters
+    ----------
+    block : dictionary with keys
+       'pop', 'chrom', 'start', 'end'
+    hapnum : int
+       0 or 1 for the two haplotypes
+    chrom_order : list of int
+       chromosomes in sorted order
+    colors : dict of str:str, optional
+       Dictionary of colors to use for each population
+       If not set, reasonable defaults are used.
+       In addition to strings, you can specify RGB or RGBA tuples.
+    ax : matplotlib axis to use for plotting
+    """
     codes = [
         Path.MOVETO,
         Path.LINETO,
@@ -222,14 +251,18 @@ def plot_rects(anc, chrom, start, stop, hap, pop_order, colors, ax):
         Path.LINETO,
         Path.CLOSEPOLY,
     ]
-    
+    chrom_coord = chrom_order.index(block['chrom'])
+    start = float(block['start'])
+    stop = float(block['end'])
+
+    padding = 0.4
+    verts = [
+        (start, chrom_coord - hapnum*padding),
+        (start, chrom_coord + (1-hapnum)*padding),
+        (stop, chrom_coord + (1-hapnum)*padding),
+        (stop, chrom_coord - hapnum*padding),
+        (0,0)
+    ]
     clip_path = Path(verts, codes)
-    if anc in pop_order:
-        col=mcol.PathCollection([clip_path],facecolor=colors[pop_order.index(anc)], linewidths=0)
-    else:
-        col=mcol.PathCollection([clip_path],facecolor=colors[-1], linewidths=0)
-    #if 'clip_mask' in locals():
-    #    col.set_clip_path(clip_mask, ax.transData)
-    ax.add_collection(col)
-
-
+    col = mcol.PathCollection([clip_path], facecolor=colors[block['pop']], linewidths=0)
+    ax.add_collection(col) 
