@@ -35,7 +35,8 @@ def simgenotype(invcf, sample_info, model, mapdir, out):
     Use the tool to simulate genotypes
     """
     samples, breakpoints = simulate_gt(model, mapdir)
-    write_breakpoints(samples, breakpoints, out)
+    breakpoints = write_breakpoints(samples, breakpoints, out)
+    
 
 @main.command()
 @click.option('--sample_name', type=str)

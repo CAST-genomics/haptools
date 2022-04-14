@@ -1,14 +1,66 @@
 import re
-import glob
+#import vcf
 import time
-
 import numpy as np
-
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
+# TODO update toml file with matplotlib version see aryas PR as well as pyvcf
 
 # TODO at a certain point we are going to need to ensure populations in model file are also in invcf files
-#      This is only required for outputting the haplotypes in a vcf 
+#      This is only required for outputting the haplotypes in a vcf
+def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
+    """
+    Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
+    to create simulated variants output in file: out + .vcf
+
+    Parameters
+    ----------
+    breakpoints: list(list(HaplotypeSegment))
+    model_file: str
+        file with the following structure. (Must be tab delimited)
+        Header = # samples, Admixed, {all pop labels}
+        Below  = generation#, frac, frac
+        ex: 40    Admixed    CEU   YRI
+            1       0        0.05  0.95
+            2       0.20     0.05  0.75
+    vcf: str
+        file path that contains samples and respective variants
+    sampleinfo: str
+        file path that contains mapping from sample name in vcf to population
+    out: str
+        output prefix
+    """
+
+    # details to know
+    # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
+    # need to go line by line of the vcf when creating the new vcf
+
+    # read on populations from model file
+    mfile = open(model_file, 'r')
+    num_samples, admix, pops = mfile.readline().strip().split()
+
+    # TODO verify that below is what I want ie only contain populations specified
+    # filter sampleinfo so only populations from model file are there
+    samplefile = open(sampleinfo, 'r')
+    sample_pop = dict()
+    for line in samplefile:
+        sample, pop = line.strip().split()
+        if pop in pops:
+            sample_pop[sample] = pop
+
+    # check if pops are there and if they aren't throw an error
+    assert len(pops) == len(list(set(sample_pop.values())))
+
+    # preprocess breakpoints so we can output line by line
+    # TODO
+
+    # Process
+    # Choose starting samples (random choice) in VCF from respective population for each haplotype
+    #     Also precalculate (random choice) all samples that will be switched too once the current local ancestry block ends.
+    # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
+    # Once VCF is complete we've output everything we wanted
+
+    return
 
 def simulate_gt(model_file, coords_dir, seed=None):
     """
@@ -29,6 +81,7 @@ def simulate_gt(model_file, coords_dir, seed=None):
     Return
 
     """
+    # TODO new parameter for range of chroms we want to work on
     # initialize seed used for breakpoints
     if seed:
         np.random.seed(seed)
@@ -80,6 +133,9 @@ def simulate_gt(model_file, coords_dir, seed=None):
     np_coords = np.zeros((len(coords), max_coords)).astype(object)
     
     # precalculate recombination probabilities (given map pos in cM and we want M)
+    #     shape: chroms x number of coords
+    # TODO limit this to the range of chroms that we want to work on
+    # TODO have new parameter that accounts for range of chroms
     recomb_probs = -1*np.ones((len(coords), max_coords))
     for chrom, chrom_coords in enumerate(coords):
         prev_map_pos = chrom_coords[0].get_map_pos()
@@ -93,6 +149,7 @@ def simulate_gt(model_file, coords_dir, seed=None):
     coords = np_coords
 
     # number of haplotypes simulated per generation
+    # TODO have number of haplotypes per generation be an input parameter
     haps_per_gen = max(10000, 20 * num_samples)
 
     # starting generation is 0
@@ -158,7 +215,7 @@ def write_breakpoints(samples, breakpoints, out):
                 end_coord = segment.get_end_coord()
                 end_pos = segment.get_end_pos()
                 output.write(f"{pop}\t{chrom}\t{end_coord}\t{end_pos}\n")
-    return
+    return breakpoints
 
 def _simulate(samples, pops, pop_fracs, pop_gen, coords, end_coords, recomb_probs, prev_gen_samples=None):
     # generate all samples
