@@ -170,7 +170,7 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         sim_gens = cur_gen - prev_gen
         
         assert sim_gens > 0
-        assert np.sum(pop_fracs) == 1
+        assert np.absolute(np.sum(pop_fracs)-1) < 1e-6
 
         # sim generation
         print(f"Simulating generation {prev_gen+1}")

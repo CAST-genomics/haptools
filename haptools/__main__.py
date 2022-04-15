@@ -11,7 +11,7 @@ import sys
 import click
 
 from .sim_admixture import simulate_gt, write_breakpoints
-from .karyogram import plot_karyogram
+from .karyogram import PlotKaryogram
 from .sim_phenotypes import simulate_pt
 
 @click.group()
