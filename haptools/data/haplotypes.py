@@ -161,25 +161,26 @@ class Haplotypes(Data):
     ----------
     fname : Path
         The path to the file containing the data
-    data : list[dict]
-        A list of dict describing the composition of a series of haplotypes
+    data : dict[dict]
+        A dict of dict describing the composition of a series of haplotypes
 
-        Each haplotype dictionary is composed of these items:
-            1) id (str): A haplotype ID
-            2) chrom (str): The chromosome that this haplotype belongs to
-            3) start (int): The start position of this haplotype
-            4) end (int): The end position of this haplotype
+        Each haplotype dictionary is keyed by an ID and composed of these items:
+            1) chrom (str): The chromosome that this haplotype belongs to
+            2) start (int): The start position of this haplotype
+            3) end (int): The end position of this haplotype
+            4) id (str): A haplotype ID; this is also the element key
             5) info (dict): Other information belonging to this haplotype. Some examples are:
                 - tree (int): A tree ID
                 - beta (float): The effect size of the haplotype-phenotype association
                 - pval (float): The p-value of the haplotype-phenotype association
                 - pip (float): A PIP from running SuSiE or some other tool
-            6) variants (list[dict]): A list of dictionaries, one for each variant...
+                - ancestry (string): A population code denoting the haplotype ancestry
+            6) variants (dict[dict]): A dict of dictionaries, one for each variant...
 
 
-        Each variants dictionary is composed of these items:
-            1) id (str): A variant ID
-            2) pos (int): The start position of this variant
+        Each variants dictionary is keyed by an ID and composed of these items:
+            1) pos (int): The start position of this variant
+            2) id (str): A variant ID; this is also the element key
             3) allele (bool): The allele for this variant
             4) info (dict): Other information belonging to this variant. Some examples are:
                 - score (float): The score of this variant within its haplotype
@@ -208,20 +209,20 @@ class Haplotypes(Data):
             },
             "hap": {
                 "id": "H",
-                "val": ["id", "chrom", "start", "end"],
-                "fmt": ["s", "s", "d", "d"],
+                "val": ["chrom", "start", "end", "id"],
+                "fmt": ["s", "d", "d", "s"],
             },
             "var": {
                 "id": "V",
-                "val": ["id", "hap", "start", "end", "allele"],
-                "fmt": ["s", "s", "d", "d", "d"],
+                "val": ["hap", "start", "end", "id", "allele"],
+                "fmt": ["s", "d", "d", "s", "d"],
             },
         }
         self.version = "0.0.1"
         for val in self.format.keys():
             self.format[val]["str"] = self._create_fmt_str(self.format[val])
             self.format[val]["rgx"] = re.compile(self.format[val]["str"])
-        self.data = []
+        self.data = {}
 
     def _create_fmt_str(self, fmts):
         return (
@@ -236,7 +237,7 @@ class Haplotypes(Data):
             + "\n"
         )
 
-    def _line_type(self, line: str, validate=False):
+    def _line_type(self, line: str, validate: bool = False):
         """
         Return the type of line that this line matches
 
@@ -257,6 +258,53 @@ class Haplotypes(Data):
         # if none of the lines matched, return None
         return None
 
+    def _extract_haplotype(self, line: str) -> dict:
+        """
+        Convert a haplotype line into a dictionary for inclusion in self.data
+
+        Paramaters
+        ----------
+        line : str
+            A haplotype (H) line from the .haps file
+
+        Returns
+        -------
+        A dictionary that can be included as a haplotype in self.data
+        """
+        hap = dict(zip(
+            ('chrom', 'start', 'end', 'id', 'info'),
+            line[2:].split("\t", maxsplit=4)
+        ))
+        # TODO: find a way to do this by using self.format?
+        hap['start'] = int(hap['start'])
+        hap['end'] = int(hap['end'])
+        hap['info'] = dict(zip(self.info['hap'].keys(), hap['info'].split("\t")))
+        return hap['id'], hap
+
+    def _extract_variant(self, line: strs) -> dict:
+        """
+        Convert a variant line into a dictionary for inclusion in self.data
+
+        Paramaters
+        ----------
+        line : str
+            A variant (V) line from the .haps file
+
+        Returns
+        -------
+        A dictionary that can be included as a variant in self.data
+        """
+        var = dict(zip(
+            ('hap_id', 'pos', 'end', 'id', 'allele', 'info'),
+            line[2:].split("\t", maxsplit=5)
+        ))
+        # TODO: find a way to do this by using self.format?
+        hap_id = var['hap']
+        var['pos'] = int(var['pos'])
+        del var['hap'], var['end']
+        var['allele'] = int(var['allele'])
+        var['info'] = dict(zip(self.info['var'].keys(), var['info'].split("\t")))
+        return var['id'], hap_id, var
 
     def read(self, region: str = None, haplotypes: set[str] = None):
         """
@@ -280,11 +328,12 @@ class Haplotypes(Data):
             not specified
         """
         super().read()
-        self.data = []
+        self.data = {}
         # if the user requested a specific region or set of haplotypes, then we should
         # handle it using tabix
         # else, we use a regular text opener
         if region or haplotypes:
+            haps_file = pysam.TabixFile(self.fname)
             if region:
                 # split the region string so each portion is an element
                 region = re.split(':|-', region)
@@ -293,24 +342,49 @@ class Haplotypes(Data):
                 # fetch region
                 # we already know that each line will start with an H, so we don't
                 # need to check that
-                self.data = [
-                    line.split("\t") # TODO
-                    for line in pysam.TabixFile(self.fname).fetch(*region)
-                ]
+                for line in haps_file.fetch(region):
+                    hap_id, hap = self._extract_haplotype(line)
+                    if haplotypes is None or hap_id in haplotypes:
+                        self.data[hap_id] = hap
             else:
-                for line in pysam.tabix_iterator(self.fname):
+                for line in haps_file.fetch():
                     # we only want lines that start with an H
-                    if self._line_type(line) == 'H':
-                        # TODO: store the line
-            # TODO: query for the variants
+                    line_type = self._line_type(line)
+                    if line_type == 'H':
+                        hap_id, hap = self._extract_haplotype(line)
+                        if hap_id in haplotypes:
+                            self.data[hap_id] = hap
+                    elif line_type > 'H':
+                        # if we've already passed all of the H's, we can just exit
+                        # We assume the file has been sorted so that all of the H lines
+                        # come before the V lines
+                        break
+            # query for the variants of each haplotype
+            for hap_id in self.data:
+                self.data[hap_id]['variants'] = {}
+                # exclude variants outside the desired region
+                hap_region = hap_id
+                if region:
+                    hap_region = hap_id + ":" + region.split(':', maxsplit=1)[1]
+                # fetch region
+                # we already know that each line will start with a V, so we don't
+                # need to check that
+                for variant in haps_file.fetch(*hap_region):
+                    var_id, _, var = self._extract_variant(line)
+                    self.data[hap_id]['variants'][var_id] = var
+            haps_file.close()
         else:
             # use hook_compressed to automatically handle gz files
             with hook_compressed(fname, mode="rt") as haps:
                 hap_text = reader(haps, delimiter="\t")
                 for line in hap_text:
-                    # TODO: store the line
-        if not region and not haplotypes:
-            haps.close()
+                    line_type = self._line_type(line)
+                    if line_type == "H":
+                        hap_id, hap = self._extract_haplotype(line)
+                        self.data[hap_id].update(hap)
+                    elif line_type == "V":
+                        var_id, hap_id, var = self._extract_variant(line)
+                        self.data.setdefault(hap_id, {})['variants'][var_id] = var
 
     def iterate(self, region: str = None, haplotypes: set[str] = None) -> Iterator[namedtuple]:
         """
@@ -338,7 +412,19 @@ class Haplotypes(Data):
         """
         with hook_compressed(self.fname, mode="rt") as haps:
             hap_text = reader(haps, delimiter="\t")
-            pass
+            HaplotypeRecord = namedtuple("HaplotypeRecord", "data info")
+            VariantRecord = namedtuple("VariantRecord", "data info")
+            for line in hap_text:
+                line_type = self._line_type(line)
+                if line_type == "H":
+                    hap_id, hap = self._extract_haplotype(line)
+                    yield HaplotypeRecord(hap, self.info)
+                elif line_type == "V":
+                    var_id, hap_id, var = self._extract_variant(line)
+                    # add the haplotype back in, since otherwise, the user won't know
+                    # which haplotype this variant belongs to
+                    var['hap_id'] = hap_id
+                    yield VariantRecord(var, self.info)
 
     def to_str(self) -> Generator[str, None, None]:
         """
