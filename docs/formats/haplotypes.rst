@@ -96,5 +96,5 @@ Each variant line belongs to a particular haplotype. These lines contain the fol
      - The unique ID for this variant, as defined in the genotypes file
    * - 5
      - Allele
-     - int
+     - string
      - The allele of this variant within the haplotype

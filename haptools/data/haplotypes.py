@@ -2,7 +2,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Iterator
-from collections import namedtuple
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -385,7 +384,7 @@ class Haplotypes(Data):
                         else:
                             self.data[hap_id] = [var]
 
-    def iterate(self, region: str = None, haplotypes: set[str] = None) -> Iterator[namedtuple]:
+    def iterate(self, region: str = None, haplotypes: set[str] = None) -> Iterator[Variant|Haplotype]:
         """
         Read haplotypes from a .hap file line by line without storing anything
 
