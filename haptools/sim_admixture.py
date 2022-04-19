@@ -63,7 +63,7 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
 
     return
 
-def simulate_gt(model_file, coords_dir, vcf_pops, chroms, popsize, seed=None):
+def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     """
     Simulate admixed genotypes based on the parameters of model_file. 
     Parameters
@@ -78,8 +78,6 @@ def simulate_gt(model_file, coords_dir, vcf_pops, chroms, popsize, seed=None):
         coords_dir: str
             Directory containing files ending in .map with genetic map coords 
                 in cM used for recombination points
-        vcf_pops: str
-            VCF file which we will extract chromosome end coordinates from
         chroms: list(str)
             List of chromosomes to simulate admixture for.
         popsize: int
