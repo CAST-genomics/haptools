@@ -87,7 +87,9 @@ Each variant line belongs to a particular haplotype. These lines contain the fol
    * - 3
      - End Position
      - int
-     - The end position of this variant on its contig; usually the same as the Start Position
+     - The end position of this variant on its contig
+
+       Usually the same as the Start Position
    * - 4
      - Variant ID
      - string

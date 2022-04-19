@@ -49,7 +49,7 @@ class Variant:
         In most cases this will be the same as the start position
     id: str
         The variant's unique ID
-    allele: int
+    allele: str
         The allele of this variant within the Haplotype
     extras: tuple[Extra]
         Extra fields for the variant
@@ -60,9 +60,9 @@ class Variant:
     start: int
     end: int
     id: str
-    allele: int
+    allele: str
     extras: tuple[Extra] = field(default_factory=tuple, init=False)
-    fmt: str = field(default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:d}\n", init=False)
+    fmt: str = field(default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}\n", init=False)
 
     @property
     def ID(self):
@@ -92,7 +92,7 @@ class Variant:
             start = int(line[1]),
             end = int(line[2]),
             id = line[3],
-            allele = int(line[4]),
+            allele = line[4],
         )
 
     def to_hap_spec(self, hap_id: str) -> str:
@@ -133,7 +133,7 @@ class Haplotype:
     id: str
         The haplotype's unique ID
     variants: list[Variant]
-        An ordered collection of pairs, where each pair is a node and its allele
+        A list of the variants in this haplotype
     extras: tuple[Extra]
         Extra fields for the haplotype
     fmt: str
