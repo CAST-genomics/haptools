@@ -1,48 +1,21 @@
-#!/usr/bin/env python
-
-"""
-TODO:
-- add defaults to help messages
-- clean up help messages
-- group options
-"""
-
 import sys
 import click
 
-from .sim_admixture import simulate_gt, write_breakpoints
 from .karyogram import PlotKaryogram
+from .sim_genotypes import simulate_gt, write_breakpoints
 from .sim_phenotypes import simulate_pt
 
+################### Haptools ##################
 @click.group()
 @click.version_option()
 def main():
     """
-    haptools: Simulate phenotypes for GWAS and subsequent fine-mapping
-
-    Use real variants to simulate real, biological LD patterns.
+    haptools: A toolkit for simulating and analyzing genotypes and 
+    phenotypes while taking into account haplotype information
     """
     pass
 
-@main.command()
-@click.option('--invcf')
-@click.option('--sample_info')
-@click.option('--model', required=True)
-@click.option('--mapdir', required=True)
-@click.option('--out', required=True)
-@click.option('--popsize', default=10000, hidden=True)
-@click.option('--seed', default=None)
-@click.option('--chroms', help='Sorted (1-22, X) and comma delimited list of chromosomes used to simulate admixture. ex: 1,2,3,5,6,21,X \
-                                .', type=str, required=True)
-def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
-    """
-    Use the tool to simulate genotypes
-    """
-    chroms = chroms.split(',')
-    samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
-    breakpoints = write_breakpoints(samples, breakpoints, out)
-    
-
+############ Haptools karyogram ###############
 @main.command()
 @click.option('--bp', help="Path to .bp file with breakpoints", \
     type=str, required=True)
@@ -69,6 +42,39 @@ def karyogram(bp, sample, out, title, centromeres, colors):
         colors = dict([item.split(":") for item in colors.split(",")])
     PlotKaryogram(bp, sample, out, \
         centromeres_file=centromeres, title=title, colors=colors)
+
+############ Haptools simgenotype ###############
+@main.command()
+@click.option('--model', help="Admixture model in .dat format. See docs for info.", \
+    type=str, required=True)
+@click.option('--mapdir', help="Directory containing files ending in .map with genetic map coords ", \
+    type=str, required=True)
+@click.option('--out', help="Prefix to name output files.", \
+    type=str, required=True)
+@click.option('--chroms', help='Sorted and comma delimited list of chromosomes to simulate. ex: 1,2,3,5,6,21,X.', \
+    ype=str, required=True)
+@click.option('--seed', help="Random seed. Set to make simulations reproducible", \
+    type=int, required=False, default=None)
+@click.option('--popsize', help="Number of samples to simulate each generation", \
+    type=int, required=False, default=10000, hidden=True)
+@click.option('--invcf')
+@click.option('--sample_info')
+def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
+    """
+    Simulate admixed genomes under a pre-defined model
+
+    Example:
+    haptools simgenotype \
+      --model tests/data/dat_files/AFR_south_carolina.dat \
+      --mapdir map/ \
+      --out test
+    """
+    chroms = chroms.split(',')
+    samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
+    breakpoints = write_breakpoints(samples, breakpoints, out)
+    
+
+
 
 ############ Haptools simphenotype ###############
 DEFAULT_SIMU_REP = 1
