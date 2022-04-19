@@ -63,7 +63,7 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
 
     return
 
-def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
+def simulate_gt(model_file, coords_dir, vcf_pops, chroms, popsize, seed=None):
     """
     Simulate admixed genotypes based on the parameters of model_file. 
     Parameters
@@ -78,6 +78,8 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         coords_dir: str
             Directory containing files ending in .map with genetic map coords 
                 in cM used for recombination points
+        vcf_pops: str
+            VCF file which we will extract chromosome end coordinates from
         chroms: list(str)
             List of chromosomes to simulate admixture for.
         popsize: int
@@ -170,7 +172,7 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         sim_gens = cur_gen - prev_gen
         
         assert sim_gens > 0
-        assert np.sum(pop_fracs) == 1
+        assert np.absolute(np.sum(pop_fracs)-1) < 1e-6
 
         # sim generation
         print(f"Simulating generation {prev_gen+1}")
@@ -227,23 +229,16 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
     hap_samples = []
     
     # pre compute haplotypes and parent population 
-    # if there is no previous generation randomly choose population based on frac]
-    parent_pop = np.zeros(samples)
-    if not prev_gen_samples:
-        parent_pop = np.random.choice(pops, size=samples, p=pop_fracs)
+    # if there is no previous generation randomly choose population based on frac
+    parent_pop = np.random.choice(np.arange(len(pops)), size=samples, p=pop_fracs)
 
-    # choose a haplotype to copy
-    # if previous generation of samples randomize two haplotypes
-    # otherwise only choose a single haplotype
-    haplotypes = -1*np.ones(2*samples)
-    if not parent_pop[0]:
-        # choose two of previous samples as haplotypes to choose from
-        haplotypes = np.random.randint(samples, size=2*samples)
-
-        # ensure no two haplotypes are the same
-        for hap in range(samples):
-            while haplotypes[2*hap] == haplotypes[2*hap+1]:
-                haplotypes[2*hap+1] = np.random.randint(samples)
+    # If the individual is admixed find parent chromosomes
+    haplotypes = np.random.randint(samples, size=2*samples)
+    for i, pop in enumerate(parent_pop):
+        if not pop:
+            # ensure parent haplotypes are not the same
+            while haplotypes[2*i] == haplotypes[2*i+1]:
+                haplotypes[2*i+1] = np.random.randint(samples)
 
     # generate all samples
     for sample in range(samples):
@@ -295,9 +290,10 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
                     prev_map_pos = end_coords[prev_ind+i].get_map_pos()
 
                     # output segments of prev_chrom+i
-                    segments.extend(get_segment(p_pop, haps[homolog], chroms[prev_ind+i],
-                                    start_bp, end_bp, prev_map_pos,
-                                    prev_gen_samples))
+                    segments.extend(get_segment(p_pop, pops, haps[homolog], 
+                                                chroms[prev_ind+i], start_bp, 
+                                                end_bp, prev_map_pos,
+                                                prev_gen_samples))
                     
                     # change homolog
                     homolog = np.random.randint(2)
@@ -311,7 +307,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
             prev_map_pos = prev_coord.get_map_pos()
 
             # Store haplotype segments switching homologs
-            segments.extend(get_segment(p_pop, haps[homolog], cur_chrom,
+            segments.extend(get_segment(p_pop, pops, haps[homolog], cur_chrom,
                                         start_bp, end_bp, prev_map_pos,
                                         prev_gen_samples))
             homolog = 1-homolog
@@ -332,9 +328,9 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
             prev_map_pos = end_coords[prev_ind+i].get_map_pos()
 
             # output segments of prev_chrom+i
-            segments.extend(get_segment(p_pop, haps[homolog], chroms[prev_ind+i],
-                            start_bp, end_bp, prev_map_pos,
-                            prev_gen_samples))
+            segments.extend(get_segment(p_pop, pops, haps[homolog], 
+                                        chroms[prev_ind+i], start_bp, 
+                                        end_bp, prev_map_pos, prev_gen_samples))
             
             # change homolog
             homolog = np.random.randint(2)
@@ -343,13 +339,14 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
         hap_samples.append(segments)
     return hap_samples
 
-def get_segment(pop, haplotype, chrom, start_coord, end_coord, end_pos, prev_gen_samples):
+def get_segment(pop, str_pops, haplotype, chrom, start_coord, end_coord, end_pos, prev_gen_samples):
     """
     Create a segment or segments for an individual of the current generation
     using either a population label (>0) or the previous generation's samples if 
     the admix pop type (0) is used. 
     Arguments
-        pop - population to generate haplotype segments
+        pop - index of population corresponding to the population in str_pops
+        str_pops - array of population names
         haplotype - index of range [0, len(prev_gen_samples)] to identify
                     the parent haplotype to copy segments from
         chrom - chromosome the haplotype segment lies on
@@ -364,7 +361,7 @@ def get_segment(pop, haplotype, chrom, start_coord, end_coord, end_pos, prev_gen
     """
     # Take from population data not admixed data
     if pop:
-        return [HaplotypeSegment(pop, chrom, end_coord, end_pos)]
+        return [HaplotypeSegment(str_pops[pop], chrom, end_coord, end_pos)]
     
     # Take from previous admixed data
     else:
