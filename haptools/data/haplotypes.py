@@ -440,7 +440,7 @@ class Haplotypes(Data):
     def __repr__(self):
         return "\n".join(self.to_str())
 
-    def write(self, file: TextIO):
+    def write(self):
         """
         Write the contents of this Haplotypes object to the file given by fname
 
@@ -449,5 +449,6 @@ class Haplotypes(Data):
         file: TextIO
             A file-like object to which this Haplotypes object should be written.
         """
-        for line in self.to_str():
-            file.write(line)
+        with hook_compressed(fname, mode="wt") as haps:
+            for line in self.to_str():
+                haps.write(line)
