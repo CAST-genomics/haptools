@@ -196,20 +196,6 @@ class Haplotype:
         return tuple()
 
 
-@dataclass
-class HaptoolsHaplotype(Haplotype):
-    ancestry: str
-    beta: float
-    fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}\t{ancestry:s}\t{beta:.3f}", init=False)
-
-    @staticmethod
-    def extras() -> tuple:
-        return (
-            "#H\tancestry\tstr\tLocal ancestry",
-            "#H\tbeta\tfloat\tEffect size in linear model",
-        )
-
-
 class Haplotypes(Data):
     """
     A class for processing haplotypes from a file
