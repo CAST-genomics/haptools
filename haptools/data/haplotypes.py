@@ -1,31 +1,12 @@
 from __future__ import annotations
 import re
 from pathlib import Path
-from typing import Iterator
-from dataclasses import dataclass, field
+from typing import Iterator, get_type_hints
+from dataclasses import dataclass, field, fields
 
 import numpy as np
 
 from .data import Data
-
-
-@dataclass
-class Extra:
-    """
-    An extra field on a line in the .hap file
-
-    Attributes
-    ----------
-    name: str
-        The name of the extra field
-    type: type = str
-        The type of class of the value of the field
-    description: str = ""
-        A description of the extra field
-    """
-    name: str
-    type: type = str
-    description: str = ""
 
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
@@ -35,8 +16,10 @@ class Variant:
     """
     A variant within the .hap format spec
 
-    In order to use this class with the Haplotypes class, you should extend it with
-    your own properties. Just make sure to describe them in extras
+    In order to use this class with the Haplotypes class, you should
+    1) add properties to the class for each of extra fields
+    2) override the extras() method
+    3) change the default value of the fmt property to describe the line
 
     Attributes
     ----------
@@ -50,8 +33,6 @@ class Variant:
         The variant's unique ID
     allele: str
         The allele of this variant within the Haplotype
-    extras: tuple[Extra]
-        Extra fields for the variant
     fmt: str
         A format string describing the corresponding line from the .haps format spec
     """
@@ -60,8 +41,7 @@ class Variant:
     end: int
     id: str
     allele: str
-    extras: tuple[Extra] = field(default_factory=tuple, init=False)
-    fmt: str = field(default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}\n", init=False)
+    fmt: str = field(default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}", init=False)
 
     @property
     def ID(self):
@@ -110,6 +90,18 @@ class Variant:
         """
         return fmt.format(**self.__dict__, hap=hap_id)
 
+    @staticmethod
+    def extras() -> tuple:
+        """
+        Return the header lines of the extra fields that are supported
+
+        Returns
+        -------
+        tuple
+            The header lines of the extra fields
+        """
+        return tuple()
+
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
@@ -118,8 +110,10 @@ class Haplotype:
     """
     A haplotype within the .hap format spec
 
-    In order to use this class with the Haplotypes class, you should extend it with
-    your own properties. Just make sure to describe them in extras
+    In order to use this class with the Haplotypes class, you should
+    1) add properties to the class for each of extra fields
+    2) override the extras() method
+    3) change the default value of the fmt property to describe the line
 
     Attributes
     ----------
@@ -133,8 +127,6 @@ class Haplotype:
         The haplotype's unique ID
     variants: list[Variant]
         A list of the variants in this haplotype
-    extras: tuple[Extra]
-        Extra fields for the haplotype
     fmt: str
         A format string describing the corresponding line from the .haps format spec
     """
@@ -143,9 +135,8 @@ class Haplotype:
     start: int
     end: int
     id: str
-    variants: list[Variant] = field(default_factory=list)
-    extras: tuple[Extra] = field(default_factory=tuple, init=False)
-    fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}\n", init=False)
+    variants: tuple = field(default_factory=tuple, init=False)
+    fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}", init=False)
 
     @property
     def ID(self):
@@ -155,7 +146,7 @@ class Haplotype:
         return self.id
 
     @classmethod
-    def from_hap_spec(cls: Haplotype, line: str) -> Haplotype:
+    def from_hap_spec(cls: Haplotype, line: str, variants: tuple = tuple()) -> Haplotype:
         """
         Convert a variant line into a Haplotype object in the .hap format spec
 
@@ -188,6 +179,32 @@ class Haplotype:
         """
         return self.fmt.format(**self.__dict__)
 
+    @staticmethod
+    def extras() -> tuple:
+        """
+        Return the header lines of the extra fields that are supported
+
+        Returns
+        -------
+        tuple
+            The header lines of the extra fields
+        """
+        return tuple()
+
+
+@dataclass
+class HaptoolsHaplotype(Haplotype):
+    ancestry: str
+    beta: float
+    fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}\t{ancestry:s}\t{beta:.3f}", init=False)
+
+    @staticmethod
+    def extras() -> tuple:
+        return (
+            "#H\tancestry\tstr\tLocal ancestry",
+            "#H\tbeta\tfloat\tEffect size in linear model",
+        )
+
 
 class Haplotypes(Data):
     """
@@ -197,7 +214,7 @@ class Haplotypes(Data):
     ----------
     fname: Path
         The path to the file containing the data
-    data: dict[dict]
+    data: dict[str, dict]
         A dict of dict describing the composition of a series of Haplotype objects,
         keyed by their IDs
     types: dict
@@ -219,7 +236,7 @@ class Haplotypes(Data):
         fname: Path,
         haplotype: type[Haplotype] = Haplotype,
         variant: type[Variant] = Variant,
-        log: Logger = None
+        log: Logger = None,
     ):
         super().__init__(fname, log)
         self.data = {}
@@ -253,23 +270,28 @@ class Haplotypes(Data):
         haps.read(region, haplotypes)
         return haps
 
-    def check_extras(self, lines: list[str]):
+    def check_extra(self, line: str):
         """
-        Check that the extras requested by the classes in self.types are declared
-        in the header lines of this .haps file
+        Check that an extra field declared in the .haps file can be handled by the
+        the Variant and Haplotype classes provided in __init__()
 
         Parameters
         ----------
-        lines: list[str]
-            Header lines from the .hap file
+        line: str
+            A header lines from the .hap file
 
         Raises
         ------
         ValueError
-            If any of the extras don't line up
+            If this header line is not supported
         """
-        # TODO
-        pass
+        if line not in self.types[line[1]].extras():
+            # extract the name of the extra field
+            name = line.split("\t", maxsplit=1)[1]
+            raise ValueError(
+                f"The extra field '{name}' is declared in the header of the .hap file"
+                "but is not accepted by this tool."
+            )
 
     def _line_type(self, line: str) -> type:
         """
@@ -320,6 +342,7 @@ class Haplotypes(Data):
         # else, we use a regular text opener
         if region or haplotypes:
             haps_file = pysam.TabixFile(self.fname)
+            # TODO: check header lines
             if region:
                 # split the region string so each portion is an element
                 region = re.split(':|-', region)
