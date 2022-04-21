@@ -65,14 +65,15 @@ class Variant:
         tuple[str, Variant]
             The haplotype ID and Variant object for the variant
         """
-        line = line[2:].split("\t", maxsplit=5)
+        line = line[2:].split("\t")
         hap_id = line[0]
-        return hap_id, cls(
-            start = int(line[1]),
-            end = int(line[2]),
-            id = line[3],
-            allele = line[4],
-        )
+        var_fields = {}
+        idx = 1
+        for name, val in get_type_hints(cls).items():
+            if name != 'fmt':
+                var_fields[name] = val(line[idx])
+                idx += 1
+        return hap_id, cls(**var_fields)
 
     def to_hap_spec(self, hap_id: str) -> str:
         """
@@ -160,13 +161,16 @@ class Haplotype:
         Haplotype
             The Haplotype object for the variant
         """
-        line = line[2:].split("\t", maxsplit=4)
-        return cls(
-            chrom = line[0],
-            start = int(line[1]),
-            end = int(line[2]),
-            id = line[3],
-        )
+        line = line[2:].split("\t")
+        hap_fields = {}
+        idx = 0
+        for name, val in get_type_hints(cls).items():
+            if name not in ('fmt', 'variants'):
+                hap_fields[name] = val(line[idx])
+                idx += 1
+        hap = cls(**hap_fields)
+        hap.variants = variants
+        return hap
 
     def to_hap_spec(self) -> str:
         """
