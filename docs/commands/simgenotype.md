@@ -82,5 +82,6 @@ haptools simgenotype
   --sample_info /path/to/sampleinfo.csv \
   --model /path/to/model/file.dat \
   --map /path/to/plink/file/ \
+  --chroms 7,8,9,10,21,22,X \
   --out /path/to/output
 ```
