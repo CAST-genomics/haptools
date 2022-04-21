@@ -51,8 +51,8 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     type=str, required=True)
 @click.option('--out', help="Prefix to name output files.", \
     type=str, required=True)
-@click.option('--chroms', help='Sorted and comma delimited list of chromosomes to simulate. ex: 1,2,3,5,6,21,X.', \
-    ype=str, required=True)
+@click.option('--chroms', help='Sorted and comma delimited list of chromosomes to simulate. ex: 1,2,3,5,6,21,X', \
+    type=str, default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X", required=True)
 @click.option('--seed', help="Random seed. Set to make simulations reproducible", \
     type=int, required=False, default=None)
 @click.option('--popsize', help="Number of samples to simulate each generation", \
