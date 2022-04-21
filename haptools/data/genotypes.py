@@ -209,7 +209,8 @@ class Genotypes(Data):
                 self.variants = np.delete(self.variants, variant_idx)
             else:
                 raise ValueError(
-                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
+                    .format(
                         *tuple(self.variants[variant_idx[0]])[:3],
                         self.samples[samp_idx[0]],
                     )

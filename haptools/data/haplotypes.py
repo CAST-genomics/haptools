@@ -41,7 +41,9 @@ class Variant:
     end: int
     id: str
     allele: str
-    fmt: str = field(default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}", init=False)
+    fmt: str = field(
+        default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}", init=False
+    )
 
     @property
     def ID(self):
@@ -70,7 +72,7 @@ class Variant:
         var_fields = {}
         idx = 1
         for name, val in get_type_hints(cls).items():
-            if name != 'fmt':
+            if name != "fmt":
                 var_fields[name] = val(line[idx])
                 idx += 1
         return hap_id, cls(**var_fields)
@@ -147,7 +149,9 @@ class Haplotype:
         return self.id
 
     @classmethod
-    def from_hap_spec(cls: Haplotype, line: str, variants: tuple = tuple()) -> Haplotype:
+    def from_hap_spec(
+        cls: Haplotype, line: str, variants: tuple = tuple()
+    ) -> Haplotype:
         """
         Convert a variant line into a Haplotype object in the .hap format spec
 
@@ -165,7 +169,7 @@ class Haplotype:
         hap_fields = {}
         idx = 0
         for name, val in get_type_hints(cls).items():
-            if name not in ('fmt', 'variants'):
+            if name not in ("fmt", "variants"):
                 hap_fields[name] = val(line[idx])
                 idx += 1
         hap = cls(**hap_fields)
@@ -230,7 +234,7 @@ class Haplotypes(Data):
     ):
         super().__init__(fname, log)
         self.data = {}
-        self.types = {'H': haplotype, 'V': variant}
+        self.types = {"H": haplotype, "V": variant}
         self.version = "0.0.1"
 
     @classmethod
@@ -279,20 +283,23 @@ class Haplotypes(Data):
             If any of the header lines are not supported
         """
         if check_version:
-            version_line = lines[0].split('\t')
-            assert version_line[1] == 'version'
+            version_line = lines[0].split("\t")
+            assert version_line[1] == "version"
             if version_line[2] != self.version:
                 self.log.warning(
                     f"The version of the provided .hap file is {version_line} but this"
                     f" tool expected {self.version}"
                 )
         for line in lines:
-            if line[1] in self.types.keys() and line not in self.types[line[1]].extras():
+            if (
+                line[1] in self.types.keys()
+                and line not in self.types[line[1]].extras()
+            ):
                 # extract the name of the extra field
                 name = line.split("\t", maxsplit=1)[1]
                 raise ValueError(
-                    f"The extra field '{name}' is declared in the header of the .hap file"
-                    "but is not accepted by this tool."
+                    f"The extra field '{name}' is declared in the header of the .hap"
+                    " filebut is not accepted by this tool."
                 )
 
     def _line_type(self, line: str) -> type:
@@ -347,41 +354,41 @@ class Haplotypes(Data):
             self.check_header(list(haps_file.header))
             if region:
                 # split the region string so each portion is an element
-                region = re.split(':|-', region)
+                region = re.split(":|-", region)
                 if len(region) > 1:
                     region[1:] = [int(pos) for pos in region[1:] if pos]
                 # fetch region
                 # we already know that each line will start with an H, so we don't
                 # need to check that
                 for line in haps_file.fetch(region):
-                    hap = self.types['H'].from_hap_spec(line)
+                    hap = self.types["H"].from_hap_spec(line)
                     if haplotypes is None or hap.id in haplotypes:
                         self.data[hap.id] = hap
             else:
                 for line in haps_file.fetch():
                     # we only want lines that start with an H
                     line_type = self._line_type(line)
-                    if line_type == 'H':
-                        hap = self.types['H'].from_hap_spec(line)
+                    if line_type == "H":
+                        hap = self.types["H"].from_hap_spec(line)
                         if hap.id in haplotypes:
                             self.data[hap.id] = hap
-                    elif line_type > 'H':
+                    elif line_type > "H":
                         # if we've already passed all of the H's, we can just exit
                         # We assume the file has been sorted so that all of the H lines
                         # come before the V lines
                         break
             # query for the variants of each haplotype
             for hap_id in self.data:
-                self.data[hap_id]['variants'] = {}
+                self.data[hap_id]["variants"] = {}
                 # exclude variants outside the desired region
                 hap_region = hap_id
                 if region:
-                    hap_region = hap_id + ":" + region.split(':', maxsplit=1)[1]
+                    hap_region = hap_id + ":" + region.split(":", maxsplit=1)[1]
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
                 for variant in haps_file.fetch(*hap_region):
-                    var = self.types['V'].from_hap_spec(line)[1]
+                    var = self.types["V"].from_hap_spec(line)[1]
                     self.data[hap_id].variants.append(var)
             haps_file.close()
         else:
@@ -406,18 +413,19 @@ class Haplotypes(Data):
                             self.check_header(header_lines)
                             header_lines = None
                         if line_type == "H":
-                            hap = self.types['H'].from_hap_spec(line)
+                            hap = self.types["H"].from_hap_spec(line)
                             self.data[hap.id] = hap
                         elif line_type == "V":
-                            hap_id, var = self.types['V'].from_hap_spec(line)
+                            hap_id, var = self.types["V"].from_hap_spec(line)
                             haps.set_default(hap_id, []).append(var)
                         else:
-                            self.log.warning(f"Ignoring unsupported line type '{line[0]}'")
+                            self.log.warning(
+                                f"Ignoring unsupported line type '{line[0]}'"
+                            )
                 for hap in haps:
                     self.data[hap].variants = tuple(haps[hap])
 
-
-    def iterate(self) -> Iterator[Variant|Haplotype]:
+    def iterate(self) -> Iterator[Variant | Haplotype]:
         """
         Read haplotypes from a .hap file line by line without storing anything
 
@@ -448,10 +456,10 @@ class Haplotypes(Data):
                         self.check_header(header_lines)
                         header_lines = None
                     if line_type == "H":
-                        hap = self.types['H'].from_hap_spec(line)
+                        hap = self.types["H"].from_hap_spec(line)
                         yield hap
                     elif line_type == "V":
-                        hap_id, var = self.types['V'].from_hap_spec(line)
+                        hap_id, var = self.types["V"].from_hap_spec(line)
                         # add the haplotype, since otherwise, the user won't know
                         # which haplotype this variant belongs to
                         var.hap = hap_id
@@ -466,14 +474,14 @@ class Haplotypes(Data):
         Generator[str, None, None]
             A list of lines (strings) to include in the output
         """
-        yield "# version "+self.version
+        yield "# version " + self.version
         yield from Haplotype.extras()
         yield from Variant.extras()
         for hap in self.data:
-            yield self.types['H'].to_hap_spec(hap)
+            yield self.types["H"].to_hap_spec(hap)
         for hap in self.data:
             for var in hap.variants:
-                yield self.types['V'].to_hap_spec(var, hap.id)
+                yield self.types["V"].to_hap_spec(var, hap.id)
 
     def __repr__(self):
         return "\n".join(self.to_str())
@@ -489,4 +497,4 @@ class Haplotypes(Data):
         """
         with hook_compressed(fname, mode="wt") as haps:
             for line in self.to_str():
-                haps.write(line+"\n")
+                haps.write(line + "\n")
