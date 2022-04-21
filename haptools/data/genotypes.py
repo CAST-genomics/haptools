@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterator
 from collections import namedtuple
+from logging import getLogger, Logger
 
 import numpy as np
 from cyvcf2 import VCF, Variant

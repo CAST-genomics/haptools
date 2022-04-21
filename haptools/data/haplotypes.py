@@ -1,8 +1,9 @@
 from __future__ import annotations
 import re
 from pathlib import Path
-from typing import Iterator, get_type_hints
+from logging import getLogger, Logger
 from dataclasses import dataclass, field, fields
+from typing import Iterator, get_type_hints, Generator
 
 import numpy as np
 
@@ -35,6 +36,22 @@ class Variant:
         The allele of this variant within the Haplotype
     fmt: str
         A format string describing the corresponding line from the .haps format spec
+
+    Examples
+    --------
+    Let's extend this class and add an extra field called "score"
+
+    >>> from dataclasses import dataclass, field
+    >>> @dataclass
+    >>> class CustomVariant(Variant):
+    ...     score: float
+    ...     fmt: str = field(default="V\\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}\t{score:.3f}", init=False)
+    ...
+    ...     @staticmethod
+    ...     def extras() -> tuple:
+    ...         return (
+    ...             "#V\tscore\tfloat\tImportance of inclusion",
+    ...         )
     """
 
     start: int
@@ -132,6 +149,22 @@ class Haplotype:
         A list of the variants in this haplotype
     fmt: str
         A format string describing the corresponding line from the .haps format spec
+
+    Examples
+    --------
+    Let's extend this class and add an extra field called "ancestry"
+
+    >>> from dataclasses import dataclass, field
+    >>> @dataclass
+    >>> class CustomHaplotype(Haplotype):
+    ...     ancestry: str
+    ...     fmt: str = field(default="H\\t{chrom:s}\\t{start:d}\\t{end:d}\\t{id:s}\\t{ancestry:s}", init=False)
+    ...
+    ...     @staticmethod
+    ...     def extras() -> tuple:
+    ...         return (
+    ...             "#H\\tancestry\\tstr\\tLocal ancestry",
+    ...         )
     """
 
     chrom: str
