@@ -260,28 +260,40 @@ class Haplotypes(Data):
         haps.read(region, haplotypes)
         return haps
 
-    def check_extra(self, line: str):
+    def check_header(self, lines: list[str], check_version=False):
         """
-        Check that an extra field declared in the .haps file can be handled by the
-        the Variant and Haplotype classes provided in __init__()
+        Check 1) that the version number matches and 2) that extra fields declared in
+        # the .haps file can be handled by the the Variant and Haplotype classes
+        # provided in __init__()
 
         Parameters
         ----------
-        line: str
-            A header lines from the .hap file
+        lines: list[str]
+            Header lines from the .hap file
+        check_version: bool = False
+            Whether to also check the version of the file
 
         Raises
         ------
         ValueError
-            If this header line is not supported
+            If any of the header lines are not supported
         """
-        if line not in self.types[line[1]].extras():
-            # extract the name of the extra field
-            name = line.split("\t", maxsplit=1)[1]
-            raise ValueError(
-                f"The extra field '{name}' is declared in the header of the .hap file"
-                "but is not accepted by this tool."
-            )
+        if check_version:
+            version_line = lines[0].split('\t')
+            assert version_line[1] == 'version'
+            if version_line[2] != self.version:
+                self.log.warning(
+                    f"The version of the provided .hap file is {version_line} but this"
+                    f" tool expected {self.version}"
+                )
+        for line in lines:
+            if line[1] in self.types.keys() and line not in self.types[line[1]].extras():
+                # extract the name of the extra field
+                name = line.split("\t", maxsplit=1)[1]
+                raise ValueError(
+                    f"The extra field '{name}' is declared in the header of the .hap file"
+                    "but is not accepted by this tool."
+                )
 
     def _line_type(self, line: str) -> type:
         """
@@ -332,7 +344,7 @@ class Haplotypes(Data):
         # else, we use a regular text opener
         if region or haplotypes:
             haps_file = pysam.TabixFile(self.fname)
-            # TODO: check header lines
+            self.check_header(list(haps_file.header))
             if region:
                 # split the region string so each portion is an element
                 region = re.split(':|-', region)
@@ -378,16 +390,28 @@ class Haplotypes(Data):
                 haps = {}
                 for line in haps:
                     line_type = self._line_type(line)
+                    header_lines = []
                     if line_type == "#":
-                        # TODO: check header lines
-                    elif line_type == "H":
-                        hap = self.types['H'].from_hap_spec(line)
-                        self.data[hap.id] = hap
-                    elif line_type == "V":
-                        hap_id, var = self.types['V'].from_hap_spec(line)
-                        haps.set_default(hap_id, []).append(var)
+                        # store header for later
+                        try:
+                            header_lines.append(line)
+                        except AttributeError:
+                            # this happens when we encounter a line beginning with a #
+                            # after already having seen an H or V line
+                            # in this case, it's usually just a comment, so we can ignore
+                            pass
                     else:
-                        self.log.warning(f"Ignoring unsupported line type '{line[0]}'")
+                        if header_lines:
+                            self.check_header(header_lines)
+                            header_lines = None
+                        if line_type == "H":
+                            hap = self.types['H'].from_hap_spec(line)
+                            self.data[hap.id] = hap
+                        elif line_type == "V":
+                            hap_id, var = self.types['V'].from_hap_spec(line)
+                            haps.set_default(hap_id, []).append(var)
+                        else:
+                            self.log.warning(f"Ignoring unsupported line type '{line[0]}'")
                 for hap in haps:
                     self.data[hap].variants = tuple(haps[hap])
 
@@ -406,15 +430,29 @@ class Haplotypes(Data):
             hap_text = reader(haps, delimiter="\t")
             for line in hap_text:
                 line_type = self._line_type(line)
-                if line_type == "H":
-                    hap = self.types['H'].from_hap_spec(line)
-                    yield hap
-                elif line_type == "V":
-                    hap_id, var = self.types['V'].from_hap_spec(line)
-                    # add the haplotype, since otherwise, the user won't know
-                    # which haplotype this variant belongs to
-                    var.hap = hap_id
-                    yield var
+                header_lines = []
+                if line_type == "#":
+                    # store header for later
+                    try:
+                        header_lines.append(line)
+                    except AttributeError:
+                        # this happens when we encounter a line beginning with a #
+                        # after already having seen an H or V line
+                        # in this case, it's usually just a comment, so we can ignore
+                        pass
+                else:
+                    if header_lines:
+                        self.check_header(header_lines)
+                        header_lines = None
+                    if line_type == "H":
+                        hap = self.types['H'].from_hap_spec(line)
+                        yield hap
+                    elif line_type == "V":
+                        hap_id, var = self.types['V'].from_hap_spec(line)
+                        # add the haplotype, since otherwise, the user won't know
+                        # which haplotype this variant belongs to
+                        var.hap = hap_id
+                        yield var
 
     def to_str(self) -> Generator[str, None, None]:
         """
@@ -425,7 +463,7 @@ class Haplotypes(Data):
         Generator[str, None, None]
             A list of lines (strings) to include in the output
         """
-        yield "# version: "+self.version
+        yield "# version "+self.version
         yield from Haplotype.extras()
         yield from Variant.extras()
         for hap in self.data:
@@ -448,4 +486,4 @@ class Haplotypes(Data):
         """
         with hook_compressed(fname, mode="wt") as haps:
             for line in self.to_str():
-                haps.write(line)
+                haps.write(line+"\n")
