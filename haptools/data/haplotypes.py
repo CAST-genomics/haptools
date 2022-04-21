@@ -385,51 +385,32 @@ class Haplotypes(Data):
         else:
             # use hook_compressed to automatically handle gz files
             with hook_compressed(fname, mode="rt") as haps:
+                haps = {}
                 for line in haps:
                     line_type = self._line_type(line)
-                    if line_type == "H":
+                    if line_type == "#":
+                        # TODO: check header lines
+                    elif line_type == "H":
                         hap = self.types['H'].from_hap_spec(line)
-                        if hap.id in self.data:
-                            # if we've seen this haplotype before, it's because we saw
-                            # its variants, so let's store those
-                            hap.variants = self.data[hap.id]
                         self.data[hap.id] = hap
                     elif line_type == "V":
                         hap_id, var = self.types['V'].from_hap_spec(line)
-                        if hap_id in self.data:
-                            # if we've seen this haplotype before, figure out if we
-                            # also saw it's haplotype line
-                            # otherwise, just store the variants in a list for later
-                            if self.data[hap_id] is list:
-                                self.data[hap_id].append(var)
-                            else:
-                                self.data[hap_id].variants.append(var)
-                        else:
-                            self.data[hap_id] = [var]
+                        haps.set_default(hap_id, []).append(var)
+                    else:
+                        self.log.warning(f"Ignoring unsupported line type '{line[0]}'")
+                for hap in haps:
+                    self.data[hap].variants = tuple(haps[hap])
 
-    def iterate(self, region: str = None, haplotypes: set[str] = None) -> Iterator[Variant|Haplotype]:
+
+    def iterate(self) -> Iterator[Variant|Haplotype]:
         """
         Read haplotypes from a .hap file line by line without storing anything
 
-        Parameters
-        ----------
-        region: str, optional
-            The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
-
-            For this to work, the .hap file must be indexed and the seqname must match!
-
-            Defaults to loading all haplotypes
-        haplotypes: list[str], optional
-            A list of haplotype IDs corresponding to a subset of the haplotypes to
-            extract
-
-            Defaults to loading haplotypes from all samples
-
         Yields
         ------
-        Iterator[namedtuple]
+        Iterator[Variant|Haplotype]
             An iterator over each line in the file, where each line is encoded as a
-            namedtuple containing each of the class properties
+            Variant or Haplotype containing each of the class properties
         """
         with hook_compressed(self.fname, mode="rt") as haps:
             hap_text = reader(haps, delimiter="\t")
@@ -455,8 +436,11 @@ class Haplotypes(Data):
             A list of lines (strings) to include in the output
         """
         yield "# version: "+self.version
+        yield from Haplotype.extras()
+        yield from Variant.extras()
         for hap in self.data:
             yield self.types['H'].to_hap_spec(hap)
+        for hap in self.data:
             for var in hap.variants:
                 yield self.types['V'].to_hap_spec(var, hap.id)
 
