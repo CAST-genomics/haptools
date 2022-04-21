@@ -385,6 +385,7 @@ class Haplotypes(Data):
                     self.data[hap_id].variants.append(var)
             haps_file.close()
         else:
+            # the file is not indexed, so we can't assume it's sorted, either
             # use hook_compressed to automatically handle gz files
             with hook_compressed(fname, mode="rt") as haps:
                 haps = {}
@@ -427,6 +428,8 @@ class Haplotypes(Data):
             Variant or Haplotype containing each of the class properties
         """
         with hook_compressed(self.fname, mode="rt") as haps:
+            # note that we do not assume the file is indexed or sorted here
+            # it doesn't really matter anyway, since we aren't storing anything
             hap_text = reader(haps, delimiter="\t")
             for line in hap_text:
                 line_type = self._line_type(line)
