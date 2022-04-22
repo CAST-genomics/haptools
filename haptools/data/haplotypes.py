@@ -326,17 +326,28 @@ class Haplotypes(Data):
                     f"The version of the provided .hap file is {version_line} but this"
                     f" tool expected {self.version}"
                 )
+        expected_lines = [
+            line for line_type in self.types.values()
+            for line in line_type.extras()
+        ]
         for line in lines:
-            if (
-                line[1] in self.types.keys()
-                and line not in self.types[line[1]].extras()
-            ):
-                # extract the name of the extra field
-                name = line.split("\t", maxsplit=1)[1]
-                raise ValueError(
-                    f"The extra field '{name}' is declared in the header of the .hap"
-                    " filebut is not accepted by this tool."
-                )
+            if line[1] in self.types.keys():
+                try:
+                    expected_lines.remove(line)
+                except ValueError:
+                    # extract the name of the extra field
+                    name = line.split("\t", maxsplit=1)[1]
+                    raise ValueError(
+                        f"The extra field '{name}' is declared in the header of the .hap"
+                        " filebut is not accepted by this tool."
+                    )
+        # if there are any fields left...
+        if expected_lines:
+            names = [line.split("\t", maxsplit=1)[1] for line in expected_lines]
+            raise ValueError(
+                "This tool expected the input .hap file to have extra fields that it "
+                f"does not have: {*names,}"
+            )
 
     def _line_type(self, line: str) -> type:
         """
