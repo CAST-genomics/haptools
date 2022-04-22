@@ -241,9 +241,8 @@ class Haplotypes(Data):
     ----------
     fname: Path
         The path to the file containing the data
-    data: dict[str, dict]
-        A dict of dict describing the composition of a series of Haplotype objects,
-        keyed by their IDs
+    data: dict[str, Haplotype]
+        A dict of Haplotype objects keyed by their IDs
     types: dict
         A dict of class names keyed by the symbol denoting their line type
 
@@ -255,7 +254,11 @@ class Haplotypes(Data):
 
     Examples
     --------
-    >>> haplotypes = Haplotypes.load('tests/data/example.hap.gz')
+    >>> haplotypes = Haplotypes.load('tests/data/example.hap')
+
+    >>> haplotypes = Haplotypes('tests/data/example.hap.gz', Haplotype, Variant)
+    >>> haplotypes.read()
+    >>> haps = haplotypes.data
     """
 
     def __init__(
