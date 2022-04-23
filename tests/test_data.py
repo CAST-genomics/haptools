@@ -248,15 +248,27 @@ class TestHaplotypes():
         )
         return expected
 
-    def test_load_haplotypes(self):
+    def test_load(self):
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
         assert self._basic_haps() == haps.data
 
-    def test_load_haplotypes_subset(self):
-        pass
+    def test_load_large(self):
+        """
+        try reading a large-ish file
+        """
+        haps = Haplotypes.load(DATADIR.joinpath("example.hap.gz"))
+        assert len(self._basic_haps().keys() & haps.data.keys())
 
-    def test_load_haplotypes_extras(self):
+    def test_read_subset(self):
+        expected = {}
+        expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"})
+        assert expected == haps.data
+
+    def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?
         expected = {
             "chr21.q.3365*1" : HaptoolsHaplotype('21', 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73),
