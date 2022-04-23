@@ -20,7 +20,7 @@ class Variant:
     In order to use this class with the Haplotypes class, you should
     1) add properties to the class for each of extra fields
     2) override the extras() method
-    3) change the default value of the fmt property to describe the line
+    3) change the default value of the _fmt property to describe the line
 
     Attributes
     ----------
@@ -34,7 +34,7 @@ class Variant:
         The variant's unique ID
     allele: str
         The allele of this variant within the Haplotype
-    fmt: str
+    _fmt: str
         A format string describing the corresponding line from the .haps format spec
 
     Examples
@@ -45,7 +45,7 @@ class Variant:
     >>> @dataclass
     >>> class CustomVariant(Variant):
     ...     score: float
-    ...     fmt: str = field(default="V\\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}\t{score:.3f}", init=False)
+    ...     _fmt: str = field(default="V\\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}\t{score:.3f}", init=False, repr=False)
     ...
     ...     @staticmethod
     ...     def extras() -> tuple:
@@ -58,8 +58,8 @@ class Variant:
     end: int
     id: str
     allele: str
-    fmt: str = field(
-        default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}", init=False
+    _fmt: str = field(
+        default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}", init=False, repr=False
     )
 
     @property
@@ -89,7 +89,7 @@ class Variant:
         var_fields = {}
         idx = 1
         for name, val in get_type_hints(cls).items():
-            if name != "fmt":
+            if not name.startswith("_"):
                 var_fields[name] = val(line[idx])
                 idx += 1
         return hap_id, cls(**var_fields)
@@ -108,7 +108,7 @@ class Variant:
         str
             A valid variant line (V) in the .hap format spec
         """
-        return fmt.format(**self.__dict__, hap=hap_id)
+        return self._fmt.format(**self.__dict__, hap=hap_id)
 
     @staticmethod
     def extras() -> tuple:
@@ -133,7 +133,7 @@ class Haplotype:
     In order to use this class with the Haplotypes class, you should
     1) add properties to the class for each of extra fields
     2) override the extras() method
-    3) change the default value of the fmt property to describe the line
+    3) change the default value of the _fmt property to describe the line
 
     Attributes
     ----------
@@ -147,7 +147,7 @@ class Haplotype:
         The haplotype's unique ID
     variants: list[Variant]
         A list of the variants in this haplotype
-    fmt: str
+    _fmt: str
         A format string describing the corresponding line from the .haps format spec
 
     Examples
@@ -158,7 +158,7 @@ class Haplotype:
     >>> @dataclass
     >>> class CustomHaplotype(Haplotype):
     ...     ancestry: str
-    ...     fmt: str = field(default="H\\t{chrom:s}\\t{start:d}\\t{end:d}\\t{id:s}\\t{ancestry:s}", init=False)
+    ...     _fmt: str = field(default="H\\t{chrom:s}\\t{start:d}\\t{end:d}\\t{id:s}\\t{ancestry:s}", init=False, repr=False)
     ...
     ...     @staticmethod
     ...     def extras() -> tuple:
@@ -172,7 +172,7 @@ class Haplotype:
     end: int
     id: str
     variants: tuple = field(default_factory=tuple, init=False)
-    fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}", init=False)
+    _fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}", init=False, repr=False)
 
     @property
     def ID(self):
@@ -202,7 +202,7 @@ class Haplotype:
         hap_fields = {}
         idx = 0
         for name, val in get_type_hints(cls).items():
-            if name not in ("fmt", "variants"):
+            if name != "variants" and not name.startswith("_"):
                 hap_fields[name] = val(line[idx])
                 idx += 1
         hap = cls(**hap_fields)
@@ -218,7 +218,7 @@ class Haplotype:
         str
             A valid haplotype line (H) in the .hap format spec
         """
-        return self.fmt.format(**self.__dict__)
+        return self._fmt.format(**self.__dict__)
 
     @staticmethod
     def extras() -> tuple:

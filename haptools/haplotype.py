@@ -15,7 +15,7 @@ class HaptoolsHaplotype(Haplotype):
     """
     ancestry: str
     beta: float
-    fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}\t{ancestry:s}\t{beta:.3f}", init=False)
+    _fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}\t{ancestry:s}\t{beta:.3f}", init=False, repr=False)
 
     @staticmethod
     def extras() -> tuple:
