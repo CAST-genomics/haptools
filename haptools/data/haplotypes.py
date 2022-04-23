@@ -2,6 +2,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from logging import getLogger, Logger
+from fileinput import hook_compressed
 from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator
 
@@ -275,7 +276,7 @@ class Haplotypes(Data):
         log: Logger = None,
     ):
         super().__init__(fname, log)
-        self.data = {}
+        self.data = None
         self.types = {"H": haplotype, "V": variant}
         self.version = "0.0.1"
 
@@ -324,6 +325,7 @@ class Haplotypes(Data):
         ValueError
             If any of the header lines are not supported
         """
+        self.log.info("Checking header.")
         if check_version:
             version_line = lines[0].split("\t")
             assert version_line[1] == "version"
@@ -398,6 +400,52 @@ class Haplotypes(Data):
         """
         super().read()
         self.data = {}
+        var_haps = {}
+        for line in self.__iter__(region, haplotypes):
+            if isinstance(line, Haplotype):
+                self.data[line.id] = line
+            elif isinstance(line, Variant):
+                hap_id = line.hap
+                del line.hap
+                var_haps.setdefault(hap_id, []).append(line)
+        for hap in var_haps:
+            self.data[hap].variants = tuple(var_haps[hap])
+
+    def __iter__(self, region: str = None, haplotypes: set[str] = None) -> Iterator[Variant | Haplotype]:
+        """
+        Read haplotypes from a .hap file line by line without storing anything
+
+        Parameters
+        ----------
+        region: str, optional
+            The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+            For this to work, the .hap file must be indexed and the seqname must match!
+
+            Defaults to loading all haplotypes
+        haplotypes: list[str], optional
+            A list of haplotype IDs corresponding to a subset of the haplotypes to
+            extract
+
+            Defaults to loading haplotypes from all samples
+
+            For this to work, the .hap file must be indexed
+
+        Yields
+        ------
+        Iterator[Variant|Haplotype]
+            An iterator over each line in the file, where each line is encoded as a
+            Variant or Haplotype containing each of the class properties
+
+        Examples
+        --------
+        If you're worried that the contents of the .hap file will be large, you may
+        opt to parse the file line-by-line instead of loading it all into memory at
+        once. In cases like these, you can use the __iter__() method in a for-loop:
+        >>> haplotypes = Haplotypes('tests/data/example.hap')
+        >>> for line in haplotypes:
+        ...     print(line)
+        """
         # if the user requested a specific region or set of haplotypes, then we should
         # handle it using tabix
         # else, we use a regular text opener
@@ -415,7 +463,7 @@ class Haplotypes(Data):
                 for line in haps_file.fetch(region):
                     hap = self.types["H"].from_hap_spec(line)
                     if haplotypes is None or hap.id in haplotypes:
-                        self.data[hap.id] = hap
+                        yield hap
                         haplotypes.remove(hap.id)
             else:
                 for line in haps_file.fetch():
@@ -424,7 +472,7 @@ class Haplotypes(Data):
                     if line_type == "H":
                         hap = self.types["H"].from_hap_spec(line)
                         if hap.id in haplotypes:
-                            self.data[hap.id] = hap
+                            yield hap
                             haplotypes.remove(hap.id)
                     elif line_type > "H":
                         # if we've already passed all of the H's, we can just exit
@@ -433,7 +481,6 @@ class Haplotypes(Data):
                         break
             # query for the variants of each haplotype
             for hap_id in self.data:
-                self.data[hap_id]["variants"] = {}
                 # exclude variants outside the desired region
                 hap_region = hap_id
                 if region:
@@ -443,17 +490,18 @@ class Haplotypes(Data):
                 # need to check that
                 for variant in haps_file.fetch(*hap_region):
                     var = self.types["V"].from_hap_spec(line)[1]
-                    self.data[hap_id].variants.append(var)
+                    yield var
             haps_file.close()
         else:
             # the file is not indexed, so we can't assume it's sorted, either
             # use hook_compressed to automatically handle gz files
-            with hook_compressed(fname, mode="rt") as haps:
-                haps = {}
+            with hook_compressed(self.fname, mode="rt") as haps:
+                self.log.info("Not taking advantage of indexing.")
+                header_lines = []
                 for line in haps:
+                    line = line.rstrip("\n")
                     line_type = self._line_type(line)
-                    header_lines = []
-                    if line_type == "#":
+                    if line[0] == "#":
                         # store header for later
                         try:
                             header_lines.append(line)
@@ -466,67 +514,19 @@ class Haplotypes(Data):
                         if header_lines:
                             self.check_header(header_lines)
                             header_lines = None
+                            self.log.info("Finished reading header.")
                         if line_type == "H":
-                            hap = self.types["H"].from_hap_spec(line)
-                            self.data[hap.id] = hap
+                            yield self.types["H"].from_hap_spec(line)
                         elif line_type == "V":
                             hap_id, var = self.types["V"].from_hap_spec(line)
-                            haps.set_default(hap_id, []).append(var)
+                            # add the haplotype, since otherwise, the user won't know
+                            # which haplotype this variant belongs to
+                            var.hap = hap_id
+                            yield var
                         else:
                             self.log.warning(
                                 f"Ignoring unsupported line type '{line[0]}'"
                             )
-                for hap in haps:
-                    self.data[hap].variants = tuple(haps[hap])
-
-    def __iter__(self) -> Iterator[Variant | Haplotype]:
-        """
-        Read haplotypes from a .hap file line by line without storing anything
-
-        Yields
-        ------
-        Iterator[Variant|Haplotype]
-            An iterator over each line in the file, where each line is encoded as a
-            Variant or Haplotype containing each of the class properties
-
-        Examples
-        --------
-        If you're worried that the contents of the .hap file will be large, you may
-        opt to parse the file line-by-line instead of loading it all into memory at
-        once. In cases like these, you can use the __iter__() method in a for-loop:
-        >>> haplotypes = Haplotypes('tests/data/example.hap')
-        >>> for line in haplotypes:
-        ...     print(line)
-        """
-        with hook_compressed(self.fname, mode="rt") as haps:
-            # note that we do not assume the file is indexed or sorted here
-            # it doesn't really matter anyway, since we aren't storing anything
-            hap_text = reader(haps, delimiter="\t")
-            for line in hap_text:
-                line_type = self._line_type(line)
-                header_lines = []
-                if line_type == "#":
-                    # store header for later
-                    try:
-                        header_lines.append(line)
-                    except AttributeError:
-                        # this happens when we encounter a line beginning with a #
-                        # after already having seen an H or V line
-                        # in this case, it's usually just a comment, so we can ignore
-                        pass
-                else:
-                    if header_lines:
-                        self.check_header(header_lines)
-                        header_lines = None
-                    if line_type == "H":
-                        hap = self.types["H"].from_hap_spec(line)
-                        yield hap
-                    elif line_type == "V":
-                        hap_id, var = self.types["V"].from_hap_spec(line)
-                        # add the haplotype, since otherwise, the user won't know
-                        # which haplotype this variant belongs to
-                        var.hap = hap_id
-                        yield var
 
     def to_str(self) -> Generator[str, None, None]:
         """
