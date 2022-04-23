@@ -3,7 +3,8 @@ import numpy as np
 
 from pathlib import Path
 
-from haptools.data import Genotypes, Phenotypes, Covariates
+from haptools.haplotype import HaptoolsHaplotype
+from haptools.data import Genotypes, Phenotypes, Covariates, Haplotypes, Variant, Haplotype
 
 
 DATADIR = Path(__file__).parent.joinpath("data")
@@ -84,7 +85,7 @@ def test_load_genotypes_iterate(caplog):
 
     # can we load the data from the VCF?
     gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-    for idx, line in enumerate(gts.iterate()):
+    for idx, line in enumerate(gts):
         np.testing.assert_allclose(line.data, expected[idx])
         assert line.samples == samples
 
@@ -159,7 +160,7 @@ def test_load_phenotypes_iterate():
 
     # can we load the data from the phenotype file?
     phens = Phenotypes(DATADIR.joinpath("simple.tsv"))
-    for idx, line in enumerate(phens.iterate()):
+    for idx, line in enumerate(phens):
         np.testing.assert_allclose(line.data, expected[idx])
         assert line.samples == samples[idx]
 
@@ -202,14 +203,14 @@ def test_load_covariates_iterate():
 
     # can we load the data from the covariates file?
     covars = Covariates(DATADIR.joinpath("covars.tsv"))
-    for idx, line in enumerate(covars.iterate()):
+    for idx, line in enumerate(covars):
         np.testing.assert_allclose(line.data, expected[idx])
         assert line.samples == samples[idx]
         assert line.names == ("sex", "age")
 
 
 def test_load_covariates_subset():
-    # create a covriate vector with shape: num_samples x num_covars
+    # create a covariate vector with shape: num_samples x num_covars
     expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
 
     # subset for just the samples we want
@@ -221,3 +222,51 @@ def test_load_covariates_subset():
     covars.read(samples=samples)
     np.testing.assert_allclose(covars.data, expected)
     assert covars.samples == tuple(samples)
+
+class TestHaplotypes():
+    def _basic_haps(self):
+        # what do we expect to see from the basic.hap file?
+        expected = {
+            "chr21.q.3365*1" : Haplotype('21', 26928472, 26941960, "chr21.q.3365*1"),
+            "chr21.q.3365*10" : Haplotype('21', 26938989, 26941960, "chr21.q.3365*10"),
+            "chr21.q.3365*11" : Haplotype('21', 26938353, 26938989, "chr21.q.3365*11"),
+        }
+        expected["chr21.q.3365*1"].variants = (
+            Variant(26928472, 26928472, "21_26928472_C_A", "C"),
+            Variant(26938353, 26938353, "21_26938353_T_C", "T"),
+            Variant(26940815, 26940815, "21_26940815_T_C", "C"),
+            Variant(26941960, 26941960, "21_26941960_A_G", "G"),
+        )
+        expected["chr21.q.3365*10"].variants = (
+            Variant(26938989, 26938989, "21_26938989_G_A", "A"),
+            Variant(26940815, 26940815, "21_26940815_T_C", "T"),
+            Variant(26941960, 26941960, "21_26941960_A_G", "A"),
+        )
+        expected["chr21.q.3365*11"].variants = (
+            Variant(26938353, 26938353, "21_26938353_T_C", "T"),
+            Variant(26938989, 26938989, "21_26938989_G_A", "A"),
+        )
+        return expected
+
+    def test_load_haplotypes(self):
+        # can we load this data from the hap file?
+        haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
+        assert self._basic_haps() == haps.data
+
+    def test_load_haplotypes_subset(self):
+        pass
+
+    def test_load_haplotypes_extras(self):
+        # what do we expect to see from the simphenotype.hap file?
+        expected = {
+            "chr21.q.3365*1" : HaptoolsHaplotype('21', 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73),
+            "chr21.q.3365*10" : HaptoolsHaplotype('21', 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30),
+            "chr21.q.3365*11" : HaptoolsHaplotype('21', 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49),
+        }
+        for hap_id, hap in self._basic_haps().items():
+            expected[hap_id].variants = hap.variants
+
+        # can we load this data from the hap file?
+        haps = Haplotypes(DATADIR.joinpath("simphenotype.hap"), HaptoolsHaplotype)
+        haps.read()
+        assert expected == haps.data
