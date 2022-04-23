@@ -254,13 +254,6 @@ class TestHaplotypes():
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
         assert self._basic_haps() == haps.data
 
-    def test_load_large(self):
-        """
-        try reading a large-ish file
-        """
-        haps = Haplotypes.load(DATADIR.joinpath("example.hap.gz"))
-        assert len(self._basic_haps().keys() & haps.data.keys())
-
     def test_read_subset(self):
         expected = {}
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
@@ -299,6 +292,14 @@ class TestHaplotypes():
         haps = Haplotypes(DATADIR.joinpath("simphenotype.hap"), HaptoolsHaplotype)
         haps.read()
         assert expected == haps.data
+
+    def test_read_extras_large(self):
+        """
+        try reading a large-ish file
+        """
+        haps = Haplotypes(DATADIR.joinpath("example.hap.gz"), HaptoolsHaplotype)
+        haps.read()
+        assert len(self._basic_haps().keys() & haps.data.keys())
 
     def test_write(self):
         haps = Haplotypes(DATADIR.joinpath("test.hap"))
