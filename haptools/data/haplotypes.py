@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator
 
 import numpy as np
+from pysam import TabixFile
 
 from .data import Data
 
@@ -256,14 +257,14 @@ class Haplotypes(Data):
     Examples
     --------
     Parsing a basic .hap file without any extra fields is simple:
-    >>> haplotypes = Haplotypes.load('tests/data/example.hap')
+    >>> haplotypes = Haplotypes.load('tests/data/basic.hap')
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
 
     If the .hap file contains extra fields, you'll need to call the read() method
     manually. You'll also need to create Haplotype and Variant subclasses that support
     the extra fields and then specify the names of the classes when you initialize the
     Haplotypes object:
-    >>> haplotypes = Haplotypes('tests/data/example.hap.gz', Haplotype, Variant)
+    >>> haplotypes = Haplotypes('tests/data/simphenotype.hap', HaptoolsHaplotype)
     >>> haplotypes.read()
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
     """
@@ -442,15 +443,22 @@ class Haplotypes(Data):
         If you're worried that the contents of the .hap file will be large, you may
         opt to parse the file line-by-line instead of loading it all into memory at
         once. In cases like these, you can use the __iter__() method in a for-loop:
-        >>> haplotypes = Haplotypes('tests/data/example.hap')
+        >>> haplotypes = Haplotypes('tests/data/basic.hap')
         >>> for line in haplotypes:
+        ...     print(line)
+
+        Call the function manually to pass it the region or haplotypes params:
+        >>> haplotypes = Haplotypes('tests/data/basic.hap.gz')
+        >>> for line in haplotypes.__iter__(
+        ...    region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"}
+        ... ):
         ...     print(line)
         """
         # if the user requested a specific region or set of haplotypes, then we should
         # handle it using tabix
         # else, we use a regular text opener
         if region or haplotypes:
-            haps_file = pysam.TabixFile(self.fname)
+            haps_file = TabixFile(str(self.fname))
             self.check_header(list(haps_file.header))
             if region:
                 # split the region string so each portion is an element
@@ -562,7 +570,7 @@ class Haplotypes(Data):
         --------
         To write to a .hap file, you must first initialize a Haplotypes object and then
         fill out the data property:
-        >>> haplotypes = Haplotypes('tests/data/example.hap')
+        >>> haplotypes = Haplotypes('tests/data/basic.hap')
         >>> haplotypes.data = {'H1': Haplotype('chr1', 0, 10, 'H1')}
         >>> haplotypes.write()
         """
