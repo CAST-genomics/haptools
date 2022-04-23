@@ -74,7 +74,7 @@ class Variant:
         """
         Convert a variant line into a Variant object in the .hap format spec
 
-        Paramaters
+        Parameters
         ----------
         line: str
             A variant (V) line from the .hap file
@@ -188,7 +188,7 @@ class Haplotype:
         """
         Convert a variant line into a Haplotype object in the .hap format spec
 
-        Paramaters
+        Parameters
         ----------
         line: str
             A variant (V) line from the .hap file

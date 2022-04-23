@@ -21,6 +21,8 @@ This is a tab-separated file composed of different types of lines. The first fie
    * - V
      - Variant
 
+Each line type (besides #) has a set of mandatory fields described below. Additional "extra" fields can be appended to these to customize the file.
+
 ``#`` Comment line
 ~~~~~~~~~~~~~~~~~~
 Comment lines begin with ``#`` and are ignored. Consecutive comment lines that appear at the beginning of the file are treated as part of the header.
@@ -98,6 +100,19 @@ Each variant line belongs to a particular haplotype. These lines contain the fol
      - Allele
      - string
      - The allele of this variant within the haplotype
+
+Examples
+~~~~~~~~
+You can find an example of a ``.hap`` file without any extra fields in `tests/data/basic.hap <https://github.com/gymrek-lab/haptools/blob/main/tests/data/basic.hap>`_:
+
+.. include:: ../../tests/data/basic.hap
+   :literal:
+
+You can find an example with extra fields added within `tests/data/simphenotype.hap <https://github.com/gymrek-lab/haptools/blob/main/tests/data/simphenotype.hap>`_:
+
+.. include:: ../../tests/data/simphenotype.hap
+   :literal:
+
 
 Compressing and indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~
