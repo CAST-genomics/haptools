@@ -112,7 +112,7 @@ class Covariates(Data):
         # coerce strings to floats
         self.data = np.transpose(np.array(data[1:], dtype="float64"))
 
-    def iterate(self, samples: list[str] = None) -> Iterator[namedtuple]:
+    def __iter__(self, samples: list[str] = None) -> Iterator[namedtuple]:
         """
         Read covariates from a TSV line by line without storing anything
 

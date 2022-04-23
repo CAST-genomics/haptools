@@ -54,7 +54,7 @@ class Data(ABC):
             self.log.warning("The data has already been loaded. Overriding.")
 
     @abstractmethod
-    def iterate(self) -> Iterator[namedtuple]:
+    def __iter__(self) -> Iterator[namedtuple]:
         """
         Return an iterator over the raw file contents
 

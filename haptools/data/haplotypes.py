@@ -472,7 +472,7 @@ class Haplotypes(Data):
                 for hap in haps:
                     self.data[hap].variants = tuple(haps[hap])
 
-    def iterate(self) -> Iterator[Variant | Haplotype]:
+    def __iter__(self) -> Iterator[Variant | Haplotype]:
         """
         Read haplotypes from a .hap file line by line without storing anything
 

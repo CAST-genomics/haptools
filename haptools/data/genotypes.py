@@ -129,7 +129,7 @@ class Genotypes(Data):
         # transpose the GT matrix so that samples are rows and variants are columns
         self.data = self.data.transpose((1, 0, 2))
 
-    def iterate(
+    def __iter__(
         self, region: str = None, samples: list[str] = None
     ) -> Iterator[namedtuple]:
         """

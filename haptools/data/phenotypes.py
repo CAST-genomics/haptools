@@ -98,7 +98,7 @@ class Phenotypes(Data):
         # coerce strings to floats
         self.data = np.array(self.data, dtype="float64")
 
-    def iterate(self, samples: list[str] = None) -> Iterator[namedtuple]:
+    def __iter__(self, samples: list[str] = None) -> Iterator[namedtuple]:
         """
         Read phenotypes from a TSV line by line without storing anything
 
