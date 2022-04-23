@@ -254,11 +254,17 @@ class Haplotypes(Data):
 
     Examples
     --------
+    Parsing a basic .hap file without any extra fields is simple:
     >>> haplotypes = Haplotypes.load('tests/data/example.hap')
+    >>> haps = haplotypes.data # a dictionary of Haplotype objects
 
+    If the .hap file contains extra fields, you'll need to call the read() method
+    manually. You'll also need to create Haplotype and Variant subclasses that support
+    the extra fields and then specify the names of the classes when you initialize the
+    Haplotypes object:
     >>> haplotypes = Haplotypes('tests/data/example.hap.gz', Haplotype, Variant)
     >>> haplotypes.read()
-    >>> haps = haplotypes.data
+    >>> haps = haplotypes.data # a dictionary of Haplotype objects
     """
 
     def __init__(
@@ -388,8 +394,7 @@ class Haplotypes(Data):
 
             Defaults to loading haplotypes from all samples
 
-            Note that finding the haplotype lines can be slow if the region param is
-            not specified
+            For this to work, the .hap file must be indexed
         """
         super().read()
         self.data = {}
@@ -411,6 +416,7 @@ class Haplotypes(Data):
                     hap = self.types["H"].from_hap_spec(line)
                     if haplotypes is None or hap.id in haplotypes:
                         self.data[hap.id] = hap
+                        haplotypes.remove(hap.id)
             else:
                 for line in haps_file.fetch():
                     # we only want lines that start with an H
@@ -419,6 +425,7 @@ class Haplotypes(Data):
                         hap = self.types["H"].from_hap_spec(line)
                         if hap.id in haplotypes:
                             self.data[hap.id] = hap
+                            haplotypes.remove(hap.id)
                     elif line_type > "H":
                         # if we've already passed all of the H's, we can just exit
                         # We assume the file has been sorted so that all of the H lines
@@ -481,6 +488,15 @@ class Haplotypes(Data):
         Iterator[Variant|Haplotype]
             An iterator over each line in the file, where each line is encoded as a
             Variant or Haplotype containing each of the class properties
+
+        Examples
+        --------
+        If you're worried that the contents of the .hap file will be large, you may
+        opt to parse the file line-by-line instead of loading it all into memory at
+        once. In cases like these, you can use the __iter__() method in a for-loop:
+        >>> haplotypes = Haplotypes('tests/data/example.hap')
+        >>> for line in haplotypes:
+        ...     print(line)
         """
         with hook_compressed(self.fname, mode="rt") as haps:
             # note that we do not assume the file is indexed or sorted here
@@ -524,9 +540,9 @@ class Haplotypes(Data):
         yield "# version " + self.version
         yield from Haplotype.extras()
         yield from Variant.extras()
-        for hap in self.data:
+        for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
-        for hap in self.data:
+        for hap in self.data.values():
             for var in hap.variants:
                 yield self.types["V"].to_hap_spec(var, hap.id)
 
@@ -541,6 +557,14 @@ class Haplotypes(Data):
         ----------
         file: TextIO
             A file-like object to which this Haplotypes object should be written.
+
+        Examples
+        --------
+        To write to a .hap file, you must first initialize a Haplotypes object and then
+        fill out the data property:
+        >>> haplotypes = Haplotypes('tests/data/example.hap')
+        >>> haplotypes.data = {'H1': Haplotype('chr1', 0, 10, 'H1')}
+        >>> haplotypes.write()
         """
         with hook_compressed(fname, mode="wt") as haps:
             for line in self.to_str():
