@@ -1,7 +1,8 @@
+import os
+from pathlib import Path
+
 import pytest
 import numpy as np
-
-from pathlib import Path
 
 from haptools.haplotype import HaptoolsHaplotype
 from haptools.data import Genotypes, Phenotypes, Covariates, Haplotypes, Variant, Haplotype
@@ -264,8 +265,24 @@ class TestHaplotypes():
         expected = {}
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
 
+        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        # this should fail with an informative error b/c the file isn't indexed
+        with pytest.raises(OSError) as info:
+            haps.read(haplotypes={"chr21.q.3365*1"})
+        assert len(str(info.value))
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(haplotypes={"chr21.q.3365*1"})
+        assert expected == haps.data
+
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"})
+        assert expected == haps.data
+
+        expected = self._basic_haps()
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region='21:26928472-26941960')
         assert expected == haps.data
 
     def test_read_extras(self):
@@ -282,3 +299,36 @@ class TestHaplotypes():
         haps = Haplotypes(DATADIR.joinpath("simphenotype.hap"), HaptoolsHaplotype)
         haps.read()
         assert expected == haps.data
+
+    def test_write(self):
+        haps = Haplotypes(DATADIR.joinpath("test.hap"))
+        haps.data = self._basic_haps()
+        haps.write()
+
+        haps.data = None
+        haps.read()
+        assert self._basic_haps() == haps.data
+
+        # remove the file
+        os.remove("tests/data/test.hap")
+
+    def test_write_extras(self):
+        # what do we expect to see from the simphenotype.hap file?
+        expected = {
+            "chr21.q.3365*1" : HaptoolsHaplotype('21', 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73),
+            "chr21.q.3365*10" : HaptoolsHaplotype('21', 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30),
+            "chr21.q.3365*11" : HaptoolsHaplotype('21', 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49),
+        }
+        for hap_id, hap in self._basic_haps().items():
+            expected[hap_id].variants = hap.variants
+
+        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
+        haps.data = expected
+        haps.write()
+
+        haps.data = None
+        haps.read()
+        assert expected == haps.data
+
+        # remove the file
+        os.remove("tests/data/test.hap")

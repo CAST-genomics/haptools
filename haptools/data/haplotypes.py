@@ -86,6 +86,7 @@ class Variant:
         tuple[str, Variant]
             The haplotype ID and Variant object for the variant
         """
+        assert line[0] == "V", "Attempting to init a Variant with a non-V line"
         line = line[2:].split("\t")
         hap_id = line[0]
         var_fields = {}
@@ -193,13 +194,14 @@ class Haplotype:
         Parameters
         ----------
         line: str
-            A variant (V) line from the .hap file
+            A variant (H) line from the .hap file
 
         Returns
         -------
         Haplotype
             The Haplotype object for the variant
         """
+        assert line[0] == "H", "Attempting to init a Haplotype with a non-H line"
         line = line[2:].split("\t")
         hap_fields = {}
         idx = 0
@@ -329,7 +331,7 @@ class Haplotypes(Data):
         self.log.info("Checking header.")
         if check_version:
             version_line = lines[0].split("\t")
-            assert version_line[1] == "version"
+            assert version_line[1] == "version", "The version of the format spec must be declared as the first line of the header."
             if version_line[2] != self.version:
                 self.log.warning(
                     f"The version of the provided .hap file is {version_line} but this"
@@ -348,14 +350,14 @@ class Haplotypes(Data):
                     name = line.split("\t", maxsplit=1)[1]
                     raise ValueError(
                         f"The extra field '{name}' is declared in the header of the .hap"
-                        " filebut is not accepted by this tool."
+                        " file but is not accepted by this tool."
                     )
         # if there are any fields left...
         if expected_lines:
-            names = [line.split("\t", maxsplit=1)[1] for line in expected_lines]
+            names = [line.split("\t", maxsplit=2)[1] for line in expected_lines]
             raise ValueError(
-                "This tool expected the input .hap file to have extra fields that it "
-                f"does not have: {*names,}"
+                "Expected the input .hap file to have these extra fields, but they "
+                f"don't seem to be declared in the header: {*names,}"
             )
 
     def _line_type(self, line: str) -> type:
@@ -408,6 +410,7 @@ class Haplotypes(Data):
             elif isinstance(line, Variant):
                 hap_id = line.hap
                 del line.hap
+                # store the variant for later
                 var_haps.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
@@ -461,18 +464,17 @@ class Haplotypes(Data):
             haps_file = TabixFile(str(self.fname))
             self.check_header(list(haps_file.header))
             if region:
-                # split the region string so each portion is an element
-                region = re.split(":|-", region)
-                if len(region) > 1:
-                    region[1:] = [int(pos) for pos in region[1:] if pos]
+                region_positions = region.split(":", maxsplit=1)[1]
                 # fetch region
                 # we already know that each line will start with an H, so we don't
                 # need to check that
                 for line in haps_file.fetch(region):
                     hap = self.types["H"].from_hap_spec(line)
-                    if haplotypes is None or hap.id in haplotypes:
-                        yield hap
+                    if haplotypes is not None:
+                        if hap.id not in haplotypes:
+                            continue
                         haplotypes.remove(hap.id)
+                    yield hap
             else:
                 for line in haps_file.fetch():
                     # we only want lines that start with an H
@@ -492,13 +494,22 @@ class Haplotypes(Data):
                 # exclude variants outside the desired region
                 hap_region = hap_id
                 if region:
-                    hap_region = hap_id + ":" + region.split(":", maxsplit=1)[1]
+                    hap_region = hap_id + ":" + region_positions
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
-                for variant in haps_file.fetch(*hap_region):
-                    var = self.types["V"].from_hap_spec(line)[1]
-                    yield var
+                for line in haps_file.fetch(hap_region):
+                    line_type = self._line_type(line)
+                    if line_type == "V":
+                        var = self.types["V"].from_hap_spec(line)[1]
+                        # add the haplotype, since otherwise, the user won't know
+                        # which haplotype this variant belongs to
+                        var.hap = hap_id
+                        yield var
+                    else:
+                        self.log.warning(
+                            "Check that chromosomes are distinct from your hap IDs!"
+                        )
             haps_file.close()
         else:
             # the file is not indexed, so we can't assume it's sorted, either
@@ -545,9 +556,9 @@ class Haplotypes(Data):
         Generator[str, None, None]
             A list of lines (strings) to include in the output
         """
-        yield "# version " + self.version
-        yield from Haplotype.extras()
-        yield from Variant.extras()
+        yield "#\tversion\t" + self.version
+        for line_type in self.types:
+            yield from self.types[line_type].extras()
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
         for hap in self.data.values():
@@ -574,6 +585,6 @@ class Haplotypes(Data):
         >>> haplotypes.data = {'H1': Haplotype('chr1', 0, 10, 'H1')}
         >>> haplotypes.write()
         """
-        with hook_compressed(fname, mode="wt") as haps:
+        with hook_compressed(self.fname, mode="wt") as haps:
             for line in self.to_str():
                 haps.write(line + "\n")
