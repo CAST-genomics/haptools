@@ -5,7 +5,14 @@ import pytest
 import numpy as np
 
 from haptools.haplotype import HaptoolsHaplotype
-from haptools.data import Genotypes, Phenotypes, Covariates, Haplotypes, Variant, Haplotype
+from haptools.data import (
+    Genotypes,
+    Phenotypes,
+    Covariates,
+    Haplotypes,
+    Variant,
+    Haplotype,
+)
 
 
 DATADIR = Path(__file__).parent.joinpath("data")
@@ -224,13 +231,14 @@ def test_load_covariates_subset():
     np.testing.assert_allclose(covars.data, expected)
     assert covars.samples == tuple(samples)
 
-class TestHaplotypes():
+
+class TestHaplotypes:
     def _basic_haps(self):
         # what do we expect to see from the basic.hap file?
         expected = {
-            "chr21.q.3365*1" : Haplotype('21', 26928472, 26941960, "chr21.q.3365*1"),
-            "chr21.q.3365*10" : Haplotype('21', 26938989, 26941960, "chr21.q.3365*10"),
-            "chr21.q.3365*11" : Haplotype('21', 26938353, 26938989, "chr21.q.3365*11"),
+            "chr21.q.3365*1": Haplotype("21", 26928472, 26941960, "chr21.q.3365*1"),
+            "chr21.q.3365*10": Haplotype("21", 26938989, 26941960, "chr21.q.3365*10"),
+            "chr21.q.3365*11": Haplotype("21", 26938353, 26938989, "chr21.q.3365*11"),
         }
         expected["chr21.q.3365*1"].variants = (
             Variant(26928472, 26928472, "21_26928472_C_A", "C"),
@@ -269,21 +277,27 @@ class TestHaplotypes():
         assert expected == haps.data
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
-        haps.read(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"})
+        haps.read(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
         expected = self._basic_haps()
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
-        haps.read(region='21:26928472-26941960')
+        haps.read(region="21:26928472-26941960")
         assert expected == haps.data
 
     def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?
         expected = {
-            "chr21.q.3365*1" : HaptoolsHaplotype('21', 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73),
-            "chr21.q.3365*10" : HaptoolsHaplotype('21', 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30),
-            "chr21.q.3365*11" : HaptoolsHaplotype('21', 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49),
+            "chr21.q.3365*1": HaptoolsHaplotype(
+                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+            ),
+            "chr21.q.3365*10": HaptoolsHaplotype(
+                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+            ),
+            "chr21.q.3365*11": HaptoolsHaplotype(
+                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+            ),
         }
         for hap_id, hap in self._basic_haps().items():
             expected[hap_id].variants = hap.variants
@@ -316,9 +330,15 @@ class TestHaplotypes():
     def test_write_extras(self):
         # what do we expect to see from the simphenotype.hap file?
         expected = {
-            "chr21.q.3365*1" : HaptoolsHaplotype('21', 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73),
-            "chr21.q.3365*10" : HaptoolsHaplotype('21', 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30),
-            "chr21.q.3365*11" : HaptoolsHaplotype('21', 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49),
+            "chr21.q.3365*1": HaptoolsHaplotype(
+                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+            ),
+            "chr21.q.3365*10": HaptoolsHaplotype(
+                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+            ),
+            "chr21.q.3365*11": HaptoolsHaplotype(
+                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+            ),
         }
         for hap_id, hap in self._basic_haps().items():
             expected[hap_id].variants = hap.variants

@@ -61,7 +61,9 @@ class Variant:
     id: str
     allele: str
     _fmt: str = field(
-        default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}", init=False, repr=False
+        default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}",
+        init=False,
+        repr=False,
     )
 
     @property
@@ -175,7 +177,9 @@ class Haplotype:
     end: int
     id: str
     variants: tuple = field(default_factory=tuple, init=False)
-    _fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}", init=False, repr=False)
+    _fmt: str = field(
+        default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}", init=False, repr=False
+    )
 
     @property
     def ID(self):
@@ -331,15 +335,17 @@ class Haplotypes(Data):
         self.log.info("Checking header.")
         if check_version:
             version_line = lines[0].split("\t")
-            assert version_line[1] == "version", "The version of the format spec must be declared as the first line of the header."
+            assert version_line[1] == "version", (
+                "The version of the format spec must be declared as the first line of"
+                " the header."
+            )
             if version_line[2] != self.version:
                 self.log.warning(
                     f"The version of the provided .hap file is {version_line} but this"
                     f" tool expected {self.version}"
                 )
         expected_lines = [
-            line for line_type in self.types.values()
-            for line in line_type.extras()
+            line for line_type in self.types.values() for line in line_type.extras()
         ]
         for line in lines:
             if line[1] in self.types.keys():
@@ -349,8 +355,8 @@ class Haplotypes(Data):
                     # extract the name of the extra field
                     name = line.split("\t", maxsplit=1)[1]
                     raise ValueError(
-                        f"The extra field '{name}' is declared in the header of the .hap"
-                        " file but is not accepted by this tool."
+                        f"The extra field '{name}' is declared in the header of the"
+                        " .hap file but is not accepted by this tool."
                     )
         # if there are any fields left...
         if expected_lines:
@@ -415,7 +421,9 @@ class Haplotypes(Data):
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
 
-    def __iter__(self, region: str = None, haplotypes: set[str] = None) -> Iterator[Variant | Haplotype]:
+    def __iter__(
+        self, region: str = None, haplotypes: set[str] = None
+    ) -> Iterator[Variant | Haplotype]:
         """
         Read haplotypes from a .hap file line by line without storing anything
 
