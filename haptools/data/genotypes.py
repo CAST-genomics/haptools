@@ -71,7 +71,12 @@ class Genotypes(Data):
         # genotypes.to_MAC()
         return genotypes
 
-    def read(self, region: str = None, samples: list[str] = None):
+    def read(
+            self,
+            region: str = None,
+            samples: list[str] = None,
+            max_variants: int = None
+        ):
         """
         Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
 
@@ -92,6 +97,16 @@ class Genotypes(Data):
             A subset of the samples from which to extract genotypes
 
             Defaults to loading genotypes from all samples
+        max_variants : int, optional
+            The maximum mumber of variants to load from the file. Setting this value
+            helps preallocate the arrays, making the process faster and less memory
+            intensive. You should use this option if your processes are frequently
+            "Killed" from memory overuse.
+
+            If you don't know how many variants there are, set this to a large number
+            greater than what you would except. The np array will be resized
+            appropriately. You can also use the bcftools "counts" plugin to obtain the
+            number of expected sites within a region.
         """
         super().read()
         # initialize variables
@@ -99,34 +114,73 @@ class Genotypes(Data):
         self.samples = tuple(vcf.samples)
         self.variants = []
         self.data = []
+        self.log.debug(f"Loading genotypes from {len(self.samples)} samples into memory.")
         # load all info into memory
-        for variant in vcf(region):
-            # save meta information about each variant
-            self.variants.append((variant.ID, variant.CHROM, variant.POS, variant.aaf))
-            # extract the genotypes to a matrix of size n x p x 3
-            # the last dimension has three items:
-            # 1) presence of REF in strand one
-            # 2) presence of REF in strand two
-            # 3) whether the genotype is phased
-            self.data.append(variant.genotypes)
-        vcf.close()
-        # convert to np array for speedy operations later on
-        self.variants = np.array(
-            self.variants,
-            dtype=[
+        # but first, check whether we can preallocate memory instead of making copies
+        if max_variants is None:
+            self.log.warning(
+                "The max_variants parameter was not specified. We have no choice but to"
+                "append to an ever-growing array, which can lead to memory overuse!"
+            )
+            for variant in vcf(region):
+                # save meta information about each variant
+                self.variants.append((variant.ID, variant.CHROM, variant.POS, variant.aaf))
+                # extract the genotypes to a matrix of size n x p x 3
+                # the last dimension has three items:
+                # 1) presence of REF in strand one
+                # 2) presence of REF in strand two
+                # 3) whether the genotype is phased
+                self.data.append(variant.genotypes)
+            self.log.debug(f"Copying {len(self.variants)} variants into np arrays.")
+            # convert to np array for speedy operations later on
+            self.variants = np.array(
+                self.variants,
+                dtype=[
+                    ("id", "U50"),
+                    ("chrom", "U10"),
+                    ("pos", np.uint),
+                    ("aaf", np.float64),
+                ],
+            )
+            self.data = np.array(self.data, dtype='u1, u1, ?')
+        else:
+            # preallocate arrays! this will save us lots of memory and speed b/c
+            # np.append can sometimes make copies
+            self.variants = np.empty((max_variants, 4), dtype=[
                 ("id", "U50"),
                 ("chrom", "U10"),
                 ("pos", np.uint),
                 ("aaf", np.float64),
-            ],
-        )
-        self.data = np.array(self.data, dtype=np.uint8)
+            ])
+            self.data = np.empty((max_variants, len(self.samples), 3), dtype='u1, u1, ?')
+            num_seen = 0
+            # save just the variant info we need and discard the rest (to save memory!)
+            for variant in vcf(region):
+                # save meta information about each variant
+                self.variants[num_seen] = (variant.ID, variant.CHROM, variant.POS, variant.aaf)
+                # extract the genotypes to a matrix of size n x p x 3
+                # the last dimension has three items:
+                # 1) presence of REF in strand one
+                # 2) presence of REF in strand two
+                # 3) whether the genotype is phased
+                self.data[num_seen] = variant.genotypes
+                num_seen += 1
+            # remove any rows in the arrays that we don't need
+            if max_variants > num_seen:
+                self.log.info(
+                    f"Removing {num_seen-max_variants} unneeded variant records that "
+                    "were preallocated b/c max_variants was specified."
+                )
+                self.variants = self.variants[:num_seen]
+                self.data = self.data[:num_seen]
+        vcf.close()
         if self.data.shape == (0, 0, 0):
             self.log.warning(
                 "Failed to load genotypes. If you specified a region, check that the"
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
         # transpose the GT matrix so that samples are rows and variants are columns
+        self.log.debug("Transposing genotype matrix.")
         self.data = self.data.transpose((1, 0, 2))
 
     def __iter__(
@@ -174,7 +228,7 @@ class Genotypes(Data):
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased
-            data = np.array(variant.genotypes, dtype=np.uint8)
+            data = np.array(variant.genotypes, dtype='u1, u1, ?')
             yield Record(data, samples, variants)
         vcf.close()
 
@@ -279,7 +333,7 @@ class Genotypes(Data):
         ]
 
 
-class GenotypesPLINK(Data):
+class GenotypesPLINK(Genotypes):
     """
     A class for processing genotypes from a PLINK .pgen file
 
@@ -303,42 +357,12 @@ class GenotypesPLINK(Data):
     >>> genotypes = Genotypes.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path, log: Logger = None):
-        super().__init__(fname, log)
-        self.samples = tuple()
-        self.variants = np.array([])
-
-    @classmethod
-    def load(
-        cls: Genotypes, fname: Path, region: str = None, samples: list[str] = None
-    ) -> Genotypes:
-        """
-        Load genotypes from a VCF file
-
-        Read the file contents, check the genotype phase, and create the MAC matrix
-
-        Parameters
-        ----------
-        fname
-            See documentation for :py:attr:`~.Data.fname`
-        region : str, optional
-            See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
-            See documentation for :py:meth:`~.Genotypes.read`
-
-        Returns
-        -------
-        genotypes
-            A Genotypes object with the data loaded into its properties
-        """
-        genotypes = cls(fname)
-        genotypes.read(region, samples)
-        genotypes.check_biallelic()
-        genotypes.check_phase()
-        # genotypes.to_MAC()
-        return genotypes
-
-    def read(self, region: str = None, samples: list[str] = None):
+    def read(
+            self,
+            region: str = None,
+            samples: list[str] = None,
+            max_variants: int = None
+        ):
         """
         Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
 
@@ -354,22 +378,36 @@ class GenotypesPLINK(Data):
             A subset of the samples from which to extract genotypes
 
             Defaults to loading genotypes from all samples
+        max_variants : int, optional
+            The maximum mumber of variants to load from the file. Setting this value
+            helps preallocate the arrays, making the process faster and less memory
+            intensive. You should use this option if your processes are frequently
+            "Killed" from memory overuse.
+
+            If you don't know how many variants there are, set this to a large number
+            greater than what you would except. The np array will be resized
+            appropriately. You can also use the bcftools "counts" plugin to obtain the
+            number of expected sites within a region.
         """
         super().read()
-        # TODO: load the variant-level info from the .pvar file
-        # and use that info to figure out how many variants there are in the region
         variant_ct_start = 0
-        variant_ct_end = None
+        if max_variants is None:
+            # TODO: load the variant-level info from the .pvar file
+            # and use that info to figure out how many variants there are in the region
+            variant_ct_end = None
+        else:
+            variant_ct_end = max_variants
         variant_ct = variant_ct_end - variant_ct_start
         # load the pgen-reader file
         # note: very little is loaded into memory at this point
-        from pgenlib import PgenReader  # TODO: figure out how to install this package
+        # TODO: figure out how to install this package or just use hail
+        from pgenlib import PgenReader
 
         pgen = PgenReader(bytes(self.fname))
         sample_ct = pgen.get_raw_sample_ct()
         # the genotypes start out as a simple 2D array with twice the number of samples
         # so each column is a different chromosomal strand
-        self.data = np.empty((variant_ct, sample_ct * 2), np.int32)
+        self.data = np.empty((variant_ct, sample_ct * 2), dtype='u1, u1')
         pgen.read_alleles_range(variant_ct_start, variant_ct_end, self.data)
         # extract the genotypes to a np matrix of size n x p x 2
         # the last dimension has two items:
