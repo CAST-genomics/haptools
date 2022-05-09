@@ -158,6 +158,9 @@ class Variant:
         """
         Convert a variant line into a Variant object in the .hap format spec
 
+        Note that this implementation does NOT support having more extra fields than
+        appear in the header
+
         Parameters
         ----------
         line: str
@@ -275,6 +278,9 @@ class Haplotype:
     ) -> Haplotype:
         """
         Convert a variant line into a Haplotype object in the .hap format spec
+
+        Note that this implementation does NOT support having more extra fields than
+        appear in the header
 
         Parameters
         ----------

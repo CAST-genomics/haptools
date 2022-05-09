@@ -9,7 +9,7 @@ from .data import Extra, Haplotype
 @dataclass
 class HaptoolsHaplotype(Haplotype):
     """
-    A haplotype
+    A haplotype with sufficient fields for simphenotype
 
     Properties and functions are shared with the base Haplotype object
     """

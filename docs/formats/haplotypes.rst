@@ -31,7 +31,7 @@ Extra fields must be declared in the header. The declaration must be a tab-separ
 
 1. Line type (ex: ``H`` or ``V``)
 2. Name
-3. Type of value (ex: 'int', 'str', or 'float')
+3. Python format string (ex: 'd' for int, 's' for string, or '.3f' for a float with 3 decimals)
 4. Description
 
 Note that the first field must follow the ``#`` symbol immediately (ex: ``#H`` or ``#V``).
@@ -136,8 +136,8 @@ The following extra fields should be declared for your ``.hap`` file to be compa
 
 .. code-block::
 
-  #H	ancestry	str	Local ancestry
-  #H	beta	float	Effect size in linear model
+  #H	ancestry	s	Local ancestry
+  #H	beta	.2f	Effect size in linear model
 
 ..
   _TODO: figure out how to tab this code block so that the tabs get copied when someone copies from it
