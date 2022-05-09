@@ -124,7 +124,7 @@ We encourage you to bgzip compress and/or index your ``.hap`` file whenever poss
   bgzip file.hap
   tabix -s 2 -b 3 -e 4 file.hap.gz
 
-In order to properly index the file, the IDs in the haplotype lines must be different from their chromosomes.
+In order to properly index the file, the IDs in the haplotype lines must be different from their chromosomes. In addition, you must sort on the first field (ie the line type symbol) in addition to the latter three.
 
 Extra fields
 ~~~~~~~~~~~~
