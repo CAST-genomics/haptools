@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .data import Haplotype
+from .data import Extra, Haplotype
 
 
 @dataclass
@@ -13,16 +13,17 @@ class HaptoolsHaplotype(Haplotype):
 
     Properties and functions are shared with the base Haplotype object
     """
+
     ancestry: str
     beta: float
-    _fmt: str = field(default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}\t{ancestry:s}\t{beta:.3f}", init=False, repr=False)
-
-    @staticmethod
-    def extras() -> tuple:
-        return (
-            "#H\tancestry\tstr\tLocal ancestry",
-            "#H\tbeta\tfloat\tEffect size in linear model",
-        )
+    _extras: tuple = field(
+        repr=False,
+        init=False,
+        default=(
+            Extra("ancestry", "s", "Local ancestry"),
+            Extra("beta", ".2f", "Effect size in linear model"),
+        ),
+    )
 
     def transform(self, genotypes: Genotypes) -> npt.NDArray[np.bool_]:
         """

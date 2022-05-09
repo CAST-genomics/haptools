@@ -12,6 +12,87 @@ from pysam import TabixFile
 from .data import Data
 
 
+@dataclass
+class Extra:
+    """
+    An extra field on a line in the .hap file
+    Attributes
+    ----------
+    name: str
+        The name of the extra field
+    fmt: str = "s"
+        The python fmt string of the field value; indicates how to format the value
+    description: str = ""
+        A description of the extra field
+    """
+
+    name: str
+    fmt: str = "s"
+    description: str = ""
+    _type: type = field(init=False, repr=False)
+
+    def __post_init(self):
+        if self.fmt.endswith("s"):
+            self._type = str
+        elif self.fmt.endswith("d"):
+            self._type = int
+        elif self.fmt.endswith("f"):
+            self._type = float
+        else:
+            raise ValueError("Unsupported extra type '{}'!".format(self.fmt[-1]))
+
+    @classmethod
+    def from_hap_spec(cls, line: str) -> Extra:
+        """
+        Convert an "extra" line in the header of a .hap file into an Extra object
+
+        Parameters
+        ----------
+        line: str
+            An "extra" field, as it appears declared in the header
+
+        Returns
+        -------
+        Extra
+            An Extra object
+        """
+        line = line[3:].split("\t")
+        return cls(name=line[0], fmt=line[1], description=line[2])
+
+    def to_hap_spec(self, line_type_symbol: str) -> str:
+        """
+        Convert an Extra object into a header line in the .hap format spec
+
+        Parameters
+        ----------
+        hap_id: str
+            The ID of the haplotype associated with this variant
+
+        Returns
+        -------
+        str
+            A valid variant line (V) in the .hap format spec
+        """
+        return (
+            "#"
+            + line_type_symbol
+            + "\t"
+            + "\t".join((self.name, self.fmt, self.description))
+        )
+
+    @property
+    def fmt_str(self) -> str:
+        """
+        Convert an Extra into a fmt string
+
+        Retruns
+        -------
+        str
+            A python format string (ex: "{beta:.3f}")
+        """
+        return "{" + self.name + ":" + self.fmt + "}"
+
+
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
 @dataclass
@@ -21,8 +102,7 @@ class Variant:
 
     In order to use this class with the Haplotypes class, you should
     1) add properties to the class for each of extra fields
-    2) override the extras() method
-    3) change the default value of the _fmt property to describe the line
+    2) override the _extras property to describe the header declaration
 
     Attributes
     ----------
@@ -36,8 +116,8 @@ class Variant:
         The variant's unique ID
     allele: str
         The allele of this variant within the Haplotype
-    _fmt: str
-        A format string describing the corresponding line from the .haps format spec
+    _extras: tuple[Extra]
+        Extra fields for the haplotype
 
     Examples
     --------
@@ -47,24 +127,16 @@ class Variant:
     >>> @dataclass
     >>> class CustomVariant(Variant):
     ...     score: float
-    ...     _fmt: str = field(default="V\\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}\t{score:.3f}", init=False, repr=False)
-    ...
-    ...     @staticmethod
-    ...     def extras() -> tuple:
-    ...         return (
-    ...             "#V\tscore\tfloat\tImportance of inclusion",
-    ...         )
+    ...     _extras: tuple = (
+    ...         Extra("score", ".3f", "Importance of inclusion"),
+    ...     )
     """
 
     start: int
     end: int
     id: str
     allele: str
-    _fmt: str = field(
-        default="V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}",
-        init=False,
-        repr=False,
-    )
+    _extras: tuple = field(default=tuple(), init=False, repr=False)
 
     @property
     def ID(self):
@@ -72,6 +144,14 @@ class Variant:
         Create an alias for the id property
         """
         return self.id
+
+    @property
+    # TODO: use @cached_property in py3.8
+    def _fmt(self):
+        extras = ""
+        if len(self._extras):
+            extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
+        return "V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}" + extras
 
     @classmethod
     def from_hap_spec(cls: Variant, line: str) -> tuple[str, Variant]:
@@ -115,8 +195,8 @@ class Variant:
         """
         return self._fmt.format(**self.__dict__, hap=hap_id)
 
-    @staticmethod
-    def extras() -> tuple:
+    @classmethod
+    def extras_head(cls) -> tuple:
         """
         Return the header lines of the extra fields that are supported
 
@@ -125,7 +205,7 @@ class Variant:
         tuple
             The header lines of the extra fields
         """
-        return tuple()
+        return tuple(extra.to_hap_spec("V") for extra in cls._extras)
 
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
@@ -137,8 +217,7 @@ class Haplotype:
 
     In order to use this class with the Haplotypes class, you should
     1) add properties to the class for each of extra fields
-    2) override the extras() method
-    3) change the default value of the _fmt property to describe the line
+    2) override the _extras property to describe the header declaration
 
     Attributes
     ----------
@@ -152,8 +231,8 @@ class Haplotype:
         The haplotype's unique ID
     variants: list[Variant]
         A list of the variants in this haplotype
-    _fmt: str
-        A format string describing the corresponding line from the .haps format spec
+    _extras: tuple[Extra]
+        Extra fields for the haplotype
 
     Examples
     --------
@@ -163,13 +242,9 @@ class Haplotype:
     >>> @dataclass
     >>> class CustomHaplotype(Haplotype):
     ...     ancestry: str
-    ...     _fmt: str = field(default="H\\t{chrom:s}\\t{start:d}\\t{end:d}\\t{id:s}\\t{ancestry:s}", init=False, repr=False)
-    ...
-    ...     @staticmethod
-    ...     def extras() -> tuple:
-    ...         return (
-    ...             "#H\\tancestry\\tstr\\tLocal ancestry",
-    ...         )
+    ...     _extras: tuple = (
+    ...         Extra("ancestry", "s", "Local ancestry"),
+    ...     )
     """
 
     chrom: str
@@ -177,9 +252,7 @@ class Haplotype:
     end: int
     id: str
     variants: tuple = field(default_factory=tuple, init=False)
-    _fmt: str = field(
-        default="H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}", init=False, repr=False
-    )
+    _extras: tuple = field(default=tuple(), init=False, repr=False)
 
     @property
     def ID(self):
@@ -187,6 +260,14 @@ class Haplotype:
         Create an alias for the id property
         """
         return self.id
+
+    @property
+    # TODO: use @cached_property in py3.8
+    def _fmt(self):
+        extras = ""
+        if len(self._extras):
+            extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
+        return "H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}" + extras
 
     @classmethod
     def from_hap_spec(
@@ -228,8 +309,8 @@ class Haplotype:
         """
         return self._fmt.format(**self.__dict__)
 
-    @staticmethod
-    def extras() -> tuple:
+    @classmethod
+    def extras_head(cls) -> tuple:
         """
         Return the header lines of the extra fields that are supported
 
@@ -238,7 +319,7 @@ class Haplotype:
         tuple
             The header lines of the extra fields
         """
-        return tuple()
+        return tuple(extra.to_hap_spec("H") for extra in cls._extras)
 
 
 class Haplotypes(Data):
@@ -345,7 +426,9 @@ class Haplotypes(Data):
                     f" tool expected {self.version}"
                 )
         expected_lines = [
-            line for line_type in self.types.values() for line in line_type.extras()
+            line
+            for line_type in self.types.values()
+            for line in line_type.extras_head()
         ]
         for line in lines:
             if line[1] in self.types.keys():
@@ -566,7 +649,7 @@ class Haplotypes(Data):
         """
         yield "#\tversion\t" + self.version
         for line_type in self.types:
-            yield from self.types[line_type].extras()
+            yield from self.types[line_type].extras_head()
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
         for hap in self.data.values():
