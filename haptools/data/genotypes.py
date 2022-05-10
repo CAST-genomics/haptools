@@ -34,6 +34,10 @@ class Genotypes(Data):
     Examples
     --------
     >>> genotypes = Genotypes.load('tests/data/simple.vcf')
+    >>> # directly access the loaded variants, samples, and genotypes (in data)
+    >>> genotypes.variants
+    >>> genotypes.samples
+    >>> genotypes.data
     """
 
     def __init__(self, fname: Path, log: Logger = None):
@@ -43,7 +47,11 @@ class Genotypes(Data):
 
     @classmethod
     def load(
-        cls: Genotypes, fname: Path, region: str = None, samples: list[str] = None
+        cls: Genotypes,
+        fname: Path,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
     ) -> Genotypes:
         """
         Load genotypes from a VCF file
@@ -58,6 +66,8 @@ class Genotypes(Data):
             See documentation for :py:meth:`~.Genotypes.read`
         samples : list[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
 
         Returns
         -------
@@ -65,7 +75,7 @@ class Genotypes(Data):
             A Genotypes object with the data loaded into its properties
         """
         genotypes = cls(fname)
-        genotypes.read(region, samples)
+        genotypes.read(region, samples, variants)
         genotypes.check_biallelic()
         genotypes.check_phase()
         # genotypes.to_MAC()
