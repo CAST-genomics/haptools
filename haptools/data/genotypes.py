@@ -444,11 +444,11 @@ class GenotypesPLINK(Genotypes):
         # TODO: figure out how to install this package or just use hail
         from pgenlib import PgenReader
 
-        pgen = PgenReader(bytes(self.fname))
+        pgen = PgenReader(bytes(self.fname, "utf8"))
         sample_ct = pgen.get_raw_sample_ct()
         # the genotypes start out as a simple 2D array with twice the number of samples
         # so each column is a different chromosomal strand
-        self.data = np.empty((variant_ct, sample_ct * 2), dtype="u1, u1")
+        self.data = np.empty((variant_ct, sample_ct * 2), dtype=np.uint32)
         pgen.read_alleles_range(variant_ct_start, variant_ct_end, self.data)
         # extract the genotypes to a np matrix of size n x p x 2
         # the last dimension has two items:
