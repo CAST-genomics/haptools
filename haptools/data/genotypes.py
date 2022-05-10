@@ -72,12 +72,12 @@ class Genotypes(Data):
         return genotypes
 
     def read(
-            self,
-            region: str = None,
-            samples: list[str] = None,
-            variants: set[str] = None,
-            max_variants: int = None
-        ):
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
         """
         Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
 
@@ -124,7 +124,9 @@ class Genotypes(Data):
         self.data = []
         if variants:
             max_variants = len(variants)
-        self.log.debug(f"Loading genotypes from {len(self.samples)} samples into memory.")
+        self.log.debug(
+            f"Loading genotypes from {len(self.samples)} samples into memory."
+        )
         # load all info into memory
         # but first, check whether we can preallocate memory instead of making copies
         if max_variants is None:
@@ -136,7 +138,9 @@ class Genotypes(Data):
                 if variants is not None and variant.ID not in variants:
                     continue
                 # save meta information about each variant
-                self.variants.append((variant.ID, variant.CHROM, variant.POS, variant.aaf))
+                self.variants.append(
+                    (variant.ID, variant.CHROM, variant.POS, variant.aaf)
+                )
                 # extract the genotypes to a matrix of size n x p x 3
                 # the last dimension has three items:
                 # 1) presence of REF in strand one
@@ -158,12 +162,15 @@ class Genotypes(Data):
         else:
             # preallocate arrays! this will save us lots of memory and speed b/c
             # np.append can sometimes make copies
-            self.variants = np.empty((max_variants, 4), dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("pos", np.uint),
-                ("aaf", np.float64),
-            ])
+            self.variants = np.empty(
+                (max_variants, 4),
+                dtype=[
+                    ("id", "U50"),
+                    ("chrom", "U10"),
+                    ("pos", np.uint),
+                    ("aaf", np.float64),
+                ],
+            )
             self.data = np.empty((max_variants, len(self.samples), 3), dtype=np.uint8)
             num_seen = 0
             # save just the variant info we need and discard the rest (to save memory!)
@@ -171,7 +178,12 @@ class Genotypes(Data):
                 if variants is not None and variant.ID not in variants:
                     continue
                 # save meta information about each variant
-                self.variants[num_seen] = (variant.ID, variant.CHROM, variant.POS, variant.aaf)
+                self.variants[num_seen] = (
+                    variant.ID,
+                    variant.CHROM,
+                    variant.POS,
+                    variant.aaf,
+                )
                 # extract the genotypes to a matrix of size n x p x 3
                 # the last dimension has three items:
                 # 1) presence of REF in strand one
@@ -379,12 +391,12 @@ class GenotypesPLINK(Genotypes):
     """
 
     def read(
-            self,
-            region: str = None,
-            samples: list[str] = None,
-            variants: set[str] = None,
-            max_variants: int = None
-        ):
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
         """
         Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
 
@@ -436,7 +448,7 @@ class GenotypesPLINK(Genotypes):
         sample_ct = pgen.get_raw_sample_ct()
         # the genotypes start out as a simple 2D array with twice the number of samples
         # so each column is a different chromosomal strand
-        self.data = np.empty((variant_ct, sample_ct * 2), dtype='u1, u1')
+        self.data = np.empty((variant_ct, sample_ct * 2), dtype="u1, u1")
         pgen.read_alleles_range(variant_ct_start, variant_ct_end, self.data)
         # extract the genotypes to a np matrix of size n x p x 2
         # the last dimension has two items:

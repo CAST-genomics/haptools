@@ -27,7 +27,6 @@ class TestGenotypes:
         expected[:, :, 2] = 1
         return expected
 
-
     def test_load_genotypes(self, caplog):
         expected = self._get_expected_genotypes()
 
@@ -36,7 +35,6 @@ class TestGenotypes:
         gts.read()
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
-
 
         # try loading the data again - it should warn b/c we've already done it
         caplog.clear()
@@ -65,7 +63,8 @@ class TestGenotypes:
             gts.check_phase()
         assert (
             str(info.value)
-            == "Variant with ID 1:10116:A:G at POS 1:10116 is unphased for sample HG00097"
+            == "Variant with ID 1:10116:A:G at POS 1:10116 is unphased for sample"
+            " HG00097"
         )
         gts.data[1, 1, 2] = 1
 
@@ -91,7 +90,6 @@ class TestGenotypes:
         gts.to_MAC()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-
     def test_load_genotypes_iterate(self, caplog):
         expected = self._get_expected_genotypes().transpose((1, 0, 2))
         samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
@@ -101,7 +99,6 @@ class TestGenotypes:
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data, expected[idx])
             assert line.samples == samples
-
 
     def test_load_genotypes_discard_multiallelic(self):
         expected = self._get_expected_genotypes()
@@ -122,7 +119,6 @@ class TestGenotypes:
         data_copy_without_biallelic = np.delete(data_copy, [1], axis=1)
         np.testing.assert_equal(gts.data, data_copy_without_biallelic)
         assert gts.variants.shape == tuple(variant_shape)
-
 
     def test_load_genotypes_subset(self):
         expected = self._get_expected_genotypes()
@@ -150,7 +146,7 @@ class TestGenotypes:
 
         gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
         samples = ["HG00097", "HG00100"]
-        variants = {'1:10117:C:A'}
+        variants = {"1:10117:C:A"}
         gts.read(region="1:10115-10117", samples=samples, variants=variants)
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == tuple(samples)
