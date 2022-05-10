@@ -113,6 +113,8 @@ class Genotypes(Data):
             greater than what you would except. The np array will be resized
             appropriately. You can also use the bcftools "counts" plugin to obtain the
             number of expected sites within a region.
+
+            Note that this value is ignored if the variants argument is provided.
         """
         super().read()
         # initialize variables
@@ -120,13 +122,15 @@ class Genotypes(Data):
         self.samples = tuple(vcf.samples)
         self.variants = []
         self.data = []
+        if variants:
+            max_variants = len(variants)
         self.log.debug(f"Loading genotypes from {len(self.samples)} samples into memory.")
         # load all info into memory
         # but first, check whether we can preallocate memory instead of making copies
         if max_variants is None:
             self.log.warning(
                 "The max_variants parameter was not specified. We have no choice but to"
-                "append to an ever-growing array, which can lead to memory overuse!"
+                " append to an ever-growing array, which can lead to memory overuse!"
             )
             for variant in vcf(region):
                 if variants is not None and variant.ID not in variants:
@@ -231,7 +235,7 @@ class Genotypes(Data):
             if variants is not None and variant.ID not in variants:
                 continue
             # save meta information about each variant
-            variants = np.array(
+            variant_arr = np.array(
                 (variant.ID, variant.CHROM, variant.POS, variant.aaf),
                 dtype=[
                     ("id", "U50"),
@@ -246,7 +250,7 @@ class Genotypes(Data):
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased
             data = np.array(variant.genotypes, dtype=np.uint8)
-            yield Record(data, samples, variants)
+            yield Record(data, samples, variant_arr)
         vcf.close()
 
     def check_biallelic(self, discard_also=False):
@@ -411,6 +415,8 @@ class GenotypesPLINK(Genotypes):
             greater than what you would except. The np array will be resized
             appropriately. You can also use the bcftools "counts" plugin to obtain the
             number of expected sites within a region.
+
+            Note that this value is ignored if the variants argument is provided.
         """
         super().read()
         variant_ct_start = 0
@@ -419,7 +425,7 @@ class GenotypesPLINK(Genotypes):
             # and use that info to figure out how many variants there are in the region
             variant_ct_end = None
         else:
-            variant_ct_end = max_variants
+            variant_ct_end = max_variants or len(variants)
         variant_ct = variant_ct_end - variant_ct_start
         # load the pgen-reader file
         # note: very little is loaded into memory at this point

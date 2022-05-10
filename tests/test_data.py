@@ -145,6 +145,16 @@ class TestGenotypes:
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == tuple(samples)
 
+        # subset to just one of the variants
+        expected = expected[:, [1]]
+
+        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        samples = ["HG00097", "HG00100"]
+        variants = {'1:10117:C:A'}
+        gts.read(region="1:10115-10117", samples=samples, variants=variants)
+        np.testing.assert_allclose(gts.data, expected)
+        assert gts.samples == tuple(samples)
+
 
 def test_load_phenotypes(caplog):
     # create a phenotype vector with shape: num_samples x 1
