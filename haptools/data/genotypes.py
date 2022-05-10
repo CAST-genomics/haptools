@@ -142,7 +142,7 @@ class Genotypes(Data):
                     ("aaf", np.float64),
                 ],
             )
-            self.data = np.array(self.data, dtype='u1, u1, ?')
+            self.data = np.array(self.data, dtype=np.uint8)
         else:
             # preallocate arrays! this will save us lots of memory and speed b/c
             # np.append can sometimes make copies
@@ -152,7 +152,7 @@ class Genotypes(Data):
                 ("pos", np.uint),
                 ("aaf", np.float64),
             ])
-            self.data = np.empty((max_variants, len(self.samples), 3), dtype='u1, u1, ?')
+            self.data = np.empty((max_variants, len(self.samples), 3), dtype=np.uint8)
             num_seen = 0
             # save just the variant info we need and discard the rest (to save memory!)
             for variant in vcf(region):
@@ -228,7 +228,7 @@ class Genotypes(Data):
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased
-            data = np.array(variant.genotypes, dtype='u1, u1, ?')
+            data = np.array(variant.genotypes, dtype=np.uint8)
             yield Record(data, samples, variants)
         vcf.close()
 

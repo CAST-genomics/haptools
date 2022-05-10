@@ -36,9 +36,11 @@ def test_load_genotypes(caplog):
     np.testing.assert_allclose(gts.data, expected)
     assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
+
     # try loading the data again - it should warn b/c we've already done it
+    caplog.clear()
     gts.read()
-    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
+    assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
     # force one of the SNPs to have more than one allele and check that we get an error
     gts.data[1, 1, 1] = 2
@@ -72,8 +74,9 @@ def test_load_genotypes(caplog):
     np.testing.assert_allclose(gts.data, expected)
 
     # try to check phase again - it should warn b/c we've already done it before
+    caplog.clear()
     gts.check_phase()
-    assert len(caplog.records) == 2 and caplog.records[1].levelname == "WARNING"
+    assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
     # convert the matrix of alt allele counts to a matrix of minor allele counts
     assert gts.variants["aaf"][1] == 0.6
@@ -83,8 +86,9 @@ def test_load_genotypes(caplog):
     assert gts.variants["maf"][1] == 0.4
 
     # try to do the MAC conversion again - it should warn b/c we've already done it
+    caplog.clear()
     gts.to_MAC()
-    assert len(caplog.records) == 3 and caplog.records[2].levelname == "WARNING"
+    assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
 
 def test_load_genotypes_iterate(caplog):
