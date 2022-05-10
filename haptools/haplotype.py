@@ -45,5 +45,5 @@ class HaptoolsHaplotype(Haplotype):
             the number of columns (second dimension) will have decreased by the number
             of variants in this haplotype.
         """
-        # TODO: implement this
-        pass
+        gens = Genotypes.data
+        records = Genotypes.variants

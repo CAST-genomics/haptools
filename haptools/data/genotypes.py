@@ -75,6 +75,7 @@ class Genotypes(Data):
             self,
             region: str = None,
             samples: list[str] = None,
+            variants: set[str] = None,
             max_variants: int = None
         ):
         """
@@ -97,6 +98,11 @@ class Genotypes(Data):
             A subset of the samples from which to extract genotypes
 
             Defaults to loading genotypes from all samples
+        variants : set[str], optional
+            A set of variant IDs for which to extract genotypes
+
+            All other variants will be ignored. This may be useful if you're running
+            out of memory.
         max_variants : int, optional
             The maximum mumber of variants to load from the file. Setting this value
             helps preallocate the arrays, making the process faster and less memory
@@ -123,6 +129,8 @@ class Genotypes(Data):
                 "append to an ever-growing array, which can lead to memory overuse!"
             )
             for variant in vcf(region):
+                if variants is not None and variant.ID not in variants:
+                    continue
                 # save meta information about each variant
                 self.variants.append((variant.ID, variant.CHROM, variant.POS, variant.aaf))
                 # extract the genotypes to a matrix of size n x p x 3
@@ -156,6 +164,8 @@ class Genotypes(Data):
             num_seen = 0
             # save just the variant info we need and discard the rest (to save memory!)
             for variant in vcf(region):
+                if variants is not None and variant.ID not in variants:
+                    continue
                 # save meta information about each variant
                 self.variants[num_seen] = (variant.ID, variant.CHROM, variant.POS, variant.aaf)
                 # extract the genotypes to a matrix of size n x p x 3
@@ -184,7 +194,7 @@ class Genotypes(Data):
         self.data = self.data.transpose((1, 0, 2))
 
     def __iter__(
-        self, region: str = None, samples: list[str] = None
+        self, region: str = None, samples: list[str] = None, variants: set[str] = None
     ) -> Iterator[namedtuple]:
         """
         Read genotypes from a VCF line by line without storing anything
@@ -201,6 +211,11 @@ class Genotypes(Data):
             A subset of the samples from which to extract genotypes
 
             Defaults to loading genotypes from all samples
+        variants : set[str], optional
+            A set of variant IDs for which to extract genotypes
+
+            All other variants will be ignored. This may be useful if you're running
+            out of memory.
 
         Yields
         ------
@@ -213,6 +228,8 @@ class Genotypes(Data):
         Record = namedtuple("Record", "data samples variants")
         # load all info into memory
         for variant in vcf(region):
+            if variants is not None and variant.ID not in variants:
+                continue
             # save meta information about each variant
             variants = np.array(
                 (variant.ID, variant.CHROM, variant.POS, variant.aaf),
@@ -361,6 +378,7 @@ class GenotypesPLINK(Genotypes):
             self,
             region: str = None,
             samples: list[str] = None,
+            variants: set[str] = None,
             max_variants: int = None
         ):
         """
@@ -378,6 +396,11 @@ class GenotypesPLINK(Genotypes):
             A subset of the samples from which to extract genotypes
 
             Defaults to loading genotypes from all samples
+        variants : set[str], optional
+            A set of variant IDs for which to extract genotypes
+
+            All other variants will be ignored. This may be useful if you're running
+            out of memory.
         max_variants : int, optional
             The maximum mumber of variants to load from the file. Setting this value
             helps preallocate the arrays, making the process faster and less memory
