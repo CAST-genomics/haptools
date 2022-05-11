@@ -10,6 +10,7 @@ import numpy as np
 from pysam import TabixFile
 
 from .data import Data
+from .genotypes import GenotypesRefAlt
 
 
 @dataclass
@@ -326,6 +327,55 @@ class Haplotype:
             The header lines of the extra fields
         """
         return tuple(extra.to_hap_spec("H") for extra in cls._extras)
+
+    def transform(
+        self, genotypes: GenotypesRefAlt, samples: list[str] = None
+    ) -> npt.NDArray[np.bool_]:
+        """
+        Transform a genotypes matrix via the current haplotype
+
+        Each entry in the returned matrix denotes the presence of the current haplotype
+        in each chromosome of each sample in the Genotypes object
+
+        Parameters
+        ----------
+        genotypes : GenotypesRefAlt
+            The genotypes which to transform using the current haplotype
+
+            If the genotypes have not been loaded into the Genotypes object yet, this
+            method will call Genotypes.read(), while loading only the needed variants
+        samples : list[str], optional
+            See documentation for :py:attr:`~.Genotypes.read`
+
+        Returns
+        -------
+        npt.NDArray[np.bool_]
+            A 2D matrix of shape (num_samples, 2) where each entry in the matrix
+            denotes the presence of the haplotype in one chromosome of a sample
+        """
+        var_IDs = {var.id for var in self.variants}
+        # check: have the genotypes been loaded yet?
+        # if not, we can load just the variants we need
+        if genotypes.unset():
+            start = min(var.start for var in self.variants)
+            end = max(var.end for var in self.variants)
+            region = f"{self.chrom}:{start}-{end}"
+            genotypes.read(region=region, samples=samples, variants=var_IDs)
+            genotypes.check_biallelic(discard_also=True)
+            genotypes.check_phase()
+        # create a dict where the variants are keyed by ID
+        var_dict = {
+            var["id"]: var["ref"] for var in genotypes.variants if var["id"] in var_IDs
+        }
+        var_idxs = [
+            idx for idx, var in enumerate(genotypes.variants) if var["id"] in var_IDs
+        ]
+        # create a np array denoting the alleles that we want
+        alleles = [int(var.allele != var_dict[var.id]) for var in self.variants]
+        allele_arr = np.array([[[al] for al in alleles]]) # shape: (1, n, 1)
+        # look for the presence of each allele in each chromosomal strand
+        # and then just AND them together
+        return np.all(allele_arr == genotypes.data[:,var_idxs], axis=1)
 
 
 class Haplotypes(Data):
