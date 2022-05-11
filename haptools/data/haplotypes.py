@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator
 
 import numpy as np
-from pysam import TabixFile
+from pysam import VariantFile, TabixFile
 
 from .data import Data
 from .genotypes import GenotypesRefAlt
@@ -376,6 +376,67 @@ class Haplotype:
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
         return np.all(allele_arr == genotypes.data[:,var_idxs], axis=1)
+
+
+class HaplotypesGT(GenotypesRefAlt):
+    """
+    A class for processing haplotype genotypes from a file
+    Unlike the base Genotypes class, this class also includes REF and ALT alleles in
+    the variants array
+
+    Attributes
+    ----------
+    data : np.array
+        The genotypes in an n (samples) x p (variants) x 2 (strands) array
+    fname : Path
+        The path to the read-only file containing the data
+    samples : tuple[str]
+        The names of each of the n samples
+    variants : np.array
+        Haplotype-level meta information:
+            1. ID
+            2. CHROM
+            3. POS
+            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+            5. REF
+            6. ALT
+    log: Logger
+        A logging instance for recording debug statements.
+    """
+
+    def write(self):
+        """
+        Write the haplotypes in this class to a VCF
+        """
+        vcf = VariantFile(str(self.fname), mode='w')
+        # make sure the header is properly structured
+        for contig in set(self.variants["chrom"]):
+            vcf.header.contigs.add(contig)
+        for sample in self.samples:
+            vcf.header.add_sample(sample)
+        vcf.header.add_meta('FORMAT', items=[
+            ('ID',"GT"), ('Number',1), ('Type','String'), ('Description','Genotype')
+        ])
+        for hap_idx, hap in enumerate(self.variants):
+            rec = {
+                'contig': hap["chrom"],
+                'start': hap["pos"],
+                'stop': hap["pos"]+1,
+                'qual': None,
+                'alleles': tuple(hap[["ref", "alt"]]),
+                'id': hap["id"],
+                'filter': None,
+            }
+            # handle pysam increasing the start site by 1
+            rec['start'] -= 1
+            # parse the record into a pysam.VariantRecord
+            record = vcf.new_record(**rec)
+            for samp_idx, sample in enumerate(self.samples):
+                record.samples[sample]['GT'] = tuple(self.data[samp_idx,hap_idx])
+                record.samples[sample].phased = True
+            # write the record to a file
+            vcf.write(record)
+        vcf.close()
 
 
 class Haplotypes(Data):
