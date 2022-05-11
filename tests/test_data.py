@@ -3,10 +3,12 @@ from pathlib import Path
 
 import pytest
 import numpy as np
+import numpy.lib.recfunctions as rfn
 
 from haptools.haplotype import HaptoolsHaplotype
 from haptools.data import (
     Genotypes,
+    GenotypesRefAlt,
     Phenotypes,
     Covariates,
     Haplotypes,
@@ -26,6 +28,44 @@ class TestGenotypes:
         expected[2:4, 1, 0] = 1
         expected[:, :, 2] = 1
         return expected
+
+    def _get_fake_genotypes(self):
+        gts = Genotypes(fname=None)
+        gts.data = self._get_expected_genotypes()
+        gts.variants = np.array([
+            ('1:10114:T:C', '1', 10114, 0),
+            ('1:10116:A:G', '1', 10116, 0.6),
+            ('1:10117:C:A', '1', 10117, 0),
+            ('1:10122:A:G', '1', 10122, 0),
+        ], dtype=[
+            ("id", "U50"),
+            ("chrom", "U10"),
+            ("pos", np.uint32),
+            ("aaf", np.float64),
+        ])
+        gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        gts.check_phase()
+        return gts
+
+    def _get_fake_genotypes_refalt(self):
+        base_gts = self._get_fake_genotypes()
+        # copy all of the fields
+        gts = GenotypesRefAlt(fname=None)
+        gts.data = base_gts.data
+        gts.samples = base_gts.samples
+        # add additional ref and alt alleles
+        ref_alt = np.array([
+            ('T', 'C'),
+            ('A', 'G'),
+            ('C', 'A'),
+            ('A', 'G'),
+        ], dtype = [
+            ("ref", "U100"),
+            ("alt", "U100"),
+        ])
+        # see https://stackoverflow.com/a/5356137
+        gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
+        return gts
 
     def test_load_genotypes(self, caplog):
         expected = self._get_expected_genotypes()
@@ -267,6 +307,29 @@ class TestHaplotypes:
         )
         return expected
 
+    def _get_dummy_haps(self):
+        # create three haplotypes
+        haplotypes = {
+            "H1": Haplotype(chrom="1", start=10114, end=8, id="H1"),
+            "H2": Haplotype(chrom="1", start=10114, end=10119, id="H2"),
+            "H3": Haplotype(chrom="1", start=10116, end=10119, id="H3"),
+        }
+        haplotypes["H1"].variants = (
+            Variant(start=10114, end=10115, id="1:10114:T:C", allele="T"),
+            Variant(start=10116, end=10117, id="1:10116:A:G", allele="G"),
+        )
+        haplotypes["H2"].variants = (
+            Variant(start=10114, end=10115, id="1:10114:T:C", allele="C"),
+            Variant(start=10117, end=10118, id="1:10117:C:A", allele="C"),
+        )
+        haplotypes["H3"].variants = (
+            Variant(start=10116, end=10117, id="1:10116:A:G", allele="A"),
+            Variant(start=10117, end=10118, id="1:10117:C:A", allele="A"),
+        )
+        haps = Haplotypes(fname=None)
+        haps.data = haplotypes
+        return haps
+
     def test_load(self):
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
@@ -363,3 +426,53 @@ class TestHaplotypes:
 
         # remove the file
         os.remove("tests/data/test.hap")
+
+    def test_hap_transform(self):
+        expected = np.array([
+            [0, 1],
+            [0, 1],
+            [1, 1],
+            [1, 1],
+            [0, 0],
+        ], dtype=np.uint8)
+
+        hap = list(self._get_dummy_haps().data.values())[0]
+        gens = TestGenotypes()._get_fake_genotypes_refalt()
+        hap_gt = hap.transform(gens)
+        np.testing.assert_allclose(hap_gt, expected)
+
+    def test_haps_transform(self):
+        expected = np.array([
+            [[0, 1], [0, 0], [0, 0]],
+            [[0, 1], [0, 0], [1, 0]],
+            [[1, 0], [0, 1], [0, 0]],
+            [[1, 1], [0, 0], [0, 0]],
+            [[0, 0], [0, 1], [1, 0]],
+        ], dtype=np.uint8)
+
+        haps = self._get_dummy_haps()
+        gens = TestGenotypes()._get_fake_genotypes_refalt()
+        gens.data[[2, 4], 0, 1] = 1
+        gens.data[[1, 4], 2, 0] = 1
+        hap_gt = haps.transform(gens)
+        np.testing.assert_allclose(hap_gt.data, expected)
+        return hap_gt
+
+    def test_hap_gt_write(self):
+        fname = DATADIR.joinpath("simple_haps.vcf")
+
+        hap_gt = self.test_haps_transform()
+        hap_gt.fname = fname
+        expected_data = hap_gt.data
+        expected_samples = hap_gt.samples
+        hap_gt.write()
+
+        hap_gt.data = None
+        hap_gt.read()
+        hap_gt.check_phase()
+        np.testing.assert_allclose(hap_gt.data, expected_data)
+        assert hap_gt.samples == expected_samples
+        assert len(hap_gt.variants) == hap_gt.data.shape[1]
+
+        # remove the file
+        os.remove(str(fname))

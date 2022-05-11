@@ -735,3 +735,46 @@ class Haplotypes(Data):
         with hook_compressed(self.fname, mode="wt") as haps:
             for line in self.to_str():
                 haps.write(line + "\n")
+
+    def transform(
+        self, genotypes: GenotypesRefAlt, samples: list[str] = None
+    ) -> HaplotypesGT:
+        """
+        Transform a genotypes matrix via the current haplotype
+
+        Each entry in the returned matrix denotes the presence of each haplotype
+        in each chromosome of each sample in the Genotypes object
+
+        Parameters
+        ----------
+        genotypes : GenotypesRefAlt
+            The genotypes which to transform using the current haplotype
+
+            If the genotypes have not been loaded into the Genotypes object yet, this
+            method will call Genotypes.read(), while loading only the needed variants
+        samples : list[str], optional
+            See documentation for :py:attr:`~.Genotypes.read`
+
+        Returns
+        -------
+        HaplotypesGT
+            A Genotypes object composed of haplotypes instead of regular variants.
+        """
+        hap_gts = HaplotypesGT(fname=None)
+        hap_gts.samples = genotypes.samples
+        hap_gts.variants = np.array([
+            (hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()
+        ], dtype=[
+            ("id", "U50"),
+            ("chrom", "U10"),
+            ("pos", np.uint32),
+            ("aaf", np.float64),
+            ("ref", "U100"),
+            ("alt", "U100"),
+        ])
+        hap_gts.data = np.concatenate(
+            tuple(
+                hap.transform(genotypes, samples)[:, np.newaxis] for hap in self.data.values()
+            ), axis=1
+        ).astype(np.uint8)
+        return hap_gts
