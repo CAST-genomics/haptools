@@ -22,7 +22,7 @@ class Genotypes(Data):
         The path to the read-only file containing the data
     samples : tuple[str]
         The names of each of the n samples
-    variants : list
+    variants : np.array
         Variant-level meta information:
             1. ID
             2. CHROM
@@ -164,7 +164,7 @@ class Genotypes(Data):
                 dtype=[
                     ("id", "U50"),
                     ("chrom", "U10"),
-                    ("pos", np.uint),
+                    ("pos", np.uint32),
                     ("aaf", np.float64),
                 ],
             )
@@ -177,7 +177,7 @@ class Genotypes(Data):
                 dtype=[
                     ("id", "U50"),
                     ("chrom", "U10"),
-                    ("pos", np.uint),
+                    ("pos", np.uint32),
                     ("aaf", np.float64),
                 ],
             )
@@ -262,7 +262,7 @@ class Genotypes(Data):
                 dtype=[
                     ("id", "U50"),
                     ("chrom", "U10"),
-                    ("pos", np.uint),
+                    ("pos", np.uint32),
                     ("aaf", np.float64),
                 ],
             )
@@ -376,6 +376,164 @@ class Genotypes(Data):
         ]
 
 
+class GenotypesRefAlt(Genotypes):
+    """
+    A class for processing genotypes from a file
+    Unlike the base Genotypes class, this class also includes REF and ALT alleles in
+    the variants array
+
+    Attributes
+    ----------
+    data : np.array
+        The genotypes in an n (samples) x p (variants) x 2 (strands) array
+    fname : Path
+        The path to the read-only file containing the data
+    samples : tuple[str]
+        The names of each of the n samples
+    variants : np.array
+        Variant-level meta information:
+            1. ID
+            2. CHROM
+            3. POS
+            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+            5. REF
+            6. ALT
+    log: Logger
+        A logging instance for recording debug statements.
+    """
+    def read(
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
+        """
+        Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
+
+        Raises
+        ------
+        ValueError
+            If the genotypes array is empty
+
+        Parameters
+        ----------
+        region: str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        samples : list[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        max_variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        """
+        super().read()
+        # initialize variables
+        vcf = VCF(str(self.fname), samples=samples)
+        self.samples = tuple(vcf.samples)
+        self.variants = []
+        self.data = []
+        if variants:
+            max_variants = len(variants)
+        self.log.debug(
+            f"Loading genotypes from {len(self.samples)} samples into memory."
+        )
+        # load all info into memory
+        # but first, check whether we can preallocate memory instead of making copies
+        if max_variants is None:
+            self.log.warning(
+                "The max_variants parameter was not specified. We have no choice but to"
+                " append to an ever-growing array, which can lead to memory overuse!"
+            )
+            for variant in vcf(region):
+                if variants is not None and variant.ID not in variants:
+                    continue
+                # save meta information about each variant
+                self.variants.append(
+                    (
+                        variant.ID,
+                        variant.CHROM,
+                        variant.POS,
+                        variant.aaf,
+                        variant.REF,
+                        variant.ALT[0],
+                    )
+                )
+                # extract the genotypes to a matrix of size n x p x 3
+                # the last dimension has three items:
+                # 1) presence of REF in strand one
+                # 2) presence of REF in strand two
+                # 3) whether the genotype is phased
+                self.data.append(variant.genotypes)
+            self.log.debug(f"Copying {len(self.variants)} variants into np arrays.")
+            # convert to np array for speedy operations later on
+            self.variants = np.array(
+                self.variants,
+                dtype=[
+                    ("id", "U50"),
+                    ("chrom", "U10"),
+                    ("pos", np.uint32),
+                    ("aaf", np.float64),
+                    ("ref", "U100"),
+                    ("alt", "U100"),
+                ],
+            )
+            self.data = np.array(self.data, dtype=np.uint8)
+        else:
+            # preallocate arrays! this will save us lots of memory and speed b/c
+            # np.append can sometimes make copies
+            self.variants = np.empty(
+                (max_variants, 4),
+                dtype=[
+                    ("id", "U50"),
+                    ("chrom", "U10"),
+                    ("pos", np.uint32),
+                    ("aaf", np.float64),
+                    ("ref", "U100"),
+                    ("alt", "U100"),
+                ],
+            )
+            self.data = np.empty((max_variants, len(self.samples), 3), dtype=np.uint8)
+            num_seen = 0
+            # save just the variant info we need and discard the rest (to save memory!)
+            for variant in vcf(region):
+                if variants is not None and variant.ID not in variants:
+                    continue
+                # save meta information about each variant
+                self.variants[num_seen] = (
+                    variant.ID,
+                    variant.CHROM,
+                    variant.POS,
+                    variant.aaf,
+                    variant.REF,
+                    variant.ALT,
+                )
+                # extract the genotypes to a matrix of size n x p x 3
+                # the last dimension has three items:
+                # 1) presence of REF in strand one
+                # 2) presence of REF in strand two
+                # 3) whether the genotype is phased
+                self.data[num_seen] = variant.genotypes
+                num_seen += 1
+            # remove any rows in the arrays that we don't need
+            if max_variants > num_seen:
+                self.log.info(
+                    f"Removing {num_seen-max_variants} unneeded variant records that "
+                    "were preallocated b/c max_variants was specified."
+                )
+                self.variants = self.variants[:num_seen]
+                self.data = self.data[:num_seen]
+        vcf.close()
+        if self.data.shape == (0, 0, 0):
+            self.log.warning(
+                "Failed to load genotypes. If you specified a region, check that the"
+                " contig name matches! For example, double-check the 'chr' prefix."
+            )
+        # transpose the GT matrix so that samples are rows and variants are columns
+        self.log.debug("Transposing genotype matrix.")
+        self.data = self.data.transpose((1, 0, 2))
+
+
 class GenotypesPLINK(Genotypes):
     """
     A class for processing genotypes from a PLINK .pgen file
@@ -386,7 +544,7 @@ class GenotypesPLINK(Genotypes):
         The genotypes in an n (samples) x p (variants) x 2 (strands) array
     samples : tuple
         The names of each of the n samples
-    variants : list
+    variants : np.array
         Variant-level meta information:
             1. ID
             2. CHROM

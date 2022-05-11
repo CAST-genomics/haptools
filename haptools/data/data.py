@@ -61,7 +61,7 @@ class Data(ABC):
         """
         Read the raw file contents into the class properties
         """
-        if self.unset():
+        if not self.unset():
             self.log.warning("The data has already been loaded. Overriding.")
 
     @abstractmethod
