@@ -13,8 +13,8 @@ import click
 from pathlib import Path
 
 # AVOID IMPORTING ANYTHING HERE
-# any imports you put here will make it slower to use the command line client
-# a basic haptools --help should be quick and require very few imports, for example
+# any imports we put here will make it slower to use the command line client
+# a basic "haptools --help" should be quick and require very few imports, for example
 
 
 @click.group()
