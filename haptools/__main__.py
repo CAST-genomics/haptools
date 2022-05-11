@@ -127,8 +127,8 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
 @click.option(
     "-o",
     "--output",
-    type=click.File("w"),
-    default="-",
+    type=click.Path(path_type=Path),
+    default=Path("-"),
     show_default="stdout",
     help="A VCF file containing haplotype 'genotypes'",
 )
@@ -146,7 +146,7 @@ def transform(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
-    output: TextIO = sys.stdout,
+    output: Path = Path("-"),
     verbosity: str = 'CRITICAL',
 ):
     """
@@ -200,7 +200,7 @@ def transform(
         samples = None
     # load data
     log.info("Loading genotypes")
-    gt = data.Genotypes(genotypes)
+    gt = data.GenotypesRefAlt(genotypes)
     gt.read(region=region, samples=samples)
     log.info("Discarding multiallelic variants")
     gt.check_biallelic(discard_also=True)
@@ -209,7 +209,8 @@ def transform(
     hp = data.Haplotypes(haplotypes, haplotype=HaptoolsHaplotype)
     hp.read(region=region)
     hp_gt = hp.transform(gt)
-    # TODO: write hp_gt to output
+    hp_gt.fname = output
+    hp_gt.write()
 
 
 if __name__ == "__main__":
