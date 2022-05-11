@@ -5,6 +5,7 @@ from collections import namedtuple
 from logging import getLogger, Logger
 
 import numpy as np
+import numpy.typing as npt
 from pysam import VariantFile
 from cyvcf2 import VCF, Variant
 
@@ -17,7 +18,7 @@ class Genotypes(Data):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         The genotypes in an n (samples) x p (variants) x 2 (strands) array
     fname : Path
         The path to the read-only file containing the data

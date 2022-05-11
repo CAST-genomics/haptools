@@ -7,6 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator
 
 import numpy as np
+import numpy.typing as npt
 from pysam import TabixFile
 
 from .data import Data
@@ -17,6 +18,7 @@ from .genotypes import GenotypesRefAlt
 class Extra:
     """
     An extra field on a line in the .hap file
+
     Attributes
     ----------
     name: str
@@ -330,7 +332,7 @@ class Haplotype:
 
     def transform(
         self, genotypes: GenotypesRefAlt, samples: list[str] = None
-    ) -> npt.NDArray[np.bool_]:
+    ) -> npt.NDArray[bool]:
         """
         Transform a genotypes matrix via the current haplotype
 
@@ -349,7 +351,7 @@ class Haplotype:
 
         Returns
         -------
-        npt.NDArray[np.bool_]
+        npt.NDArray[bool]
             A 2D matrix of shape (num_samples, 2) where each entry in the matrix
             denotes the presence of the haplotype in one chromosome of a sample
         """

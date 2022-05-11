@@ -90,7 +90,7 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     simulate_pt(vcf, hap, simu_rep, \
         simu_hsq, simu_k, simu_qt, simu_cc, out)
 
-@main.command()
+@main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
 @click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
 @click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
 @click.option(
@@ -141,7 +141,7 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     help="The level of verbosity desired",
 )
 def transform(
-    genotypes: Path,
+    gnotypes: Path,
     haplotypes: Path,
     region: str = None,
     samples: tuple[str] = tuple(),
@@ -150,14 +150,16 @@ def transform(
     verbosity: str = 'CRITICAL',
 ):
     """
-    Transform a genotypes matrix via a set of haplotypes
+    Creates a VCF composed of haplotypes
 
-    GENOTYPES must be formatted as a VCF and
+    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
+    to the .hap format spec
 
-    HAPLOTYPES must be formatted according to the .hap format spec
-
-    Ex: haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz > example_haps.vcf
     \f
+    Examples
+    --------
+    >>> haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz > example_haps.vcf
+
     Parameters
     ----------
     genotypes : Path
@@ -171,7 +173,7 @@ def transform(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
-    output : TextIO, optional
+    output : Path, optional
         The location to which to write output
     verbosity : str, optional
         The level of verbosity desired in messages written to stderr
