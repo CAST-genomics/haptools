@@ -32,17 +32,20 @@ class TestGenotypes:
     def _get_fake_genotypes(self):
         gts = Genotypes(fname=None)
         gts.data = self._get_expected_genotypes()
-        gts.variants = np.array([
-            ('1:10114:T:C', '1', 10114, 0),
-            ('1:10116:A:G', '1', 10116, 0.6),
-            ('1:10117:C:A', '1', 10117, 0),
-            ('1:10122:A:G', '1', 10122, 0),
-        ], dtype=[
-            ("id", "U50"),
-            ("chrom", "U10"),
-            ("pos", np.uint32),
-            ("aaf", np.float64),
-        ])
+        gts.variants = np.array(
+            [
+                ("1:10114:T:C", "1", 10114, 0),
+                ("1:10116:A:G", "1", 10116, 0.6),
+                ("1:10117:C:A", "1", 10117, 0),
+                ("1:10122:A:G", "1", 10122, 0),
+            ],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("aaf", np.float64),
+            ],
+        )
         gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         gts.check_phase()
         return gts
@@ -54,15 +57,18 @@ class TestGenotypes:
         gts.data = base_gts.data
         gts.samples = base_gts.samples
         # add additional ref and alt alleles
-        ref_alt = np.array([
-            ('T', 'C'),
-            ('A', 'G'),
-            ('C', 'A'),
-            ('A', 'G'),
-        ], dtype = [
-            ("ref", "U100"),
-            ("alt", "U100"),
-        ])
+        ref_alt = np.array(
+            [
+                ("T", "C"),
+                ("A", "G"),
+                ("C", "A"),
+                ("A", "G"),
+            ],
+            dtype=[
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
         # see https://stackoverflow.com/a/5356137
         gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
         return gts
@@ -428,13 +434,16 @@ class TestHaplotypes:
         os.remove("tests/data/test.hap")
 
     def test_hap_transform(self):
-        expected = np.array([
-            [0, 1],
-            [0, 1],
-            [1, 1],
-            [1, 1],
-            [0, 0],
-        ], dtype=np.uint8)
+        expected = np.array(
+            [
+                [0, 1],
+                [0, 1],
+                [1, 1],
+                [1, 1],
+                [0, 0],
+            ],
+            dtype=np.uint8,
+        )
 
         hap = list(self._get_dummy_haps().data.values())[0]
         gens = TestGenotypes()._get_fake_genotypes_refalt()
@@ -442,13 +451,16 @@ class TestHaplotypes:
         np.testing.assert_allclose(hap_gt, expected)
 
     def test_haps_transform(self):
-        expected = np.array([
-            [[0, 1], [0, 0], [0, 0]],
-            [[0, 1], [0, 0], [1, 0]],
-            [[1, 0], [0, 1], [0, 0]],
-            [[1, 1], [0, 0], [0, 0]],
-            [[0, 0], [0, 1], [1, 0]],
-        ], dtype=np.uint8)
+        expected = np.array(
+            [
+                [[0, 1], [0, 0], [0, 0]],
+                [[0, 1], [0, 0], [1, 0]],
+                [[1, 0], [0, 1], [0, 0]],
+                [[1, 1], [0, 0], [0, 0]],
+                [[0, 0], [0, 1], [1, 0]],
+            ],
+            dtype=np.uint8,
+        )
 
         haps = self._get_dummy_haps()
         gens = TestGenotypes()._get_fake_genotypes_refalt()

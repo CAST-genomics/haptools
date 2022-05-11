@@ -5,6 +5,7 @@ from collections import namedtuple
 from logging import getLogger, Logger
 
 import numpy as np
+from pysam import VariantFile
 from cyvcf2 import VCF, Variant
 
 from .data import Data
@@ -401,6 +402,7 @@ class GenotypesRefAlt(Genotypes):
     log: Logger
         A logging instance for recording debug statements.
     """
+
     def read(
         self,
         region: str = None,
@@ -532,6 +534,46 @@ class GenotypesRefAlt(Genotypes):
         # transpose the GT matrix so that samples are rows and variants are columns
         self.log.debug("Transposing genotype matrix.")
         self.data = self.data.transpose((1, 0, 2))
+
+    def write(self):
+        """
+        Write the variants in this class to a VCF
+        """
+        vcf = VariantFile(str(self.fname), mode="w")
+        # make sure the header is properly structured
+        for contig in set(self.variants["chrom"]):
+            vcf.header.contigs.add(contig)
+        for sample in self.samples:
+            vcf.header.add_sample(sample)
+        vcf.header.add_meta(
+            "FORMAT",
+            items=[
+                ("ID", "GT"),
+                ("Number", 1),
+                ("Type", "String"),
+                ("Description", "Genotype"),
+            ],
+        )
+        for var_idx, var in enumerate(self.variants):
+            rec = {
+                "contig": var["chrom"],
+                "start": var["pos"],
+                "stop": var["pos"] + 1,
+                "qual": None,
+                "alleles": tuple(var[["ref", "alt"]]),
+                "id": var["id"],
+                "filter": None,
+            }
+            # handle pysam increasing the start site by 1
+            rec["start"] -= 1
+            # parse the record into a pysam.VariantRecord
+            record = vcf.new_record(**rec)
+            for samp_idx, sample in enumerate(self.samples):
+                record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx])
+                record.samples[sample].phased = True
+            # write the record to a file
+            vcf.write(record)
+        vcf.close()
 
 
 class GenotypesPLINK(Genotypes):

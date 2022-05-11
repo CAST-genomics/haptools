@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator
 
 import numpy as np
-from pysam import VariantFile, TabixFile
+from pysam import TabixFile
 
 from .data import Data
 from .genotypes import GenotypesRefAlt
@@ -372,71 +372,10 @@ class Haplotype:
         ]
         # create a np array denoting the alleles that we want
         alleles = [int(var.allele != var_dict[var.id]) for var in self.variants]
-        allele_arr = np.array([[[al] for al in alleles]]) # shape: (1, n, 1)
+        allele_arr = np.array([[[al] for al in alleles]])  # shape: (1, n, 1)
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
-        return np.all(allele_arr == genotypes.data[:,var_idxs], axis=1)
-
-
-class HaplotypesGT(GenotypesRefAlt):
-    """
-    A class for processing haplotype genotypes from a file
-    Unlike the base Genotypes class, this class also includes REF and ALT alleles in
-    the variants array
-
-    Attributes
-    ----------
-    data : np.array
-        The genotypes in an n (samples) x p (variants) x 2 (strands) array
-    fname : Path
-        The path to the read-only file containing the data
-    samples : tuple[str]
-        The names of each of the n samples
-    variants : np.array
-        Haplotype-level meta information:
-            1. ID
-            2. CHROM
-            3. POS
-            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
-            5. REF
-            6. ALT
-    log: Logger
-        A logging instance for recording debug statements.
-    """
-
-    def write(self):
-        """
-        Write the haplotypes in this class to a VCF
-        """
-        vcf = VariantFile(str(self.fname), mode='w')
-        # make sure the header is properly structured
-        for contig in set(self.variants["chrom"]):
-            vcf.header.contigs.add(contig)
-        for sample in self.samples:
-            vcf.header.add_sample(sample)
-        vcf.header.add_meta('FORMAT', items=[
-            ('ID',"GT"), ('Number',1), ('Type','String'), ('Description','Genotype')
-        ])
-        for hap_idx, hap in enumerate(self.variants):
-            rec = {
-                'contig': hap["chrom"],
-                'start': hap["pos"],
-                'stop': hap["pos"]+1,
-                'qual': None,
-                'alleles': tuple(hap[["ref", "alt"]]),
-                'id': hap["id"],
-                'filter': None,
-            }
-            # handle pysam increasing the start site by 1
-            rec['start'] -= 1
-            # parse the record into a pysam.VariantRecord
-            record = vcf.new_record(**rec)
-            for samp_idx, sample in enumerate(self.samples):
-                record.samples[sample]['GT'] = tuple(self.data[samp_idx,hap_idx])
-                record.samples[sample].phased = True
-            # write the record to a file
-            vcf.write(record)
-        vcf.close()
+        return np.all(allele_arr == genotypes.data[:, var_idxs], axis=1)
 
 
 class Haplotypes(Data):
@@ -798,8 +737,11 @@ class Haplotypes(Data):
                 haps.write(line + "\n")
 
     def transform(
-        self, genotypes: GenotypesRefAlt, samples: list[str] = None
-    ) -> HaplotypesGT:
+        self,
+        genotypes: GenotypesRefAlt,
+        samples: list[str] = None,
+        low_memory: bool = False,
+    ) -> GenotypesRefAlt:
         """
         Transform a genotypes matrix via the current haplotype
 
@@ -815,27 +757,32 @@ class Haplotypes(Data):
             method will call Genotypes.read(), while loading only the needed variants
         samples : list[str], optional
             See documentation for :py:attr:`~.Genotypes.read`
+        low_memory : bool, optional
+            If True, each haplotype's genotypes will be loaded one at a time.
 
         Returns
         -------
-        HaplotypesGT
+        GenotypesRefAlt
             A Genotypes object composed of haplotypes instead of regular variants.
         """
-        hap_gts = HaplotypesGT(fname=None)
+        hap_gts = GenotypesRefAlt(fname=None)
         hap_gts.samples = genotypes.samples
-        hap_gts.variants = np.array([
-            (hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()
-        ], dtype=[
-            ("id", "U50"),
-            ("chrom", "U10"),
-            ("pos", np.uint32),
-            ("aaf", np.float64),
-            ("ref", "U100"),
-            ("alt", "U100"),
-        ])
+        hap_gts.variants = np.array(
+            [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("aaf", np.float64),
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
         hap_gts.data = np.concatenate(
             tuple(
-                hap.transform(genotypes, samples)[:, np.newaxis] for hap in self.data.values()
-            ), axis=1
+                hap.transform(genotypes, samples)[:, np.newaxis]
+                for hap in self.data.values()
+            ),
+            axis=1,
         ).astype(np.uint8)
         return hap_gts
