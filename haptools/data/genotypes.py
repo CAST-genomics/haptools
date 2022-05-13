@@ -31,7 +31,10 @@ class Genotypes(Data):
             3. POS
             4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
     log: Logger
-        A logging instance for recording debug statements.
+        A logging instance for recording debug statements
+    _prephased : bool
+        If True, assume that the genotypes are phased. Otherwise, extract their phase
+        when reading from the VCF.
 
     Examples
     --------
@@ -51,6 +54,7 @@ class Genotypes(Data):
             ("pos", np.uint32),
             ("aaf", np.float64),
         ])
+        self._prephased = False
 
     @classmethod
     def load(
@@ -84,7 +88,8 @@ class Genotypes(Data):
         genotypes = cls(fname)
         genotypes.read(region, samples, variants)
         genotypes.check_biallelic()
-        genotypes.check_phase()
+        if not self._prephased:
+            genotypes.check_phase()
         # genotypes.to_MAC()
         return genotypes
 
@@ -156,7 +161,8 @@ class Genotypes(Data):
             # preallocate arrays! this will save us lots of memory and speed b/c
             # appends can sometimes make copies
             self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
-            self.data = np.empty((max_variants, len(self.samples), 3), dtype=np.uint8)
+            # in order to check_phase() later, we must store the phase info, as well
+            self.data = np.empty((max_variants, len(self.samples), (2+(not self._prephased))), dtype=np.uint8)
             num_seen = 0
             for rec in records:
                 self.variants[num_seen] = rec.variants
@@ -200,7 +206,7 @@ class Genotypes(Data):
             dtype=self.variants.dtype,
         )
 
-    def _iterate(self, vcf, region: str = None, variants: set[str] = None):
+    def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
         A generator over the lines of a VCF
 
@@ -236,8 +242,9 @@ class Genotypes(Data):
             # the last dimension has three items:
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
-            # 3) whether the genotype is phased
+            # 3) whether the genotype is phased (if self._prephased is False)
             data = np.array(variant.genotypes, dtype=np.uint8)
+            data = data[:,:(2+(not self._prephased))]
             yield Record(data, variant_arr)
         vcf.close()
 
@@ -275,9 +282,6 @@ class Genotypes(Data):
 
         Raises
         ------
-        AssertionError
-            If the number of alleles has already been checked and the dtype has been
-            converted to bool
         ValueError
             If any of the genotypes have more than two alleles
 
@@ -323,12 +327,10 @@ class Genotypes(Data):
 
         Raises
         ------
-        AssertionError
-            If the phase information has already been checked and removed from the data
         ValueError
             If any heterozgyous genotpyes are unphased
         """
-        if self.data.shape[2] < 3:
+        if self._prephased or self.data.shape[2] < 3:
             self.log.warning("Phase information has already been removed from the data")
             return
         # check: are there any variants that are heterozygous and unphased?
@@ -399,7 +401,7 @@ class GenotypesRefAlt(Genotypes):
             5. REF
             6. ALT
     log: Logger
-        See documentation for :py:attr:`~.Genotypes.log`.
+        See documentation for :py:attr:`~.Genotypes.log`
     """
 
     def __init__(self, fname: Path, log: Logger = None):
@@ -413,6 +415,7 @@ class GenotypesRefAlt(Genotypes):
             ("ref", "U100"),
             ("alt", "U100"),
         ])
+        self._prephased = False
 
     def _variant_arr(self, record: Variant):
         """
