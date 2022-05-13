@@ -275,6 +275,11 @@ class Haplotype:
             extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
         return "H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}" + extras
 
+    @property
+    # TODO: use @cached_property in py3.8
+    def varIDs(self):
+        return {var.id for var in self.variants}
+
     @classmethod
     def from_hap_spec(
         cls: Haplotype, line: str, variants: tuple = tuple()
@@ -355,7 +360,7 @@ class Haplotype:
             A 2D matrix of shape (num_samples, 2) where each entry in the matrix
             denotes the presence of the haplotype in one chromosome of a sample
         """
-        var_IDs = {var.id for var in self.variants}
+        var_IDs = self.varIDs
         # check: have the genotypes been loaded yet?
         # if not, we can load just the variants we need
         if genotypes.unset():
@@ -372,6 +377,12 @@ class Haplotype:
         var_idxs = [
             idx for idx, var in enumerate(genotypes.variants) if var["id"] in var_IDs
         ]
+        missing_IDs = var_IDs - var_dict.keys()
+        if len(missing_IDs):
+            raise ValueError(
+                f"Variants {missing_IDs} are present in haplotype '{self.id}' but "
+                "absent in the provided genotypes"
+            )
         # create a np array denoting the alleles that we want
         alleles = [int(var.allele != var_dict[var.id]) for var in self.variants]
         allele_arr = np.array([[[al] for al in alleles]])  # shape: (1, n, 1)
@@ -471,7 +482,7 @@ class Haplotypes(Data):
         ValueError
             If any of the header lines are not supported
         """
-        self.log.info("Checking header.")
+        self.log.info("Checking header")
         if check_version:
             version_line = lines[0].split("\t")
             assert version_line[1] == "version", (
@@ -779,6 +790,10 @@ class Haplotypes(Data):
                 ("ref", "U100"),
                 ("alt", "U100"),
             ],
+        )
+        self.log.info(
+            f"Transforming a set of genotypes from {len(genotypes.variants)} total "
+            f"variants with a list of {len(self.data)} haplotypes"
         )
         hap_gts.data = np.concatenate(
             tuple(

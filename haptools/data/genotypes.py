@@ -475,8 +475,6 @@ class GenotypesRefAlt(Genotypes):
         # make sure the header is properly structured
         for contig in set(self.variants["chrom"]):
             vcf.header.contigs.add(contig)
-        for sample in self.samples:
-            vcf.header.add_sample(sample)
         vcf.header.add_meta(
             "FORMAT",
             items=[
@@ -486,6 +484,9 @@ class GenotypesRefAlt(Genotypes):
                 ("Description", "Genotype"),
             ],
         )
+        for sample in self.samples:
+            vcf.header.add_sample(sample)
+        self.log.info("Writing VCF records")
         for var_idx, var in enumerate(self.variants):
             rec = {
                 "contig": var["chrom"],
@@ -508,28 +509,26 @@ class GenotypesRefAlt(Genotypes):
         vcf.close()
 
 
-class GenotypesPLINK(Genotypes):
+class GenotypesPLINK(GenotypesRefAlt):
     """
     A class for processing genotypes from a PLINK .pgen file
 
     Attributes
     ----------
     data : np.array
-        The genotypes in an n (samples) x p (variants) x 2 (strands) array
+        See documentation for :py:attr:`~.GenotypesRefAlt.data`
     samples : tuple
-        The names of each of the n samples
+        See documentation for :py:attr:`~.GenotypesRefAlt.data`
     variants : np.array
-        Variant-level meta information:
-            1. ID
-            2. CHROM
-            3. POS
-            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
+        See documentation for :py:attr:`~.GenotypesRefAlt.data`
     log: Logger
-        A logging instance for recording debug statements.
+        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+    _prephased: bool
+        See documentation for :py:attr:`~.GenotypesRefAlt.data`
 
     Examples
     --------
-    >>> genotypes = Genotypes.load('tests/data/simple.pgen')
+    >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
     def read(
