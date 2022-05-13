@@ -87,6 +87,17 @@ class TestGenotypes:
         gts.read()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
+        # force one of the samples to have a missing GT and check that we get an error
+        gts.data[1, 1, 1] = -1
+        with pytest.raises(ValueError) as info:
+            gts.check_missing()
+        assert (
+            str(info.value)
+            == "Genotype with ID 1:10116:A:G at POS 1:10116 is missing for sample"
+            " HG00097"
+        )
+        gts.data[1, 1, 1] = 1
+
         # force one of the SNPs to have more than one allele and check that we get an error
         gts.data[1, 1, 1] = 2
         with pytest.raises(ValueError) as info:

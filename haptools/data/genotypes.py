@@ -87,6 +87,7 @@ class Genotypes(Data):
         """
         genotypes = cls(fname)
         genotypes.read(region, samples, variants)
+        genotypes.check_missing()
         genotypes.check_biallelic()
         if not self._prephased:
             genotypes.check_phase()
@@ -274,6 +275,46 @@ class Genotypes(Data):
         # see https://stackoverflow.com/a/36726497
         return self._iterate(vcf, region, variants)
 
+    def check_missing(self, discard_also=False):
+        """
+        Check that each sample is properly genotyped
+
+        Raises
+        ------
+        ValueError
+            If any of the samples have missing genotypes 'GT: .|.'
+
+        Parameters
+        ----------
+        discard_also : bool, optional
+            If True, discard any samples that are missing genotypes without raising a
+            ValueError
+        """
+        # check: are there any samples that have genotype values that are empty?
+        # A genotype value equal to the max for uint8 indicates the value was missing
+        missing = np.any(self.data[:, :, :2] == np.iinfo(np.uint8).max, axis=2)
+        if np.any(missing):
+            samp_idx, variant_idx = np.nonzero(missing)
+            if discard_also:
+                self.log.info(
+                    f"Ignoring missing genotypes from {len(samp_idx)} samples"
+                )
+                self.data = np.delete(self.data, samp_idx, axis=0)
+                self.samples = tuple(np.delete(self.samples, samp_idx))
+            else:
+                raise ValueError(
+                    "Genotype with ID {} at POS {}:{} is missing for sample {}"
+                    .format(
+                        *tuple(self.variants[variant_idx[0]])[:3],
+                        self.samples[samp_idx[0]],
+                    )
+                )
+        if discard_also and not self.data.shape[0]:
+            self.log.warning(
+                "All samples were discarded! Check that that none of your variants are"
+                " missing genotypes (GT: '.|.')."
+            )
+
     def check_biallelic(self, discard_also=False):
         """
         Check that each genotype is composed of only two alleles
@@ -297,10 +338,11 @@ class Genotypes(Data):
         # A genotype value above 1 would imply the variant has more than one ALT allele
         multiallelic = np.any(self.data[:, :, :2] > 1, axis=2)
         if np.any(multiallelic):
-            if discard_also:
-                self.log.info("Ignoring multiallelic variants")
             samp_idx, variant_idx = np.nonzero(multiallelic)
             if discard_also:
+                self.log.info(
+                    f"Ignoring {len(variant_idx)} multiallelic variants"
+                )
                 self.data = np.delete(self.data, variant_idx, axis=1)
                 self.variants = np.delete(self.variants, variant_idx)
             else:
@@ -314,8 +356,7 @@ class Genotypes(Data):
         if discard_also and not self.data.shape[1]:
             self.log.warning(
                 "All variants were discarded! Check that there are biallelic variants "
-                "in your dataset. Also check that none of your variants are missing "
-                "genotypes (GT: './.')."
+                "in your dataset."
             )
         self.data = self.data.astype(np.bool_)
 
