@@ -752,6 +752,7 @@ class Haplotypes(Data):
     def transform(
         self,
         genotypes: GenotypesRefAlt,
+        hap_gts: GenotypesRefAlt,
         samples: list[str] = None,
         low_memory: bool = False,
     ) -> GenotypesRefAlt:
@@ -768,6 +769,9 @@ class Haplotypes(Data):
 
             If the genotypes have not been loaded into the Genotypes object yet, this
             method will call Genotypes.read(), while loading only the needed variants
+        hap_gts: GenotypesRefAlt
+            An empty GenotypesRefAlt object into which the haplotype genotypes should
+            be stored
         samples : list[str], optional
             See documentation for :py:attr:`~.Genotypes.read`
         low_memory : bool, optional
@@ -778,7 +782,6 @@ class Haplotypes(Data):
         GenotypesRefAlt
             A Genotypes object composed of haplotypes instead of regular variants.
         """
-        hap_gts = GenotypesRefAlt(fname=None)
         hap_gts.samples = genotypes.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
@@ -802,4 +805,3 @@ class Haplotypes(Data):
             ),
             axis=1,
         ).astype(np.uint8)
-        return hap_gts

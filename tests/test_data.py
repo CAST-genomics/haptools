@@ -477,7 +477,8 @@ class TestHaplotypes:
         gens = TestGenotypes()._get_fake_genotypes_refalt()
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
-        hap_gt = haps.transform(gens)
+        hap_gt = GenotypesRefAlt(fname=None)
+        haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
         return hap_gt
 

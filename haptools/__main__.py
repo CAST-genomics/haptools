@@ -141,7 +141,7 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     help="The level of verbosity desired",
 )
 def transform(
-    gnotypes: Path,
+    genotypes: Path,
     haplotypes: Path,
     region: str = None,
     samples: tuple[str] = tuple(),
@@ -182,6 +182,7 @@ def transform(
 
     from haptools import data
     from .haplotype import HaptoolsHaplotype
+
     log = logging.getLogger("run")
     logging.basicConfig(
         format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
@@ -200,18 +201,23 @@ def transform(
         samples = list(samples)
     else:
         samples = None
-    # load data
+
+    log.info("Loading haplotypes")
+    hp = data.Haplotypes(haplotypes)
+    hp.read(region=region)
+    log.info("Extracting variants from haplotypes")
+    variants = {var.id for hap in hp.data.values() for var in hap.variants}
     log.info("Loading genotypes")
-    gt = data.GenotypesRefAlt(genotypes)
-    gt.read(region=region, samples=samples)
-    log.info("Discarding multiallelic variants")
+    gt = data.GenotypesRefAlt(genotypes, log=log)
+    # gt._prephased = True
+    gt.read(region=region, samples=samples, variants=variants)
+    gt.check_missing(discard_also=True)
     gt.check_biallelic(discard_also=True)
     gt.check_phase()
-    log.info("Loading haplotypes")
-    hp = data.Haplotypes(haplotypes, haplotype=HaptoolsHaplotype)
-    hp.read(region=region)
-    hp_gt = hp.transform(gt)
-    hp_gt.fname = output
+    log.info("Transforming genotypes via haplotypes")
+    hp_gt = data.GenotypesRefAlt(fname=output, log=log)
+    hp.transform(gt, hp_gt)
+    log.info("Writing haplotypes to VCF")
     hp_gt.write()
 
 
