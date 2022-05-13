@@ -45,7 +45,12 @@ class Genotypes(Data):
     def __init__(self, fname: Path, log: Logger = None):
         super().__init__(fname, log)
         self.samples = tuple()
-        self.variants = np.array([])
+        self.variants = np.array([], dtype=[
+            ("id", "U50"),
+            ("chrom", "U10"),
+            ("pos", np.uint32),
+            ("aaf", np.float64),
+        ])
 
     @classmethod
     def load(
@@ -129,97 +134,112 @@ class Genotypes(Data):
             Note that this value is ignored if the variants argument is provided.
         """
         super().read()
-        # initialize variables
-        vcf = VCF(str(self.fname), samples=samples)
-        self.samples = tuple(vcf.samples)
-        self.variants = []
-        self.data = []
-        if variants:
+        records = self.__iter__(region=region, samples=samples, variants=variants)
+        if variants is not None:
             max_variants = len(variants)
-        self.log.debug(
-            f"Loading genotypes from {len(self.samples)} samples into memory."
-        )
-        # load all info into memory
-        # but first, check whether we can preallocate memory instead of making copies
+        # check whether we can preallocate memory instead of making copies
         if max_variants is None:
             self.log.warning(
                 "The max_variants parameter was not specified. We have no choice but to"
                 " append to an ever-growing array, which can lead to memory overuse!"
             )
-            for variant in vcf(region):
-                if variants is not None and variant.ID not in variants:
-                    continue
-                # save meta information about each variant
-                self.variants.append(
-                    (variant.ID, variant.CHROM, variant.POS, variant.aaf)
-                )
-                # extract the genotypes to a matrix of size n x p x 3
-                # the last dimension has three items:
-                # 1) presence of REF in strand one
-                # 2) presence of REF in strand two
-                # 3) whether the genotype is phased
-                self.data.append(variant.genotypes)
-            self.log.debug(f"Copying {len(self.variants)} variants into np arrays.")
+            variants_arr = []
+            data_arr = []
+            for rec in records:
+                variants_arr.append(rec.variants)
+                data_arr.append(rec.data)
+            self.log.info(f"Copying {len(variants_arr)} variants into np arrays.")
             # convert to np array for speedy operations later on
-            self.variants = np.array(
-                self.variants,
-                dtype=[
-                    ("id", "U50"),
-                    ("chrom", "U10"),
-                    ("pos", np.uint32),
-                    ("aaf", np.float64),
-                ],
-            )
-            self.data = np.array(self.data, dtype=np.uint8)
+            self.variants = np.array(variants_arr, dtype=self.variants.dtype)
+            self.data = np.array(data_arr, dtype=np.uint8)
         else:
             # preallocate arrays! this will save us lots of memory and speed b/c
-            # np.append can sometimes make copies
-            self.variants = np.empty(
-                (max_variants, 4),
-                dtype=[
-                    ("id", "U50"),
-                    ("chrom", "U10"),
-                    ("pos", np.uint32),
-                    ("aaf", np.float64),
-                ],
-            )
+            # appends can sometimes make copies
+            self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
             self.data = np.empty((max_variants, len(self.samples), 3), dtype=np.uint8)
             num_seen = 0
-            # save just the variant info we need and discard the rest (to save memory!)
-            for variant in vcf(region):
-                if variants is not None and variant.ID not in variants:
-                    continue
-                # save meta information about each variant
-                self.variants[num_seen] = (
-                    variant.ID,
-                    variant.CHROM,
-                    variant.POS,
-                    variant.aaf,
-                )
-                # extract the genotypes to a matrix of size n x p x 3
-                # the last dimension has three items:
-                # 1) presence of REF in strand one
-                # 2) presence of REF in strand two
-                # 3) whether the genotype is phased
-                self.data[num_seen] = variant.genotypes
+            for rec in records:
+                self.variants[num_seen] = rec.variants
+                self.data[num_seen] = rec.data
                 num_seen += 1
-            # remove any rows in the arrays that we don't need
             if max_variants > num_seen:
                 self.log.info(
-                    f"Removing {num_seen-max_variants} unneeded variant records that "
+                    f"Removing {max_variants-num_seen} unneeded variant records that "
                     "were preallocated b/c max_variants was specified."
                 )
                 self.variants = self.variants[:num_seen]
                 self.data = self.data[:num_seen]
-        vcf.close()
         if self.data.shape == (0, 0, 0):
             self.log.warning(
                 "Failed to load genotypes. If you specified a region, check that the"
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
         # transpose the GT matrix so that samples are rows and variants are columns
-        self.log.debug("Transposing genotype matrix.")
+        self.log.info("Transposing genotype matrix.")
         self.data = self.data.transpose((1, 0, 2))
+
+    def _variant_arr(self, record: Variant):
+        """
+        Construct a np array from the metadata in a line of the VCF
+
+        This is a helper function for :py:meth:`~.Genotypes._iterate`. It's separate
+        so that it can easily be overridden in any child classes.
+
+        Parameters
+        ----------
+        record: Variant
+            A cyvcf2.Variant object from which to fetch metadata
+
+        Returns
+        -------
+        npt.NDArray
+            A row from the :py:attr:`~.Genotypes.variants` array
+        """
+        return np.array(
+            (record.ID, record.CHROM, record.POS, record.aaf),
+            dtype=self.variants.dtype,
+        )
+
+    def _iterate(self, vcf, region: str = None, variants: set[str] = None):
+        """
+        A generator over the lines of a VCF
+
+        This is a helper function for :py:meth:`~.Genotypes.__iter__`
+
+        Parameters
+        ----------
+        vcf: VCF
+            The cyvcf2.VCF object from which to fetch variant records
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        self.log.info(
+            f"Loading genotypes from {len(self.samples)} samples"
+        )
+        Record = namedtuple("Record", "data variants")
+        # iterate over each line in the VCF
+        # note, this can take a lot of time if there are many samples
+        for variant in vcf(region):
+            if variants is not None and variant.ID not in variants:
+                continue
+            # save meta information about each variant
+            variant_arr = self._variant_arr(variant)
+            # extract the genotypes to a matrix of size 1 x p x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased
+            data = np.array(variant.genotypes, dtype=np.uint8)
+            yield Record(data, variant_arr)
+        vcf.close()
 
     def __iter__(
         self, region: str = None, samples: list[str] = None, variants: set[str] = None
@@ -230,52 +250,22 @@ class Genotypes(Data):
         Parameters
         ----------
         region : str, optional
-            The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'
-
-            For this to work, the VCF must be indexed and the seqname must match!
-
-            Defaults to loading all genotypes
+            See documentation for :py:meth:`~.Genotypes.read`
         samples : list[str], optional
-            A subset of the samples from which to extract genotypes
-
-            Defaults to loading genotypes from all samples
+            See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
-            A set of variant IDs for which to extract genotypes
+            See documentation for :py:meth:`~.Genotypes.read`
 
-            All other variants will be ignored. This may be useful if you're running
-            out of memory.
-
-        Yields
-        ------
+        Returns
+        -------
         Iterator[namedtuple]
-            An iterator over each line in the file, where each line is encoded as a
-            namedtuple containing each of the class properties
+            See documentation for :py:meth:`~.Genotypes._iterate`
         """
-        vcf = VCF(str(self.fname), samples=samples)
-        samples = tuple(vcf.samples)
-        Record = namedtuple("Record", "data samples variants")
-        # load all info into memory
-        for variant in vcf(region):
-            if variants is not None and variant.ID not in variants:
-                continue
-            # save meta information about each variant
-            variant_arr = np.array(
-                (variant.ID, variant.CHROM, variant.POS, variant.aaf),
-                dtype=[
-                    ("id", "U50"),
-                    ("chrom", "U10"),
-                    ("pos", np.uint32),
-                    ("aaf", np.float64),
-                ],
-            )
-            # extract the genotypes to a matrix of size 1 x p x 3
-            # the last dimension has three items:
-            # 1) presence of REF in strand one
-            # 2) presence of REF in strand two
-            # 3) whether the genotype is phased
-            data = np.array(variant.genotypes, dtype=np.uint8)
-            yield Record(data, samples, variant_arr)
-        vcf.close()
+        vcf = VCF(str(self.fname), samples=samples, lazy=True)
+        self.samples = tuple(vcf.samples)
+        # call another function to force the lines above to be run immediately
+        # see https://stackoverflow.com/a/36726497
+        return self._iterate(vcf, region, variants)
 
     def check_biallelic(self, discard_also=False):
         """
@@ -303,6 +293,8 @@ class Genotypes(Data):
         # A genotype value above 1 would imply the variant has more than one ALT allele
         multiallelic = np.any(self.data[:, :, :2] > 1, axis=2)
         if np.any(multiallelic):
+            if discard_also:
+                self.log.info("Ignoring multiallelic variants")
             samp_idx, variant_idx = np.nonzero(multiallelic)
             if discard_also:
                 self.data = np.delete(self.data, variant_idx, axis=1)
@@ -315,6 +307,12 @@ class Genotypes(Data):
                         self.samples[samp_idx[0]],
                     )
                 )
+        if discard_also and not self.data.shape[1]:
+            self.log.warning(
+                "All variants were discarded! Check that there are biallelic variants "
+                "in your dataset. Also check that none of your variants are missing "
+                "genotypes (GT: './.')."
+            )
         self.data = self.data.astype(np.bool_)
 
     def check_phase(self):
@@ -387,11 +385,11 @@ class GenotypesRefAlt(Genotypes):
     Attributes
     ----------
     data : np.array
-        The genotypes in an n (samples) x p (variants) x 2 (strands) array
+        See documentation for :py:attr:`~.Genotypes.data`
     fname : Path
-        The path to the read-only file containing the data
+        See documentation for :py:attr:`~.Genotypes.fname`
     samples : tuple[str]
-        The names of each of the n samples
+        See documentation for :py:attr:`~.Genotypes.samples`
     variants : np.array
         Variant-level meta information:
             1. ID
@@ -401,144 +399,33 @@ class GenotypesRefAlt(Genotypes):
             5. REF
             6. ALT
     log: Logger
-        A logging instance for recording debug statements.
+        See documentation for :py:attr:`~.Genotypes.log`.
     """
 
-    def read(
-        self,
-        region: str = None,
-        samples: list[str] = None,
-        variants: set[str] = None,
-        max_variants: int = None,
-    ):
-        """
-        Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
+    def __init__(self, fname: Path, log: Logger = None):
+        super(Genotypes, self).__init__(fname, log)
+        self.samples = tuple()
+        self.variants = np.array([], dtype=[
+            ("id", "U50"),
+            ("chrom", "U10"),
+            ("pos", np.uint32),
+            ("aaf", np.float64),
+            ("ref", "U100"),
+            ("alt", "U100"),
+        ])
 
-        Raises
-        ------
-        ValueError
-            If the genotypes array is empty
-
-        Parameters
-        ----------
-        region: str, optional
-            See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
-            See documentation for :py:meth:`~.Genotypes.read`
-        variants : set[str], optional
-            See documentation for :py:meth:`~.Genotypes.read`
-        max_variants : set[str], optional
-            See documentation for :py:meth:`~.Genotypes.read`
+    def _variant_arr(self, record: Variant):
         """
-        super().read()
-        # initialize variables
-        vcf = VCF(str(self.fname), samples=samples)
-        self.samples = tuple(vcf.samples)
-        self.variants = []
-        self.data = []
-        if variants:
-            max_variants = len(variants)
-        self.log.debug(
-            f"Loading genotypes from {len(self.samples)} samples into memory."
+        See documentation for :py:meth:`~.Genotypes._variant_arr`
+        """
+        return np.array(
+            (record.ID, record.CHROM, record.POS, record.aaf, record.REF, record.ALT[0]),
+            dtype=self.variants.dtype,
         )
-        # load all info into memory
-        # but first, check whether we can preallocate memory instead of making copies
-        if max_variants is None:
-            self.log.warning(
-                "The max_variants parameter was not specified. We have no choice but to"
-                " append to an ever-growing array, which can lead to memory overuse!"
-            )
-            for variant in vcf(region):
-                if variants is not None and variant.ID not in variants:
-                    continue
-                # save meta information about each variant
-                self.variants.append(
-                    (
-                        variant.ID,
-                        variant.CHROM,
-                        variant.POS,
-                        variant.aaf,
-                        variant.REF,
-                        variant.ALT[0],
-                    )
-                )
-                # extract the genotypes to a matrix of size n x p x 3
-                # the last dimension has three items:
-                # 1) presence of REF in strand one
-                # 2) presence of REF in strand two
-                # 3) whether the genotype is phased
-                self.data.append(variant.genotypes)
-            self.log.debug(f"Copying {len(self.variants)} variants into np arrays.")
-            # convert to np array for speedy operations later on
-            self.variants = np.array(
-                self.variants,
-                dtype=[
-                    ("id", "U50"),
-                    ("chrom", "U10"),
-                    ("pos", np.uint32),
-                    ("aaf", np.float64),
-                    ("ref", "U100"),
-                    ("alt", "U100"),
-                ],
-            )
-            self.data = np.array(self.data, dtype=np.uint8)
-        else:
-            # preallocate arrays! this will save us lots of memory and speed b/c
-            # np.append can sometimes make copies
-            self.variants = np.empty(
-                (max_variants, 4),
-                dtype=[
-                    ("id", "U50"),
-                    ("chrom", "U10"),
-                    ("pos", np.uint32),
-                    ("aaf", np.float64),
-                    ("ref", "U100"),
-                    ("alt", "U100"),
-                ],
-            )
-            self.data = np.empty((max_variants, len(self.samples), 3), dtype=np.uint8)
-            num_seen = 0
-            # save just the variant info we need and discard the rest (to save memory!)
-            for variant in vcf(region):
-                if variants is not None and variant.ID not in variants:
-                    continue
-                # save meta information about each variant
-                self.variants[num_seen] = (
-                    variant.ID,
-                    variant.CHROM,
-                    variant.POS,
-                    variant.aaf,
-                    variant.REF,
-                    variant.ALT,
-                )
-                # extract the genotypes to a matrix of size n x p x 3
-                # the last dimension has three items:
-                # 1) presence of REF in strand one
-                # 2) presence of REF in strand two
-                # 3) whether the genotype is phased
-                self.data[num_seen] = variant.genotypes
-                num_seen += 1
-            # remove any rows in the arrays that we don't need
-            if max_variants > num_seen:
-                self.log.info(
-                    f"Removing {num_seen-max_variants} unneeded variant records that "
-                    "were preallocated b/c max_variants was specified."
-                )
-                self.variants = self.variants[:num_seen]
-                self.data = self.data[:num_seen]
-        vcf.close()
-        if self.data.shape == (0, 0, 0):
-            self.log.warning(
-                "Failed to load genotypes. If you specified a region, check that the"
-                " contig name matches! For example, double-check the 'chr' prefix."
-            )
-        # transpose the GT matrix so that samples are rows and variants are columns
-        self.log.debug("Transposing genotype matrix.")
-        self.data = self.data.transpose((1, 0, 2))
 
     def write(self):
         """
-        Write the variants in this class to a VCF
+        Write the variants in this class to a VCF at :py:attr:`~.GenotypesRefAlt.fname`
         """
         vcf = VariantFile(str(self.fname), mode="w")
         # make sure the header is properly structured

@@ -144,7 +144,7 @@ class TestGenotypes:
         gts = Genotypes(DATADIR.joinpath("simple.vcf"))
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data, expected[idx])
-            assert line.samples == samples
+        assert gts.samples == samples
 
     def test_load_genotypes_discard_multiallelic(self):
         expected = self._get_expected_genotypes()
