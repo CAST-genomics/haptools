@@ -38,8 +38,8 @@ class PhenoSimulator:
         simu_cc: bool = False,
     ) -> Phenotypes:
         effect = np.array([hap.beta for hap in haps.data.values()])
-        data = self.haps_gts.data.sum(axis=2)
-        pt = np.sum(effect * (data - data.mean(axis=0)) / np.std(axis=0))
+        gts = self.haps_gts.data.sum(axis=2)
+        pt = np.sum(effect * (gts - gts.mean(axis=0)) / gts.std(axis=0))
         phens = np.empty((len(self.genotypes.samples)), dtype=np.float64)
 
         # Simulate and write
@@ -68,6 +68,7 @@ def simulate_pt(
 
     # Initialize phenotype simulator (haptools simphenotypes)
     pt_sim = PhenoSimulator(gens, haps)
+    phens = pt_sim.run()
 
     # Set up file to write summary info
     outf_sum = open("%s.par" % outprefix, "w")
