@@ -1,40 +1,89 @@
-"""
-Example test command:
+from __future__ import annotations
+from logging import getLogger, Logger
 
-haptools simphenotype --vcf tests/data/simple.vcf.gz --hap tests/data/simple.hap.gz \
-	--out test --simu-qt  --simu-hsq 0.8 --simu-rep 2
-"""
+from haplotype import HaptoolsHaplotype as Haplotype
+from .data import GenotypesRefAlt, Phenotypes, Haplotypes
 
-from cyvcf2 import VCF
 
-from .haplotypes import *
+class PhenoSimulator:
+    """
+    Simulate phenotypes from genotypes
 
-def simulate_pt(vcffile, hapfile, simu_rep, \
-        simu_hsq, simu_k, simu_qt, simu_cc, outprefix):
+    Attributes
+    ----------
+    gens: GenotypesRefAlt
+        A set of genotypes to use when simulating phenotypes
+    haps: Haplotypes
+        A set of haplotypes to use as causal variables in the simulation
+    haps_gts: GenotypesRefAlt
+        Genotypes for each haplotype
+    log: Logger
+        A logging instance for recording debug statements
+    """
 
-	# Initialize readers
-	vcf_reader = VCF(vcffile, gts012=True)
-	hap_reader = HapReader(hapfile)
+    def __init__(
+        self, genotypes: GenotypesRefAlt, haplotypes: Haplotypes, log: Logger = None
+    ):
+        self.gens = genotypes
+        self.haps = haplotypes
+        self.log = log or getLogger(self.__class__.__name__)
+        self.haps_gts = self.haps.transform(self.gens)
 
-	# Initialize phenotype simulator (haptools simphenotypes)
-	pt_sim = PhenoSimulator(vcf_reader.samples)
+    def run(
+        self,
+        simu_rep: int,
+        simu_hsq: float,
+        simu_k: float,
+        simu_qt: bool = False,
+        simu_cc: bool = False,
+    ) -> Phenotypes:
+        effect = np.array([hap.beta for hap in haps.data.values()])
+        data = self.haps_gts.data.sum(axis=2)
+        pt = np.sum(effect * (data - data.mean(axis=0)) / np.std(axis=0))
+        phens = np.empty((len(self.genotypes.samples)), dtype=np.float64)
 
-	# Set up file to write summary info
-	outf_sum = open("%s.par"%outprefix, "w")
-	outf_sum.write("\t".join(["Haplotype", "Frequency", "Effect"])+"\n")
+        # Simulate and write
+        for i in range(simu_rep):
+            resid_component = np.random.normal(0, np.var(pt) * (1 / simu_hsq - 1))
+            if simu_qt:
+                outinfo.append(pt + resid_component)
+            else:
+                raise NotImplementedError("Case control not implemented")
 
-	# Add effect for each haplotype
-	for hap in hap_reader:
-		sample_to_hap = hap.Transform(vcf_reader)
-		pt_sim.AddEffect(sample_to_hap, hap.hap_effect)
 
-		# Output summary info
-		hap_freq = hap.GetFrequency(vcf_reader)
-		outf_sum.write("\t".join([hap.hap_id, str(hap_freq), str(hap.hap_effect)])+"\n")
+def simulate_pt(
+    genotypes: Path,
+    haplotypes: Path,
+    phenotypes: Path,
+    simu_rep: int,
+    simu_hsq: float,
+    simu_k: float,
+    simu_qt: bool = False,
+    simu_cc: bool = False,
+):
+    # Initialize readers
+    gens = GenotypesRefAlt.load(genotypes)
+    haps = Haplotypes(haplotypes, haplotype=Haplotype)
+    haps.read()
 
-	# Output simulated phenotypes to a file (haptools simphenotypes)
-	pt_sim.WritePhenotypes(outprefix, simu_rep, simu_hsq, \
-		simu_k, simu_qt, simu_cc)
+    # Initialize phenotype simulator (haptools simphenotypes)
+    pt_sim = PhenoSimulator(gens, haps)
 
-	# Done
-	outf_sum.close()
+    # Set up file to write summary info
+    outf_sum = open("%s.par" % outprefix, "w")
+    outf_sum.write("\t".join(["Haplotype", "Frequency", "Effect"]) + "\n")
+
+    # Add effect for each haplotype
+    for idx, hap in enumerate(haps.data.values()):
+        sample_to_hap = hap.transform(gens)
+        pt_sim.add_effect(sample_to_hap, hap.beta)
+
+        # Output summary info
+        hap_freq = hap.GetFrequency(gens)
+        outf_sum.write("\t".join([hap.id, str(hap_freq), str(hap.beta)]) + "\n")
+
+    # Output simulated phenotypes to a file (haptools simphenotypes)
+    pt_sim.run(outprefix, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc)
+
+    # Done
+    outf_sum.close()
