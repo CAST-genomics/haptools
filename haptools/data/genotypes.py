@@ -48,12 +48,15 @@ class Genotypes(Data):
     def __init__(self, fname: Path, log: Logger = None):
         super().__init__(fname, log)
         self.samples = tuple()
-        self.variants = np.array([], dtype=[
-            ("id", "U50"),
-            ("chrom", "U10"),
-            ("pos", np.uint32),
-            ("aaf", np.float64),
-        ])
+        self.variants = np.array(
+            [],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("aaf", np.float64),
+            ],
+        )
         self._prephased = False
 
     @classmethod
@@ -163,7 +166,10 @@ class Genotypes(Data):
             # appends can sometimes make copies
             self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
             # in order to check_phase() later, we must store the phase info, as well
-            self.data = np.empty((max_variants, len(self.samples), (2+(not self._prephased))), dtype=np.uint8)
+            self.data = np.empty(
+                (max_variants, len(self.samples), (2 + (not self._prephased))),
+                dtype=np.uint8,
+            )
             num_seen = 0
             for rec in records:
                 self.variants[num_seen] = rec.variants
@@ -228,9 +234,7 @@ class Genotypes(Data):
             An iterator over each line in the file, where each line is encoded as a
             namedtuple containing each of the class properties
         """
-        self.log.info(
-            f"Loading genotypes from {len(self.samples)} samples"
-        )
+        self.log.info(f"Loading genotypes from {len(self.samples)} samples")
         Record = namedtuple("Record", "data variants")
         # iterate over each line in the VCF
         # note, this can take a lot of time if there are many samples
@@ -245,7 +249,7 @@ class Genotypes(Data):
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased (if self._prephased is False)
             data = np.array(variant.genotypes, dtype=np.uint8)
-            data = data[:,:(2+(not self._prephased))]
+            data = data[:, : (2 + (not self._prephased))]
             yield Record(data, variant_arr)
         vcf.close()
 
@@ -303,8 +307,7 @@ class Genotypes(Data):
                 self.samples = tuple(np.delete(self.samples, samp_idx))
             else:
                 raise ValueError(
-                    "Genotype with ID {} at POS {}:{} is missing for sample {}"
-                    .format(
+                    "Genotype with ID {} at POS {}:{} is missing for sample {}".format(
                         *tuple(self.variants[variant_idx[0]])[:3],
                         self.samples[samp_idx[0]],
                     )
@@ -340,9 +343,7 @@ class Genotypes(Data):
         if np.any(multiallelic):
             samp_idx, variant_idx = np.nonzero(multiallelic)
             if discard_also:
-                self.log.info(
-                    f"Ignoring {len(variant_idx)} multiallelic variants"
-                )
+                self.log.info(f"Ignoring {len(variant_idx)} multiallelic variants")
                 self.data = np.delete(self.data, variant_idx, axis=1)
                 self.variants = np.delete(self.variants, variant_idx)
             else:
@@ -448,14 +449,17 @@ class GenotypesRefAlt(Genotypes):
     def __init__(self, fname: Path, log: Logger = None):
         super(Genotypes, self).__init__(fname, log)
         self.samples = tuple()
-        self.variants = np.array([], dtype=[
-            ("id", "U50"),
-            ("chrom", "U10"),
-            ("pos", np.uint32),
-            ("aaf", np.float64),
-            ("ref", "U100"),
-            ("alt", "U100"),
-        ])
+        self.variants = np.array(
+            [],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("aaf", np.float64),
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
         self._prephased = False
 
     def _variant_arr(self, record: Variant):
@@ -463,7 +467,14 @@ class GenotypesRefAlt(Genotypes):
         See documentation for :py:meth:`~.Genotypes._variant_arr`
         """
         return np.array(
-            (record.ID, record.CHROM, record.POS, record.aaf, record.REF, record.ALT[0]),
+            (
+                record.ID,
+                record.CHROM,
+                record.POS,
+                record.aaf,
+                record.REF,
+                record.ALT[0],
+            ),
             dtype=self.variants.dtype,
         )
 
@@ -485,6 +496,8 @@ class GenotypesRefAlt(Genotypes):
             ],
         )
         for sample in self.samples:
+            # TODO: figure out how to make this work for large datasets
+            # it gets stuck and takes a long time to exit this loop
             vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
         for var_idx, var in enumerate(self.variants):
