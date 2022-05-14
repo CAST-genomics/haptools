@@ -1,4 +1,5 @@
 from __future__ import annotations
+from csv import reader
 from pathlib import Path
 from typing import Iterator
 from collections import namedtuple
@@ -6,8 +7,8 @@ from logging import getLogger, Logger
 
 import numpy as np
 import numpy.typing as npt
-from pysam import VariantFile
 from cyvcf2 import VCF, Variant
+from pysam import VariantFile, TabixFile
 
 from .data import Data
 
@@ -526,6 +527,8 @@ class GenotypesPLINK(GenotypesRefAlt):
     """
     A class for processing genotypes from a PLINK .pgen file
 
+    NOTE: this class is still under-development and NOT fit for usage
+
     Attributes
     ----------
     data : np.array
@@ -544,6 +547,85 @@ class GenotypesPLINK(GenotypesRefAlt):
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
+    def read_variants(
+        self,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
+        """
+        Read variants from a PVAR file into a numpy array stored in
+        :py:attr:`~.GenotypesPLINK.variants`
+
+        One of either variants or max_variants MUST be specified!
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+        variants : set[str], optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+        max_variants : int, optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+
+        Returns
+        -------
+        npt.NDArray[np.uint32]
+            The indices of each of the variants within the PVAR file
+        """
+        if len(self.variants) != 0:
+            self.log.warning("Variant data has already been loaded. Overriding.")
+        if variants is not None:
+            max_variants = len(variants)
+        if max_variants is None:
+            raise ValueError("Provide either the variants or max_variants parameter!")
+        # TODO: try using pysam.tabix_iterator with the parser param specified for VCF
+        if region:
+            pvar = TabixFile(str(self.fname.with_suffix(".pvar")))
+            pvariants = pvar.fetch(region)
+        else:
+            pvar = hook_compressed(self.fname.with_suffix(".pvar"), mode="rt")
+            pvariants = reader(pvar, delimiter="\t")
+        # first, preallocate the array
+        self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
+        header = next(pvariants)
+        # there should be at least five columns
+        if len(header) < 5:
+            raise ValueError("Your PVAR file should have at least five columns.")
+        if header[0][0] == "#":
+            header[0] = header[0][1:]
+        else:
+            raise ValueError("Your PVAR file is missing a header!")
+            header = ["CHROM", "POS", "ID", "REF", "ALT"]
+            self.log.info(
+                "Your PVAR file lacks a proper header! Assuming first five columns"
+                " are [CHROM, POS, ID, REF, ALT] in that order..."
+            )
+            # TODO: add header back in to pvariants using itertools.chain?
+        cid = {item: header.index(item.upper()) for item in self.variants.dtype.names}
+        if variants is not None:
+            indices = np.empty((max_variants,), dtype=np.uint32)
+        num_seen = 0
+        for ct, rec in enumerate(pvariants):
+            if variants is not None:
+                if rec[cid["id"]] not in variants:
+                    continue
+                indices[num_seen] = ct
+            self.variants[num_seen] = np.array(
+                (
+                    rec[cid["id"]],
+                    rec[cid["chrom"]],
+                    rec[cid["pos"]],
+                    0,
+                    rec[cid["ref"]],
+                    rec[cid["alt"]],
+                ),
+                dtype=self.variants.dtype,
+            )
+            num_seen += 1
+        pvar.close()
+        if variants is not None:
+            return indices
+
     def read(
         self,
         region: str = None,
@@ -552,58 +634,44 @@ class GenotypesPLINK(GenotypesRefAlt):
         max_variants: int = None,
     ):
         """
-        Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
+        Read genotypes from a PGEN file into a numpy matrix stored in
+        :py:attr:`~.GenotypesPLINK.data`
 
         Parameters
         ----------
         region : str, optional
-            The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'
-
-            For this to work, the VCF must be indexed and the seqname must match!
-
-            Defaults to loading all genotypes
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
         samples : list[str], optional
-            A subset of the samples from which to extract genotypes
-
-            Defaults to loading genotypes from all samples
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
         variants : set[str], optional
-            A set of variant IDs for which to extract genotypes
-
-            All other variants will be ignored. This may be useful if you're running
-            out of memory.
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
         max_variants : int, optional
-            The maximum mumber of variants to load from the file. Setting this value
-            helps preallocate the arrays, making the process faster and less memory
-            intensive. You should use this option if your processes are frequently
-            "Killed" from memory overuse.
-
-            If you don't know how many variants there are, set this to a large number
-            greater than what you would except. The np array will be resized
-            appropriately. You can also use the bcftools "counts" plugin to obtain the
-            number of expected sites within a region.
-
-            Note that this value is ignored if the variants argument is provided.
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
         """
         super().read()
-        variant_ct_start = 0
-        if max_variants is None:
-            # TODO: load the variant-level info from the .pvar file
-            # and use that info to figure out how many variants there are in the region
-            variant_ct_end = None
-        else:
-            variant_ct_end = max_variants or len(variants)
-        variant_ct = variant_ct_end - variant_ct_start
         # load the pgen-reader file
         # note: very little is loaded into memory at this point
-        # TODO: figure out how to install this package or just use hail
+        # TODO: figure out how to install this package
         from pgenlib import PgenReader
 
         pgen = PgenReader(bytes(self.fname, "utf8"))
+
+        if variants is not None:
+            max_variants = len(variants)
+        if max_variants is None:
+            # use the pgen file to figure out how many variants there are
+            max_variants = pgen.get_variant_ct()
+        indices = self.read_variants(region, variants, max_variants)
+
+        variant_ct_start = 0
+        variant_ct_end = max_variants
+        variant_ct = variant_ct_end - variant_ct_start
+
         sample_ct = pgen.get_raw_sample_ct()
         # the genotypes start out as a simple 2D array with twice the number of samples
         # so each column is a different chromosomal strand
-        self.data = np.empty((variant_ct, sample_ct * 2), dtype=np.uint32)
-        pgen.read_alleles_range(variant_ct_start, variant_ct_end, self.data)
+        self.data = np.empty((variant_ct, sample_ct * 2), dtype=np.int32)
+        pgen.read_alleles(indices, self.data)
         # extract the genotypes to a np matrix of size n x p x 2
         # the last dimension has two items:
         # 1) presence of REF in strand one
