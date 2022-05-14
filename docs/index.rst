@@ -4,12 +4,13 @@
    :parser: myst_parser.sphinx_
 
 .. toctree::
-   :caption: Execution
-   :name: executing
+   :caption: File Formats
+   :name: formats
    :hidden:
    :maxdepth: 1
 
-   executing/inputs.rst
+   formats/inputs.rst
+   formats/haplotypes.rst
 
 .. toctree::
    :caption: Commands
@@ -18,6 +19,8 @@
    :maxdepth: 1
 
    commands/simgenotype.rst
+   commands/simphenotype.rst
+   commands/transform.rst
 
 .. toctree::
    :caption: API

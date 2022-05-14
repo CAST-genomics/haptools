@@ -2,6 +2,7 @@ from __future__ import annotations
 from csv import reader
 from pathlib import Path
 from collections import namedtuple
+from logging import getLogger, Logger
 from fileinput import hook_compressed
 
 import numpy as np
@@ -97,7 +98,7 @@ class Phenotypes(Data):
         # coerce strings to floats
         self.data = np.array(self.data, dtype="float64")
 
-    def iterate(self, samples: list[str] = None) -> Iterator[namedtuple]:
+    def __iter__(self, samples: list[str] = None) -> Iterator[namedtuple]:
         """
         Read phenotypes from a TSV line by line without storing anything
 

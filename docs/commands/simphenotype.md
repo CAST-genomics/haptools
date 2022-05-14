@@ -1,4 +1,4 @@
-# Haptools simphenotype
+# simphenotype
 
 Haptools simphenotype simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. It takes causal effects and genotypes as input and outputs simulated phenotypes.
 
@@ -19,9 +19,9 @@ haptools simphenotype \
 
 Required parameters:
 
-* `--vcf <string>`: A bgzipped, tabix-indexed, phased VCF file. If you are simulating local-ancestry effects, the VCF file must contain the `FORMAT/LA` tag included in output of `haptools simgenotype`. See [haptools file formats](../../docs/project_info/haptools_file_formats.rst) for more details.
+* `--vcf <string>`: A bgzipped, tabix-indexed, phased VCF file. If you are simulating local-ancestry effects, the VCF file must contain the `FORMAT/LA` tag included in output of `haptools simgenotype`. See [haptools file formats](../../docs/formats/inputs.rst) for more details.
 
-* `--hap <string>`: A bgzipped, tabix-indexed HAP file, which specifies causal effects. This is a custom format described in more detail in [haptools file formats](../../docs/project_info/haptools_file_formats.rst). The HAP format enables flexible specification of a range of effect types including traditional variant-level effects, haplotype-level effects, associations with repeat lengths at short tandem repeats, and interaction of these effects with local ancestry labels. See [Examples](#examples) below for detailed examples of how to specify effects.
+* `--hap <string>`: A bgzipped, tabix-indexed HAP file, which specifies causal effects. This is a custom format described in more detail in [haptools file formats](../../docs/formats/haplotypes.rst). The HAP format enables flexible specification of a range of effect types including traditional variant-level effects, haplotype-level effects, associations with repeat lengths at short tandem repeats, and interaction of these effects with local ancestry labels. See [Examples](#examples) below for detailed examples of how to specify effects.
 
 * `--out <string>`: Prefix to name output files.
 
