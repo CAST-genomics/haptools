@@ -1,16 +1,14 @@
 import re
-#import vcf
 import glob
 import time
 import numpy as np
+from cyvcf2 import VCF
+from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
-# TODO update toml file with matplotlib version see aryas PR as well as pyvcf
-
-# TODO at a certain point we are going to need to ensure populations in model file are also in invcf files
-#      This is only required for outputting the haplotypes in a vcf
-def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
+# TODO update toml file with matplotlib version see aryas PR
+def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
@@ -25,9 +23,9 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
         ex: 40    Admixed    CEU   YRI
             1       0        0.05  0.95
             2       0.20     0.05  0.75
-    vcf: str
+    vcf_file: str
         file path that contains samples and respective variants
-    sampleinfo: str
+    sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
     out: str
         output prefix
@@ -39,11 +37,10 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
 
     # read on populations from model file
     mfile = open(model_file, 'r')
-    num_samples, admix, pops = mfile.readline().strip().split()
+    num_samples, admix, *pops = mfile.readline().strip().split()
 
-    # TODO verify that below is what I want ie only contain populations specified
     # filter sampleinfo so only populations from model file are there
-    samplefile = open(sampleinfo, 'r')
+    samplefile = open(sampleinfo_file, 'r')
     pop_sample = defaultdict(list)
     for line in samplefile:
         sample, pop = line.strip().split()
@@ -53,17 +50,137 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
     # check if pops are there and if they aren't throw an error
     assert sorted(pops) == sorted(list(set(pop_sample.keys())))
 
-    # preprocess breakpoints so we can output line by line
-    # TODO we may not have to do this it may already be set up like a 2d matrix(samples x breakpoints and its already sorted per sample)
-    print(breakpoints.shape)
-    
+    # read VCF to get sample names and their order so we can easily call GTs via their index from their sample. 
+    #      IE sample HG00097 is index 1 in a list of samples [HG00096 HG00097 HG00098]
+    # create sample dictionary that holds sample name to the index in the vcf file for quick access 
+    vcf = VCF(vcf_file)
+    sample_dict = {}
+    for ind, sample in enumerate(vcf.samples):
+        sample_dict[sample] = ind
+
+    # create index array to store for every sample which haplotype 
+    # block we are currently processing and choose what samples 
+    # will be used for each haplotype block
+    current_bkps = np.zeros(len(breakpoints), dtype=np.int)
+    hapblock_samples = []
+    for haplotype in breakpoints:
+        hap_samples = []
+        for block in haplotype:
+            sample_name = np.random.choice(pop_sample[block.get_pop()])
+            sample_ind = sample_dict[sample_name]
+            hap_samples.append(sample_ind)
+        hapblock_samples.append(hap_samples)
+
+    # output vcf header to new vcf file we create
+    output_samples = [f"Sample_{hap+1}" for hap in range(int(len(hapblock_samples)/2))]
+
     # Process
     # Choose starting samples (random choice) in VCF from respective population for each haplotype segment
     #     Also precalculate (random choice) all samples that will be switched too once the current local ancestry block ends.
     # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
     # Once VCF is complete we've output everything we wanted
-    
+    # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
+    _write_vcf(breakpoints, hapblock_samples, current_bkps, output_samples, vcf, out+".vcf")
+    return
 
+def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf, out_vcf):
+    """
+    in_vcf = cyvcf2 variants we are reading in
+    out_vcf = output vcf file we output too
+    """
+    # output vcf file
+    write_vcf = VariantFile(out_vcf, mode="w")
+
+    # make sure the header is properly structured
+    for contig in range(23):
+        write_vcf.header.contigs.add(str(contig+1))
+    for sample in out_samples:
+        write_vcf.header.add_sample(sample)
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "GT"),
+            ("Number", 1),
+            ("Type", "String"),
+            ("Description", "Genotype"),
+        ],
+    )
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "POP"),
+            ("Number", 2),
+            ("Type", "String"),
+            ("Description", "Origin Population of each respective allele in GT"),
+        ],
+    )
+    for var in in_vcf:
+        # convert to Unicode for creating record
+        variant = []
+        variant.append(
+            (
+                var.ID,
+                var.CHROM,
+                var.start,
+                var.end,
+                var.REF,
+                var.ALT[0],
+            )
+        )
+        variant = np.array(variant, 
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("start", np.uint32),
+                ("end", np.uint32),
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ])
+
+        rec = {
+            "contig": variant["chrom"],
+            "start": variant["start"],
+            "stop": variant["end"],
+            "qual": None,
+            "alleles": tuple(variant[["ref", "alt"]]),
+            "id": variant["id"],
+            "filter": None,
+        }
+        # handle pysam increasing the start site by 1
+        rec["start"] -= 1
+        print(rec)
+        # parse the record into a pysam.VariantRecord
+        record = write_vcf.new_record(**rec)
+        
+        for hap in range(len(hapblock_samples)):
+            sample_num = hap // 2
+
+            # If breakpoint end coord is < current variant update breakpoint
+            bkp = breakpoints[hap][current_bkps[hap]]
+            while bkp.get_chrom() > int(var.CHROM) or bkp.get_end_coord() > int(var.start):
+                current_bkps[hap] += 1
+                bkp = breakpoints[hap][current_bkps[hap]]
+            
+            var_sample = hapblock_samples[hap][current_bkps[hap]]
+            if hap % 2 == 0:
+                # store variant
+                if hap > 0:
+                    record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
+                    record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
+                    record.samples[f"Sample_{sample_num+1}"].phased = True
+                gt = []
+                pops = []
+                hap_var = var.genotypes[var_sample][hap % 2]
+                gt.append(hap_var)
+                pops.append(bkp.get_pop())
+            else:
+                hap_var = var.genotypes[var_sample][hap % 2]
+                gt.append(hap_var)
+                pops.append(bkp.get_pop())
+
+        # write the record to a file
+        write_vcf.write(record)
+    write_vcf.close()
     return
 
 def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
