@@ -20,6 +20,7 @@
 
    commands/simgenotype.rst
    commands/simphenotype.rst
+   commands/transform.rst
 
 .. toctree::
    :caption: API

@@ -3,10 +3,12 @@ from pathlib import Path
 
 import pytest
 import numpy as np
+import numpy.lib.recfunctions as rfn
 
 from haptools.haplotype import HaptoolsHaplotype
 from haptools.data import (
     Genotypes,
+    GenotypesRefAlt,
     Phenotypes,
     Covariates,
     Haplotypes,
@@ -18,128 +20,193 @@ from haptools.data import (
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
-def get_expected_genotypes():
-    # create a GT matrix with shape: samples x SNPs x (strands+phase)
-    expected = np.zeros(60).reshape((5, 4, 3)).astype(np.uint8)
-    expected[:4, 1, 1] = 1
-    expected[2:4, 1, 0] = 1
-    expected[:, :, 2] = 1
-    return expected
+class TestGenotypes:
+    def _get_expected_genotypes(self):
+        # create a GT matrix with shape: samples x SNPs x (strands+phase)
+        expected = np.zeros(60).reshape((5, 4, 3)).astype(np.uint8)
+        expected[:4, 1, 1] = 1
+        expected[2:4, 1, 0] = 1
+        expected[:, :, 2] = 1
+        return expected
 
-
-def test_load_genotypes(caplog):
-    expected = get_expected_genotypes()
-
-    # can we load the data from the VCF?
-    gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-    gts.read()
-    np.testing.assert_allclose(gts.data, expected)
-    assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
-
-    # try loading the data again - it should warn b/c we've already done it
-    gts.read()
-    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
-
-    # force one of the SNPs to have more than one allele and check that we get an error
-    gts.data[1, 1, 1] = 2
-    with pytest.raises(ValueError) as info:
-        gts.check_biallelic()
-    assert (
-        str(info.value)
-        == "Variant with ID 1:10116:A:G at POS 1:10116 is multiallelic for sample"
-        " HG00097"
-    )
-    gts.data[1, 1, 1] = 1
-
-    # check biallelic-ness and convert to bool_
-    gts.check_biallelic()
-    expected = expected.astype(np.bool_)
-    np.testing.assert_allclose(gts.data, expected)
-
-    # force one of the het SNPs to be unphased and check that we get an error message
-    gts.data[1, 1, 2] = 0
-    with pytest.raises(ValueError) as info:
+    def _get_fake_genotypes(self):
+        gts = Genotypes(fname=None)
+        gts.data = self._get_expected_genotypes()
+        gts.variants = np.array(
+            [
+                ("1:10114:T:C", "1", 10114, 0),
+                ("1:10116:A:G", "1", 10116, 0.6),
+                ("1:10117:C:A", "1", 10117, 0),
+                ("1:10122:A:G", "1", 10122, 0),
+            ],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("aaf", np.float64),
+            ],
+        )
+        gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         gts.check_phase()
-    assert (
-        str(info.value)
-        == "Variant with ID 1:10116:A:G at POS 1:10116 is unphased for sample HG00097"
-    )
-    gts.data[1, 1, 2] = 1
+        return gts
 
-    # check phase and remove the phase axis
-    gts.check_phase()
-    expected = expected[:, :, :2]
-    np.testing.assert_allclose(gts.data, expected)
+    def _get_fake_genotypes_refalt(self):
+        base_gts = self._get_fake_genotypes()
+        # copy all of the fields
+        gts = GenotypesRefAlt(fname=None)
+        gts.data = base_gts.data
+        gts.samples = base_gts.samples
+        # add additional ref and alt alleles
+        ref_alt = np.array(
+            [
+                ("T", "C"),
+                ("A", "G"),
+                ("C", "A"),
+                ("A", "G"),
+            ],
+            dtype=[
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
+        # see https://stackoverflow.com/a/5356137
+        gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
+        return gts
 
-    # try to check phase again - it should warn b/c we've already done it before
-    gts.check_phase()
-    assert len(caplog.records) == 2 and caplog.records[1].levelname == "WARNING"
+    def test_load_genotypes(self, caplog):
+        expected = self._get_expected_genotypes()
 
-    # convert the matrix of alt allele counts to a matrix of minor allele counts
-    assert gts.variants["aaf"][1] == 0.6
-    gts.to_MAC()
-    expected[:, 1, :] = ~expected[:, 1, :]
-    np.testing.assert_allclose(gts.data, expected)
-    assert gts.variants["maf"][1] == 0.4
+        # can we load the data from the VCF?
+        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+        gts.read()
+        np.testing.assert_allclose(gts.data, expected)
+        assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
-    # try to do the MAC conversion again - it should warn b/c we've already done it
-    gts.to_MAC()
-    assert len(caplog.records) == 3 and caplog.records[2].levelname == "WARNING"
+        # try loading the data again - it should warn b/c we've already done it
+        caplog.clear()
+        gts.read()
+        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
+        # force one of the samples to have a missing GT and check that we get an error
+        gts.data[1, 1, 1] = -1
+        with pytest.raises(ValueError) as info:
+            gts.check_missing()
+        assert (
+            str(info.value)
+            == "Genotype with ID 1:10116:A:G at POS 1:10116 is missing for sample"
+            " HG00097"
+        )
+        gts.data[1, 1, 1] = 1
 
-def test_load_genotypes_iterate(caplog):
-    expected = get_expected_genotypes().transpose((1, 0, 2))
-    samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        # force one of the SNPs to have more than one allele and check that we get an error
+        gts.data[1, 1, 1] = 2
+        with pytest.raises(ValueError) as info:
+            gts.check_biallelic()
+        assert (
+            str(info.value)
+            == "Variant with ID 1:10116:A:G at POS 1:10116 is multiallelic for sample"
+            " HG00097"
+        )
+        gts.data[1, 1, 1] = 1
 
-    # can we load the data from the VCF?
-    gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-    for idx, line in enumerate(gts):
-        np.testing.assert_allclose(line.data, expected[idx])
-        assert line.samples == samples
+        # check biallelic-ness and convert to bool_
+        gts.check_biallelic()
+        expected = expected.astype(np.bool_)
+        np.testing.assert_allclose(gts.data, expected)
 
+        # force one of the het SNPs to be unphased and check that we get an error message
+        gts.data[1, 1, 2] = 0
+        with pytest.raises(ValueError) as info:
+            gts.check_phase()
+        assert (
+            str(info.value)
+            == "Variant with ID 1:10116:A:G at POS 1:10116 is unphased for sample"
+            " HG00097"
+        )
+        gts.data[1, 1, 2] = 1
 
-def test_load_genotypes_discard_multiallelic():
-    expected = get_expected_genotypes()
+        # check phase and remove the phase axis
+        gts.check_phase()
+        expected = expected[:, :, :2]
+        np.testing.assert_allclose(gts.data, expected)
 
-    # can we load the data from the VCF?
-    gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-    gts.read()
+        # try to check phase again - it should warn b/c we've already done it before
+        caplog.clear()
+        gts.check_phase()
+        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-    # make a copy for later
-    data_copy = gts.data.copy().astype(np.bool_)
-    variant_shape = list(gts.variants.shape)
-    variant_shape[0] -= 1
+        # convert the matrix of alt allele counts to a matrix of minor allele counts
+        assert gts.variants["aaf"][1] == 0.6
+        gts.to_MAC()
+        expected[:, 1, :] = ~expected[:, 1, :]
+        np.testing.assert_allclose(gts.data, expected)
+        assert gts.variants["maf"][1] == 0.4
 
-    # force one of the SNPs to have more than one allele and check that it gets dicarded
-    gts.data[1, 1, 1] = 2
-    gts.check_biallelic(discard_also=True)
+        # try to do the MAC conversion again - it should warn b/c we've already done it
+        caplog.clear()
+        gts.to_MAC()
+        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-    data_copy_without_biallelic = np.delete(data_copy, [1], axis=1)
-    np.testing.assert_equal(gts.data, data_copy_without_biallelic)
-    assert gts.variants.shape == tuple(variant_shape)
+    def test_load_genotypes_iterate(self, caplog):
+        expected = self._get_expected_genotypes().transpose((1, 0, 2))
+        samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
+        # can we load the data from the VCF?
+        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data, expected[idx])
+        assert gts.samples == samples
 
-def test_load_genotypes_subset():
-    expected = get_expected_genotypes()
+    def test_load_genotypes_discard_multiallelic(self):
+        expected = self._get_expected_genotypes()
 
-    # subset for the region we want
-    expected = expected[:, 1:3]
+        # can we load the data from the VCF?
+        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+        gts.read()
 
-    # can we load the data from the VCF?
-    gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
-    gts.read(region="1:10115-10117")
-    np.testing.assert_allclose(gts.data, expected)
-    assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        # make a copy for later
+        data_copy = gts.data.copy().astype(np.bool_)
+        variant_shape = list(gts.variants.shape)
+        variant_shape[0] -= 1
 
-    # subset for just the samples we want
-    expected = expected[[1, 3]]
+        # force one of the SNPs to have more than one allele and check that it gets dicarded
+        gts.data[1, 1, 1] = 2
+        gts.check_biallelic(discard_also=True)
 
-    # can we load the data from the VCF?
-    gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
-    samples = ["HG00097", "HG00100"]
-    gts.read(region="1:10115-10117", samples=samples)
-    np.testing.assert_allclose(gts.data, expected)
-    assert gts.samples == tuple(samples)
+        data_copy_without_biallelic = np.delete(data_copy, [1], axis=1)
+        np.testing.assert_equal(gts.data, data_copy_without_biallelic)
+        assert gts.variants.shape == tuple(variant_shape)
+
+    def test_load_genotypes_subset(self):
+        expected = self._get_expected_genotypes()
+
+        # subset for the region we want
+        expected = expected[:, 1:3]
+
+        # can we load the data from the VCF?
+        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        gts.read(region="1:10115-10117")
+        np.testing.assert_allclose(gts.data, expected)
+        assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+
+        # subset for just the samples we want
+        expected = expected[[1, 3]]
+
+        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        samples = ["HG00097", "HG00100"]
+        gts.read(region="1:10115-10117", samples=samples)
+        np.testing.assert_allclose(gts.data, expected)
+        assert gts.samples == tuple(samples)
+
+        # subset to just one of the variants
+        expected = expected[:, [1]]
+
+        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        samples = ["HG00097", "HG00100"]
+        variants = {"1:10117:C:A"}
+        gts.read(region="1:10115-10117", samples=samples, variants=variants)
+        np.testing.assert_allclose(gts.data, expected)
+        assert gts.samples == tuple(samples)
 
 
 def test_load_phenotypes(caplog):
@@ -257,6 +324,29 @@ class TestHaplotypes:
         )
         return expected
 
+    def _get_dummy_haps(self):
+        # create three haplotypes
+        haplotypes = {
+            "H1": Haplotype(chrom="1", start=10114, end=8, id="H1"),
+            "H2": Haplotype(chrom="1", start=10114, end=10119, id="H2"),
+            "H3": Haplotype(chrom="1", start=10116, end=10119, id="H3"),
+        }
+        haplotypes["H1"].variants = (
+            Variant(start=10114, end=10115, id="1:10114:T:C", allele="T"),
+            Variant(start=10116, end=10117, id="1:10116:A:G", allele="G"),
+        )
+        haplotypes["H2"].variants = (
+            Variant(start=10114, end=10115, id="1:10114:T:C", allele="C"),
+            Variant(start=10117, end=10118, id="1:10117:C:A", allele="C"),
+        )
+        haplotypes["H3"].variants = (
+            Variant(start=10116, end=10117, id="1:10116:A:G", allele="A"),
+            Variant(start=10117, end=10118, id="1:10117:C:A", allele="A"),
+        )
+        haps = Haplotypes(fname=None)
+        haps.data = haplotypes
+        return haps
+
     def test_load(self):
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
@@ -353,3 +443,60 @@ class TestHaplotypes:
 
         # remove the file
         os.remove("tests/data/test.hap")
+
+    def test_hap_transform(self):
+        expected = np.array(
+            [
+                [0, 1],
+                [0, 1],
+                [1, 1],
+                [1, 1],
+                [0, 0],
+            ],
+            dtype=np.uint8,
+        )
+
+        hap = list(self._get_dummy_haps().data.values())[0]
+        gens = TestGenotypes()._get_fake_genotypes_refalt()
+        hap_gt = hap.transform(gens)
+        np.testing.assert_allclose(hap_gt, expected)
+
+    def test_haps_transform(self):
+        expected = np.array(
+            [
+                [[0, 1], [0, 0], [0, 0]],
+                [[0, 1], [0, 0], [1, 0]],
+                [[1, 0], [0, 1], [0, 0]],
+                [[1, 1], [0, 0], [0, 0]],
+                [[0, 0], [0, 1], [1, 0]],
+            ],
+            dtype=np.uint8,
+        )
+
+        haps = self._get_dummy_haps()
+        gens = TestGenotypes()._get_fake_genotypes_refalt()
+        gens.data[[2, 4], 0, 1] = 1
+        gens.data[[1, 4], 2, 0] = 1
+        hap_gt = GenotypesRefAlt(fname=None)
+        haps.transform(gens, hap_gt)
+        np.testing.assert_allclose(hap_gt.data, expected)
+        return hap_gt
+
+    def test_hap_gt_write(self):
+        fname = DATADIR.joinpath("simple_haps.vcf")
+
+        hap_gt = self.test_haps_transform()
+        hap_gt.fname = fname
+        expected_data = hap_gt.data
+        expected_samples = hap_gt.samples
+        hap_gt.write()
+
+        hap_gt.data = None
+        hap_gt.read()
+        hap_gt.check_phase()
+        np.testing.assert_allclose(hap_gt.data, expected_data)
+        assert hap_gt.samples == expected_samples
+        assert len(hap_gt.variants) == hap_gt.data.shape[1]
+
+        # remove the file
+        os.remove(str(fname))

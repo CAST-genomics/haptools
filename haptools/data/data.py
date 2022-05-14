@@ -45,12 +45,23 @@ class Data(ABC):
         """
         pass
 
+    def unset(self) -> bool:
+        """
+        Whether the data has been loaded into the object yet
+
+        Returns
+        -------
+        bool
+            True if :py:attr:`~.Data.data` is None else False
+        """
+        return self.data is None
+
     @abstractmethod
     def read(self):
         """
         Read the raw file contents into the class properties
         """
-        if self.data is not None:
+        if not self.unset():
             self.log.warning("The data has already been loaded. Overriding.")
 
     @abstractmethod

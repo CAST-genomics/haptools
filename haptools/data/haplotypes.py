@@ -7,15 +7,18 @@ from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator
 
 import numpy as np
+import numpy.typing as npt
 from pysam import TabixFile
 
 from .data import Data
+from .genotypes import GenotypesRefAlt
 
 
 @dataclass
 class Extra:
     """
     An extra field on a line in the .hap file
+
     Attributes
     ----------
     name: str
@@ -272,6 +275,11 @@ class Haplotype:
             extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
         return "H\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}" + extras
 
+    @property
+    # TODO: use @cached_property in py3.8
+    def varIDs(self):
+        return {var.id for var in self.variants}
+
     @classmethod
     def from_hap_spec(
         cls: Haplotype, line: str, variants: tuple = tuple()
@@ -326,6 +334,61 @@ class Haplotype:
             The header lines of the extra fields
         """
         return tuple(extra.to_hap_spec("H") for extra in cls._extras)
+
+    def transform(
+        self, genotypes: GenotypesRefAlt, samples: list[str] = None
+    ) -> npt.NDArray[bool]:
+        """
+        Transform a genotypes matrix via the current haplotype
+
+        Each entry in the returned matrix denotes the presence of the current haplotype
+        in each chromosome of each sample in the Genotypes object
+
+        Parameters
+        ----------
+        genotypes : GenotypesRefAlt
+            The genotypes which to transform using the current haplotype
+
+            If the genotypes have not been loaded into the Genotypes object yet, this
+            method will call Genotypes.read(), while loading only the needed variants
+        samples : list[str], optional
+            See documentation for :py:attr:`~.Genotypes.read`
+
+        Returns
+        -------
+        npt.NDArray[bool]
+            A 2D matrix of shape (num_samples, 2) where each entry in the matrix
+            denotes the presence of the haplotype in one chromosome of a sample
+        """
+        var_IDs = self.varIDs
+        # check: have the genotypes been loaded yet?
+        # if not, we can load just the variants we need
+        if genotypes.unset():
+            start = min(var.start for var in self.variants)
+            end = max(var.end for var in self.variants)
+            region = f"{self.chrom}:{start}-{end}"
+            genotypes.read(region=region, samples=samples, variants=var_IDs)
+            genotypes.check_biallelic(discard_also=True)
+            genotypes.check_phase()
+        # create a dict where the variants are keyed by ID
+        var_dict = {
+            var["id"]: var["ref"] for var in genotypes.variants if var["id"] in var_IDs
+        }
+        var_idxs = [
+            idx for idx, var in enumerate(genotypes.variants) if var["id"] in var_IDs
+        ]
+        missing_IDs = var_IDs - var_dict.keys()
+        if len(missing_IDs):
+            raise ValueError(
+                f"Variants {missing_IDs} are present in haplotype '{self.id}' but "
+                "absent in the provided genotypes"
+            )
+        # create a np array denoting the alleles that we want
+        alleles = [int(var.allele != var_dict[var.id]) for var in self.variants]
+        allele_arr = np.array([[[al] for al in alleles]])  # shape: (1, n, 1)
+        # look for the presence of each allele in each chromosomal strand
+        # and then just AND them together
+        return np.all(allele_arr == genotypes.data[:, var_idxs], axis=1)
 
 
 class Haplotypes(Data):
@@ -419,7 +482,7 @@ class Haplotypes(Data):
         ValueError
             If any of the header lines are not supported
         """
-        self.log.info("Checking header.")
+        self.log.info("Checking header")
         if check_version:
             version_line = lines[0].split("\t")
             assert version_line[1] == "version", (
@@ -685,3 +748,60 @@ class Haplotypes(Data):
         with hook_compressed(self.fname, mode="wt") as haps:
             for line in self.to_str():
                 haps.write(line + "\n")
+
+    def transform(
+        self,
+        genotypes: GenotypesRefAlt,
+        hap_gts: GenotypesRefAlt,
+        samples: list[str] = None,
+        low_memory: bool = False,
+    ) -> GenotypesRefAlt:
+        """
+        Transform a genotypes matrix via the current haplotype
+
+        Each entry in the returned matrix denotes the presence of each haplotype
+        in each chromosome of each sample in the Genotypes object
+
+        Parameters
+        ----------
+        genotypes : GenotypesRefAlt
+            The genotypes which to transform using the current haplotype
+
+            If the genotypes have not been loaded into the Genotypes object yet, this
+            method will call Genotypes.read(), while loading only the needed variants
+        hap_gts: GenotypesRefAlt
+            An empty GenotypesRefAlt object into which the haplotype genotypes should
+            be stored
+        samples : list[str], optional
+            See documentation for :py:attr:`~.Genotypes.read`
+        low_memory : bool, optional
+            If True, each haplotype's genotypes will be loaded one at a time.
+
+        Returns
+        -------
+        GenotypesRefAlt
+            A Genotypes object composed of haplotypes instead of regular variants.
+        """
+        hap_gts.samples = genotypes.samples
+        hap_gts.variants = np.array(
+            [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("aaf", np.float64),
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
+        self.log.info(
+            f"Transforming a set of genotypes from {len(genotypes.variants)} total "
+            f"variants with a list of {len(self.data)} haplotypes"
+        )
+        hap_gts.data = np.concatenate(
+            tuple(
+                hap.transform(genotypes, samples)[:, np.newaxis]
+                for hap in self.data.values()
+            ),
+            axis=1,
+        ).astype(np.uint8)
