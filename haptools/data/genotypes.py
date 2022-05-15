@@ -1,9 +1,11 @@
 from __future__ import annotations
+import re
 from csv import reader
 from pathlib import Path
 from typing import Iterator
 from collections import namedtuple
 from logging import getLogger, Logger
+from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
@@ -547,8 +549,78 @@ class GenotypesPLINK(GenotypesRefAlt):
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
+    def read_samples(self, samples: list[str] = None):
+        """
+        Read sample IDs from a PSAM file into a list stored in
+        :py:attr:`~.GenotypesPLINK.samples`
+
+        One of either variants or max_variants MUST be specified!
+
+        Parameters
+        ----------
+        samples : list[str], optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+
+        Returns
+        -------
+        npt.NDArray[np.uint32]
+            The indices of each of the samples within the PSAM file
+        """
+        if samples is not None and not isinstance(samples, set):
+            samples = set(samples)
+        with hook_compressed(self.fname.with_suffix(".psam"), mode="rt") as psam:
+            psamples = reader(psam, delimiter="\t")
+            # find the line that declares the header
+            for header in psamples:
+                if header[0].startswith('#FID') or header[0].startswith('#IID'):
+                    break
+            # we need the header to contain the IID column
+            if header[0][0] != "#":
+                raise ValueError("Your PSAM file is missing a header!")
+                col_idx = 1
+                self.log.info(
+                    "Your PVAR file lacks a proper header! Assuming first five columns"
+                    " are [CHROM, POS, ID, REF, ALT] in that order..."
+                )
+                # TODO: add header back in to psamples using itertools.chain?
+            else:
+                header[0] = header[0][1:]
+                try:
+                    col_idx = header.index('IID')
+                except ValueError:
+                    raise ValueError("Your PSAM file must have an IID column.")
+            self.samples = {
+                ct: samp[col_idx] for ct, samp in enumerate(psamples)
+                if (samples is None) or (samp[col_idx] in samples)
+            }
+            indices = np.array(list(self.samples.keys()), dtype=np.uint32)
+            self.samples = list(self.samples.values())
+            return indices
+
+    def _check_region(
+        self, pos: tuple, chrom: str, start: int = 0, end: int = float("inf")
+    ):
+        """
+        Check that pos lies within the provided chrom, start, and end coordinates
+
+        This is a helper function for :py:meth:`~.GenotypesPLINK.read_variants`
+
+        Parameters
+        ----------
+        pos : tuple[str, int]
+            A tuple of two elements: contig (str) and chromosomal position (int)
+        chrom: str
+            The contig of the region to check
+        start: int, optional
+            The start position of the region
+        end: int, optional
+            The end position of the region
+        """
+        return (pos[0] == chrom) and (start <= pos[1]) and (end >= pos[1])
+
     def read_variants(
         self,
+        region: str = None,
         variants: set[str] = None,
         max_variants: int = None,
     ):
@@ -578,53 +650,68 @@ class GenotypesPLINK(GenotypesRefAlt):
             max_variants = len(variants)
         if max_variants is None:
             raise ValueError("Provide either the variants or max_variants parameter!")
-        # TODO: try using pysam.tabix_iterator with the parser param specified for VCF
-        if region:
-            pvar = TabixFile(str(self.fname.with_suffix(".pvar")))
-            pvariants = pvar.fetch(region)
-        else:
-            pvar = hook_compressed(self.fname.with_suffix(".pvar"), mode="rt")
+        # split the region string so each portion is an element
+        if region is not None:
+            region = re.split(":|-", region)
+            if len(region) > 1:
+                region[1:] = [int(pos) for pos in region[1:] if pos]
+        with hook_compressed(self.fname.with_suffix(".pvar"), mode="rt") as pvar:
             pvariants = reader(pvar, delimiter="\t")
-        # first, preallocate the array
-        self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
-        header = next(pvariants)
-        # there should be at least five columns
-        if len(header) < 5:
-            raise ValueError("Your PVAR file should have at least five columns.")
-        if header[0][0] == "#":
-            header[0] = header[0][1:]
-        else:
-            raise ValueError("Your PVAR file is missing a header!")
-            header = ["CHROM", "POS", "ID", "REF", "ALT"]
-            self.log.info(
-                "Your PVAR file lacks a proper header! Assuming first five columns"
-                " are [CHROM, POS, ID, REF, ALT] in that order..."
-            )
-            # TODO: add header back in to pvariants using itertools.chain?
-        cid = {item: header.index(item.upper()) for item in self.variants.dtype.names}
-        if variants is not None:
+            # first, preallocate the array
+            self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
+            # find the line that declares the header
+            for header in pvariants:
+                if not header[0].startswith('##'):
+                    break
+            # there should be at least five columns
+            if len(header) < 5:
+                raise ValueError("Your PVAR file should have at least five columns.")
+            if header[0][0] == "#":
+                header[0] = header[0][1:]
+            else:
+                raise ValueError("Your PVAR file is missing a header!")
+                header = ["CHROM", "POS", "ID", "REF", "ALT"]
+                self.log.info(
+                    "Your PVAR file lacks a proper header! Assuming first five columns"
+                    " are [CHROM, POS, ID, REF, ALT] in that order..."
+                )
+                # TODO: add header back in to pvariants using itertools.chain?
+            cid = {
+                item: header.index(item.upper())
+                for item in self.variants.dtype.names
+                if item is not "aaf"
+            }
             indices = np.empty((max_variants,), dtype=np.uint32)
-        num_seen = 0
-        for ct, rec in enumerate(pvariants):
-            if variants is not None:
-                if rec[cid["id"]] not in variants:
+            num_seen = 0
+            for ct, rec in enumerate(pvariants):
+                if region and not self._check_region(
+                    (rec[cid["chrom"]], int(rec[cid["pos"]])), *region
+                ):
                     continue
+                if variants is not None:
+                    if rec[cid["id"]] not in variants:
+                        continue
                 indices[num_seen] = ct
-            self.variants[num_seen] = np.array(
-                (
-                    rec[cid["id"]],
-                    rec[cid["chrom"]],
-                    rec[cid["pos"]],
-                    0,
-                    rec[cid["ref"]],
-                    rec[cid["alt"]],
-                ),
-                dtype=self.variants.dtype,
+                self.variants[num_seen] = np.array(
+                    (
+                        rec[cid["id"]],
+                        rec[cid["chrom"]],
+                        rec[cid["pos"]],
+                        0,
+                        rec[cid["ref"]],
+                        rec[cid["alt"]],
+                    ),
+                    dtype=self.variants.dtype,
+                )
+                num_seen += 1
+        if max_variants > num_seen:
+            self.log.info(
+                f"Removing {max_variants-num_seen} unneeded variant records that "
+                "were preallocated b/c max_variants was specified."
             )
-            num_seen += 1
-        pvar.close()
-        if variants is not None:
-            return indices
+            indices = indices[:num_seen]
+            self.variants = self.variants[:num_seen]
+        return indices
 
     def read(
         self,
@@ -654,7 +741,8 @@ class GenotypesPLINK(GenotypesRefAlt):
         # TODO: figure out how to install this package
         from pgenlib import PgenReader
 
-        pgen = PgenReader(bytes(self.fname, "utf8"))
+        sample_idxs = self.read_samples(samples)
+        pgen = PgenReader(bytes(self.fname, "utf8"), sample_subset=sample_idxs)
 
         if variants is not None:
             max_variants = len(variants)
@@ -663,14 +751,9 @@ class GenotypesPLINK(GenotypesRefAlt):
             max_variants = pgen.get_variant_ct()
         indices = self.read_variants(region, variants, max_variants)
 
-        variant_ct_start = 0
-        variant_ct_end = max_variants
-        variant_ct = variant_ct_end - variant_ct_start
-
-        sample_ct = pgen.get_raw_sample_ct()
         # the genotypes start out as a simple 2D array with twice the number of samples
         # so each column is a different chromosomal strand
-        self.data = np.empty((variant_ct, sample_ct * 2), dtype=np.int32)
+        self.data = np.empty((len(indices), len(sample_idxs) * 2), dtype=np.int32)
         pgen.read_alleles(indices, self.data)
         # extract the genotypes to a np matrix of size n x p x 2
         # the last dimension has two items:

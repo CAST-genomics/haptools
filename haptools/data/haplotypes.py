@@ -1,5 +1,4 @@
 from __future__ import annotations
-import re
 from pathlib import Path
 from logging import getLogger, Logger
 from fileinput import hook_compressed
@@ -785,14 +784,7 @@ class Haplotypes(Data):
         hap_gts.samples = genotypes.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
-            dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("pos", np.uint32),
-                ("aaf", np.float64),
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ],
+            dtype=self.variants.dtype,
         )
         self.log.info(
             f"Transforming a set of genotypes from {len(genotypes.variants)} total "
