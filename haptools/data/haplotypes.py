@@ -784,7 +784,7 @@ class Haplotypes(Data):
         hap_gts.samples = genotypes.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
-            dtype=self.variants.dtype,
+            dtype=hap_gts.variants.dtype,
         )
         self.log.info(
             f"Transforming a set of genotypes from {len(genotypes.variants)} total "
