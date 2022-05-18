@@ -115,40 +115,17 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
         ],
     )
     for var in in_vcf:
-        # convert to Unicode for creating record
-        variant = []
-        variant.append(
-            (
-                var.ID,
-                var.CHROM,
-                var.start,
-                var.end,
-                var.REF,
-                var.ALT[0],
-            )
-        )
-        variant = np.array(variant, 
-            dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("start", np.uint32),
-                ("end", np.uint32),
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ])
-
         rec = {
-            "contig": variant["chrom"],
-            "start": variant["start"],
-            "stop": variant["end"],
+            "contig": var.CHROM,
+            "start": var.start,
+            "stop": var.end,
             "qual": None,
-            "alleles": tuple(variant[["ref", "alt"]]),
-            "id": variant["id"],
+            "alleles": (var.REF, *var.ALT),
+            "id": var.ID,
             "filter": None,
         }
         # handle pysam increasing the start site by 1
         rec["start"] -= 1
-        print(rec)
         # parse the record into a pysam.VariantRecord
         record = write_vcf.new_record(**rec)
         
