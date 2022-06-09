@@ -146,10 +146,12 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
             "id": variant["id"],
             "filter": None,
         }
+        print(rec)
         # handle pysam increasing the start site by 1
         rec["start"] -= 1
-        print(rec)
+
         # parse the record into a pysam.VariantRecord
+        # TODO current error with **rec saying TypeError: Argument must be string, bytes or unicode.
         record = write_vcf.new_record(**rec)
         
         for hap in range(len(hapblock_samples)):
