@@ -36,3 +36,18 @@ haptools.data.phenotypes module
    :undoc-members:
    :show-inheritance:
 
+haptools.data.covariates module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.data.covariates
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+haptools.data.haplotypes module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.data.haplotypes
+   :members:
+   :undoc-members:
+   :show-inheritance:

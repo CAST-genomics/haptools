@@ -1,4 +1,4 @@
-.. _executing-inputs:
+.. _formats-inputs:
 
 
 Inputs

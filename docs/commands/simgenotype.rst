@@ -1,4 +1,4 @@
-.. _subcommands-simgenotype:
+.. _commands-simgenotype:
 
 .. include:: simgenotype.md
    :parser: myst_parser.sphinx_
