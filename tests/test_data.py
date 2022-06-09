@@ -147,6 +147,38 @@ class TestGenotypes:
         gts.to_MAC()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
+    def test_load_genotypes_example(self):
+        samples = (
+            "HG00096",
+            "HG00097",
+            "HG00099",
+            "HG00100",
+            "HG00101",
+            "HG00102",
+            "HG00103",
+            "HG00105",
+            "HG00106",
+            "HG00107",
+            "HG00108",
+            "HG00109",
+            "HG00110",
+            "HG00111",
+            "HG00112",
+            "HG00113",
+            "HG00114",
+            "HG00115",
+            "HG00116",
+            "HG00117",
+            "HG00118",
+            "HG00119",
+            "HG00120",
+            "HG00121",
+            "HG00122",
+        )
+        gts = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts.read()
+        assert gts.samples[:25] == samples
+
     def test_load_genotypes_iterate(self, caplog):
         expected = self._get_expected_genotypes().transpose((1, 0, 2))
         samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
