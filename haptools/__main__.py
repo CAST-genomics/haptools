@@ -204,8 +204,7 @@ def transform(
     """
     import logging
 
-    from haptools import data
-    from .haplotype import HaptoolsHaplotype
+    from .transform import transform_haps
 
     log = logging.getLogger("run")
     logging.basicConfig(
@@ -226,23 +225,7 @@ def transform(
     else:
         samples = None
 
-    log.info("Loading haplotypes")
-    hp = data.Haplotypes(haplotypes)
-    hp.read(region=region)
-    log.info("Extracting variants from haplotypes")
-    variants = {var.id for hap in hp.data.values() for var in hap.variants}
-    log.info("Loading genotypes")
-    gt = data.GenotypesRefAlt(genotypes, log=log)
-    # gt._prephased = True
-    gt.read(region=region, samples=samples, variants=variants)
-    gt.check_missing(discard_also=True)
-    gt.check_biallelic(discard_also=True)
-    gt.check_phase()
-    log.info("Transforming genotypes via haplotypes")
-    hp_gt = data.GenotypesRefAlt(fname=output, log=log)
-    hp.transform(gt, hp_gt)
-    log.info("Writing haplotypes to VCF")
-    hp_gt.write()
+    transform_haps(genotypes, haplotypes, region, samples, output, log)
 
 
 if __name__ == "__main__":
