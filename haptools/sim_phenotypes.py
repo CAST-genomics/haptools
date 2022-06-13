@@ -17,20 +17,56 @@ class PhenoSimulator:
         A set of haplotypes to use as causal variables in the simulation
     haps_gts: GenotypesRefAlt
         Genotypes for each haplotype
+    phens: Phenotypes
+        Phenotypes for each haplotype
     log: Logger
         A logging instance for recording debug statements
+
+    Examples
+    --------
+    >>> gens = Genotypes.load("tests/data/example.vcf.gz")
+    >>> haps = Haplotypes.load("tests/data/basic.hap")
+    >>> phenosim = PhenoSimulator(gens, haps, Path("basic_phens.tsv.gz"))
+    >>> phenosim.transform()
+    >>> phenotypes = phenosim.run()
     """
 
     def __init__(
-        self, genotypes: GenotypesRefAlt, haplotypes: Haplotypes, log: Logger = None
+        self,
+        genotypes: GenotypesRefAlt,
+        haplotypes: Haplotypes,
+        phenotypes: Path,
+        log: Logger = None,
     ):
         self.gens = genotypes
         self.haps = haplotypes
+        self.haps_gts = None
+        self.phens = Phenotypes(phenotypes, self.log)
+        self.phens.samples = self.gens
         self.log = log or getLogger(self.__class__.__name__)
+
+    def unset(self):
+        """
+        Whether the data has been loaded into the object yet
+
+        Returns
+        -------
+        bool
+            True if :py:attr:`~.PhenoSimulator.haps_gts` is None else False
+        """
+        return self.haps_gts is None
+
+    def transform(self):
+        """
+        Obtain the "genotypes" of the haplotypes
+        """
+        if self.unset():
+            self.log.warning("The haplotype 'genotypes' have already been loaded. Overriding.")
         self.haps_gts = self.haps.transform(self.gens)
 
     def run(
         self,
+        name: str,
         simu_rep: int,
         simu_hsq: float,
         simu_k: float,
