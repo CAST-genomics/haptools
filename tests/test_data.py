@@ -1,3 +1,4 @@
+from builtins import breakpoint
 import os
 from pathlib import Path
 
@@ -532,3 +533,28 @@ class TestHaplotypes:
 
         # remove the file
         os.remove(str(fname))
+
+
+    
+class TestGenotypesRefAlt:
+    def test_ref_alt(self):
+        gts_ref = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
+        gts_ref.read()
+        expected = np.array(
+            [
+                ("T", "C"),
+                ("A", "G"),
+                ("C", "A"),
+                ("A", "G"),
+            ], dtype = gts_ref.variants[["ref", "alt"]].dtype
+        )
+        for i, x in enumerate(expected):
+            assert gts_ref.variants[["ref", "alt"]][i] == x
+
+
+
+
+    
+
+
+
