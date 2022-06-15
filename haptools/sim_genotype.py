@@ -130,13 +130,13 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
         
         # parse the record into a pysam.VariantRecord
         record = write_vcf.new_record(**rec)
-        
+
         for hap in range(len(hapblock_samples)):
             sample_num = hap // 2
 
             # If breakpoint end coord is < current variant update breakpoint
             bkp = breakpoints[hap][current_bkps[hap]]
-            while bkp.get_chrom() > int(var.CHROM) or bkp.get_end_coord() > int(var.start):
+            while bkp.get_chrom() < int(var.CHROM) or (bkp.get_chrom() == int(var.CHROM) and bkp.get_end_coord() < int(var.start)):
                 current_bkps[hap] += 1
                 bkp = breakpoints[hap][current_bkps[hap]]
             
