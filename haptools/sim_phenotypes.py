@@ -1,6 +1,8 @@
 from __future__ import annotations
 from logging import getLogger, Logger
 
+import numpy.typing as npt
+
 from haplotype import HaptoolsHaplotype as Haplotype
 from .data import GenotypesRefAlt, Phenotypes, Haplotypes
 
@@ -11,14 +13,8 @@ class PhenoSimulator:
 
     Attributes
     ----------
-    gens: GenotypesRefAlt
-        A set of genotypes to use when simulating phenotypes
-    haps: Haplotypes
-        A set of haplotypes to use as causal variables in the simulation
-    haps_gts: GenotypesRefAlt
-        Genotypes for each haplotype
-    phens: Phenotypes
-        Phenotypes for each haplotype
+    gens: Genotypes
+        Genotypes to simulate
     log: Logger
         A logging instance for recording debug statements
 
@@ -26,57 +22,58 @@ class PhenoSimulator:
     --------
     >>> gens = Genotypes.load("tests/data/example.vcf.gz")
     >>> haps = Haplotypes.load("tests/data/basic.hap")
-    >>> phenosim = PhenoSimulator(gens, haps, Path("basic_phens.tsv.gz"))
-    >>> phenosim.transform()
+    >>> haps_gts = GenotypesRefAlt(None)
+    >>> haps.transform(gens, haps_gts)
+    >>> phenosim = PhenoSimulator(haps_gts)
     >>> phenotypes = phenosim.run()
     """
 
     def __init__(
         self,
-        genotypes: GenotypesRefAlt,
-        haplotypes: Haplotypes,
-        phenotypes: Path,
+        genotypes: Genotypes,
         log: Logger = None,
     ):
+        """
+        Initialize a PhenoSimulator object
+
+        Parameters
+        ----------
+        genotypes: Genotypes
+            Genotypes for each haplotype
+        log: Logger, optional
+            A logging instance for recording debug statements
+        """
         self.gens = genotypes
-        self.haps = haplotypes
-        self.haps_gts = None
-        self.phens = Phenotypes(phenotypes, self.log)
-        self.phens.samples = self.gens
         self.log = log or getLogger(self.__class__.__name__)
-
-    def unset(self):
-        """
-        Whether the data has been loaded into the object yet
-
-        Returns
-        -------
-        bool
-            True if :py:attr:`~.PhenoSimulator.haps_gts` is None else False
-        """
-        return self.haps_gts is None
-
-    def transform(self):
-        """
-        Obtain the "genotypes" of the haplotypes
-        """
-        if self.unset():
-            self.log.warning("The haplotype 'genotypes' have already been loaded. Overriding.")
-        self.haps_gts = self.haps.transform(self.gens)
 
     def run(
         self,
-        name: str,
-        simu_rep: int,
-        simu_hsq: float,
-        simu_k: float,
-        simu_qt: bool = False,
-        simu_cc: bool = False,
-    ) -> Phenotypes:
-        effect = np.array([hap.beta for hap in haps.data.values()])
-        gts = self.haps_gts.data.sum(axis=2)
-        pt = np.sum(effect * (gts - gts.mean(axis=0)) / gts.std(axis=0))
-        phens = np.empty((len(self.genotypes.samples)), dtype=np.float64)
+        varID: str,
+        beta: float,
+        heritability: float = 1,
+        prevalence: float = None,
+    ) -> npt.NDArray:
+        """
+        Simulate phenotypes for an entry in the Genotypes object
+
+        Parameters
+        ----------
+        varID: str
+            The ID of the variant in the Genotype object from which to simulate
+            phenotypes
+        beta: float
+            The simulated effect size of the variant; must be between -1 and 1
+        heritability: float, optional
+            The simulated heritability of the trait
+        prevalence: float, optional
+            How common should the disease be within the population?
+
+            If this value is specified, case/control phenotypes will be generated
+            instead of quantitative traits.
+        """
+        gts = self.gens.subset(variants=[varID]).data[:, 0].sum(axis=1)
+        # error =
+        pt = effect * (gts - gts.mean(axis=0)) / gts.std(axis=0)
 
         # Simulate and write
         for i in range(simu_rep):
@@ -90,20 +87,43 @@ class PhenoSimulator:
 def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
-    phenotypes: Path,
     simu_rep: int,
     simu_hsq: float,
     simu_k: float,
-    simu_qt: bool = False,
-    simu_cc: bool = False,
+    region: str = None,
+    samples: list[str] = None,
+    output: Path = Path("-"),
+    log: Logger = None,
 ):
-    # Initialize readers
-    gens = GenotypesRefAlt.load(genotypes)
-    haps = Haplotypes(haplotypes, haplotype=Haplotype)
-    haps.read()
+    if log is None:
+        log = logging.getLogger("run")
+        logging.basicConfig(
+            format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
+            level="ERROR",
+        )
+
+    log.info("Loading haplotypes")
+    hp = data.Haplotypes(haplotypes, log=log)
+    hp.read(region=region)
+
+    log.info("Extracting variants from haplotypes")
+    variants = {var.id for hap in hp.data.values() for var in hap.variants}
+
+    log.info("Loading genotypes")
+    gt = data.GenotypesRefAlt(genotypes, log=log)
+    # gt._prephased = True
+    gt.read(region=region, samples=samples, variants=variants)
+    gt.check_missing()
+    gt.check_biallelic()
+    gt.check_phase()
+
+    log.info("Transforming genotypes via haplotypes")
+    hp_gt = data.GenotypesRefAlt(fname=None, log=log)
+    hp.transform(gt, hp_gt)
 
     # Initialize phenotype simulator (haptools simphenotypes)
-    pt_sim = PhenoSimulator(gens, haps)
+    log.info("Simulating phenotypes")
+    pt_sim = PhenoSimulator(hp_gt)
     phens = pt_sim.run()
 
     # Set up file to write summary info
