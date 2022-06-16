@@ -396,6 +396,7 @@ class Genotypes(Data):
                 )
                 self.data = np.delete(self.data, samp_idx, axis=0)
                 self.samples = tuple(np.delete(self.samples, samp_idx))
+                self._samp_idx = None
             else:
                 raise ValueError(
                     "Genotype with ID {} at POS {}:{} is missing for sample {}".format(
@@ -437,6 +438,7 @@ class Genotypes(Data):
                 self.log.info(f"Ignoring {len(variant_idx)} multiallelic variants")
                 self.data = np.delete(self.data, variant_idx, axis=1)
                 self.variants = np.delete(self.variants, variant_idx)
+                self._var_idx = None
             else:
                 raise ValueError(
                     "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
