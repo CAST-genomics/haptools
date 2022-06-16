@@ -208,6 +208,37 @@ class TestGenotypes:
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == tuple(samples)
 
+    def test_subset_genotypes(self):
+        gts = self._get_fake_genotypes()
+
+        # subset to just the samples we want
+        expected_data = gts.data[:3]
+        expected_variants = gts.variants
+        samples = ("HG00096", "HG00097", "HG00099")
+        gts_sub = gts.subset(samples=samples)
+        assert gts_sub.samples == samples
+        np.testing.assert_allclose(gts_sub.data, expected_data)
+        assert np.array_equal(gts_sub.variants, expected_variants)
+
+        # subset to just the variants we want
+        expected_data = gts.data[:, [1, 2]]
+        expected_variants = gts.variants[[1, 2]]
+        variants = ('1:10116:A:G', '1:10117:C:A')
+        gts_sub = gts.subset(variants=variants)
+        assert gts_sub.samples == gts.samples
+        np.testing.assert_allclose(gts_sub.data, expected_data)
+        assert np.array_equal(gts_sub.variants, expected_variants)
+
+        # subset both: samples and variants
+        expected_data = gts.data[[3, 4], :2]
+        expected_variants = gts.variants[:2]
+        samples = ("HG00100", "HG00101")
+        variants = ("1:10114:T:C", '1:10116:A:G')
+        gts_sub = gts.subset(samples=samples, variants=variants)
+        assert gts_sub.samples == samples
+        np.testing.assert_allclose(gts_sub.data, expected_data)
+        assert np.array_equal(gts_sub.variants, expected_variants)
+
 
 def test_load_phenotypes(caplog):
     # create a phenotype vector with shape: num_samples x 1

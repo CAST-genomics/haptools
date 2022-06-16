@@ -38,6 +38,10 @@ class Genotypes(Data):
     _prephased : bool
         If True, assume that the genotypes are phased. Otherwise, extract their phase
         when reading from the VCF.
+    _samp_idx : dict[str, int]
+        Sample index; maps samples to indices in self.samples
+    _var_idx : dict[str, int]
+        Variant index; maps variant IDs to indices in self.variants
 
     Examples
     --------
@@ -61,6 +65,8 @@ class Genotypes(Data):
             ],
         )
         self._prephased = False
+        self._samp_idx = None
+        self._var_idx = None
 
     @classmethod
     def load(
@@ -280,6 +286,86 @@ class Genotypes(Data):
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(vcf, region, variants)
+
+    def index(self, samples: bool = True, variants: bool = True):
+        """
+        Call this function once to improve the speed of future look-ups of samples and
+        variants by their ID. This is useful if you intend to later subset by a set
+        of samples or variant IDs.
+        The time complexity of this function should be roughly O(n+m) if both
+        parameters are True. Otherwise, it will be either O(n) or O(m).
+
+        Parameters
+        ----------
+        samples: bool, optional
+            Whether to index the samples for fast loop-up. Adds complexity O(n).
+        variants: bool, optional
+            Whether to index the variants for fast look-up. Adds complexity O(m).
+        """
+        if samples and self._samp_idx is None:
+            self._samp_idx = dict(zip(self.samples, range(len(self.samples))))
+        if variants and self._var_idx is None:
+            self._var_idx = dict(zip(self.variants["id"], range(len(self.variants))))
+
+    def subset(
+        self,
+        samples: tuple[str] = None,
+        variants: tuple[str] = None,
+        inplace: bool = False,
+    ):
+        """
+        Subset these genotypes to a smaller set of samples or a smaller set of variants
+
+        Parameters
+        ----------
+        samples: tuple[str]
+            A subset of samples to keep
+        variants: tuple[str]
+            A subset of variant IDs to keep
+        inplace: bool, optional
+            If False, return a new Genotypes object; otherwise, alter the current one
+
+        Returns
+        -------
+            A new Genotypes object if inplace is set to False, else returns None
+        """
+        # First, initialize variables
+        gts = self
+        if not inplace:
+            gts = self.__class__(self.fname, self.log)
+        gts.samples = self.samples
+        gts.variants = self.variants
+        gts.data = self.data
+        # Index the current set of samples and variants so we can have fast look-up
+        self.index(samples=(samples is not None), variants=(variants is not None))
+        # Subset the samples
+        if samples is not None:
+            gts.samples = tuple(samp for samp in samples if samp in self._samp_idx)
+            if len(gts.samples) < len(samples):
+                diff = len(samples) - len(gts.samples)
+                self.log.warning(
+                    f"Saw {diff} fewer samples than requested. Proceeding with "
+                    f"f{len(gts.samples)} samples."
+                )
+            samp_idx = tuple(self._samp_idx[samp] for samp in gts.samples)
+            if inplace:
+                self._samp_idx = None
+            gts.data = gts.data[samp_idx, :]
+        # Subset the variants
+        if variants is not None:
+            var_idx = [self._var_idx[var] for var in variants if var in self._var_idx]
+            if len(var_idx) < len(variants):
+                diff = len(variants) - len(var_idx)
+                self.log.warning(
+                    f"Saw {diff} fewer variants than requested. Proceeding with "
+                    f"f{len(var_idx)} variants."
+                )
+            gts.variants = self.variants[var_idx]
+            if inplace:
+                self._var_idx = None
+            gts.data = gts.data[:, var_idx]
+        if not inplace:
+            return gts
 
     def check_missing(self, discard_also=False):
         """
