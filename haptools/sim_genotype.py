@@ -7,7 +7,6 @@ from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
-# TODO update toml file with matplotlib version see aryas PR
 def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
@@ -57,6 +56,10 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     sample_dict = {}
     for ind, sample in enumerate(vcf.samples):
         sample_dict[sample] = ind
+
+    # TODO read all chroms in vcf
+
+    # TODO read all chroms in breakpoints and ensure that they each have the same ones
 
     # create index array to store for every sample which haplotype 
     # block we are currently processing and choose what samples 
@@ -124,9 +127,6 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
             "id": var.ID,
             "filter": None,
         }
-
-        # handle pysam increasing the start site by 1
-        rec["start"] -= 1
         
         # parse the record into a pysam.VariantRecord
         record = write_vcf.new_record(**rec)
@@ -144,9 +144,9 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
             if hap % 2 == 0:
                 # store variant
                 if hap > 0:
-                    record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
-                    record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
-                    record.samples[f"Sample_{sample_num+1}"].phased = True
+                    record.samples[f"Sample_{sample_num}"]["GT"] = tuple(gt)
+                    record.samples[f"Sample_{sample_num}"]["POP"] = tuple(pops)
+                    record.samples[f"Sample_{sample_num}"].phased = True
                 gt = []
                 pops = []
                 hap_var = var.genotypes[var_sample][hap % 2]
@@ -156,6 +156,11 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
                 hap_var = var.genotypes[var_sample][hap % 2]
                 gt.append(hap_var)
                 pops.append(bkp.get_pop())
+
+        sample_num = hap // 2
+        record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
+        record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
+        record.samples[f"Sample_{sample_num+1}"].phased = True
 
         # write the record to a file
         write_vcf.write(record)
