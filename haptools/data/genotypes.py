@@ -316,6 +316,9 @@ class Genotypes(Data):
         """
         Subset these genotypes to a smaller set of samples or a smaller set of variants
 
+        The order of the samples and variants in the subsetted instance will match
+        the order in the provided tuple parameters.
+
         Parameters
         ----------
         samples: tuple[str]
@@ -549,6 +552,8 @@ class GenotypesRefAlt(Genotypes):
             ],
         )
         self._prephased = False
+        self._samp_idx = None
+        self._var_idx = None
 
     def _variant_arr(self, record: Variant):
         """
