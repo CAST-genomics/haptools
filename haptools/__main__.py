@@ -85,34 +85,132 @@ DEFAULT_SIMU_HSQ = 0.1
 DEFAULT_SIMU_K = 0.1
 ##################################################
 @main.command()
-@click.option('--vcf', help='Phased VCF file', type=str, required=True)
-@click.option('--hap', help='Haplotype file with effect sizes', \
-        type=str, required=True)
-@click.option('--out', help='Prefix for output files', \
-        type=str, required=True)
-@click.option('--simu-qt', help='Simulate a quantitative trait', \
-        default=False, is_flag=True)
-@click.option('--simu-cc', help='Simulate a case/control trait', \
-        default=False, is_flag=True)
+@click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
+@click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--region",
+    type=str,
+    default=None,
+    show_default="all haplotypes",
+    help="""
+    The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'\n
+    For this to work, the VCF must be indexed and the seqname must match!""",
+)
+@click.option(
+    "-s",
+    "--sample",
+    "samples",
+    type=str,
+    multiple=True,
+    show_default="all samples",
+    help=(
+        "A list of the samples to subset from the genotypes file (ex: '-s sample1 -s"
+        " sample2')"
+    ),
+)
+@click.option(
+    "-S",
+    "--samples-file",
+    type=click.File("r"),
+    show_default="all samples",
+    help=(
+        "A single column txt file containing a list of the samples (one per line) to"
+        " subset from the genotypes file"
+    ),
+)
 @click.option('--simu-rep', help='Number of rounds of simulation to perform', \
         type=int, default=DEFAULT_SIMU_REP)
 @click.option('--simu-hsq', help='Trait heritability', \
         type=float, default=DEFAULT_SIMU_HSQ)
 @click.option('--simu-k', help='Specify the disease prevalence', \
         type=float, default=DEFAULT_SIMU_K)
-def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    default=Path("-"),
+    show_default="stdout",
+    help="A TSV file containing simulated phenotypes",
+)
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="ERROR",
+    show_default="only errors",
+    help="The level of verbosity desired",
+)
+def simphenotype(
+    genotypes: Path,
+    haplotypes: Path,
+    region: str = None,
+    samples: tuple[str] = tuple(),
+    samples_file: Path = None,
+    simu_rep, simu_hsq, simu_k,
+    output: Path = Path("-"),
+    verbosity: str = 'ERROR',
+):
     """
-    Haplotype-aware phenotype simulation
+    Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
+    set of haplotypes.
+
+    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
+    to the .hap format spec
+
+    \f
+    Examples
+    --------
+    >>> haptools simphenotype tests/data/example.vcf.gz tests/data/example.hap.gz > simu_phens.tsv
+
+    Parameters
+    ----------
+    genotypes : Path
+        The path to the genotypes in VCF format
+    haplotypes : Path
+        The path to the haplotypes in a .hap file
+    region : str, optional
+        See documentation for :py:meth:`~.data.Genotypes.read`
+    sample : Tuple[str], optional
+        See documentation for :py:meth:`~.data.Genotypes.read`
+    samples_file : Path, optional
+        A single column txt file containing a list of the samples (one per line) to
+        subset from the genotypes file
+    output : Path, optional
+        The location to which to write the simulated phenotypes
+    verbosity : str, optional
+        The level of verbosity desired in messages written to stderr
     """
+    import logging
+
     from .sim_phenotypes import simulate_pt
+
+    log = logging.getLogger("run")
+    logging.basicConfig(
+        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+    )
+    # handle samples
+    if samples and samples_file:
+        raise click.UsageError(
+            "You may only use one of --sample or --samples-file but not both."
+        )
+    if samples_file:
+        with samples_file as samps_file:
+            samples = samps_file.read().splitlines()
+    elif samples:
+        # needs to be converted from tuple to list
+        samples = list(samples)
+    else:
+        samples = None
     # Basic checks on input
     # TODO - check VCF zipped, check only one of simu-qt/simu-cc,
     # check values of other inputs
     # Only use simu-k for case/control
 
     # Run simulation
-    simulate_pt(vcf, hap, simu_rep, \
-        simu_hsq, simu_k, simu_qt, simu_cc, out)
+    simulate_pt(
+        genotypes, haplotypes, simu_rep, simu_hsq, simu_k, region, samples, output, log
+    )
 
 @main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
 @click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
@@ -121,9 +219,9 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     "--region",
     type=str,
     default=None,
-    show_default="all genotypes",
+    show_default="all haplotypes",
     help="""
-    The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'\n
+    The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'\n
     For this to work, the VCF must be indexed and the seqname must match!""",
 )
 @click.option(
