@@ -52,7 +52,7 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @main.command()
 @click.option('--model', help="Admixture model in .dat format. See docs for info.", \
     type=str, required=True)
-@click.option('--mapdir', help="Directory containing files ending in .map with genetic map coords ", \
+@click.option('--mapdir', help="Directory containing files with chr\{1-22,X\} and ending in .map in the file name with genetic map coords.", \
     type=str, required=True)
 @click.option('--out', help="Prefix to name output files.", \
     type=str, required=True)
@@ -74,10 +74,12 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
       --mapdir map/ \
       --out test
     """
-    from .sim_genotypes import simulate_gt, write_breakpoints
+    from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
     chroms = chroms.split(',')
+    validate_params(model, mapdir, chroms, popsize, invcf, sample_info)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
+    output_vcf(breakpoints, model, invcf, sample_info, out)
 
 ############ Haptools simphenotype ###############
 DEFAULT_SIMU_REP = 1

@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from cyvcf2 import VCF
 from pathlib import Path
-from haptools.sim_genotype import output_vcf
+from haptools.sim_genotype import output_vcf, validate_params
 from haptools.admix_storage import HaplotypeSegment 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -85,7 +85,13 @@ def test_vcf_output():
     os.remove(str(out_prefix)+'.vcf')
     return
 
-def test_mismatched_chroms():
-    # Test to ensure that the code errors when a chromosomes is found in one of the vcf or bp file but not the other.
+def test_validate_params():
+    # TODO ensure that my code covers all incorrect cases 
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    chroms = ["1"]
+    mapdir = "dir"
+    validate_params(model_file, mapdir, chroms, 10000, vcf_file, sampleinfo_file)
+
+    # Ensure it errors when popsize <= 0
     return
 

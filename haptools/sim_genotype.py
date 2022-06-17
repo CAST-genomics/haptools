@@ -1,3 +1,4 @@
+import os
 import re
 import glob
 import time
@@ -279,9 +280,6 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         pop_fracs = np.array(pop_fracs).astype(np.float) 
         sim_gens = cur_gen - prev_gen
         
-        assert sim_gens > 0
-        assert np.absolute(np.sum(pop_fracs)-1) < 1e-6
-
         # sim generation
         print(f"Simulating generation {prev_gen+1}")
         next_gen_samples = _simulate(popsize, pops, pop_fracs, prev_gen, chroms,
@@ -612,3 +610,92 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
+    # validate model file
+    mfile = open(model, 'r')
+    num_samples, *pops = mfile.readline().strip().split()
+
+    try:
+        num_samples = int(num_samples)
+    except:
+        raise Exception("Can't convert samples number to an integer.")
+
+    num_pops = len(pops)
+
+    if num_pops < 2:
+        raise Exception("Invalid number of populations given: {num_pops}. We require at least 2.")
+
+    if num_samples < 1:
+        raise Exception("Number of samples is less than 1.")
+    
+    # ensure the number of pops = number in pop_fracs
+    prev_gen = 0
+    for gen in mfile:
+        cur_gen, *pop_fracs = gen.strip().split()
+        try:
+            cur_gen = int(cur_gen)
+        except:
+            raise Exception("Can't convert generation to integer.")
+
+        try:
+            pop_fracs = np.array(pop_fracs).astype(np.float)
+        except:
+            raise Exception("Can't convert population fractions to type float.")
+
+        sim_gens = cur_gen - prev_gen
+        
+        if len(pop_fracs) != num_pops:
+            raise Exception("Total fractions given to populations do not match number of populations in the header.")
+        if sim_gens < 1:
+            raise Exception("Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens} is less than 1. "
+                            "Please ensure the generations given in the first column are correct.")
+        if np.absolute(np.sum(pop_fracs)-1) > 1e-6:
+            raise Exception("Population fractions for generation {cur_gen} do not sum to 1.")
+
+        prev_gen = cur_gen 
+
+    # Validate mapdir ensuring it contains proper files.
+    if not os.path.isfile(mapdir):
+        raise Exception("Map directory given is not a valid path.")
+    
+    try:
+        all_coord_files = glob.glob(f'{mapdir}/*.map')
+        all_coord_files = [coord_file for coord_file in all_coord_files \
+            if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+    except:
+        raise Exception("Could not parse map directory files.")
+    
+    if not all_coord_files:
+        raise Exception("No valid coordinate files found. Must contain chr\{1-22,X\} in the file name.")
+    
+    # validate chroms given are correctly named
+    valid_chroms = [str(x) for x in range(1,23)] + ['X']
+    for chrom in chroms:
+        if chrom not in valid_chroms:
+            raise Exception(f"Chromosome {chrom} in the list given is not valid.")
+
+    # validate popsize
+    if not isinstance(popsize, int):
+        raise Exception("Popsize is not an Integer.")
+    if popsize <= 0:
+        raise Exception("Popsize must be greater than 0.")
+
+    # Collect samples from vcf
+    try:
+        vcf = VCF(invcf)
+        vcf_samples = vcf.samples
+    except:
+        raise Exception("Unable to collect vcf samples.")
+
+    # validate sample_info file (ensure pops given are in model file and samples in vcf file)
+    # ensure sample_info col 2 in pops
+    for line in open(sample_info, 'r'):
+        sample = line.split('\t')[0]
+        info_pop = line.split('\t')[1]
+
+        if sample not in vcf_samples:
+            raise Exception("Sample in sampleinfo file is not present in the vcf file.")
+        
+        if info_pop not in pops:
+            raise Exception("Population {info_pop} in sampleinfo file is not present in the model file.")
+    return
