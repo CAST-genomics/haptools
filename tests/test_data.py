@@ -538,6 +538,7 @@ class TestHaplotypes:
     
 class TestGenotypesRefAlt:
     def test_read_ref_alt(self):
+        #simple.vcf
         gts_ref_alt_read = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
         gts_ref_alt_read.read()
         expected = np.array(
@@ -550,6 +551,33 @@ class TestGenotypesRefAlt:
         )
         for i, x in enumerate(expected):
             assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
+
+        # example.vcf.gz
+        gts_ref_alt = GenotypesRefAlt(DATADIR.joinpath("example.vcf.gz"))
+        gts_ref_alt.read()
+        expected = np.array(
+            [
+                ("C", "A"),
+                ("T", "C"),
+                ("G", "A"),
+                ("T", "C"),
+                ("A", "G"),
+                ("A", "G"),
+                ("T", "G"),
+                ("T", "A"),
+                ("G", "A"),
+                ("T", "C"),
+                ("C", "G"),
+                ("A", "G"),
+                ("T", "C"),
+                ("T", "C"),
+                ("C", "T"),
+            ], dtype = gts_ref_alt_read.variants[["ref", "alt"]].dtype
+        )
+        for i, x in enumerate(expected):
+            assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
+        
+
     
     def test_write_ref_alt(self):
         gts_ref_alt_write = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
@@ -561,6 +589,10 @@ class TestGenotypesRefAlt:
         assert gts_ref_alt_write.read() == expected
 
         os.remove(str(fname))
+
+    
+
+
 
 
         
