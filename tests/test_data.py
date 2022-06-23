@@ -572,10 +572,10 @@ class TestGenotypesRefAlt:
                 ("T", "C"),
                 ("T", "C"),
                 ("C", "T"),
-            ], dtype = gts_ref_alt_read.variants[["ref", "alt"]].dtype
+            ], dtype = gts_ref_alt.variants[["ref", "alt"]].dtype
         )
         for i, x in enumerate(expected):
-            assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
+            assert gts_ref_alt.variants[["ref", "alt"]][i] == x
         
 
     
