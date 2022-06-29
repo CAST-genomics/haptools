@@ -58,10 +58,6 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     for ind, sample in enumerate(vcf.samples):
         sample_dict[sample] = ind
 
-    # TODO read all chroms in vcf
-
-    # TODO read all chroms in breakpoints and ensure that they each have the same ones
-
     # create index array to store for every sample which haplotype 
     # block we are currently processing and choose what samples 
     # will be used for each haplotype block
@@ -234,6 +230,9 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
             for line in cfile:
                 # create marker from each line and append to coords
                 data = line.strip().split()
+                if len(data) != 4:
+                    raise Exception(f"Map file contains an incorrect amount of fields {len(data)}. It should contain 4.")
+                
                 if data[0] == 'X':
                     chrom = 23
                 else:
