@@ -7,6 +7,7 @@ from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
+from __future__ import annotations
 
 def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     """
@@ -375,7 +376,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
         Holds probabilities for each marker for whether a recombination event will occur.
         prob of event = 1-np.exp(-dist/100) where dist is in cM and is calculated via the
             current and prior genetic markers
-    prev_gen_samples: list(list(HaplotypeSegment))
+    prev_gen_samples: list[list[HaplotypeSegment]], optional
         Prior generation of samples used to choose parents and swap markers when recombination
         events occur. Each list is a person's haplotype of segments having a distinct population label.
     Returns
