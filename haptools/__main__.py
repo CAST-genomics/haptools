@@ -53,7 +53,7 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @click.option('--model', help="Admixture model in .dat format. See docs for info.", \
     type=str, required=True)
 @click.option('--mapdir', help="Directory containing files with chr\{1-22,X\} and ending in .map in the file name with genetic map coords.", \
-    type=str, required=True, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
+    required=True, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
 @click.option('--out', help="Prefix to name output files.", \
     type=str, required=True)
 @click.option('--chroms', help='Sorted and comma delimited list of chromosomes to simulate. ex: 1,2,3,5,6,21,X', \

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 import glob
@@ -7,7 +9,7 @@ from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
-from __future__ import annotations
+
 
 def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     """
@@ -690,8 +692,8 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
     # validate sample_info file (ensure pops given are in model file and samples in vcf file)
     # ensure sample_info col 2 in pops
     for line in open(sample_info, 'r'):
-        sample = line.split('\t')[0]
-        info_pop = line.split('\t')[1]
+        sample = line.split()[0]
+        info_pop = line.split()[1]
 
         if sample not in vcf_samples:
             raise Exception("Sample in sampleinfo file is not present in the vcf file.")
