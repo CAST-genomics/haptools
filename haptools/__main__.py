@@ -75,7 +75,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
       --mapdir ./tests/map/ \
       --chroms 1,2 \
       --invcf ./tests/data/outvcf_test.vcf \
-      --sampleinfo ./tests/data/outvcf_info.tab \
+      --sample_info ./tests/data/outvcf_info.tab \
       --out ./tests/data/example_simgenotype
     """
     from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
