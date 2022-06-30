@@ -7,6 +7,7 @@ from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
+from __future__ import annotations
 
 def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     """
@@ -57,10 +58,6 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     sample_dict = {}
     for ind, sample in enumerate(vcf.samples):
         sample_dict[sample] = ind
-
-    # TODO read all chroms in vcf
-
-    # TODO read all chroms in breakpoints and ensure that they each have the same ones
 
     # create index array to store for every sample which haplotype 
     # block we are currently processing and choose what samples 
@@ -234,6 +231,9 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
             for line in cfile:
                 # create marker from each line and append to coords
                 data = line.strip().split()
+                if len(data) != 4:
+                    raise Exception(f"Map file contains an incorrect amount of fields {len(data)}. It should contain 4.")
+                
                 if data[0] == 'X':
                     chrom = 23
                 else:
@@ -376,7 +376,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
         Holds probabilities for each marker for whether a recombination event will occur.
         prob of event = 1-np.exp(-dist/100) where dist is in cM and is calculated via the
             current and prior genetic markers
-    prev_gen_samples: list(list(HaplotypeSegment))
+    prev_gen_samples: list[list[HaplotypeSegment]], optional
         Prior generation of samples used to choose parents and swap markers when recombination
         events occur. Each list is a person's haplotype of segments having a distinct population label.
     Returns
@@ -655,7 +655,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
         prev_gen = cur_gen 
 
     # Validate mapdir ensuring it contains proper files.
-    if not os.path.isfile(mapdir):
+    if not os.path.isdir(mapdir):
         raise Exception("Map directory given is not a valid path.")
     
     try:
