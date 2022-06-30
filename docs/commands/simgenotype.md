@@ -78,10 +78,10 @@ Sample Header 2
 Example Command
 ```
 haptools simgenotype \
-    --model ./tests/data/outvcf_gen.dat \
-    --mapdir ./tests/map/ \
-    --chroms 1,2 \
-    --invcf ./tests/data/outvcf_test.vcf \
-    --sampleinfo ./tests/data/outvcf_info.tab \
-    --out ./tests/data/example_simgenotype
+  --model ./tests/data/outvcf_gen.dat \
+  --mapdir ./tests/map/ \
+  --chroms 1,2 \
+  --invcf ./tests/data/outvcf_test.vcf \
+  --sampleinfo ./tests/data/outvcf_info.tab \
+  --out ./tests/data/example_simgenotype
 ```
