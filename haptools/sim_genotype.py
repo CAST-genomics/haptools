@@ -655,7 +655,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
         prev_gen = cur_gen 
 
     # Validate mapdir ensuring it contains proper files.
-    if not os.path.isfile(mapdir):
+    if not os.path.isdir(mapdir):
         raise Exception("Map directory given is not a valid path.")
     
     try:
