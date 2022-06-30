@@ -79,7 +79,7 @@ Example Command
 ```
 haptools simgenotype \
   --model ./tests/data/outvcf_gen.dat \
-  --mapdir ./tests/map/ \
+  --mapdir ./tests/data/map/ \
   --chroms 1,2 \
   --invcf ./tests/data/outvcf_test.vcf \
   --sample_info ./tests/data/outvcf_info.tab \
