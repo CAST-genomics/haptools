@@ -67,13 +67,16 @@ def karyogram(bp, sample, out, title, centromeres, colors):
               "describing the populations in the header of the model file.", required=True)
 def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     """
-    Simulate admixed genomes under a pre-defined model
+    Simulate admixed genomes under a pre-defined model.
 
     Example:
     haptools simgenotype \
-      --model tests/data/dat_files/AFR_south_carolina.dat \
-      --mapdir map/ \
-      --out test
+      --model ./tests/data/outvcf_gen.dat \
+      --mapdir ./tests/map/ \
+      --chroms 1,2 \
+      --invcf ./tests/data/outvcf_test.vcf \
+      --sampleinfo ./tests/data/outvcf_info.tab \
+      --out ./tests/data/example_simgenotype
     """
     from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
     chroms = chroms.split(',')
