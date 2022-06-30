@@ -77,11 +77,11 @@ Sample Header 2
 
 Example Command
 ```
-haptools simgenotype
-  --invcf 1000Genomes.vcf.gz \
-  --sample_info /path/to/sampleinfo.csv \
-  --model /path/to/model/file.dat \
-  --map /path/to/plink/file/ \
-  --chroms 7,8,9,10,21,22,X \
-  --out /path/to/output
+  haptools simgenotype \
+    --model ./tests/data/outvcf_gen.dat \
+    --mapdir ./tests/map/ \
+    --chroms 1,2 \
+    --invcf ./tests/data/outvcf_test.vcf \
+    --sampleinfo ./tests/data/outvcf_info.tab \
+    --out ./tests/data/example_simgenotype
 ```
