@@ -82,6 +82,6 @@ haptools simgenotype \
   --mapdir ./tests/map/ \
   --chroms 1,2 \
   --invcf ./tests/data/outvcf_test.vcf \
-  --sampleinfo ./tests/data/outvcf_info.tab \
+  --sample_info ./tests/data/outvcf_info.tab \
   --out ./tests/data/example_simgenotype
 ```
