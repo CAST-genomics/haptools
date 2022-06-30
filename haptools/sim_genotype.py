@@ -34,6 +34,8 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
         output prefix
     """
 
+    print(f"Outputting VCF file {vcf_file}")
+
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
     # need to go line by line of the vcf when creating the new vcf
