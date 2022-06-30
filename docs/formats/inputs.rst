@@ -29,3 +29,5 @@ The first line of the file will be treated as a header. The column with sample I
 should be named "sample" and subsequent columns can be labeled however you'd like.
 
 See ``tests/data/covars.tsv`` for an example of a covariate file.
+
+1000 Genomes sampleifile format

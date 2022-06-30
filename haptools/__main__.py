@@ -71,11 +71,11 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
 
     Example:
     haptools simgenotype \
-      --model ./tests/data/outvcf_gen.dat \
-      --mapdir ./tests/map/ \
-      --chroms 1,2 \
-      --invcf ./tests/data/outvcf_test.vcf \
-      --sample_info ./tests/data/outvcf_info.tab \
+      --model ./tests/data/outvcf_gen.dat \n
+      --mapdir ./tests/map/ \n
+      --chroms 1,2 \n
+      --invcf ./tests/data/outvcf_test.vcf \n
+      --sample_info ./tests/data/outvcf_info.tab \n
       --out ./tests/data/example_simgenotype
     """
     from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
