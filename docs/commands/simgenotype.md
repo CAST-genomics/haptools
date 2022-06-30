@@ -77,7 +77,7 @@ Sample Header 2
 
 Example Command
 ```
-  haptools simgenotype \
+haptools simgenotype \
     --model ./tests/data/outvcf_gen.dat \
     --mapdir ./tests/map/ \
     --chroms 1,2 \
