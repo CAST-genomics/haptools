@@ -15,6 +15,8 @@ class PhenoSimulator:
     ----------
     gens: Genotypes
         Genotypes to simulate
+    phens: Phenotypes
+        Simulated phenotypes; filled by :py:meth:`~.PhenoSimular.run`
     log: Logger
         A logging instance for recording debug statements
 
@@ -31,6 +33,7 @@ class PhenoSimulator:
     def __init__(
         self,
         genotypes: Genotypes,
+        output: Path = None,
         log: Logger = None,
     ):
         """
@@ -40,21 +43,29 @@ class PhenoSimulator:
         ----------
         genotypes: Genotypes
             Genotypes for each haplotype
+        output: Path
+            Path to a '.pheno' file to which the generated phenotypes could be written
         log: Logger, optional
             A logging instance for recording debug statements
         """
         self.gens = genotypes
+        self.phens = Phenotypes(fname=output)
+        self.phens.names = tuple()
+        self.phens.data = None
+        self.phens.samples = self.gens.samples
         self.log = log or getLogger(self.__class__.__name__)
 
     def run(
         self,
         varID: str,
         beta: float,
-        heritability: float = 1,
+        heritability: float = None,
         prevalence: float = None,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
+
+        The generated phenotypes will also be added to :py:attr:`~.PhenoSimulator.fname`
 
         Parameters
         ----------
@@ -65,23 +76,40 @@ class PhenoSimulator:
             The simulated effect size of the variant; must be between -1 and 1
         heritability: float, optional
             The simulated heritability of the trait
+
+            If not provided, this will be estimated from the variability of the
+            genotypes
         prevalence: float, optional
             How common should the disease be within the population?
 
             If this value is specified, case/control phenotypes will be generated
             instead of quantitative traits.
+
+        Returns
+        -------
         """
         gts = self.gens.subset(variants=[varID]).data[:, 0].sum(axis=1)
-        # error =
         pt = effect * (gts - gts.mean(axis=0)) / gts.std(axis=0)
+        # add an error term
+        if heritability:
+            # as defined in GTCA
+            pt += np.random.normal(0, np.var(pt) * ((1/heritability) - 1) )
+        else:
+            pt += np.random.normal(0, 1 - np.var(gts)**2)
+        if self.phens.data is None:
+            self.phens.data = pt
+        else:
+            self.phens.data = np.concatenate((self.phens.data, pt), axis=1)
+        self.phens.names = self.phens.names + (varID,)
+        # TODO: implement case/control phenotypes
+        return pt
 
-        # Simulate and write
-        for i in range(simu_rep):
-            resid_component = np.random.normal(0, np.var(pt) * (1 / simu_hsq - 1))
-            if simu_qt:
-                outinfo.append(pt + resid_component)
-            else:
-                raise NotImplementedError("Case control not implemented")
+    def write(self):
+        """
+        Write the generated phenotypes to the file specified in
+        :py:meth:`~.PhenoSimular.__init__`
+        """
+        self.phens.write()
 
 
 def simulate_pt(
@@ -123,24 +151,7 @@ def simulate_pt(
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
-    pt_sim = PhenoSimulator(hp_gt)
-    phens = pt_sim.run()
-
-    # Set up file to write summary info
-    outf_sum = open("%s.par" % outprefix, "w")
-    outf_sum.write("\t".join(["Haplotype", "Frequency", "Effect"]) + "\n")
-
-    # Add effect for each haplotype
-    for idx, hap in enumerate(haps.data.values()):
-        sample_to_hap = hap.transform(gens)
-        pt_sim.add_effect(sample_to_hap, hap.beta)
-
-        # Output summary info
-        hap_freq = hap.GetFrequency(gens)
-        outf_sum.write("\t".join([hap.id, str(hap_freq), str(hap.beta)]) + "\n")
-
-    # Output simulated phenotypes to a file (haptools simphenotypes)
-    pt_sim.run(outprefix, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc)
-
-    # Done
-    outf_sum.close()
+    pt_sim = PhenoSimulator(hp_gt, output=output, log=log)
+    for hap in hp.data.values():
+        pt_sim.run(hap.id, hap.beta)
+    pt_sim.write()
