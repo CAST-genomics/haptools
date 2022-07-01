@@ -1,4 +1,4 @@
-sample	sex	age
+#IID	sex	age
 HG00096	0	4
 HG00097	1	20
 HG00099	1	33
