@@ -275,7 +275,6 @@ class TestPhenotypes:
         phens.standardize()
         np.testing.assert_allclose(phens.data, expected)
 
-
     def test_load_phenotypes_iterate(self):
         expected_phen = self._get_fake_phenotypes()
         expected = expected_phen.data
@@ -286,7 +285,6 @@ class TestPhenotypes:
         for idx, line in enumerate(phens):
             np.testing.assert_allclose(line.data, expected[idx])
             assert line.samples == samples[idx]
-
 
     def test_load_phenotypes_subset(self):
         expected_phen = self._get_fake_phenotypes()
@@ -301,6 +299,23 @@ class TestPhenotypes:
         phens.read(samples=samples)
         np.testing.assert_allclose(phens.data, expected)
         assert phens.samples == tuple(samples)
+
+    def test_write_phenotypes(self):
+        expected_phen = self._get_fake_phenotypes()
+
+        # first, we write the data
+        expected_phen.fname = DATADIR.joinpath("test.pheno")
+        expected_phen.write()
+
+        # now, let's load the data and check that it's what we wrote
+        result = Phenotypes(expected_phen.fname)
+        result.read()
+        np.testing.assert_allclose(expected_phen.data, result.data)
+        assert expected_phen.names == result.names
+        assert expected_phen.samples == result.samples
+
+        # let's clean up after ourselves and delete the file
+        os.remove(str(expected_phen.fname))
 
 
 class TestCovariates:
@@ -334,7 +349,6 @@ class TestCovariates:
         covars.read()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-
     def test_load_covariates_iterate(self):
         # create a covariate vector with shape: num_samples x num_covars
         expected_covar = self._get_fake_covariates()
@@ -347,7 +361,6 @@ class TestCovariates:
             np.testing.assert_allclose(line.data, expected[idx])
             assert line.samples == samples[idx]
         assert covars.names == ("sex", "age")
-
 
     def test_load_covariates_subset(self):
         # create a covariate vector with shape: num_samples x num_covars

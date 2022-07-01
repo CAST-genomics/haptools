@@ -165,6 +165,26 @@ class Phenotypes(Data):
         # see https://stackoverflow.com/a/36726497
         return self._iterate(phens, phen_text, samples)
 
+    def write(self):
+        """
+        Write the phenotypes in this class to a file at :py:attr:`~.Phenotypes.fname`
+
+        Examples
+        --------
+        To write to a file, you must first initialize a Phenotypes object and then
+        fill out the names, data, and samples properties:
+        >>> phenotypes = Phenotypes('tests/data/simple.pheno')
+        >>> phenotypes.names = ('height',)
+        >>> phenotypes.data = np.array([1, 1, 2], dtype='float64')
+        >>> phenotypes.samples = ('HG00096', 'HG00097', 'HG00099')
+        >>> phenotypes.write()
+        """
+        with hook_compressed(self.fname, mode="wt") as haps:
+            haps.write("#IID\t"+"\t".join(self.names)+"\n")
+            for samp, phens in zip(self.samples, self.data):
+                line = np.array2string(phens, separator="\t", formatter={'float_kind':lambda x: "%.2f" % x})[1:-1]
+                haps.write(f"{samp}\t" + line + "\n")
+
     def standardize(self):
         """
         Standardize phenotypes so they have a mean of 0 and a stdev of 1
