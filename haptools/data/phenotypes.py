@@ -38,7 +38,7 @@ class Phenotypes(Data):
         super().__init__(fname, log)
         self.samples = tuple()
         self.names = tuple()
-        self._ext = 'pheno'
+        self._ext = "pheno"
 
     @classmethod
     def load(cls: Phenotypes, fname: Path, samples: list[str] = None) -> Phenotypes:
@@ -88,7 +88,9 @@ class Phenotypes(Data):
         # collect data in a np array
         self.data = np.array(data)
 
-    def _iterate(self, phens: TextIOBase, phen_text: Iterable, samples: set[str] = None):
+    def _iterate(
+        self, phens: TextIOBase, phen_text: Iterable, samples: set[str] = None
+    ):
         """
         A generator over the lines of a TSV
 
@@ -116,9 +118,7 @@ class Phenotypes(Data):
         for phen in phen_text:
             if samples is None or phen[0] in samples:
                 try:
-                    yield Record(
-                        np.array(phen[1:], dtype="float64"), phen[0]
-                    )
+                    yield Record(np.array(phen[1:], dtype="float64"), phen[0])
                 except:
                     self.log.error(
                         f"Every column in the .{self._ext} file (besides the sample"
@@ -147,7 +147,7 @@ class Phenotypes(Data):
         # ignore all of the comment lines
         while True:
             header = next(phen_text)
-            if not header[0].startswith('#') or header[0].startswith('#IID'):
+            if not header[0].startswith("#") or header[0].startswith("#IID"):
                 break
 
         # there should be at least two columns
@@ -180,9 +180,10 @@ class Phenotypes(Data):
         >>> phenotypes.write()
         """
         with hook_compressed(self.fname, mode="wt") as haps:
-            haps.write("#IID\t"+"\t".join(self.names)+"\n")
-            for samp, phens in zip(self.samples, self.data):
-                line = np.array2string(phens, separator="\t", formatter={'float_kind':lambda x: "%.2f" % x})[1:-1]
+            haps.write("#IID\t" + "\t".join(self.names) + "\n")
+            formatter = {"float_kind": lambda x: "%.2f" % x}
+            for samp, phen in zip(self.samples, self.data):
+                line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
                 haps.write(f"{samp}\t" + line + "\n")
 
     def standardize(self):

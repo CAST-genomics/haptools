@@ -718,12 +718,7 @@ class Haplotypes(Data):
 
     def write(self):
         """
-        Write the contents of this Haplotypes object to the file given by fname
-
-        Parameters
-        ----------
-        file: TextIO
-            A file-like object to which this Haplotypes object should be written.
+        Write the contents of this Haplotypes object to the file at :py:attr:`~.Haplotypes.fname`
 
         Examples
         --------
