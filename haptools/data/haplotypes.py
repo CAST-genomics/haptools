@@ -87,7 +87,7 @@ class Extra:
         """
         Convert an Extra into a fmt string
 
-        Retruns
+        Returns
         -------
         str
             A python format string (ex: "{beta:.3f}")
