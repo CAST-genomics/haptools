@@ -143,10 +143,10 @@ DEFAULT_SIMU_K = 0.1
 def simphenotype(
     genotypes: Path,
     haplotypes: Path,
+    simu_rep, simu_hsq, simu_k,
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
-    simu_rep, simu_hsq, simu_k,
     output: Path = Path("-"),
     verbosity: str = 'ERROR',
 ):
@@ -220,9 +220,11 @@ def simphenotype(
     type=str,
     default=None,
     show_default="all haplotypes",
-    help="""
-    The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'\n
-    For this to work, the VCF must be indexed and the seqname must match!""",
+    help=(
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
+        "For this to work, the VCF and .hap file must be indexed and the seqnames must"
+        "correspond with those in the files"
+    )
 )
 @click.option(
     "-s",
@@ -290,6 +292,7 @@ def transform(
         The path to the haplotypes in a .hap file
     region : str, optional
         See documentation for :py:meth:`~.data.Genotypes.read`
+        and :py:meth:`~.data.Haplotypes.read`
     sample : Tuple[str], optional
         See documentation for :py:meth:`~.data.Genotypes.read`
     samples_file : Path, optional

@@ -24,6 +24,7 @@ def transform_haps(
         The path to the haplotypes in a .hap file
     region : str, optional
         See documentation for :py:meth:`~.data.Genotypes.read`
+        and :py:meth:`~.data.Haplotypes.read`
     samples : list[str], optional
         See documentation for :py:meth:`~.data.Genotypes.read`
     output : Path, optional

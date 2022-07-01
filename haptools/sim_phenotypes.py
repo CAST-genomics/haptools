@@ -121,7 +121,7 @@ def simulate_pt(
     hp_gt = data.GenotypesRefAlt(fname=None, log=log)
     hp.transform(gt, hp_gt)
 
-    # Initialize phenotype simulator (haptools simphenotypes)
+    # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(hp_gt)
     phens = pt_sim.run()
