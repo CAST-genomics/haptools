@@ -17,3 +17,5 @@ dist/
 # Test output files
 test.par
 test.phen
+example_simgenotype.bp
+example_simgenotype.vcf
