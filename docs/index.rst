@@ -9,8 +9,9 @@
    :hidden:
    :maxdepth: 1
 
-   formats/inputs.rst
+   formats/genotypes.rst
    formats/haplotypes.rst
+   formats/phenotypes.rst
 
 .. toctree::
    :caption: Commands
