@@ -111,17 +111,20 @@ class PhenoSimulator:
         npt.NDArray
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
-        # extract the ID and effect size information from the Haplotype objects
+        # extract the relevant haplotype info from the Haplotype objects
         ids = [hap.id for hap in effects]
         betas = np.array([hap.beta for hap in effects])
+        self.log.info(f"Extracting haplotype genotypes for haps: {ids}")
         # extract the haplotype "genotypes" and compute the phenotypes
         gts = self.gens.subset(variants=ids).data.sum(axis=2)
+        self.log.info("Computing genetic component")
         # standardize the genotypes
         gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
         if heritability is None:
+            self.log.info("Computing heritability")
             # if heritability is not defined, then we set it equal to the sum of the
             # effect sizes
             # assuming the genotypes are independent, this makes the variance of the
@@ -132,11 +135,20 @@ class PhenoSimulator:
             # for a_idx, b_idx in combinations(range(len(betas)), 2):
             #     heritability += 2 * betas[a_idx] * betas[b_idx] * \
             #         np.cov(gts[:,a_idx], gts[:,b_idx])[0][1]
+        self.log.info(f"Adding environmental component for h^squared: {heritability}")
         # compute the environmental effect
         noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         # finally, add everything together to get the simulated phenotypes
         pt += np.random.normal(0, noise, size=pt.shape)
-        # TODO: implement case/control phenotypes
+        if prevalence is not None:
+            self.log.info(f"Converting to case/control with prevalence {prevalence}")
+            # first, find the number of desired positives
+            k = int(prevalence * len(pt))
+            # choose the top k values and label them positive
+            bool_pt = np.repeat(False, repeats=len(pt))
+            bool_pt[np.argpartition(pt, k)[-k:]] = True
+            pt = bool_pt
+        pt = pt[:, np.newaxis]
         # now, save the archived phenotypes for later
         if self.phens.data is None:
             self.phens.data = pt
@@ -156,14 +168,60 @@ class PhenoSimulator:
 def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
-    simu_rep: int,
-    simu_hsq: float,
-    simu_k: float,
+    num_replications: int = 1,
+    heritability: float = None,
+    prevalence: float = None,
     region: str = None,
     samples: list[str] = None,
     output: Path = Path("-"),
     log: Logger = None,
 ):
+    """
+    Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
+    set of haplotypes.
+
+    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
+    to the .hap format spec
+
+    \f
+    Examples
+    --------
+    >>> haptools simphenotype tests/data/example.vcf.gz tests/data/example.hap.gz > simu_phens.tsv
+
+    Parameters
+    ----------
+    genotypes : Path
+        The path to the genotypes in VCF format
+    haplotypes : Path
+        The path to the haplotypes in a .hap file
+    replications : int, optional
+        The number of rounds of simulation to perform
+    heritability : int, optional
+        The heritability of the simulated trait; must be a float between 0 and 1
+    prevalence : int, optional
+        The prevalence of the disease if the trait should be simulated as case/control;
+        must be a float between 0 and 1
+
+        If not provided, a quantitative trait will be simulated, instead
+    region : str, optional
+        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+        For this to work, the VCF and .hap file must be indexed and the seqname must
+        match!
+
+        Defaults to loading all haplotypes
+    sample : tuple[str], optional
+        A subset of the samples from which to extract genotypes
+
+        Defaults to loading genotypes from all samples
+    samples_file : Path, optional
+        A single column txt file containing a list of the samples (one per line) to
+        subset from the genotypes file
+    output : Path, optional
+        The location to which to write the simulated phenotypes
+    log : Logger, optional
+        The logging module for this task
+    """
     if log is None:
         log = logging.getLogger("run")
         logging.basicConfig(
@@ -194,6 +252,7 @@ def simulate_pt(
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(hp_gt, output=output, log=log)
-    pt_sim.run(hp.data.values())
+    for i in range(num_replications):
+        pt_sim.run(hp.data.values(), heritability, prevalence)
     log.info("Writing phenotypes")
     pt_sim.write()
