@@ -213,7 +213,7 @@ def simphenotype(
     """
     import logging
 
-    from .sim_phenotypes import simulate_pt
+    from .sim_phenotype import simulate_pt
 
     log = logging.getLogger("run")
     logging.basicConfig(
