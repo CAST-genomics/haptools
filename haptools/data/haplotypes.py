@@ -493,7 +493,7 @@ class Haplotypes(Data):
                     expected_lines.remove(line)
                 except ValueError:
                     # extract the name of the extra field
-                    name = line.split("\t", maxsplit=1)[1]
+                    name = line.split("\t", maxsplit=2)[1]
                     raise ValueError(
                         f"The extra field '{name}' is declared in the header of the"
                         " .hap file but is not accepted by this tool."

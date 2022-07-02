@@ -1,9 +1,11 @@
 from __future__ import annotations
+from pathlib import Path
 from logging import getLogger, Logger
 
+import numpy as np
 import numpy.typing as npt
 
-from haplotype import HaptoolsHaplotype as Haplotype
+from .haplotype import HaptoolsHaplotype as Haplotype
 from .data import GenotypesRefAlt, Phenotypes, Haplotypes
 
 
@@ -57,23 +59,20 @@ class PhenoSimulator:
 
     def run(
         self,
-        varID: str,
-        beta: float,
+        effects: list[Haplotype],
         heritability: float = None,
         prevalence: float = None,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
 
-        The generated phenotypes will also be added to :py:attr:`~.PhenoSimulator.fname`
+        The generated phenotypes will also be added to
+        :py:attr:`~.PhenoSimulator.output`
 
         Parameters
         ----------
-        varID: str
-            The ID of the variant in the Genotype object from which to simulate
-            phenotypes
-        beta: float
-            The simulated effect size of the variant; must be between -1 and 1
+        effects: list[Haplotype]
+            A list of Haplotypes to use in an additive fashion within the simulations
         heritability: float, optional
             The simulated heritability of the trait
 
@@ -87,20 +86,29 @@ class PhenoSimulator:
 
         Returns
         -------
+        npt.NDArray
+            The simulated phenotypes, as a np array of shape num_samples x 1
         """
-        gts = self.gens.subset(variants=[varID]).data[:, 0].sum(axis=1)
-        pt = effect * (gts - gts.mean(axis=0)) / gts.std(axis=0)
+        # extract the needed information from the Haplotype objects
+        ids = [hap.id for hap in effects]
+        betas = np.array([hap.beta for hap in effects])
+        # extract the haplotype "genotypes" and compute the phenotypes
+        gts = self.gens.subset(variants=ids).data.sum(axis=2)
+        # standardize the genotypes
+        gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
+        # generate the phenotypes
+        pt = (betas * gts).sum(axis=1)
         # add an error term
         if heritability:
             # as defined in GTCA
             pt += np.random.normal(0, np.var(pt) * ((1/heritability) - 1) )
         else:
-            pt += np.random.normal(0, 1 - np.var(gts)**2)
+            pt += np.random.normal(0, 1 - np.power(betas, 2).sum())
         if self.phens.data is None:
             self.phens.data = pt
         else:
             self.phens.data = np.concatenate((self.phens.data, pt), axis=1)
-        self.phens.names = self.phens.names + (varID,)
+        self.phens.names = self.phens.names + ("-".join(ids),)
         # TODO: implement case/control phenotypes
         return pt
 
@@ -131,14 +139,14 @@ def simulate_pt(
         )
 
     log.info("Loading haplotypes")
-    hp = data.Haplotypes(haplotypes, log=log)
+    hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
     hp.read(region=region)
 
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
     log.info("Loading genotypes")
-    gt = data.GenotypesRefAlt(genotypes, log=log)
+    gt = GenotypesRefAlt(genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing()
@@ -146,12 +154,11 @@ def simulate_pt(
     gt.check_phase()
 
     log.info("Transforming genotypes via haplotypes")
-    hp_gt = data.GenotypesRefAlt(fname=None, log=log)
+    hp_gt = GenotypesRefAlt(fname=None, log=log)
     hp.transform(gt, hp_gt)
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(hp_gt, output=output, log=log)
-    for hap in hp.data.values():
-        pt_sim.run(hap.id, hap.beta)
+    pt_sim.run(hp.data.values())
     pt_sim.write()
