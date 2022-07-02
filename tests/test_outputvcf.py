@@ -60,6 +60,7 @@ def test_vcf_output():
     # read in vcf file
     vcf = VCF(str(out_prefix)+'.vcf')
     for var in vcf:
+        print(var.format('SAMPLE'))
         if var.CHROM == "1" and var.POS == 10114:
             assert(var.genotypes[0] == [0,0,True])
             assert(var.format('POP')[0] == "YRI,YRI")
@@ -86,12 +87,6 @@ def test_vcf_output():
     return
 
 def test_validate_params():
-    # TODO ensure that my code covers all incorrect cases 
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
-    chroms = ["1"]
-    mapdir = "dir"
-    validate_params(model_file, mapdir, chroms, 10000, vcf_file, sampleinfo_file)
 
-    # Ensure it errors when popsize <= 0
     return
 

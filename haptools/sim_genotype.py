@@ -85,10 +85,10 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
     # Once VCF is complete we've output everything we wanted
     # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
-    _write_vcf(breakpoints, hapblock_samples, current_bkps, output_samples, vcf, out+".vcf")
+    _write_vcf(breakpoints, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
     return
 
-def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf, out_vcf):
+def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
     """
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
@@ -117,6 +117,15 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
             ("Number", 2),
             ("Type", "String"),
             ("Description", "Origin Population of each respective allele in GT"),
+        ],
+    )
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "SAMPLE"),
+            ("Number", 2),
+            ("Type", "String"),
+            ("Description", "Origin sample and haplotype of each respective allele in GT"),
         ],
     )
     for var in in_vcf:
@@ -148,20 +157,25 @@ def _write_vcf(breakpoints, hapblock_samples, current_bkps, out_samples, in_vcf,
                 if hap > 0:
                     record.samples[f"Sample_{sample_num}"]["GT"] = tuple(gt)
                     record.samples[f"Sample_{sample_num}"]["POP"] = tuple(pops)
+                    record.samples[f"Sample_{sample_num}"]["SAMPLE"] = tuple(samples)
                     record.samples[f"Sample_{sample_num}"].phased = True
                 gt = []
                 pops = []
+                samples = []
                 hap_var = var.genotypes[var_sample][hap % 2]
                 gt.append(hap_var)
                 pops.append(bkp.get_pop())
+                samples.append(vcf_samples[var_sample] + f"-{hap_var}")
             else:
                 hap_var = var.genotypes[var_sample][hap % 2]
                 gt.append(hap_var)
                 pops.append(bkp.get_pop())
+                samples.append(vcf_samples[var_sample] + f"-{hap_var}")
 
         sample_num = hap // 2
         record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
         record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
+        record.samples[f"Sample_{sample_num+1}"]["SAMPLE"] = tuple(samples)
         record.samples[f"Sample_{sample_num+1}"].phased = True
 
         # write the record to a file
