@@ -289,9 +289,9 @@ class Genotypes(Data):
 
     def index(self, samples: bool = True, variants: bool = True):
         """
-        Call this function once to improve the speed of future look-ups of samples and
-        variants by their ID. This is useful if you intend to later subset by a set
-        of samples or variant IDs.
+        Call this function once to improve the amortized time-complexity of look-ups of
+        samples and variants by their ID. This is useful if you intend to later subset
+        by a set of samples or variant IDs.
         The time complexity of this function should be roughly O(n+m) if both
         parameters are True. Otherwise, it will be either O(n) or O(m).
 
