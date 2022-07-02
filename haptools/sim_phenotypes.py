@@ -1,12 +1,33 @@
 from __future__ import annotations
 from pathlib import Path
 from logging import getLogger, Logger
+from dataclasses import dataclass, field
 
 import numpy as np
 import numpy.typing as npt
 
-from .haplotype import HaptoolsHaplotype as Haplotype
-from .data import GenotypesRefAlt, Phenotypes, Haplotypes
+from .data import Haplotype as HaplotypeBase
+from .data import GenotypesRefAlt, Phenotypes, Haplotypes, Extra
+
+
+@dataclass
+class Haplotype(HaplotypeBase):
+    """
+    A haplotype with sufficient fields for simphenotype
+
+    Properties and functions are shared with the base Haplotype object, "HaplotypeBase"
+    """
+
+    ancestry: str
+    beta: float
+    _extras: tuple = field(
+        repr=False,
+        init=False,
+        default=(
+            Extra("ancestry", "s", "Local ancestry"),
+            Extra("beta", ".2f", "Effect size in linear model"),
+        ),
+    )
 
 
 class PhenoSimulator:
