@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+from itertools import combinations
 from logging import getLogger, Logger
 from dataclasses import dataclass, field
 
@@ -110,27 +111,38 @@ class PhenoSimulator:
         npt.NDArray
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
-        # extract the needed information from the Haplotype objects
+        # extract the ID and effect size information from the Haplotype objects
         ids = [hap.id for hap in effects]
         betas = np.array([hap.beta for hap in effects])
         # extract the haplotype "genotypes" and compute the phenotypes
         gts = self.gens.subset(variants=ids).data.sum(axis=2)
         # standardize the genotypes
         gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
-        # generate the phenotypes
+        # generate the genetic component
         pt = (betas * gts).sum(axis=1)
-        # add an error term
-        if heritability:
-            # as defined in GTCA
-            pt += np.random.normal(0, np.var(pt) * ((1/heritability) - 1) )
-        else:
-            pt += np.random.normal(0, 1 - np.power(betas, 2).sum())
+        # compute the heritability
+        if heritability is None:
+            # if heritability is not defined, then we set it equal to the sum of the
+            # effect sizes
+            # assuming the genotypes are independent, this makes the variance of the
+            # noise term equal to 1 - sum(betas^2)
+            heritability = np.power(betas, 2).sum()
+            # # account for the fact that the genotypes are not independent by adding the
+            # # covariance between all of the variables
+            # for a_idx, b_idx in combinations(range(len(betas)), 2):
+            #     heritability += 2 * betas[a_idx] * betas[b_idx] * \
+            #         np.cov(gts[:,a_idx], gts[:,b_idx])[0][1]
+        # compute the environmental effect
+        noise = np.var(pt) * (np.reciprocal(heritability) - 1)
+        # finally, add everything together to get the simulated phenotypes
+        pt += np.random.normal(0, noise, size=pt.shape)
+        # TODO: implement case/control phenotypes
+        # now, save the archived phenotypes for later
         if self.phens.data is None:
             self.phens.data = pt
         else:
             self.phens.data = np.concatenate((self.phens.data, pt), axis=1)
         self.phens.names = self.phens.names + ("-".join(ids),)
-        # TODO: implement case/control phenotypes
         return pt
 
     def write(self):
@@ -170,6 +182,7 @@ def simulate_pt(
     gt = GenotypesRefAlt(genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
+    log.info("QC-ing genotypes")
     gt.check_missing()
     gt.check_biallelic()
     gt.check_phase()
@@ -182,4 +195,5 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(hp_gt, output=output, log=log)
     pt_sim.run(hp.data.values())
+    log.info("Writing phenotypes")
     pt_sim.write()
