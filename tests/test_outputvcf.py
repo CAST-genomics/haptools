@@ -60,7 +60,6 @@ def test_vcf_output():
     # read in vcf file
     vcf = VCF(str(out_prefix)+'.vcf')
     for var in vcf:
-        print(var.format('SAMPLE'))
         if var.CHROM == "1" and var.POS == 10114:
             assert(var.genotypes[0] == [0,0,True])
             assert(var.format('POP')[0] == "YRI,YRI")
