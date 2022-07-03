@@ -51,13 +51,14 @@ class PhenoSimulator:
     >>> haps_gts = GenotypesRefAlt(None)
     >>> haps.transform(gens, haps_gts)
     >>> phenosim = PhenoSimulator(haps_gts)
-    >>> phenotypes = phenosim.run()
+    >>> phenosim.run(next(haps.data.values()))
+    >>> phenotypes = phenosim.phens
     """
 
     def __init__(
         self,
         genotypes: Genotypes,
-        output: Path = None,
+        output: Path = Path("/dev/stdout"),
         log: Logger = None,
     ):
         """
@@ -67,8 +68,10 @@ class PhenoSimulator:
         ----------
         genotypes: Genotypes
             Genotypes for each haplotype
-        output: Path
+        output: Path, optional
             Path to a '.pheno' file to which the generated phenotypes could be written
+
+            Defaults to stdout if not provided
         log: Logger, optional
             A logging instance for recording debug statements
         """
@@ -129,13 +132,14 @@ class PhenoSimulator:
             # effect sizes
             # assuming the genotypes are independent, this makes the variance of the
             # noise term equal to 1 - sum(betas^2)
+            # TODO: figure out how to account for the fact that this can make noise > 1
             heritability = np.power(betas, 2).sum()
             # # account for the fact that the genotypes are not independent by adding the
             # # covariance between all of the variables
             # for a_idx, b_idx in combinations(range(len(betas)), 2):
             #     heritability += 2 * betas[a_idx] * betas[b_idx] * \
             #         np.cov(gts[:,a_idx], gts[:,b_idx])[0][1]
-        self.log.info(f"Adding environmental component for h^squared: {heritability}")
+        self.log.info(f"Adding environmental component for h^2: {heritability}")
         # compute the environmental effect
         noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         # finally, add everything together to get the simulated phenotypes
