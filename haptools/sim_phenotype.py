@@ -85,7 +85,7 @@ class PhenoSimulator:
     def run(
         self,
         effects: list[Haplotype],
-        heritability: float = None,
+        heritability: float = 1,
         prevalence: float = None,
     ) -> npt.NDArray:
         """
@@ -120,25 +120,12 @@ class PhenoSimulator:
         self.log.info(f"Extracting haplotype genotypes for haps: {ids}")
         # extract the haplotype "genotypes" and compute the phenotypes
         gts = self.gens.subset(variants=ids).data.sum(axis=2)
-        self.log.info("Computing genetic component")
+        self.log.info(f"Computing genetic component w/ {gts.shape[0]} causal effects")
         # standardize the genotypes
         gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
-        if heritability is None:
-            self.log.info("Computing heritability")
-            # if heritability is not defined, then we set it equal to the sum of the
-            # effect sizes
-            # assuming the genotypes are independent, this makes the variance of the
-            # noise term equal to 1 - sum(betas^2)
-            # TODO: figure out how to account for the fact that this can make noise > 1
-            heritability = np.power(betas, 2).sum()
-            # # account for the fact that the genotypes are not independent by adding the
-            # # covariance between all of the variables
-            # for a_idx, b_idx in combinations(range(len(betas)), 2):
-            #     heritability += 2 * betas[a_idx] * betas[b_idx] * \
-            #         np.cov(gts[:,a_idx], gts[:,b_idx])[0][1]
         self.log.info(f"Adding environmental component for h^2: {heritability}")
         # compute the environmental effect
         noise = np.var(pt) * (np.reciprocal(heritability) - 1)
@@ -152,13 +139,8 @@ class PhenoSimulator:
             bool_pt = np.repeat(False, repeats=len(pt))
             bool_pt[np.argpartition(pt, k)[-k:]] = True
             pt = bool_pt
-        pt = pt[:, np.newaxis]
         # now, save the archived phenotypes for later
-        if self.phens.data is None:
-            self.phens.data = pt
-        else:
-            self.phens.data = np.concatenate((self.phens.data, pt), axis=1)
-        self.phens.names = self.phens.names + ("-".join(ids),)
+        self.phens.append(name="-".join(ids), data=pt)
         return pt
 
     def write(self):
@@ -173,7 +155,7 @@ def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
     num_replications: int = 1,
-    heritability: float = None,
+    heritability: float = 1,
     prevalence: float = None,
     region: str = None,
     samples: list[str] = None,

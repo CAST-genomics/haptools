@@ -193,3 +193,33 @@ class Phenotypes(Data):
         This function modifies :py:attr:`~.Genotypes.data` in-place
         """
         self.data = (self.data - np.mean(self.data, axis=0)) / np.std(self.data, axis=0)
+
+    def append(self, name: str, data: npt.NDArray):
+        """
+        Append a new set of phenotypes to the current set
+
+        Parameters
+        ----------
+        name: str
+            The name of the new phenotype
+        data: npt.NDArray
+            A 1D np array of the same length as :py:attr:`~.Phenotypes.samples`,
+            containing the phenotype values for each sample. Must have the same dtype
+            as :py:attr:`~.Phenotypes.data.`
+        """
+        if len(self.samples):
+            if len(self.samples) != len(data):
+                self.log.error(
+                    "The data provided to the add() method is not of the appropriate"
+                    "length"
+                )
+        else:
+            self.log.warning(
+                "Set the samples property of the Phenotypes instance before calling "
+                "the add() method"
+            )
+        if self.unset():
+            self.data = data[:, np.newaxis]
+        else:
+            self.data = np.concatenate((self.data, data[:, np.newaxis]), axis=1)
+        self.names = self.names + (name,)

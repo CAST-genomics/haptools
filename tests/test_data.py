@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
 
-from haptools.haplotype import HaptoolsHaplotype
+from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
     Genotypes,
     GenotypesRefAlt,
@@ -319,6 +319,22 @@ class TestPhenotypes:
 
         # let's clean up after ourselves and delete the file
         os.remove(str(expected_phen.fname))
+
+    def test_append_phenotype(self):
+        expected1 = self._get_fake_phenotypes()
+        expected2 = self._get_fake_phenotypes()
+
+        # add a phenotype called "test" to the set of phenotypes
+        new_phen = np.array([5, 2, 8, 0, 3], dtype=expected2.data.dtype)
+        expected2.append("test", new_phen)
+
+        # did it get added correctly?
+        assert expected1.data.shape[1] == expected2.data.shape[1] - 1
+        assert len(expected1.names) == len(expected2.names) - 1
+        assert expected2.names[2] == "test"
+        assert len(expected1.samples) == len(expected2.samples)
+        np.testing.assert_allclose(expected1.data, expected2.data[:, :2])
+        np.testing.assert_allclose(expected2.data[:, 2], new_phen)
 
 
 class TestCovariates:

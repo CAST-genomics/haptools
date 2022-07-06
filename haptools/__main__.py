@@ -95,6 +95,8 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     "-h",
     "--heritability",
     type=click.FloatRange(min=0, max=1),
+    default=1,
+    show_default=True,
     help="Trait heritability",
 )
 @click.option(
@@ -157,7 +159,7 @@ def simphenotype(
     genotypes: Path,
     haplotypes: Path,
     replications: int = 1,
-    heritability: float = None,
+    heritability: float = 1,
     prevalence: float = None,
     region: str = None,
     samples: tuple[str] = tuple(),
