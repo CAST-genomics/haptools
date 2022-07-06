@@ -8,6 +8,7 @@ from logging import getLogger, Logger
 from fileinput import hook_compressed
 
 import numpy as np
+import numpy.typing as npt
 
 from .data import Data
 

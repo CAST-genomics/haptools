@@ -9,7 +9,10 @@ Homepage: https://haptools.readthedocs.io/
 
 ## Installation
 
-UNDER CONSTRUCTION
+We have not officially published `haptools` yet, but in the meantime, you can install it directly from our Github repository.
+```bash
+pip install git+https://github.com/gymrek-lab/haptools.git
+```
 
 ## Haptools utilities
 
@@ -28,7 +31,6 @@ Outputs produced by these utilities are compatible with each other. For example
 
 ## Contributing
 
-If you are interested in contributing to `haptools`, please get in touch by submitting a Github issue or contacting us at mlamkin@ucsd.edu.
+We gladly welcome any contributions to `haptools`!
 
-
-
+Please read [our contribution guidelines](https://haptools.readthedocs.io/en/latest/project_info/contributing.html) and then submit a [Github issue](https://github.com/gymrek-lab/haptools/issues).
