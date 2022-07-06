@@ -590,10 +590,15 @@ class GenotypesRefAlt(Genotypes):
                 ("Description", "Genotype"),
             ],
         )
-        for sample in self.samples:
-            # TODO: figure out how to make this work for large datasets
-            # it gets stuck and takes a long time to exit this loop
-            vcf.header.add_sample(sample)
+        try:
+            vcf.header.add_samples(self.samples)
+        except AttributeError:
+            self.log.warning(
+                "Upgrade to pysam >=0.19.1 to reduce the time required to create "
+                "VCFs. See https://github.com/pysam-developers/pysam/issues/1104"
+            )
+            for sample in self.samples:
+                vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
         for var_idx, var in enumerate(self.variants):
             rec = {
