@@ -41,6 +41,8 @@ class PhenoSimulator:
         Genotypes to simulate
     phens: Phenotypes
         Simulated phenotypes; filled by :py:meth:`~.PhenoSimular.run`
+    rng: np.random.Generator, optional
+        A numpy random number generator
     log: Logger
         A logging instance for recording debug statements
 
@@ -59,6 +61,7 @@ class PhenoSimulator:
         self,
         genotypes: Genotypes,
         output: Path = Path("/dev/stdout"),
+        seed: int = None,
         log: Logger = None,
     ):
         """
@@ -72,14 +75,19 @@ class PhenoSimulator:
             Path to a '.pheno' file to which the generated phenotypes could be written
 
             Defaults to stdout if not provided
+        seed: int, optional
+            A seed to initialize the random number generator
+
+            This is useful if you want the generated phenotypes to be the same across
+            multiple PhenoSimulator instances. If not provided, it will be random.
         log: Logger, optional
             A logging instance for recording debug statements
         """
         self.gens = genotypes
         self.phens = Phenotypes(fname=output)
-        self.phens.names = tuple()
         self.phens.data = None
         self.phens.samples = self.gens.samples
+        self.rng = np.random.default_rng(seed)
         self.log = log or getLogger(self.__class__.__name__)
 
     def run(
@@ -130,7 +138,7 @@ class PhenoSimulator:
         # compute the environmental effect
         noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         # finally, add everything together to get the simulated phenotypes
-        pt += np.random.normal(0, noise, size=pt.shape)
+        pt += self.rng.normal(0, noise, size=pt.shape)
         if prevalence is not None:
             self.log.info(f"Converting to case/control with prevalence {prevalence}")
             # first, find the number of desired positives

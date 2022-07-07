@@ -234,8 +234,8 @@ class Haplotype:
         The chromosomal end position of the haplotype
     id: str
         The haplotype's unique ID
-    variants: list[Variant]
-        A list of the variants in this haplotype
+    variants: tuple[Variant]
+        The variants in this haplotype
     _extras: tuple[Extra]
         Extra fields for the haplotype
 

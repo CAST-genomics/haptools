@@ -348,7 +348,7 @@ class Genotypes(Data):
                 diff = len(samples) - len(gts.samples)
                 self.log.warning(
                     f"Saw {diff} fewer samples than requested. Proceeding with "
-                    f"f{len(gts.samples)} samples."
+                    f"{len(gts.samples)} samples."
                 )
             samp_idx = tuple(self._samp_idx[samp] for samp in gts.samples)
             if inplace:
@@ -361,7 +361,7 @@ class Genotypes(Data):
                 diff = len(variants) - len(var_idx)
                 self.log.warning(
                     f"Saw {diff} fewer variants than requested. Proceeding with "
-                    f"f{len(var_idx)} variants."
+                    f"{len(var_idx)} variants."
                 )
             gts.variants = self.variants[var_idx]
             if inplace:
