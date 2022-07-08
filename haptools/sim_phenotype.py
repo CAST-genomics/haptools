@@ -50,10 +50,9 @@ class PhenoSimulator:
     --------
     >>> gens = Genotypes.load("tests/data/example.vcf.gz")
     >>> haps = Haplotypes.load("tests/data/basic.hap")
-    >>> haps_gts = GenotypesRefAlt(None)
-    >>> haps.transform(gens, haps_gts)
+    >>> haps_gts = haps.transform(gens)
     >>> phenosim = PhenoSimulator(haps_gts)
-    >>> phenosim.run(next(haps.data.values()))
+    >>> phenosim.run(haps.data.values())
     >>> phenotypes = phenosim.phens
     """
 
