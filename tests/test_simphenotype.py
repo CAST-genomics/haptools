@@ -171,25 +171,19 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         expected = self._get_expected_phens()
-        all_true = np.empty(expected.data.shape, dtype=np.bool_)
-        some_true = expected.data[:, 1].astype(np.bool_)
-        all_false = ~np.empty(expected.data.shape, dtype=np.bool_)
+        all_false = np.zeros(expected.data.shape, dtype=np.float64)
+        some_true = expected.data[:, 1]
+        all_true = (~(all_false.astype(np.bool_))).astype(np.float64)
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        pt_sim.run(hps, heritability=1, prevalence=0.8)
+        pt_sim.run(hps, heritability=1, prevalence=0.4)
         pt_sim.run(hps, heritability=1, prevalence=1)
         pt_sim.run(hps, heritability=1, prevalence=0)
-        pt_sim.run(hps, heritability=0.96, prevalence=0.8)
-        pt_sim.run(hps, heritability=0.5, prevalence=0.8)
-        pt_sim.run(hps, heritability=0.2, prevalence=0.8)
+        pt_sim.run(hps, heritability=0.5, prevalence=0.4)
         phens = pt_sim.phens
-        assert phens.data.shape == (5, 6)
-        np.testing.assert_allclose(phens.data[:, 1], some_true)
-        np.testing.assert_allclose(phens.data[:, 0], all_true[:, 0])
-        np.testing.assert_allclose(phens.data[:, 2], all_false[:, 0])
+        assert phens.data.shape == (5, 4)
+        np.testing.assert_allclose(phens.data[:, 0], some_true)
+        np.testing.assert_allclose(phens.data[:, 1], all_true[:, 1])
+        np.testing.assert_allclose(phens.data[:, 2], all_false[:, 1])
         diff1 = (phens.data[:, 3] == phens.data[:, 0]).sum()
         assert diff1 > 0
-        diff2 = (phens.data[:, 4] == phens.data[:, 0]).sum()
-        assert diff2 > diff1
-        diff3 = (phens.data[:, 5] == phens.data[:, 0]).sum()
-        assert diff3 > diff2
