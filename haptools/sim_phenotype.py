@@ -139,6 +139,7 @@ class PhenoSimulator:
         noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         # finally, add everything together to get the simulated phenotypes
         pt += self.rng.normal(0, noise, size=pt.shape)
+        name_suffix = ""
         if prevalence is not None:
             self.log.info(f"Converting to case/control with prevalence {prevalence}")
             # first, find the number of desired positives
@@ -147,8 +148,9 @@ class PhenoSimulator:
             bool_pt = np.repeat(False, repeats=len(pt))
             bool_pt[np.argpartition(pt, k)[-k:]] = True
             pt = bool_pt
+            name_suffix = "-cc"
         # now, save the archived phenotypes for later
-        self.phens.append(name="-".join(ids), data=pt)
+        self.phens.append(name="-".join(ids)+name_suffix, data=pt)
         return pt
 
     def write(self):
