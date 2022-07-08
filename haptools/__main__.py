@@ -102,7 +102,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
 @click.option(
     "-p",
     "--prevalence",
-    type=click.FloatRange(min=0, max=1, min_open=True, max_open=True),
+    type=click.FloatRange(min=0, max=1, min_open=False, max_open=True),
     show_default="quantitative trait",
     help="Disease prevalence if simulating a case-control trait"
 )

@@ -2,10 +2,10 @@ from __future__ import annotations
 from csv import reader
 from pathlib import Path
 from io import TextIOBase
-from collections import namedtuple
 from collections.abc import Iterable
 from logging import getLogger, Logger
 from fileinput import hook_compressed
+from collections import namedtuple, Counter
 
 import numpy as np
 import numpy.typing as npt
@@ -180,8 +180,15 @@ class Phenotypes(Data):
         >>> phenotypes.samples = ('HG00096', 'HG00097', 'HG00099')
         >>> phenotypes.write()
         """
+        # make sure the names are unique
+        uniq_names = Counter()
+        names = []
+        for name in self.names:
+            names.append(name+(f"-{uniq_names[name]}" if uniq_names[name] else ""))
+            uniq_names[name] += 1
+        # now we can finally write the file
         with hook_compressed(self.fname, mode="wt") as haps:
-            haps.write("#IID\t" + "\t".join(self.names) + "\n")
+            haps.write("#IID\t" + "\t".join(names) + "\n")
             formatter = {"float_kind": lambda x: "%.2f" % x}
             for samp, phen in zip(self.samples, self.data):
                 line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
