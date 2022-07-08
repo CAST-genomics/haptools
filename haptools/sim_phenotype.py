@@ -155,7 +155,7 @@ class PhenoSimulator:
             pt = bool_pt
             name_suffix = "-cc"
         # now, save the archived phenotypes for later
-        self.phens.append(name="-".join(ids)+name_suffix, data=pt.astype(np.float64))
+        self.phens.append(name="-".join(ids) + name_suffix, data=pt.astype(np.float64))
         return pt
 
     def write(self):

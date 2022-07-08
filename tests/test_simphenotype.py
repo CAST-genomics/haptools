@@ -15,16 +15,20 @@ from haptools.data import (
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
+
 class TestSimPhenotype:
     def _get_fake_gens(self):
         gts = Genotypes(fname=None)
-        gts.data = np.array([
-            [[1, 0], [0, 1]],
-            [[0, 1], [0, 1]],
-            [[0, 0], [1, 1]],
-            [[1, 1], [1, 1]],
-            [[0, 0], [0, 0]],
-        ], dtype=np.uint8)
+        gts.data = np.array(
+            [
+                [[1, 0], [0, 1]],
+                [[0, 1], [0, 1]],
+                [[0, 0], [1, 1]],
+                [[1, 1], [1, 1]],
+                [[0, 0], [0, 0]],
+            ],
+            dtype=np.uint8,
+        )
         gts.variants = np.array(
             [
                 ("1:10114:T:C", "1", 10114, 0.7),
@@ -48,13 +52,16 @@ class TestSimPhenotype:
 
     def _get_expected_phens(self):
         pts = Phenotypes(fname=None)
-        pts.data = np.array([
-            [-0.13363062, False],
-            [-0.13363062, False],
-            [ 0.53452248, True],
-            [ 1.20267559, True],
-            [-1.46993683, False],
-        ], dtype=np.float64)
+        pts.data = np.array(
+            [
+                [-0.13363062, False],
+                [-0.13363062, False],
+                [0.53452248, True],
+                [1.20267559, True],
+                [-1.46993683, False],
+            ],
+            dtype=np.float64,
+        )
         pts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         pts.names = ("1:10114:T:C", "1:10116:A:G")
         return pts

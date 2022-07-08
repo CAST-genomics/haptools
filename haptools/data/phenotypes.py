@@ -182,9 +182,12 @@ class Phenotypes(Data):
         """
         # make sure the names are unique
         uniq_names = Counter()
-        names = []
-        for name in self.names:
-            names.append(name+(f"-{uniq_names[name]}" if uniq_names[name] else ""))
+        names = [None] * len(self.names)
+        for idx, name in enumerate(self.names):
+            suffix = ""
+            if uniq_names[name]:
+                suffix = f"-{uniq_names[name]}"
+            names[idx] = name + suffix
             uniq_names[name] += 1
         # now we can finally write the file
         with hook_compressed(self.fname, mode="wt") as haps:
