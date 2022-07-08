@@ -66,7 +66,7 @@ class TestSimPhenotype:
         pts.names = ("1:10114:T:C", "1:10116:A:G")
         return pts
 
-    def test_one_phen_zero_noise(self):
+    def test_one_hap_zero_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         expected = self._get_expected_phens()
@@ -86,7 +86,7 @@ class TestSimPhenotype:
         assert phens.samples == expected.samples
         assert phens.names[0] == expected.names[0]
 
-    def test_one_phen_zero_noise_neg_beta(self):
+    def test_one_hap_zero_noise_neg_beta(self):
         """
         the same test as test_one_phen_zero_noise but with a negative beta this time
         """
@@ -111,7 +111,7 @@ class TestSimPhenotype:
         assert phens.samples == expected.samples
         assert phens.names[0] == expected.names[0]
 
-    def test_two_phens_zero_noise(self):
+    def test_two_haps_zero_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         expected = self._get_expected_phens()
@@ -136,7 +136,7 @@ class TestSimPhenotype:
         assert phens.samples == expected.samples
         assert phens.names == expected.names
 
-    def test_combined_phen_zero_noise(self):
+    def test_combined_haps_zero_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         expected = self._get_expected_phens()
