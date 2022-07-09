@@ -251,7 +251,7 @@ class Genotypes(Data):
                 continue
             # save meta information about each variant
             variant_arr = self._variant_arr(variant)
-            # extract the genotypes to a matrix of size 1 x p x 3
+            # extract the genotypes to a matrix of size p x 3
             # the last dimension has three items:
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
@@ -651,7 +651,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         Read sample IDs from a PSAM file into a list stored in
         :py:attr:`~.GenotypesPLINK.samples`
 
-        One of either variants or max_variants MUST be specified!
+        This method is called automatically by :py:meth:`~.GenotypesPLINK.read`
 
         Parameters
         ----------
@@ -718,6 +718,108 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         return (pos[0] == chrom) and (start <= pos[1]) and (end >= pos[1])
 
+    def _variant_arr(
+        self,
+        record: list[str],
+        cid: dict[str, int] = dict(
+            zip(['CHROM', 'POS', 'ID', 'REF', 'ALT'], range(5))
+        ),
+    ):
+        """
+        Construct a np array from the metadata in a line of the PVAR file
+
+        This is a helper function for :py:meth:`~.GenotypesPLINK._iterate_variants`.
+        It's separate so that it can easily be overridden in any child classes.
+
+        Parameters
+        ----------
+        record: list[str]
+            A list of the tab-separated fields in a line from the PVAR file
+        cid: dict[str, int]
+            A dictionary mapping each column of the PVAR file to its index, as declared
+            in the header
+
+            This helps cover cases where the order of the fields might be different
+
+        Returns
+        -------
+        npt.NDArray
+            A row from the :py:attr:`~.GenotypesPLINK.variants` array
+        """
+        # TODO: remove the AAF column; right now, we just set it to 0.5 arbitrarily
+        return np.array(
+            (
+                record[cid['ID']], record[cid['CHROM']], record[cid['POS']], 0.5,
+                record[cid['REF']], record[cid['ALT']]
+            ), dtype=self.variants.dtype,
+        )
+
+    def _iterate_variants(
+        self,
+        region: str = None,
+        variants: set[str] = None,
+    ):
+        """
+        A generator over the lines of a PVAR file
+
+        This is a helper function for :py:meth:`~.GenotypesPLINK._iterate` and
+        :py:meth:`~.GenotypesPLINK.read_variants`
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+        variants : set[str], optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+
+        Yields
+        ------
+        Iterator[tuple[int, npt.NDArray]]
+            An iterator of tuples over each line in the file
+
+            The first value is the index of the variant and the second is a line from
+            the file, encoded as a numpy mixed array type
+        """
+        # split the region string so each portion is an element
+        if region is not None:
+            region = re.split(":|-", region)
+            if len(region) > 1:
+                region[1:] = [int(pos) for pos in region[1:] if pos]
+        with hook_compressed(self.fname.with_suffix(".pvar"), mode="rt") as pvar:
+            pvariants = reader(pvar, delimiter="\t")
+            # find the line that declares the header
+            for header in pvariants:
+                if not header[0].startswith("##"):
+                    break
+            # there should be at least five columns
+            if len(header) < 5:
+                raise ValueError("Your PVAR file should have at least five columns.")
+            if header[0][0] == "#":
+                header[0] = header[0][1:]
+            else:
+                raise ValueError("Your PVAR file is missing a header!")
+                header = ["CHROM", "POS", "ID", "REF", "ALT"]
+                self.log.info(
+                    "Your PVAR file lacks a proper header! Assuming first five columns"
+                    " are [CHROM, POS, ID, REF, ALT] in that order..."
+                )
+                # TODO: add header back in to pvariants using itertools.chain?
+            # create a dictionary that translates between the variant dtypes and thee
+            # columns of the PVAR file
+            cid = {
+                item: header.index(item.upper())
+                for item in ("chrom", "pos", "id")
+            }
+            for ct, rec in enumerate(pvariants):
+                if region and not self._check_region(
+                    (rec[cid["chrom"]], int(rec[cid["pos"]])), *region
+                ):
+                    continue
+                if variants is not None:
+                    if rec[cid["id"]] not in variants:
+                        continue
+                yield ct, self._variant_arr(rec)
+
     def read_variants(
         self,
         region: str = None,
@@ -729,6 +831,8 @@ class GenotypesPLINK(GenotypesRefAlt):
         :py:attr:`~.GenotypesPLINK.variants`
 
         One of either variants or max_variants MUST be specified!
+
+        This method is called automatically by :py:meth:`~.GenotypesPLINK.read`
 
         Parameters
         ----------
@@ -750,60 +854,16 @@ class GenotypesPLINK(GenotypesRefAlt):
             max_variants = len(variants)
         if max_variants is None:
             raise ValueError("Provide either the variants or max_variants parameter!")
-        # split the region string so each portion is an element
-        if region is not None:
-            region = re.split(":|-", region)
-            if len(region) > 1:
-                region[1:] = [int(pos) for pos in region[1:] if pos]
-        with hook_compressed(self.fname.with_suffix(".pvar"), mode="rt") as pvar:
-            pvariants = reader(pvar, delimiter="\t")
-            # first, preallocate the array
-            self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
-            # find the line that declares the header
-            for header in pvariants:
-                if not header[0].startswith("##"):
-                    break
-            # there should be at least five columns
-            if len(header) < 5:
-                raise ValueError("Your PVAR file should have at least five columns.")
-            if header[0][0] == "#":
-                header[0] = header[0][1:]
-            else:
-                raise ValueError("Your PVAR file is missing a header!")
-                header = ["CHROM", "POS", "ID", "REF", "ALT"]
-                self.log.info(
-                    "Your PVAR file lacks a proper header! Assuming first five columns"
-                    " are [CHROM, POS, ID, REF, ALT] in that order..."
-                )
-                # TODO: add header back in to pvariants using itertools.chain?
-            cid = {
-                item: header.index(item.upper())
-                for item in self.variants.dtype.names
-                if item != "aaf"
-            }
-            indices = np.empty((max_variants,), dtype=np.uint32)
-            num_seen = 0
-            for ct, rec in enumerate(pvariants):
-                if region and not self._check_region(
-                    (rec[cid["chrom"]], int(rec[cid["pos"]])), *region
-                ):
-                    continue
-                if variants is not None:
-                    if rec[cid["id"]] not in variants:
-                        continue
-                indices[num_seen] = ct
-                self.variants[num_seen] = np.array(
-                    (
-                        rec[cid["id"]],
-                        rec[cid["chrom"]],
-                        rec[cid["pos"]],
-                        0,
-                        rec[cid["ref"]],
-                        rec[cid["alt"]],
-                    ),
-                    dtype=self.variants.dtype,
-                )
-                num_seen += 1
+        # first, preallocate the array and the indices of each variant
+        self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
+        indices = np.empty((max_variants,), dtype=np.uint32)
+        num_seen = 0
+        # iterate through each variant and save it
+        for ct, rec in self._iterate_variants(region, variants):
+            indices[num_seen] = ct
+            self.variants[num_seen] = rec
+            num_seen += 1
+        # did we see more variants than was asked for?
         if max_variants > num_seen:
             self.log.info(
                 f"Removing {max_variants-num_seen} unneeded variant records that "
@@ -853,10 +913,6 @@ class GenotypesPLINK(GenotypesRefAlt):
 
             # the genotypes start out as a simple 2D array with twice the number of samples
             if not self._prephased:
-                # raise an error message b/c this is untested code that doesn't really
-                # seem to work properly
-                # for ex, the phasing info is not boolean for some reason?
-                raise ValueError("Not implemented yet!")
                 # ...so each column is a different chromosomal strand
                 self.data = np.empty(
                     (len(indices), len(sample_idxs) * 2), dtype=np.int32
@@ -889,3 +945,91 @@ class GenotypesPLINK(GenotypesRefAlt):
                 self.data = np.dstack((self.data[::2, :], self.data[1::2, :])).astype(
                     np.uint8
                 )
+
+    def _iterate(self,
+        pgen: PgenReader,
+        region: str = None,
+        variants: set[str] = None,
+    ):
+        """
+        A generator over the lines of a PGEN-PVAR file pair
+
+        This is a helper function for :py:meth:`~.GenotypesPLINK.__iter__`
+
+        Parameters
+        ----------
+        pgen: PgenReader
+            The pgenlib.PgenReader object from which to fetch variant records
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        self.log.info(f"Loading genotypes from {len(self.samples)} samples")
+        Record = namedtuple("Record", "data variants")
+
+        # iterate over each line in the PVAR file
+        for idx, variant_arr in self._iterate_variants(region, variants):
+            # the genotypes start out as a simple 2D array with twice the number of samples
+            data = np.empty(len(self.samples) * 2, dtype=np.int32)
+            if not self._prephased:
+                phasing = np.empty(len(self.samples), dtype=np.uint8)
+                # The haplotype-major mode of read_alleles_and_phasepresent_list has
+                # not been implemented yet, so we need to read the genotypes in sample-
+                # major mode and then transpose them
+                pgen.read_alleles_and_phasepresent(idx, data, phasing)
+            else:
+                pgen.read_alleles(idx, data)
+            # missing alleles will have a value of -9
+            # let's make them be -1 to be consistent with cyvcf2
+            data[data == -9] = -1
+            # strand 1 is at even indices and strand 2 is at odd indices
+            data = np.dstack((data[::2], data[1::2]))[0].astype(np.uint8)
+            # concatenate phasing info into the data
+            if not self._prephased:
+                data = np.concatenate((data, phasing[:, np.newaxis]), axis=1)
+            # we extracted the genotypes to a matrix of size p x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased (if self._prephased is False)
+            yield Record(data, variant_arr)
+        pgen.close()
+
+    def __iter__(
+        self, region: str = None, samples: list[str] = None, variants: set[str] = None
+    ) -> Iterator[namedtuple]:
+        """
+        Read genotypes from a PGEN line by line without storing anything
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        samples : list[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Returns
+        -------
+        Iterator[namedtuple]
+            See documentation for :py:meth:`~.GenotypesPLINK._iterate`
+        """
+        super(Genotypes, self).read()
+        # TODO: figure out how to install this package
+        from pgenlib import PgenReader
+
+        pgen = PgenReader(
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+        )
+        sample_idxs = self.read_samples(samples)
+        # call another function to force the lines above to be run immediately
+        # see https://stackoverflow.com/a/36726497
+        return self._iterate(pgen, region, variants)
