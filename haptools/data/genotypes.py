@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import subprocess
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -1033,3 +1034,23 @@ class GenotypesPLINK(GenotypesRefAlt):
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
+
+    def write(self, clean_up=True):
+        """
+        Write the variants in this class to PLINK2 files at :py:attr:`~.GenotypesPLINK.fname`
+        """
+        # TODO: use PgenlibWriter
+        # at the moment, we just write a VCF and then call PLINK2 via the command line
+        fname, vcf = self.fname, self.fname.with_suffix(".vcf.gz")
+        self.fname = vcf
+        super().write()
+        self.fname = fname
+        prefix = self.fname.with_suffix("")
+        subprocess.run(
+            ["plink2", "--vcf", str(vcf), "--out", str(prefix)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        # clean up after
+        if clean_up:
+            vcf.unlink()
+            prefix.with_suffix(".log").unlink()
