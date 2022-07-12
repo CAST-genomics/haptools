@@ -112,7 +112,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     default=None,
     show_default="all haplotypes",
     help=(
-        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
         "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
     )
@@ -251,7 +251,7 @@ def simphenotype(
     default=None,
     show_default="all haplotypes",
     help=(
-        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
         "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
     )
@@ -284,7 +284,18 @@ def simphenotype(
     type=str,
     multiple=True,
     show_default="all haplotypes",
-    help="A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')",
+    help=(
+        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
+        "\nFor this to work, the .hap file must be indexed"
+    ),
+)
+@click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
 )
 @click.option(
     "--discard-missing",
@@ -316,6 +327,7 @@ def transform(
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
     haplotype_ids: tuple[str] = tuple(),
+    chunk_size: int = None,
     discard_missing: bool = False,
     output: Path = Path("-"),
     verbosity: str = 'CRITICAL',
@@ -355,6 +367,12 @@ def transform(
         A list of haplotype IDs to obtain from the .hap file. All others are ignored.
 
         If not provided, all haplotypes will be used.
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
     discard_missing : bool, optional
         Discard any samples that are missing any of the required samples
 
@@ -393,8 +411,8 @@ def transform(
         haplotype_ids = None
 
     transform_haps(
-        genotypes, haplotypes, region, samples, haplotype_ids, discard_missing,
-        output, log
+        genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
+        discard_missing, output, log
     )
 
 

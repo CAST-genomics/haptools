@@ -563,6 +563,7 @@ class Haplotypes(Data):
                 var_haps.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
+        self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
