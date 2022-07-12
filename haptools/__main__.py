@@ -279,6 +279,21 @@ def simphenotype(
     ),
 )
 @click.option(
+    "-h",
+    "--haplotype-ids",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help="A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')",
+)
+@click.option(
+    "--discard-missing",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Ignore any samples that are missing genotypes for the required variants",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -300,6 +315,8 @@ def transform(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    haplotype_ids: tuple[str] = tuple(),
+    discard_missing: bool = False,
     output: Path = Path("-"),
     verbosity: str = 'CRITICAL',
 ):
@@ -334,6 +351,14 @@ def transform(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    haplotype_ids: tuple[str], optional
+        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
+    discard_missing : bool, optional
+        Discard any samples that are missing any of the required samples
+
+        The default is simply to complain about it
     output : Path, optional
         The location to which to write output
     verbosity : str, optional
@@ -362,7 +387,15 @@ def transform(
     else:
         samples = None
 
-    transform_haps(genotypes, haplotypes, region, samples, output, log)
+    if haplotype_ids:
+        haplotype_ids = set(haplotype_ids)
+    else:
+        haplotype_ids = None
+
+    transform_haps(
+        genotypes, haplotypes, region, samples, haplotype_ids, discard_missing,
+        output, log
+    )
 
 
 if __name__ == "__main__":

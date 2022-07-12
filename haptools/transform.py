@@ -10,6 +10,8 @@ def transform_haps(
     haplotypes: Path,
     region: str = None,
     samples: list[str] = None,
+    haplotype_ids: set[str] = None,
+    discard_missing: bool = False,
     output: Path = Path("-"),
     log: Logger = None,
 ):
@@ -27,6 +29,14 @@ def transform_haps(
         and :py:meth:`~.data.Haplotypes.read`
     samples : list[str], optional
         See documentation for :py:meth:`~.data.Genotypes.read`
+    haplotype_ids: set[str], optional
+        A set of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
+    discard_missing : bool, optional
+        Discard any samples that are missing any of the required samples
+
+        The default is simply to complain about it
     output : Path, optional
         The location to which to write output
     log : Logger, optional
@@ -41,7 +51,7 @@ def transform_haps(
 
     log.info("Loading haplotypes")
     hp = data.Haplotypes(haplotypes, log=log)
-    hp.read(region=region)
+    hp.read(region=region, haplotypes=haplotype_ids)
 
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
@@ -54,9 +64,19 @@ def transform_haps(
         gt = data.GenotypesRefAlt(genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
-    gt.check_missing()
+    gt.check_missing(discard_also=discard_missing)
     gt.check_biallelic()
     gt.check_phase()
+
+    # check that all of the variants were loaded successfully and warn otherwise
+    if len(variants) < len(gt.variants):
+        diff = list(variants.difference(gt.variants['id']))
+        first_few = 5 if len(diff) > 5 else len(diff)
+        log.warning(
+            f"{len(diff)} variants could not be found in the genotypes file. Check "
+            "that the IDs in your .hap file correspond with those in the genotypes "
+            f"file. Here are the first few missing variants: {diff[:first_few]}"
+        )
 
     log.info("Transforming genotypes via haplotypes")
     hp_gt = data.GenotypesRefAlt(fname=output, log=log)

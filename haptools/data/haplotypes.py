@@ -443,7 +443,7 @@ class Haplotypes(Data):
             See documentation for :py:attr:`~.Data.fname`
         region: str, optional
             See documentation for :py:meth:`~.Haplotypes.read`
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             See documentation for :py:meth:`~.Haplotypes.read`
 
         Returns
@@ -542,7 +542,7 @@ class Haplotypes(Data):
             For this to work, the .hap file must be indexed and the seqname must match!
 
             Defaults to loading all haplotypes
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             A list of haplotype IDs corresponding to a subset of the haplotypes to
             extract
 
@@ -578,7 +578,7 @@ class Haplotypes(Data):
             For this to work, the .hap file must be indexed and the seqname must match!
 
             Defaults to loading all haplotypes
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             A list of haplotype IDs corresponding to a subset of the haplotypes to
             extract
 
