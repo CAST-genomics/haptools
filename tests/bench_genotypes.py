@@ -22,8 +22,8 @@ from haptools.data import GenotypesRefAlt, GenotypesPLINK
 
 DEFAULT_SAMPLES = 40
 DEFAULT_VARIANTS = 40
-INTERVALS_VARIANTS = range(5, 100, 5)
-INTERVALS_SAMPLES = range(5, 100, 5)
+INTERVALS_VARIANTS = range(5, 101, 5)
+INTERVALS_SAMPLES = range(5, 101, 5)
 
 # DEFAULT_SAMPLES = 5
 # DEFAULT_VARIANTS = 4
@@ -155,7 +155,7 @@ def main(pgen, temp, region, output, archive=None):
     global DEFAULT_VARIANTS, DEFAULT_SAMPLES, INTERVALS_VARIANTS, INTERVALS_SAMPLES
     print("Loading genotypes from PGEN file", file=sys.stderr)
     gts = GenotypesPLINK(pgen)
-    gts.read(region=region, max_variants=DEFAULT_VARIANTS)
+    gts.read(region=region, max_variants=max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop))
     gts.check_missing(discard_also=True)
     gts.fname = temp
     # set initial variables
