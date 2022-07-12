@@ -1,10 +1,10 @@
-from builtins import breakpoint
 import os
 from pathlib import Path
 
 import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
+from haptools import data
 
 from haptools.haplotype import HaptoolsHaplotype
 from haptools.data import (
@@ -51,29 +51,7 @@ class TestGenotypes:
         gts.check_phase()
         return gts
 
-    def _get_fake_genotypes_refalt(self):
-        base_gts = self._get_fake_genotypes()
-        # copy all of the fields
-        gts = GenotypesRefAlt(fname=None)
-        gts.data = base_gts.data
-        gts.samples = base_gts.samples
-        # add additional ref and alt alleles
-        ref_alt = np.array(
-            [
-                ("T", "C"),
-                ("A", "G"),
-                ("C", "A"),
-                ("A", "G"),
-            ],
-            dtype=[
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ],
-        )
-        # see https://stackoverflow.com/a/5356137
-        gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
-        return gts
-
+        
     def test_load_genotypes(self, caplog):
         expected = self._get_expected_genotypes()
 
@@ -490,7 +468,7 @@ class TestHaplotypes:
         )
 
         hap = list(self._get_dummy_haps().data.values())[0]
-        gens = TestGenotypes()._get_fake_genotypes_refalt()
+        gens = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
         hap_gt = hap.transform(gens)
         np.testing.assert_allclose(hap_gt, expected)
 
@@ -507,7 +485,7 @@ class TestHaplotypes:
         )
 
         haps = self._get_dummy_haps()
-        gens = TestGenotypes()._get_fake_genotypes_refalt()
+        gens = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
         hap_gt = GenotypesRefAlt(fname=None)
@@ -535,10 +513,33 @@ class TestHaplotypes:
         os.remove(str(fname))
 
 
-    
 class TestGenotypesRefAlt:
+
+    def _get_fake_genotypes_refalt(self):
+        base_gts = TestGenotypes()._get_fake_genotypes()
+        # copy all of the fields
+        gts = GenotypesRefAlt(fname=None)
+        gts.data = base_gts.data
+        gts.samples = base_gts.samples
+        # add additional ref and alt alleles
+        ref_alt = np.array(
+            [
+                ("T", "C"),
+                ("A", "G"),
+                ("C", "A"),
+                ("A", "G"),
+            ],
+            dtype=[
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
+        # see https://stackoverflow.com/a/5356137
+        gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
+        return gts
+
     def test_read_ref_alt(self):
-        #simple.vcf
+        # simple.vcf
         gts_ref_alt_read = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
         gts_ref_alt_read.read()
         expected = np.array(
@@ -547,7 +548,8 @@ class TestGenotypesRefAlt:
                 ("A", "G"),
                 ("C", "A"),
                 ("A", "G"),
-            ], dtype = gts_ref_alt_read.variants[["ref", "alt"]].dtype
+            ],
+            dtype=gts_ref_alt_read.variants[["ref", "alt"]].dtype,
         )
         for i, x in enumerate(expected):
             assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
@@ -572,41 +574,36 @@ class TestGenotypesRefAlt:
                 ("T", "C"),
                 ("T", "C"),
                 ("C", "T"),
-            ], dtype = gts_ref_alt.variants[["ref", "alt"]].dtype
+            ],
+            dtype=gts_ref_alt.variants[["ref", "alt"]].dtype,
         )
         for i, x in enumerate(expected):
             assert gts_ref_alt.variants[["ref", "alt"]][i] == x
-        
 
-    
+
     def test_write_ref_alt(self):
+        #strategy is to read in the file, write it, and then read again
+        #read genotypes
         gts_ref_alt_write = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
-        
-        expected = gts_ref_alt_write.read()
+        gts_ref_alt_write.read()
+        gts_ref_alt_write.check_phase()
+        #write file to new file
         fname = DATADIR.joinpath("test.vcf")
         gts_ref_alt_write.fname = fname
         gts_ref_alt_write.write()
-        assert gts_ref_alt_write.read() == expected
+        #read again
+        gts_ref_alt_write.read()
+        gts_ref_alt_write.check_phase()
+        #compare samples, data, variants, and ref/alt for equality
+        expected = self._get_fake_genotypes_refalt()
+        assert gts_ref_alt_write.samples == expected.samples
+        np.testing.assert_allclose(gts_ref_alt_write.data, expected.data)
+    
+        for i, x in enumerate(expected.variants):
+            #dtype.names gives us names of columns in the array 
+            for col in expected.variants.dtype.names:
+                #each row is a variant
+                #index into col, i gets specific variant, x iterates thru
+                assert gts_ref_alt_write.variants[col][i] == x[col]
 
         os.remove(str(fname))
-
-    
-
-
-
-
-        
-        
-    
-
-
-
-    
-
-
-
-
-    
-
-
-
