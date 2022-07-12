@@ -242,10 +242,12 @@ class TestGenotypes:
 
 
 class TestGenotypesPLINK:
-    pgenlib = pytest.importorskip("pgenlib")
+    def _get_fake_genotypes_plink(self):
+        pgenlib = pytest.importorskip("pgenlib")
+        return TestGenotypes()._get_fake_genotypes_refalt()
 
     def test_load_genotypes(self):
-        expected = TestGenotypes()._get_fake_genotypes_refalt()
+        expected = self._get_fake_genotypes_plink()
 
         gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
         gts.read()
@@ -259,7 +261,7 @@ class TestGenotypesPLINK:
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_iterate(self):
-        expected = TestGenotypes()._get_fake_genotypes_refalt()
+        expected = self._get_fake_genotypes_plink()
 
         gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
 
@@ -271,7 +273,7 @@ class TestGenotypesPLINK:
         assert gts.samples == expected.samples
 
     def test_load_genotypes_subset(self):
-        expected = TestGenotypes()._get_fake_genotypes_refalt()
+        expected = self._get_fake_genotypes_plink()
 
         # subset for the region we want
         expected_data = expected.data[:, 1:3]
