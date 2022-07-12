@@ -961,18 +961,19 @@ class GenotypesPLINK(GenotypesRefAlt):
                 end = start + chunks
                 if end > len(indices):
                     end = len(indices)
+                size = end - start
                 # the genotypes start out as a simple 2D array with twice the number
                 # of samples
                 if not self._prephased:
                     # ...each column is a different chromosomal strand
                     try:
-                        data = np.empty((chunks, len(sample_idxs) * 2), dtype=np.int32)
+                        data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
                     except np.core._exceptions.MemoryError:
                         raise ValueError(
                             "You don't have enough memory to load these genotypes! "
                             "Try specifying a value to the chunks parameter, instead."
                         )
-                    phasing = np.zeros((chunks, len(sample_idxs) * 2), dtype=np.uint8)
+                    phasing = np.zeros((size, len(sample_idxs) * 2), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
                     # in sample-major mode and then transpose them
@@ -990,7 +991,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                     data = data.transpose((1, 0, 2))
                 else:
                     # ...each row is a different chromosomal strand
-                    data = np.empty((len(sample_idxs) * 2, chunks), dtype=np.int32)
+                    data = np.empty((len(sample_idxs) * 2, size), dtype=np.int32)
                     pgen.read_alleles_list(indices[start:end], data, hap_maj=True)
                     # missing alleles will have a value of -9
                     # let's make them be -1 to be consistent with cyvcf2
