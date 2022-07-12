@@ -13,24 +13,24 @@ import matplotlib.pyplot as plt
 from haptools.data import GenotypesRefAlt, GenotypesPLINK
 
 
-# DEFAULT_SAMPLES = 500000
-DEFAULT_VARIANTS = 20000
-# # INTERVALS_VARIANTS = range(500, 20000, 500)
-# DEFAULT_VARIANTS = 400
-# INTERVALS_VARIANTS = range(10, 400, 10)
-# INTERVALS_SAMPLES = range(12500, 500000, 12500)
+# # DEFAULT_SAMPLES = 500000
+# DEFAULT_VARIANTS = 20000
+# # # INTERVALS_VARIANTS = range(500, 20000, 500)
+# # DEFAULT_VARIANTS = 400
+# # INTERVALS_VARIANTS = range(10, 400, 10)
+# # INTERVALS_SAMPLES = range(12500, 500000, 12500)
 
-DEFAULT_SAMPLES = 40
-# DEFAULT_VARIANTS = 40
-INTERVALS_VARIANTS = range(5, 101, 5)
-INTERVALS_SAMPLES = range(5, 101, 5)
+# DEFAULT_SAMPLES = 40
+# # DEFAULT_VARIANTS = 40
+# INTERVALS_VARIANTS = range(5, 101, 5)
+# INTERVALS_SAMPLES = range(5, 101, 5)
 
-# DEFAULT_SAMPLES = 5
-# DEFAULT_VARIANTS = 4
-# INTERVALS_VARIANTS = range(1, 4, 1)
-# INTERVALS_SAMPLES = range(1, 5, 1)
+# # DEFAULT_SAMPLES = 5
+# # DEFAULT_VARIANTS = 4
+# # INTERVALS_VARIANTS = range(1, 4, 1)
+# # INTERVALS_SAMPLES = range(1, 5, 1)
 
-REPS = 60
+# REPS = 60
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
@@ -119,6 +119,43 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
     ),
 )
 @click.option(
+    "--default-variants",
+    type=int,
+    default=4,
+    show_default=True,
+    help="The number of variants to use when we vary the number of samples",
+)
+@click.option(
+    "--default-samples",
+    type=int,
+    default=5,
+    show_default=True,
+    help="The number of samples to use when we vary the number of variants",
+)
+@click.option(
+    "--intervals-variants",
+    type=int,
+    nargs=3,
+    default=(1, 4, 1),
+    show_default=True,
+    help="The start, end, and step values for the x-axis of the variants plot",
+)
+@click.option(
+    "--intervals-samples",
+    type=int,
+    nargs=3,
+    default=(1, 5, 1),
+    show_default=True,
+    help="The start, end, and step values for the x-axis of the samples plot",
+)
+@click.option(
+    "--reps",
+    type=int,
+    default=3,
+    show_default=True,
+    help="For each benchmark value, we take the mean of --reps X replicates",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -134,25 +171,24 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
     show_default="do not save generated results",
     help="A python pickle file into which to store results",
 )
-def main(pgen, temp, region, output, archive=None):
+def main(
+    pgen,
+    temp,
+    region,
+    default_variants,
+    default_samples,
+    intervals_variants,
+    intervals_samples,
+    reps,
+    output,
+    archive=None,
+):
     """
     Benchmarks classes in the data.genotypes module
-
-    GENOTYPES cab be formatted as a VCF or PLINK2 PGEN file
-
-    \f
-    Examples
-    --------
-    >>> haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz > example_haps.vcf
-
-    Parameters
-    ----------
-    genotypes : Path
-        The path to the genotypes in VCF or PLINK2 PGEN format
-    output : Path, optional
-        The location to which to write output
     """
-    global DEFAULT_VARIANTS, DEFAULT_SAMPLES, INTERVALS_VARIANTS, INTERVALS_SAMPLES
+    DEFAULT_VARIANTS, DEFAULT_SAMPLES, INTERVALS_VARIANTS, INTERVALS_SAMPLES, REPS = (
+        default_variants, default_samples, intervals_variants, intervals_samples, reps
+    )
     print("Loading genotypes from PGEN file", file=sys.stderr)
     gts = GenotypesPLINK(pgen)
     gts.read(region=region, max_variants=max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop))
@@ -226,20 +262,25 @@ def main(pgen, temp, region, output, archive=None):
     # plot the results
     print("Generating plot of results", file=sys.stderr)
     fig, (ax_samples, ax_variants) = plt.subplots(1, 2, figsize=(10, 5))
-    lab_font = {'fontsize': 'xx-small'}
+    lab_font = {"fontsize": "xx-small"}
     for file_type in ("vcf", "pgen", "chunked"):
         x_vals = INTERVALS_SAMPLES
         y_vals = results["samples"][file_type]
         # fit a line to each so that we can report the slope
         slope = np.polyfit(x_vals, y_vals, 1)[0]
         ax_samples.plot(
-            x_vals, y_vals, marker="o", label=FILE_TYPES[file_type],
+            x_vals,
+            y_vals,
+            marker="o",
+            label=FILE_TYPES[file_type],
         )
         ax_samples.text(
-            x_vals[-1], y_vals[-1]+(y_vals[-1]/16),
-            f"m = {slope:.3E}", fontdict=lab_font
+            x_vals[-1],
+            y_vals[-1] + (y_vals[-1] / 16),
+            f"m = {slope:.3E}",
+            fontdict=lab_font,
         )
-    ax_samples.set_xlabel(F"Number of samples\nnum_variants = {DEFAULT_VARIANTS}")
+    ax_samples.set_xlabel(f"Number of samples\nnum_variants = {DEFAULT_VARIANTS}")
     ax_samples.set_ylim(ymin=0)
     for file_type in ("vcf", "pgen", "chunked"):
         x_vals = INTERVALS_VARIANTS
@@ -247,13 +288,17 @@ def main(pgen, temp, region, output, archive=None):
         # fit a line to each so that we can report the slope
         slope = np.polyfit(x_vals, y_vals, 1)[0]
         ax_variants.plot(
-            x_vals, y_vals, marker="o",
+            x_vals,
+            y_vals,
+            marker="o",
         )
         ax_variants.text(
-            x_vals[-1], y_vals[-1]+(y_vals[-1]/16),
-            f"m = {slope:.3E}", fontdict=lab_font
+            x_vals[-1],
+            y_vals[-1] + (y_vals[-1] / 16),
+            f"m = {slope:.3E}",
+            fontdict=lab_font,
         )
-    ax_variants.set_xlabel(F"Number of variants\nnum_samples = {DEFAULT_SAMPLES}")
+    ax_variants.set_xlabel(f"Number of variants\nnum_samples = {DEFAULT_SAMPLES}")
     ax_variants.set_ylim(ymin=0)
     fig.supylabel("CPU Time (s)")
     fig.legend(loc="lower left", fontsize="x-small")
