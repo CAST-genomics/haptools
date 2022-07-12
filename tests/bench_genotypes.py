@@ -14,14 +14,14 @@ from haptools.data import GenotypesRefAlt, GenotypesPLINK
 
 
 # DEFAULT_SAMPLES = 500000
-# # DEFAULT_VARIANTS = 20000
+DEFAULT_VARIANTS = 20000
 # # INTERVALS_VARIANTS = range(500, 20000, 500)
 # DEFAULT_VARIANTS = 400
 # INTERVALS_VARIANTS = range(10, 400, 10)
 # INTERVALS_SAMPLES = range(12500, 500000, 12500)
 
 DEFAULT_SAMPLES = 40
-DEFAULT_VARIANTS = 40
+# DEFAULT_VARIANTS = 40
 INTERVALS_VARIANTS = range(5, 101, 5)
 INTERVALS_SAMPLES = range(5, 101, 5)
 
@@ -30,7 +30,7 @@ INTERVALS_SAMPLES = range(5, 101, 5)
 # INTERVALS_VARIANTS = range(1, 4, 1)
 # INTERVALS_SAMPLES = range(1, 5, 1)
 
-REPS = 5
+REPS = 60
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
@@ -226,22 +226,34 @@ def main(pgen, temp, region, output, archive=None):
     # plot the results
     print("Generating plot of results", file=sys.stderr)
     fig, (ax_samples, ax_variants) = plt.subplots(1, 2, figsize=(10, 5))
+    lab_font = {'fontsize': 'xx-small'}
     for file_type in ("vcf", "pgen", "chunked"):
+        x_vals = INTERVALS_SAMPLES
+        y_vals = results["samples"][file_type]
+        # fit a line to each so that we can report the slope
+        slope = np.polyfit(x_vals, y_vals, 1)[0]
         ax_samples.plot(
-            INTERVALS_SAMPLES,
-            results["samples"][file_type],
-            marker="o",
-            label=FILE_TYPES[file_type],
+            x_vals, y_vals, marker="o", label=FILE_TYPES[file_type],
         )
-    ax_samples.set_xlabel("Number of samples")
+        ax_samples.text(
+            x_vals[-1], y_vals[-1]+(y_vals[-1]/16),
+            f"m = {slope:.3E}", fontdict=lab_font
+        )
+    ax_samples.set_xlabel(F"Number of samples\nnum_variants = {DEFAULT_VARIANTS}")
     ax_samples.set_ylim(ymin=0)
     for file_type in ("vcf", "pgen", "chunked"):
+        x_vals = INTERVALS_VARIANTS
+        y_vals = results["variants"][file_type]
+        # fit a line to each so that we can report the slope
+        slope = np.polyfit(x_vals, y_vals, 1)[0]
         ax_variants.plot(
-            INTERVALS_VARIANTS,
-            results["variants"][file_type],
-            marker="o",
+            x_vals, y_vals, marker="o",
         )
-    ax_variants.set_xlabel("Number of variants")
+        ax_variants.text(
+            x_vals[-1], y_vals[-1]+(y_vals[-1]/16),
+            f"m = {slope:.3E}", fontdict=lab_font
+        )
+    ax_variants.set_xlabel(F"Number of variants\nnum_samples = {DEFAULT_SAMPLES}")
     ax_variants.set_ylim(ymin=0)
     fig.supylabel("CPU Time (s)")
     fig.legend(loc="lower left", fontsize="x-small")
