@@ -458,7 +458,7 @@ class Haplotypes(Data):
     def check_header(self, lines: list[str], check_version=False):
         """
         Check 1) that the version number matches and 2) that extra fields declared in
-        # the .haps file can be handled by the the Variant and Haplotype classes
+        # the .haps file can be handled by the Variant and Haplotype classes
         # provided in __init__()
 
         Parameters

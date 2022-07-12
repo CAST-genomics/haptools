@@ -113,7 +113,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     show_default="all haplotypes",
     help=(
         "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
-        "For this to work, the VCF and .hap file must be indexed and the seqname "
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
     )
 )
@@ -252,7 +252,7 @@ def simphenotype(
     show_default="all haplotypes",
     help=(
         "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
-        "For this to work, the VCF and .hap file must be indexed and the seqname "
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
     )
 )
@@ -306,8 +306,8 @@ def transform(
     """
     Creates a VCF composed of haplotypes
 
-    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
-    to the .hap format spec
+    GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
+    according to the .hap format spec
 
     \f
     Examples
@@ -317,7 +317,7 @@ def transform(
     Parameters
     ----------
     genotypes : Path
-        The path to the genotypes in VCF format
+        The path to the genotypes
     haplotypes : Path
         The path to the haplotypes in a .hap file
     region : str, optional

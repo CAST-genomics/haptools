@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 
 from .data import Haplotype as HaplotypeBase
-from .data import GenotypesRefAlt, Phenotypes, Haplotypes, Extra
+from .data import Genotypes, GenotypesRefAlt, Phenotypes, Haplotypes, Extra
 
 
 @dataclass

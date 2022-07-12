@@ -19,7 +19,7 @@ def transform_haps(
     Parameters
     ----------
     genotypes : Path
-        The path to the genotypes in VCF format
+        The path to the genotypes
     haplotypes : Path
         The path to the haplotypes in a .hap file
     region : str, optional
@@ -46,8 +46,12 @@ def transform_haps(
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
-    log.info("Loading genotypes")
-    gt = data.GenotypesRefAlt(genotypes, log=log)
+    if genotypes.suffix == ".pgen":
+        log.info("Loading genotypes from PGEN file")
+        gt = data.GenotypesPLINK(genotypes, log=log)
+    else:
+        log.info("Loading genotypes from VCF/BCF file")
+        gt = data.GenotypesRefAlt(genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing()

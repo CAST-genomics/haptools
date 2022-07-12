@@ -633,9 +633,7 @@ class GenotypesRefAlt(Genotypes):
 
 class GenotypesPLINK(GenotypesRefAlt):
     """
-    A class for processing genotypes from a PLINK .pgen file
-
-    NOTE: this class is still under-development and NOT fit for usage
+    A class for processing genotypes from a PLINK ``.pgen`` file
 
     Attributes
     ----------
