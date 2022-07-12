@@ -9,6 +9,7 @@ from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
     Genotypes,
     GenotypesRefAlt,
+    GenotypesPLINK,
     Phenotypes,
     Covariates,
     Haplotypes,
@@ -238,6 +239,69 @@ class TestGenotypes:
         assert gts_sub.samples == samples
         np.testing.assert_allclose(gts_sub.data, expected_data)
         assert np.array_equal(gts_sub.variants, expected_variants)
+
+
+class TestGenotypesPLINK:
+    pgenlib = pytest.importorskip("pgenlib")
+
+    def test_load_genotypes(self):
+        expected = TestGenotypes()._get_fake_genotypes_refalt()
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts.read()
+        gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, expected.data)
+        assert gts.samples == expected.samples
+        for i, x in enumerate(expected.variants):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == expected.variants[col][i]
+
+    def test_load_genotypes_iterate(self):
+        expected = TestGenotypes()._get_fake_genotypes_refalt()
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+
+        # check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert line.variants[col] == expected.variants[col][idx]
+        assert gts.samples == expected.samples
+
+    def test_load_genotypes_subset(self):
+        expected = TestGenotypes()._get_fake_genotypes_refalt()
+
+        # subset for the region we want
+        expected_data = expected.data[:, 1:3]
+
+        # can we load the data from the VCF?
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts.read(region="1:10115-10117")
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == expected.samples
+
+        # subset for just the samples we want
+        expected_data = expected_data[[1, 3]]
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        samples = [expected.samples[1], expected.samples[3]]
+        gts.read(region="1:10115-10117", samples=samples)
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == tuple(samples)
+
+        # subset to just one of the variants
+        expected_data = expected_data[:, [1]]
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        variants = {"1:10117:C:A"}
+        gts.read(region="1:10115-10117", samples=samples, variants=variants)
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == tuple(samples)
 
 
 class TestPhenotypes:
