@@ -19,7 +19,7 @@ class Covariates(Phenotypes):
     ----------
     data : np.array
         The covariates in an n (samples) x m (covariates) array
-    fname : Path
+    fname : Path | str
         The path to the read-only file containing the data
     samples : tuple[str]
         The names of each of the n samples
@@ -33,6 +33,6 @@ class Covariates(Phenotypes):
     >>> covariates = Covariates.load('tests/data/covars.tsv')
     """
 
-    def __init__(self, fname: Path, log: Logger = None):
+    def __init__(self, fname: Path | str, log: Logger = None):
         super(Phenotypes, self).__init__(fname, log)
         self._ext = "covar"

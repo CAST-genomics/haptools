@@ -24,7 +24,7 @@ class Genotypes(Data):
     ----------
     data : npt.NDArray
         The genotypes in an n (samples) x p (variants) x 2 (strands) array
-    fname : Path
+    fname : Path | str
         The path to the read-only file containing the data
     samples : tuple[str]
         The names of each of the n samples
@@ -53,7 +53,7 @@ class Genotypes(Data):
     >>> genotypes.data
     """
 
-    def __init__(self, fname: Path, log: Logger = None):
+    def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array(
@@ -72,7 +72,7 @@ class Genotypes(Data):
     @classmethod
     def load(
         cls: Genotypes,
-        fname: Path,
+        fname: Path | str,
         region: str = None,
         samples: list[str] = None,
         variants: set[str] = None,
@@ -531,7 +531,7 @@ class GenotypesRefAlt(Genotypes):
     ----------
     data : np.array
         See documentation for :py:attr:`~.Genotypes.data`
-    fname : Path
+    fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
     samples : tuple[str]
         See documentation for :py:attr:`~.Genotypes.samples`
@@ -547,7 +547,7 @@ class GenotypesRefAlt(Genotypes):
         See documentation for :py:attr:`~.Genotypes.log`
     """
 
-    def __init__(self, fname: Path, log: Logger = None):
+    def __init__(self, fname: Path | str, log: Logger = None):
         super(Genotypes, self).__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array(
@@ -735,9 +735,7 @@ class GenotypesPLINK(GenotypesRefAlt):
     def _variant_arr(
         self,
         record: list[str],
-        cid: dict[str, int] = dict(
-            zip(['CHROM', 'POS', 'ID', 'REF', 'ALT'], range(5))
-        ),
+        cid: dict[str, int] = dict(zip(["CHROM", "POS", "ID", "REF", "ALT"], range(5))),
     ):
         """
         Construct a np array from the metadata in a line of the PVAR file
@@ -763,9 +761,14 @@ class GenotypesPLINK(GenotypesRefAlt):
         # TODO: remove the AAF column; right now, we just set it to 0.5 arbitrarily
         return np.array(
             (
-                record[cid['ID']], record[cid['CHROM']], record[cid['POS']], 0.5,
-                record[cid['REF']], record[cid['ALT']]
-            ), dtype=self.variants.dtype,
+                record[cid["ID"]],
+                record[cid["CHROM"]],
+                record[cid["POS"]],
+                0.5,
+                record[cid["REF"]],
+                record[cid["ALT"]],
+            ),
+            dtype=self.variants.dtype,
         )
 
     def _iterate_variants(
@@ -825,10 +828,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                 # TODO: add header back in to pvariants using itertools.chain?
             # create a dictionary that translates between the variant dtypes and thee
             # columns of the PVAR file
-            cid = {
-                item: header.index(item.upper())
-                for item in ("chrom", "pos", "id")
-            }
+            cid = {item: header.index(item.upper()) for item in ("chrom", "pos", "id")}
             num_seen = 0
             for ct, rec in enumerate(pvariants):
                 if region and not self._check_region(
@@ -950,7 +950,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             # initialize the data array
             self.data = np.empty(
                 (len(sample_idxs), len(indices), (2 + (not self._prephased))),
-                dtype=np.uint8
+                dtype=np.uint8,
             )
             self.log.info(
                 f"Reading genotypes from {len(self.samples)} samples and "
@@ -984,7 +984,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
                     data = np.dstack((data[:, ::2], data[:, 1::2])).astype(np.uint8)
-                    phasing = phasing[:, :len(sample_idxs)]
+                    phasing = phasing[:, : len(sample_idxs)]
                     data = np.concatenate((data, phasing[:, :, np.newaxis]), axis=2)
                     # transpose the GT matrix so that samples are rows and variants are
                     # columns
@@ -1004,7 +1004,8 @@ class GenotypesPLINK(GenotypesRefAlt):
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
 
-    def _iterate(self,
+    def _iterate(
+        self,
         pgen: PgenReader,
         region: str = None,
         variants: set[str] = None,
@@ -1085,9 +1086,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         from pgenlib import PgenReader
 
         sample_idxs = self.read_samples(samples)
-        pgen = PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
-        )
+        pgen = PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
@@ -1105,7 +1104,8 @@ class GenotypesPLINK(GenotypesRefAlt):
         prefix = self.fname.with_suffix("")
         subprocess.run(
             ["plink2", "--vcf", str(vcf), "--out", str(prefix)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         # clean up after
         if clean_up:

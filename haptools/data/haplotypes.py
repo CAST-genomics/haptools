@@ -385,7 +385,7 @@ class Haplotypes(Data):
 
     Attributes
     ----------
-    fname: Path
+    fname: Path | str
         The path to the file containing the data
     data: dict[str, Haplotype]
         A dict of Haplotype objects keyed by their IDs
@@ -415,7 +415,7 @@ class Haplotypes(Data):
 
     def __init__(
         self,
-        fname: Path,
+        fname: Path | str,
         haplotype: type[Haplotype] = Haplotype,
         variant: type[Variant] = Variant,
         log: Logger = None,
@@ -427,7 +427,10 @@ class Haplotypes(Data):
 
     @classmethod
     def load(
-        cls: Haplotypes, fname: Path, region: str = None, haplotypes: set[str] = None
+        cls: Haplotypes,
+        fname: Path | str,
+        region: str = None,
+        haplotypes: set[str] = None,
     ) -> Haplotypes:
         """
         Load haplotypes from a .hap file
