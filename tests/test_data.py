@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
-from haptools import data
 
 from haptools.haplotype import HaptoolsHaplotype
 from haptools.data import (
