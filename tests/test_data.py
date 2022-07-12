@@ -513,10 +513,10 @@ class TestHaplotypes:
         # remove the file
         os.remove(str(fname))
 
-    
+
 class TestGenotypesRefAlt:
     def test_read_ref_alt(self):
-        #simple.vcf
+        # simple.vcf
         gts_ref_alt_read = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
         gts_ref_alt_read.read()
         expected = np.array(
@@ -525,7 +525,8 @@ class TestGenotypesRefAlt:
                 ("A", "G"),
                 ("C", "A"),
                 ("A", "G"),
-            ], dtype = gts_ref_alt_read.variants[["ref", "alt"]].dtype
+            ],
+            dtype=gts_ref_alt_read.variants[["ref", "alt"]].dtype,
         )
         for i, x in enumerate(expected):
             assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
@@ -550,11 +551,12 @@ class TestGenotypesRefAlt:
                 ("T", "C"),
                 ("T", "C"),
                 ("C", "T"),
-            ], dtype = gts_ref_alt.variants[["ref", "alt"]].dtype
+            ],
+            dtype=gts_ref_alt.variants[["ref", "alt"]].dtype,
         )
         for i, x in enumerate(expected):
             assert gts_ref_alt.variants[["ref", "alt"]][i] == x
-        
+
     def _get_fake_genotypes(self):
         gts = Genotypes(fname=None)
         gts.data = self._get_expected_genotypes()
@@ -581,29 +583,18 @@ class TestGenotypesRefAlt:
         gts_ref_alt_write.read()
         expected = self._get_fake_genotypes()
         assert gts_ref_alt_write.samples == expected.samples
-        assert gts_ref_alt_write.variants == expected.variants
         np.testing.assert_allclose(gts_ref_alt_write.data, expected.data)
         test_gts = TestGenotypes()
         for i, x in enumerate(expected.variants):
-            assert test_gts._get_fake_genotypes_refalt()[i] == x
-
-
-
-
-
-
-        
-        
-    
-
-
-
-    
-
-
-
-
-    
-
-
-
+            assert gts_ref_alt_write.variants[i] == x
+        expected_ref_alt = np.array(
+            [
+                ("T", "C"),
+                ("A", "G"),
+                ("C", "A"),
+                ("A", "G"),
+            ],
+            dtype=gts_ref_alt_write.variants[["ref", "alt"]].dtype,
+        )
+        for i, x in enumerate(expected_ref_alt):
+            assert gts_ref_alt_write.variants[["ref", "alt"]][i] == x
