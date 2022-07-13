@@ -67,7 +67,7 @@ def time_plink(pgen, max_variants):
 
 
 def time_plink_chunk(pgen, max_variants):
-    GenotypesPLINK(pgen).read(max_variants=max_variants, chunk_size=50)
+    GenotypesPLINK(pgen, chunk_size=50).read(max_variants=max_variants)
 
 
 def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+

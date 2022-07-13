@@ -63,16 +63,14 @@ def transform_haps(
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
-    read_params = {"region": region, "samples": samples, "variants": variants}
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
-        gt = data.GenotypesPLINK(genotypes, log=log)
-        read_params["chunk_size"] = chunk_size
+        gt = data.GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = data.GenotypesRefAlt(genotypes, log=log)
+        gt = data.GenotypesaRefAlt(genotypes, log=log)
     # gt._prephased = True
-    gt.read(**read_params)
+    gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
     gt.check_biallelic()
     gt.check_phase()

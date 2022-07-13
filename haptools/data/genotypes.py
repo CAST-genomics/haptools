@@ -548,8 +548,7 @@ class GenotypesRefAlt(Genotypes):
     """
 
     def __init__(self, fname: Path | str, log: Logger = None):
-        super(Genotypes, self).__init__(fname, log)
-        self.samples = tuple()
+        super().__init__(fname, log)
         self.variants = np.array(
             [],
             dtype=[
@@ -561,9 +560,6 @@ class GenotypesRefAlt(Genotypes):
                 ("alt", "U100"),
             ],
         )
-        self._prephased = False
-        self._samp_idx = None
-        self._var_idx = None
 
     def _variant_arr(self, record: Variant):
         """
@@ -612,7 +608,7 @@ class GenotypesRefAlt(Genotypes):
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
-                "stop": var["pos"] + 1,
+                "stop": var["pos"] + len(var['ref']) - 1,
                 "qual": None,
                 "alleles": tuple(var[["ref", "alt"]]),
                 "id": var["id"],
@@ -645,6 +641,12 @@ class GenotypesPLINK(GenotypesRefAlt):
         See documentation for :py:attr:`~.GenotypesRefAlt.data`
     log: Logger
         See documentation for :py:attr:`~.GenotypesRefAlt.data`
+    chunk_size: int, optional
+        The max number of variants to fetch from and write to the PGEN file at any
+        given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory
     _prephased: bool
         See documentation for :py:attr:`~.GenotypesRefAlt.data`
 
@@ -652,6 +654,9 @@ class GenotypesPLINK(GenotypesRefAlt):
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
+    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
+        super().__init__(fname, log)
+        self.chunk_size = chunk_size
 
     def read_samples(self, samples: list[str] = None):
         """
@@ -902,7 +907,6 @@ class GenotypesPLINK(GenotypesRefAlt):
         samples: list[str] = None,
         variants: set[str] = None,
         max_variants: int = None,
-        chunk_size: int = None,
     ):
         """
         Read genotypes from a PGEN file into a numpy matrix stored in
@@ -918,11 +922,6 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:attr:`~.GenotypesRefAlt.read`
         max_variants : int, optional
             See documentation for :py:attr:`~.GenotypesRefAlt.read`
-        chunk_size: int, optional
-            The max number of variants to fetch from the PGEN file at any given time
-
-            If this value is provided, variants from the PGEN file will be loaded in
-            chunks so as to use less memory
         """
         super(Genotypes, self).read()
         # TODO: figure out how to install this package
@@ -941,15 +940,15 @@ class GenotypesPLINK(GenotypesRefAlt):
             else:
                 max_variants = min(max_variants, pgen.get_variant_ct())
             indices = self.read_variants(region, variants, max_variants)
-            # how many variants should we load at once?
-            chunks = chunk_size
-            if chunks is None or chunks > len(indices):
-                chunks = len(indices)
             # initialize the data array
             self.data = np.empty(
                 (len(sample_idxs), len(indices), (2 + (not self._prephased))),
                 dtype=np.uint8,
             )
+            # how many variants should we load at once?
+            chunks = self.chunk_size
+            if chunks is None or chunks > len(indices):
+                chunks = len(indices)
             self.log.info(
                 f"Reading genotypes from {len(self.samples)} samples and "
                 f"{len(indices)} variants in chunks of size {chunks} variants"

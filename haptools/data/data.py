@@ -25,7 +25,7 @@ class Data(ABC):
 
     def __init__(self, fname: Path | str, log: Logger = None):
         if isinstance(fname, str):
-            fname = Path(self.fname)
+            fname = Path(fname)
         self.fname = fname
         self.data = None
         self.log = log or getLogger(self.__class__.__name__)
