@@ -305,6 +305,55 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected_data)
         assert gts.samples == tuple(samples)
 
+    def test_write_genotypes(self):
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts.read()
+        gts.check_phase()
+
+        fname = DATADIR.joinpath("test.pgen")
+        gts.fname = fname
+        gts.write()
+
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+        new_gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        # clean up afterwards: delete the files we created
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+    def test_write_genotypes_unphased(self):
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts.read()
+        gts.data[:2, 1, 2] = 0
+
+        fname = DATADIR.joinpath("test.pgen")
+        gts.fname = fname
+        gts.write()
+
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        # clean up afterwards: delete the files we created
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
 
 class TestPhenotypes:
     def _get_expected_phenotypes(self):

@@ -1088,23 +1088,93 @@ class GenotypesPLINK(GenotypesRefAlt):
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
 
-    def write(self, clean_up=True):
+    def write_samples(self):
         """
-        Write the variants in this class to PLINK2 files at :py:attr:`~.GenotypesPLINK.fname`
+        Write sample IDs to a PSAM file from a list stored in
+        :py:attr:`~.GenotypesPLINK.samples`
+
+        This method is called automatically by :py:meth:`~.GenotypesPLINK.write`
         """
-        # TODO: use PgenlibWriter
-        # at the moment, we just write a VCF and then call PLINK2 via the command line
-        fname, vcf = self.fname, self.fname.with_suffix(".vcf.gz")
-        self.fname = vcf
-        super().write()
-        self.fname = fname
-        prefix = self.fname.with_suffix("")
-        subprocess.run(
-            ["plink2", "--vcf", str(vcf), "--out", str(prefix)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        with hook_compressed(self.fname.with_suffix(".psam"), mode="wt") as psam:
+            psam.write("#IID\n")
+            psam.write("\n".join(self.samples))
+            psam.write("\n")
+
+    def write_variants(self):
+        """
+        Write variant IDs to a PVAR file from the numpy array stored in
+        :py:attr:`~.GenotypesPLINK.variants`
+
+        This method is called automatically by :py:meth:`~.GenotypesPLINK.write`
+        """
+        vcf = VariantFile(str(self.fname.with_suffix(".pvar")), mode="w")
+        # make sure the header is properly structured
+        for contig in set(self.variants["chrom"]):
+            vcf.header.contigs.add(contig)
+        self.log.info("Writing VCF records")
+        for var_idx, var in enumerate(self.variants):
+            rec = {
+                "contig": var["chrom"],
+                "start": var["pos"],
+                "stop": var["pos"] + len(var['ref']) - 1,
+                "qual": None,
+                "alleles": tuple(var[["ref", "alt"]]),
+                "id": var["id"],
+                "filter": None,
+            }
+            # handle pysam increasing the start site by 1
+            rec["start"] -= 1
+            # parse the record into a pysam.VariantRecord
+            record = vcf.new_record(**rec)
+            # write the record to a file
+            vcf.write(record)
+        vcf.close()
+
+    def write(self):
+        """
+        Write the variants in this class to PLINK2 files at
+        :py:attr:`~.GenotypesPLINK.fname`
+        """
+        # write the psam and pvar files
+        self.write_samples()
+        self.write_variants()
+
+        # TODO: figure out how to install this package
+        from pgenlib import PgenWriter
+
+        # write the pgen file
+        pgen = PgenWriter(
+            filename=bytes(str(self.fname), "utf8"),
+            sample_ct=len(self.samples),
+            variant_ct=len(self.variants),
+            nonref_flags=False,
+            hardcall_phase_present=True,
         )
-        # clean up after
-        if clean_up:
-            vcf.unlink()
-            prefix.with_suffix(".log").unlink()
+        # transpose the data b/c pgenwriter expects things in "variant-major" order
+        # (ie where variants are rows instead of samples)
+        data = self.data.transpose((1, 0, 2))
+        # concatenate and interleave columns so that every pair of columns is a sample
+        data = np.dstack((data[:, :, 0], data[:, :, 1])).reshape((data.shape[0], -1))
+        # how many variants should we write at once?
+        chunks = self.chunk_size
+        if chunks is None or chunks > len(self.variants):
+            chunks = len(self.variants)
+        self.log.info(
+            f"Writing genotypes from {len(self.samples)} samples and "
+            f"{len(self.variants)} variants in chunks of size {chunks} variants"
+        )
+        # iterate through chunks of variants
+        for start in range(0, len(self.variants), chunks):
+            end = start + chunks
+            if end > len(self.variants):
+                end = len(self.variants)
+            size = end - start
+            subset_data = data[start:end]
+            cast_data = subset_data.astype(np.int32)
+            # convert any missing genotypes to -9
+            cast_data[subset_data == np.iinfo(np.uint8).max] = -9
+            if self._prephased or self.data.shape[2] < 3:
+                pgen.append_alleles_batch(cast_data, all_phased=True)
+            else:
+                subset_phase = self.data[:, start:end, 2].T.copy(order="C")
+                pgen.append_partially_phased_batch(cast_data, subset_phase)
