@@ -13,24 +13,11 @@ import matplotlib.pyplot as plt
 from haptools.data import GenotypesRefAlt, GenotypesPLINK
 
 
-# # DEFAULT_SAMPLES = 500000
-# DEFAULT_VARIANTS = 20000
-# # # INTERVALS_VARIANTS = range(500, 20000, 500)
-# # DEFAULT_VARIANTS = 400
-# # INTERVALS_VARIANTS = range(10, 400, 10)
-# # INTERVALS_SAMPLES = range(12500, 500000, 12500)
+# COMMAND FOR GENERATING UKB PLOT:
+# tests/bench_genotypes.py -p /projects/ps-gymreklab/CAST/amassara/plink.pgen \
+#--default-variants 20000 --default-samples 500000 --intervals-variants 1 80 2 \
+# --intervals-samples 1 80 2 -o plot.png -a results.pickle
 
-# DEFAULT_SAMPLES = 40
-# # DEFAULT_VARIANTS = 40
-# INTERVALS_VARIANTS = range(5, 101, 5)
-# INTERVALS_SAMPLES = range(5, 101, 5)
-
-# # DEFAULT_SAMPLES = 5
-# # DEFAULT_VARIANTS = 4
-# # INTERVALS_VARIANTS = range(1, 4, 1)
-# # INTERVALS_SAMPLES = range(1, 5, 1)
-
-# REPS = 60
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
@@ -41,8 +28,15 @@ def create_variant_files(gts, intervals, num_samps):
     for val in intervals:
         variants = tuple(gts.variants["id"][:val])
         sub = gts.subset(samples=samples, variants=variants)
+        # write PLINK2 files
         sub.fname = variant_dir / f"{val}.pgen"
-        sub.write(clean_up=False)
+        sub.write()
+        # write VCF files
+        vcf = GenotypesRefAlt(sub.fname.with_suffix(".vcf"))
+        vcf.data = sub.data
+        vcf.samples = sub.samples
+        vcf.variants = sub.variants
+        vcf.write()
     return variant_dir
 
 
@@ -53,8 +47,15 @@ def create_sample_files(gts, intervals, num_vars):
     for val in intervals:
         samples = gts.samples[:val]
         sub = gts.subset(samples=samples, variants=variants)
+        # write PLINK2 files
         sub.fname = sample_dir / f"{val}.pgen"
-        sub.write(clean_up=False)
+        sub.write()
+        # write VCF files
+        vcf = GenotypesRefAlt(sub.fname.with_suffix(".vcf"))
+        vcf.data = sub.data
+        vcf.samples = sub.samples
+        vcf.variants = sub.variants
+        vcf.write()
     return sample_dir
 
 
@@ -159,8 +160,8 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
     "-o",
     "--output",
     type=click.Path(path_type=Path),
-    default=Path("/dev/stdout"),
-    show_default="stdout",
+    default=Path("bench-plink.png"),
+    show_default=True,
     help="A PNG file containing the results of the benchmark",
 )
 @click.option(
@@ -187,10 +188,16 @@ def main(
     Benchmarks classes in the data.genotypes module
     """
     DEFAULT_VARIANTS, DEFAULT_SAMPLES, INTERVALS_VARIANTS, INTERVALS_SAMPLES, REPS = (
-        default_variants, default_samples, intervals_variants, intervals_samples, reps
+        default_variants, default_samples, range(*intervals_variants),
+        range(*intervals_samples), reps
+    )
+    LOG = logging.getLogger("run")
+    logging.basicConfig(
+        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
+        level="DEBUG",
     )
     print("Loading genotypes from PGEN file", file=sys.stderr)
-    gts = GenotypesPLINK(pgen)
+    gts = GenotypesPLINK(pgen, chunk_size=500, log=LOG)
     gts.read(region=region, max_variants=max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop))
     gts.check_missing(discard_also=True)
     gts.fname = temp
@@ -210,11 +217,6 @@ def main(
         )
     INTERVALS_SAMPLES = list(INTERVALS_SAMPLES)
     FILE_TYPES = {"vcf": "VCF", "pgen": "PLINK2", "chunked": "PLINK2 chunked"}
-    LOG = logging.getLogger("run")
-    logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level="ERROR",
-    )
 
     # create the files we will try to load if they haven't been created already
     if not gts.fname.exists():
@@ -245,7 +247,7 @@ def main(
             ):
                 if file_type == "vcf":
                     func = time_vcf
-                    file = genotype_dir / f"{val}.vcf.gz"
+                    file = genotype_dir / f"{val}.vcf"
                 elif file_type == "pgen" or file_type == "chunked":
                     func = time_plink if file_type == "pgen" else time_plink_chunk
                     file = genotype_dir / f"{val}.pgen"

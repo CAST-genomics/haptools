@@ -621,6 +621,7 @@ class GenotypesRefAlt(Genotypes):
             for samp_idx, sample in enumerate(self.samples):
                 # TODO: make this work when there are missing values
                 record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
+                # TODO: add proper phase info
                 record.samples[sample].phased = True
             # write the record to a file
             vcf.write(record)
@@ -940,11 +941,13 @@ class GenotypesPLINK(GenotypesRefAlt):
             else:
                 max_variants = min(max_variants, pgen.get_variant_ct())
             indices = self.read_variants(region, variants, max_variants)
-            # initialize the data array
-            self.data = np.empty(
-                (len(sample_idxs), len(indices), (2 + (not self._prephased))),
-                dtype=np.uint8,
+            mat_shape = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
+            self.log.debug(
+                f"Allocating memory for genotype matrix of shape {mat_shape} and "
+                "dtype np.uint8"
             )
+            # initialize the data array
+            self.data = np.empty(mat_shape, dtype=np.uint8)
             # how many variants should we load at once?
             chunks = self.chunk_size
             if chunks is None or chunks > len(indices):
@@ -959,6 +962,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                 if end > len(indices):
                     end = len(indices)
                 size = end - start
+                self.log.debug(f"Loading from variant #{start} to variant #{end}")
                 # the genotypes start out as a simple 2D array with twice the number
                 # of samples
                 if not self._prephased:
@@ -967,8 +971,8 @@ class GenotypesPLINK(GenotypesRefAlt):
                         data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
                     except np.core._exceptions.MemoryError:
                         raise ValueError(
-                            "You don't have enough memory to load these genotypes! "
-                            "Try specifying a value to the chunks parameter, instead."
+                            "You don't have enough memory to load these genotypes! Try"
+                            " specifying a value to the chunks_size parameter, instead"
                         )
                     phasing = np.zeros((size, len(sample_idxs) * 2), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
@@ -980,12 +984,15 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # missing alleles will have a value of -9
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
-                    data = np.dstack((data[:, ::2], data[:, 1::2])).astype(np.uint8)
                     phasing = phasing[:, : len(sample_idxs)]
-                    data = np.concatenate((data, phasing[:, :, np.newaxis]), axis=2)
-                    # transpose the GT matrix so that samples are rows and variants are
-                    # columns
-                    data = data.transpose((1, 0, 2))
+                    # add phase info, then transpose the GT matrix so that samples are
+                    # rows and variants are columns
+                    data = np.concatenate(
+                        (
+                            np.dstack((data[:, ::2], data[:, 1::2])).astype(np.uint8),
+                            phasing[:, :, np.newaxis],
+                        ), axis=2
+                    ).transpose((1, 0, 2))
                 else:
                     # ...each row is a different chromosomal strand
                     data = np.empty((len(sample_idxs) * 2, size), dtype=np.int32)
@@ -1169,7 +1176,13 @@ class GenotypesPLINK(GenotypesRefAlt):
                 end = len(self.variants)
             size = end - start
             subset_data = data[start:end]
-            cast_data = subset_data.astype(np.int32)
+            try:
+                cast_data = subset_data.astype(np.int32)
+            except np.core._exceptions.MemoryError:
+                raise ValueError(
+                    "You don't have enough memory to write these genotypes! Try"
+                    " specifying a value to the chunks_size parameter, instead"
+                )
             # convert any missing genotypes to -9
             cast_data[subset_data == np.iinfo(np.uint8).max] = -9
             if self._prephased or self.data.shape[2] < 3:
