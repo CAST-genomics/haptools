@@ -244,7 +244,12 @@ class TestGenotypes:
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
         pgenlib = pytest.importorskip("pgenlib")
-        return TestGenotypes()._get_fake_genotypes_refalt()
+        gts_ref_alt = TestGenotypes()._get_fake_genotypes_refalt()
+        gts = GenotypesPLINK(gts_ref_alt.fname)
+        gts.data = gts_ref_alt.data
+        gts.samples = gts_ref_alt.samples
+        gts.variants = gts_ref_alt.variants
+        return gts
 
     def test_load_genotypes(self):
         expected = self._get_fake_genotypes_plink()
@@ -306,9 +311,7 @@ class TestGenotypesPLINK:
         assert gts.samples == tuple(samples)
 
     def test_write_genotypes(self):
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
-        gts.read()
-        gts.check_phase()
+        gts = self._get_fake_genotypes_plink()
 
         fname = DATADIR.joinpath("test.pgen")
         gts.fname = fname
@@ -331,8 +334,9 @@ class TestGenotypesPLINK:
         fname.unlink()
 
     def test_write_genotypes_unphased(self):
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
-        gts.read()
+        gts = self._get_fake_genotypes_plink()
+        # add phasing information back
+        gts.data = np.dstack((gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8)))
         gts.data[:2, 1, 2] = 0
 
         fname = DATADIR.joinpath("test.pgen")

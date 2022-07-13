@@ -1107,28 +1107,27 @@ class GenotypesPLINK(GenotypesRefAlt):
 
         This method is called automatically by :py:meth:`~.GenotypesPLINK.write`
         """
-        vcf = VariantFile(str(self.fname.with_suffix(".pvar")), mode="w")
-        # make sure the header is properly structured
-        for contig in set(self.variants["chrom"]):
-            vcf.header.contigs.add(contig)
-        self.log.info("Writing VCF records")
-        for var_idx, var in enumerate(self.variants):
-            rec = {
-                "contig": var["chrom"],
-                "start": var["pos"],
-                "stop": var["pos"] + len(var['ref']) - 1,
-                "qual": None,
-                "alleles": tuple(var[["ref", "alt"]]),
-                "id": var["id"],
-                "filter": None,
-            }
-            # handle pysam increasing the start site by 1
-            rec["start"] -= 1
-            # parse the record into a pysam.VariantRecord
-            record = vcf.new_record(**rec)
-            # write the record to a file
-            vcf.write(record)
-        vcf.close()
+        with VariantFile(str(self.fname.with_suffix(".pvar")), mode="w") as vcf:
+            # make sure the header is properly structured
+            for contig in set(self.variants["chrom"]):
+                vcf.header.contigs.add(contig)
+            self.log.info("Writing VCF records")
+            for var_idx, var in enumerate(self.variants):
+                rec = {
+                    "contig": var["chrom"],
+                    "start": var["pos"],
+                    "stop": var["pos"] + len(var['ref']) - 1,
+                    "qual": None,
+                    "alleles": tuple(var[["ref", "alt"]]),
+                    "id": var["id"],
+                    "filter": None,
+                }
+                # handle pysam increasing the start site by 1
+                rec["start"] -= 1
+                # parse the record into a pysam.VariantRecord
+                record = vcf.new_record(**rec)
+                # write the record to a file
+                vcf.write(record)
 
     def write(self):
         """
