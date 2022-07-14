@@ -15,8 +15,8 @@ from haptools.data import GenotypesRefAlt, GenotypesPLINK
 
 # COMMAND FOR GENERATING UKB PLOT:
 # tests/bench_genotypes.py -p /projects/ps-gymreklab/CAST/amassara/plink.pgen \
-#--default-variants 20000 --default-samples 500000 --intervals-variants 1 80 2 \
-# --intervals-samples 1 80 2 -o plot.png -a results.pickle
+# --default-variants 20000 --default-samples 500000 --intervals-variants 1 80 4 \
+# --intervals-samples 1 80 4 -o plot.png -a results.pickle
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -188,18 +188,27 @@ def main(
     Benchmarks classes in the data.genotypes module
     """
     DEFAULT_VARIANTS, DEFAULT_SAMPLES, INTERVALS_VARIANTS, INTERVALS_SAMPLES, REPS = (
-        default_variants, default_samples, range(*intervals_variants),
-        range(*intervals_samples), reps
+        default_variants,
+        default_samples,
+        range(*intervals_variants),
+        range(*intervals_samples),
+        reps,
     )
     LOG = logging.getLogger("run")
     logging.basicConfig(
         format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
         level="DEBUG",
     )
-    print("Loading genotypes from PGEN file", file=sys.stderr)
     gts = GenotypesPLINK(pgen, chunk_size=500, log=LOG)
-    gts.read(region=region, max_variants=max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop))
-    gts.check_missing(discard_also=True)
+    if not temp.exists():
+        print("Loading genotypes from PGEN file", file=sys.stderr)
+        gts.read(
+            region=region, max_variants=max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop)
+        )
+        gts.check_missing(discard_also=True)
+    else:
+        gts.read_variants(max_variants=max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop))
+        gts.read_samples()
     gts.fname = temp
     # set initial variables
     SAMPLES = gts.samples
@@ -230,6 +239,8 @@ def main(
             "Temp directory already exists. Assuming files have already been created",
             file=sys.stderr,
         )
+
+    logging.getLogger().setLevel(level="ERROR")
 
     # run each test
     print("Benchmarking the loading of each file", file=sys.stderr)
