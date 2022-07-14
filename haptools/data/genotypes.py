@@ -1171,14 +1171,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                 "k-ng.git#subdirectory=2.0/Python"
             )
 
-        # write the pgen file
-        pgen = PgenWriter(
-            filename=bytes(str(self.fname), "utf8"),
-            sample_ct=len(self.samples),
-            variant_ct=len(self.variants),
-            nonref_flags=False,
-            hardcall_phase_present=True,
-        )
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
         data = self.data.transpose((1, 0, 2))
@@ -1188,28 +1180,37 @@ class GenotypesPLINK(GenotypesRefAlt):
         chunks = self.chunk_size
         if chunks is None or chunks > len(self.variants):
             chunks = len(self.variants)
-        self.log.info(
-            f"Writing genotypes from {len(self.samples)} samples and "
-            f"{len(self.variants)} variants in chunks of size {chunks} variants"
-        )
-        # iterate through chunks of variants
-        for start in range(0, len(self.variants), chunks):
-            end = start + chunks
-            if end > len(self.variants):
-                end = len(self.variants)
-            size = end - start
-            subset_data = data[start:end]
-            try:
-                cast_data = subset_data.astype(np.int32)
-            except np.core._exceptions.MemoryError:
-                raise ValueError(
-                    "You don't have enough memory to write these genotypes! Try"
-                    " specifying a value to the chunks_size parameter, instead"
-                )
-            # convert any missing genotypes to -9
-            cast_data[subset_data == np.iinfo(np.uint8).max] = -9
-            if self._prephased or self.data.shape[2] < 3:
-                pgen.append_alleles_batch(cast_data, all_phased=True)
-            else:
-                subset_phase = self.data[:, start:end, 2].T.copy(order="C")
-                pgen.append_partially_phased_batch(cast_data, subset_phase)
+
+        # write the pgen file
+        with PgenWriter(
+            filename=bytes(str(self.fname), "utf8"),
+            sample_ct=len(self.samples),
+            variant_ct=len(self.variants),
+            nonref_flags=False,
+            hardcall_phase_present=True,
+        ) as pgen:
+            self.log.info(
+                f"Writing genotypes from {len(self.samples)} samples and "
+                f"{len(self.variants)} variants in chunks of size {chunks} variants"
+            )
+            # iterate through chunks of variants
+            for start in range(0, len(self.variants), chunks):
+                end = start + chunks
+                if end > len(self.variants):
+                    end = len(self.variants)
+                size = end - start
+                subset_data = data[start:end]
+                try:
+                    cast_data = subset_data.astype(np.int32)
+                except np.core._exceptions.MemoryError:
+                    raise ValueError(
+                        "You don't have enough memory to write these genotypes! Try"
+                        " specifying a value to the chunks_size parameter, instead"
+                    )
+                # convert any missing genotypes to -9
+                cast_data[subset_data == np.iinfo(np.uint8).max] = -9
+                if self._prephased or self.data.shape[2] < 3:
+                    pgen.append_alleles_batch(cast_data, all_phased=True)
+                else:
+                    subset_phase = self.data[:, start:end, 2].T.copy(order="C")
+                    pgen.append_partially_phased_batch(cast_data, subset_phase)
