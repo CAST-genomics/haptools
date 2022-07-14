@@ -608,7 +608,7 @@ class GenotypesRefAlt(Genotypes):
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
-                "stop": var["pos"] + len(var['ref']) - 1,
+                "stop": var["pos"] + len(var["ref"]) - 1,
                 "qual": None,
                 "alleles": tuple(var[["ref", "alt"]]),
                 "id": var["id"],
@@ -655,6 +655,7 @@ class GenotypesPLINK(GenotypesRefAlt):
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
+
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
@@ -926,7 +927,14 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         super(Genotypes, self).read()
         # TODO: figure out how to install this package
-        from pgenlib import PgenReader
+        try:
+            from pgenlib import PgenReader
+        except ImportError:
+            raise ImportError(
+                "We cannot read PGEN files without the pgenlib library. Please install"
+                " pgenlib via\npip install git+https://github.com/chrchang/plink-ng.gi"
+                "t#subdirectory=2.0/Python"
+            )
 
         sample_idxs = self.read_samples(samples)
         with PgenReader(
@@ -991,7 +999,8 @@ class GenotypesPLINK(GenotypesRefAlt):
                         (
                             np.dstack((data[:, ::2], data[:, 1::2])).astype(np.uint8),
                             phasing[:, :, np.newaxis],
-                        ), axis=2
+                        ),
+                        axis=2,
                     ).transpose((1, 0, 2))
                 else:
                     # ...each row is a different chromosomal strand
@@ -1087,7 +1096,14 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         super(Genotypes, self).read()
         # TODO: figure out how to install this package
-        from pgenlib import PgenReader
+        try:
+            from pgenlib import PgenReader
+        except ImportError:
+            raise ImportError(
+                "We cannot read PGEN files without the pgenlib library. Please install"
+                " pgenlib via\npip install git+https://github.com/chrchang/plink-ng.gi"
+                "t#subdirectory=2.0/Python"
+            )
 
         sample_idxs = self.read_samples(samples)
         pgen = PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
@@ -1123,7 +1139,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                 rec = {
                     "contig": var["chrom"],
                     "start": var["pos"],
-                    "stop": var["pos"] + len(var['ref']) - 1,
+                    "stop": var["pos"] + len(var["ref"]) - 1,
                     "qual": None,
                     "alleles": tuple(var[["ref", "alt"]]),
                     "id": var["id"],
@@ -1146,7 +1162,14 @@ class GenotypesPLINK(GenotypesRefAlt):
         self.write_variants()
 
         # TODO: figure out how to install this package
-        from pgenlib import PgenWriter
+        try:
+            from pgenlib import PgenWriter
+        except ImportError:
+            raise ImportError(
+                "We cannot write PGEN files without the pgenlib library. Please "
+                "install pgenlib via\npip install git+https://github.com/chrchang/plin"
+                "k-ng.git#subdirectory=2.0/Python"
+            )
 
         # write the pgen file
         pgen = PgenWriter(
