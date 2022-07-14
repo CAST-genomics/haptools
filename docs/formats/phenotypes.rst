@@ -6,7 +6,7 @@ Phenotypes and Covariates
 
 Phenotype file format
 ---------------------
-Phenotypes are expected to follow the PLINK2 ``.pheno`` file format. This is a
+Phenotypes are expected to follow `the PLINK2 .pheno file format <https://www.cog-genomics.org/plink/2.0/input#pheno>`_. This is a
 tab-separated format where the first column corresponds to the sample ID, and
 subsequent columns contain each of your phenotypes.
 

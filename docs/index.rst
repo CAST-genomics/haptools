@@ -21,6 +21,7 @@
 
    commands/simgenotype.rst
    commands/simphenotype.rst
+   commands/karyogram.rst
    commands/transform.rst
 
 .. toctree::

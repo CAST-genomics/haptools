@@ -177,7 +177,7 @@ def simphenotype(
     \f
     Examples
     --------
-    >>> haptools simphenotype tests/data/example.vcf.gz tests/data/example.hap.gz > simu_phens.tsv
+    >>> haptools simphenotype tests/data/example.vcf.gz tests/data/example.hap.gz > simulated.pheno
 
     Parameters
     ----------
