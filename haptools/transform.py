@@ -86,7 +86,12 @@ def transform_haps(
         )
 
     log.info("Transforming genotypes via haplotypes")
-    hp_gt = data.GenotypesRefAlt(fname=output, log=log)
+    if output.suffix == ".pgen":
+        log.info("Writing genotypes to PGEN file")
+        hp_gt = data.GenotypesPLINK(fname=output, log=log, chunk_size=chunk_size)
+    else:
+        log.info("Writing genotypes to VCF/BCF file")
+        hp_gt = data.GenotypesaRefAlt(fname=output, log=log)
     hp.transform(gt, hp_gt)
 
     log.info("Writing haplotypes to VCF")
