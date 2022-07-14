@@ -1,3 +1,6 @@
+.. _api-haptools:
+
+
 Documentation
 =============
 
@@ -12,6 +15,8 @@ Command line interface
 Module contents
 ---------------
 
+.. _api-haptools-data:
+
 haptools.data.data module
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -20,6 +25,8 @@ haptools.data.data module
    :undoc-members:
    :show-inheritance:
 
+.. _api-haptools-data-genotypes:
+
 haptools.data.genotypes module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -27,6 +34,8 @@ haptools.data.genotypes module
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. _api-haptools-data-phenotypes:
 
 haptools.data.phenotypes module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,6 +52,8 @@ haptools.data.covariates module
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. _api-haptools-data-haplotypes:
 
 haptools.data.haplotypes module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
