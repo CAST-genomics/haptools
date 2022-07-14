@@ -20,9 +20,9 @@ This module also helps reduce common boilerplate, since users can easily *extend
 
 Data
 ~~~~
-Classes in the ``data`` module inherit from an abstract class called Data, providing some level of standardization across classes within the module. All classes are initialized with the path to the file containing the data.
+Classes in the ``data`` module inherit from an abstract class called Data, providing some level of standardization across classes within the module. All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance.
 
-The abstract class requires that all classes contain methods for
+The abstract class requires that all classes contain methods for...
 
 1. reading the contents of a file into a ``data`` property of each class
 2. iterating over lines of a file without loading all of the data into memory at once
@@ -59,26 +59,30 @@ Extracting genotypes from a VCF file is quite simple:
 
 .. code-block:: python
 
-	genotypes = data.Genotypes.load(Path('tests/data/simple.vcf'))
+	genotypes = data.Genotypes.load('tests/data/simple.vcf')
 	genotypes.data     # a numpy array of shape n x p x 2
 	genotypes.variants # a numpy structured array of shape p x 4
 	genotypes.samples  # a tuple of strings of length n
 
-The ``load()`` method initializes an instance of the :class:`Genotypes` class, calls the ``read()`` method, and then performs some standard quality-control checks. You can also call the ``read()`` method manually if you'd like to forego these checks.
+The ``load()`` method initializes an instance of the :class:`Genotypes` class, calls the ``read()`` method, and then performs some standard :ref:`quality-control checks <api-data-genotypes-quality-control>`. You can also call the ``read()`` method manually if you'd like to forego these checks.
 
 .. code-block:: python
 
-	genotypes = data.Genotypes(Path('tests/data/simple.vcf'))
+	genotypes = data.Genotypes('tests/data/simple.vcf')
 	genotypes.read()
 	genotypes.data     # a numpy array of shape n x p x 3
 	genotypes.variants # a numpy structured array of shape p x 4
 	genotypes.samples  # a tuple of strings of length n
 
+	# check that all genotypes are phased and remove the phasing info (in the third dimension)
+	genotypes.check_phase()
+	genotypes.data     # a numpy array of shape n x p x 2
+
 Both the ``load()`` and ``read()`` methods support ``region``, ``samples``, and ``variants`` parameters that allow you to request a specific region, list of samples, or set of variant IDs to read from the file.
 
 .. code-block:: python
 
-	genotypes = data.Genotypes(Path('tests/data/simple.vcf.gz'))
+	genotypes = data.Genotypes('tests/data/simple.vcf.gz')
 	genotypes.read(
 	    region="1:10115-10117",
 	    samples=["HG00097", "HG00100"],
@@ -95,7 +99,7 @@ In cases like these, you can use the ``__iter__()`` method in a for-loop:
 
 .. code-block:: python
 
-	genotypes = data.Genotypes(Path('tests/data/simple.vcf'))
+	genotypes = data.Genotypes('tests/data/simple.vcf')
 	for line in genotypes:
 	    print(line)
 
@@ -103,9 +107,11 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 
 .. code-block:: python
 
-	genotypes = data.Genotypes(Path('tests/data/simple.vcf.gz'))
+	genotypes = data.Genotypes('tests/data/simple.vcf.gz')
 	for line in genotypes.__iter__(region="1:10115-10117", samples=["HG00097", "HG00100"]):
 	    print(line)
+
+.. _api-data-genotypes-quality-control:
 
 Quality control
 ***************
@@ -121,7 +127,7 @@ You can index into a loaded :class:`Genotypes` instance using the ``subset()`` f
 
 .. code-block:: python
 
-	genotypes = data.Genotypes.load(Path('tests/data/simple.vcf'))
+	genotypes = data.Genotypes.load('tests/data/simple.vcf')
 	gts_subset = genotypes.subset(samples=("HG00100", "HG00101"), variants=("1:10114:T:C", '1:10116:A:G'))
 	gts_subset # a new Genotypes instance containing only the specified samples and variants
 
@@ -135,25 +141,54 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 
 .. code-block:: python
 
-	genotypes = data.GenotypesRefAlt.load(Path('tests/data/simple.vcf'))
+	genotypes = data.GenotypesRefAlt.load('tests/data/simple.vcf')
 	# make the first sample homozygous for the alt allele of the fourth variant
 	genotypes.data[0, 3] = (1, 1)
 	genotypes.write()
 
 GenotypesPLINK
 ++++++++++++++
-The :class:`GenotypesPLINK` class offers experimental support for reading (and writing, in the future) PLINK2 PGEN, PVAR, and PSAM files. We are able to read genotypes from a PLINK2 PGEN files in a fraction of the time of VCFs.
+The :class:`GenotypesPLINK` class offers experimental support for reading and writing PLINK2 PGEN, PVAR, and PSAM files. We are able to read genotypes from a PLINK2 PGEN files in a fraction of the time of VCFs. Reading from VCFs is :math:`O(n*p)`, while reading from PGEN files is approximately :math:`O(1)`.
+
+.. image:: https://drive.google.com/uc?export=view&id=1_JARKJQ0LX-DzL0XsHW1aiQgLCOJ1ZvC
+
+.. warning::
+	Use of this class is not officially supported yet because it relies upon the as-yet-unpublished ``pgenlib`` python library. See `issue #16 <https://github.com/gymrek-lab/haptools/pull/16>`_ for current progress on this challenge. In the meantime, you must install the library manually from Github via ``pip``.
+
+	.. code-block:: bash
+
+		pip install git+https://github.com/chrchang/plink-ng.git#subdirectory=2.0/Python
 
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
 .. code-block:: python
 
-	genotypes = data.GenotypesPLINK.load(Path('tests/data/simple.pgen'))
+	genotypes = data.GenotypesPLINK.load('tests/data/simple.pgen')
 	genotypes.data     # a numpy array of shape n x p x 2
 	genotypes.variants # a numpy structured array of shape p x 4
 	genotypes.samples  # a tuple of strings of length n
 
-Use of this class is not officially supported yet because it relies upon the as-yet-unpublished ``pgenlib`` python library. See `issue #16 <https://github.com/gymrek-lab/haptools/pull/16>`_ for current progress on this challenge.
+Limiting memory usage
+*********************
+Unfortunately, reading from PGEN files can require a lot of memory, at least initially. (Once the genotypes have been loaded, they are converted down to a lower-memory form.) To determine whether you may be having memory issues, you can place the module in "verbose mode" by providing a `python Logger <https://docs.python.org/3/howto/logging.html>`_ object at the "DEBUG" level when initializing the :class:`GenotypesPLINK` class.
+
+.. code-block:: python
+
+	import logging
+	log = logging.getLogger("debug_plink_mem")
+	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="DEBUG")
+
+	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', log=log)
+	genotypes.read()
+
+If you find yourself running out of memory when trying to load a PGEN file, you may want to try loading the genotypes in chunks. You can specify the number of variants to read (and write) together at once via the ``chunk_size`` parameter. This parameter is only available for the :class:`GenotypesPLINK` class.
+
+A large ``chunk_size`` is more likely to result in memory over-use while a small ``chunk_size`` will increase the time it takes to read the file. If the ``chunk_size`` is not specified, all of the genotypes will be loaded together in a single chunk.
+
+.. code-block:: python
+
+	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', chunk_size=500)
+	genotypes.read()
 
 haplotypes.py
 ~~~~~~~~~~~~~
@@ -179,14 +214,14 @@ Parsing a basic **.hap** file without any extra fields is as simple as it gets:
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes.load(Path('tests/data/basic.hap'))
+	haplotypes = data.Haplotypes.load('tests/data/basic.hap')
 	haplotypes.data # returns a dictionary of Haplotype objects
 
 The ``load()`` method initializes an instance of the :class:`Haplotypes` class and calls the ``read()`` method, but if the **.hap** file contains extra fields, you'll need to call the ``read()`` method manually. You'll also need to create :class:`Haplotype` and :class:`Variant` subclasses that support the extra fields and then specify the names of the classes when you initialize the :class:`Haplotypes` object:
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes(Path('tests/data/basic.hap'), Haplotype, Variant)
+	haplotypes = data.Haplotypes('tests/data/basic.hap'), Haplotype, Variant
 	haplotypes.read()
 	haplotypes.data # returns a dictionary of Haplotype objects
 
@@ -194,7 +229,7 @@ Both the ``load()`` and ``read()`` methods support `region` and `haplotypes` par
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes(Path('tests/data/basic.hap.gz'), Haplotype, Variant)
+	haplotypes = data.Haplotypes('tests/data/basic.hap.gz'), Haplotype, Variant
 	haplotypes.read(region='chr21:26928472-26941960', haplotypes=["chr21.q.3365*10"])
 
 The file must be indexed if you wish to use these parameters, since in that case, the ``read()`` method can take advantage of the indexing to parse the file a bit faster. Otherwise, if the file isn't indexed, the ``read()`` method will assume the file could be unsorted and simply reads each line one-by-one. Although I haven't tested it yet, streams like stdin should be supported by this case.
@@ -207,7 +242,7 @@ In cases like these, you can use the ``__iter__()`` method in a for-loop:
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes.load(Path('tests/data/basic.hap'))
+	haplotypes = data.Haplotypes.load('tests/data/basic.hap')
 	for line in haplotypes:
 	    print(line)
 
@@ -215,7 +250,7 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes.load(Path('tests/data/basic.hap'))
+	haplotypes = data.Haplotypes.load('tests/data/basic.hap')
 	for line in haplotypes.__iter__(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"}):
 	    print(line)
 
@@ -225,7 +260,7 @@ To write to a **.hap** file, you must first initialize a :class:`Haplotypes` obj
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes(Path('tests/data/example-write.hap'))
+	haplotypes = data.Haplotypes('tests/data/example-write.hap')
 	haplotypes.data = {}
 	haplotypes.data['H1'] = Haplotype(chrom='chr1', start=0, end=10, id='H1')
 	haplotypes.data['H1'].variants = [Variant(start=0, end=1, id='rs123', allele='A')]
@@ -237,8 +272,8 @@ Using the ``transform()`` function, you can obtain a full instance of the :class
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes.load(Path('tests/data/example.hap.gz'))
-	genotypes = data.GenotypesRefAlt.load(Path('tests/data/example.vcf.gz'))
+	haplotypes = data.Haplotypes.load('tests/data/example.hap.gz')
+	genotypes = data.GenotypesRefAlt.load('tests/data/example.vcf.gz')
 	hap_gts = haplotypes.transform(genotypes)
 	hap_gts   # a GenotypesRefAlt instance where haplotypes are variants
 
