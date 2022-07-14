@@ -32,7 +32,7 @@ class Phenotypes(Data):
 
     Examples
     --------
-    >>> phenotypes = Phenotypes.load('tests/data/simple.tsv')
+    >>> phenotypes = Phenotypes.load('tests/data/simple.pheno')
     """
 
     def __init__(self, fname: Path | str, log: Logger = None):
@@ -198,6 +198,8 @@ class Phenotypes(Data):
             for samp, phen in zip(self.samples, self.data):
                 line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
                 haps.write(f"{samp}\t" + line + "\n")
+
+    # TODO: check_missing() (they'll be encoded as NA, nan, or -9)
 
     def standardize(self):
         """

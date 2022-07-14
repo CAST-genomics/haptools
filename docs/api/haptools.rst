@@ -45,6 +45,8 @@ haptools.data.phenotypes module
    :undoc-members:
    :show-inheritance:
 
+.. _api-haptools-data-covariates:
+
 haptools.data.covariates module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

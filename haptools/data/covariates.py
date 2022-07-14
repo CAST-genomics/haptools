@@ -30,7 +30,7 @@ class Covariates(Phenotypes):
 
     Examples
     --------
-    >>> covariates = Covariates.load('tests/data/covars.tsv')
+    >>> covariates = Covariates.load('tests/data/simple.covar')
     """
 
     def __init__(self, fname: Path | str, log: Logger = None):

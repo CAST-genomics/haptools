@@ -1134,7 +1134,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             # make sure the header is properly structured
             for contig in set(self.variants["chrom"]):
                 vcf.header.contigs.add(contig)
-            self.log.info("Writing VCF records")
+            self.log.info("Writing PVAR records")
             for var_idx, var in enumerate(self.variants):
                 rec = {
                     "contig": var["chrom"],

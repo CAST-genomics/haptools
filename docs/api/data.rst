@@ -237,7 +237,7 @@ The ``load()`` method initializes an instance of the :class:`Haplotypes` class a
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes('tests/data/basic.hap'), Haplotype, Variant
+	haplotypes = data.Haplotypes('tests/data/basic.hap', Haplotype, Variant)
 	haplotypes.read()
 	haplotypes.data # returns a dictionary of Haplotype objects
 
@@ -245,7 +245,7 @@ Both the ``load()`` and ``read()`` methods support `region` and `haplotypes` par
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes('tests/data/basic.hap.gz'), Haplotype, Variant
+	haplotypes = data.Haplotypes('tests/data/basic.hap.gz', Haplotype, Variant)
 	haplotypes.read(region='chr21:26928472-26941960', haplotypes=["chr21.q.3365*10"])
 
 The file must be indexed if you wish to use these parameters, since in that case, the ``read()`` method can take advantage of the indexing to parse the file a bit faster. Otherwise, if the file isn't indexed, the ``read()`` method will assume the file could be unsorted and simply reads each line one-by-one. Although I haven't tested it yet, streams like stdin should be supported by this case.
@@ -258,7 +258,7 @@ In cases like these, you can use the ``__iter__()`` method in a for-loop:
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes.load('tests/data/basic.hap')
+	haplotypes = data.Haplotypes('tests/data/basic.hap')
 	for line in haplotypes:
 	    print(line)
 
@@ -266,7 +266,7 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes.load('tests/data/basic.hap')
+	haplotypes = data.Haplotypes('tests/data/basic.hap')
 	for line in haplotypes.__iter__(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"}):
 	    print(line)
 
@@ -319,15 +319,88 @@ phenotypes.py
 ~~~~~~~~~~~~~
 Overview
 --------
-This module supports reading and writing phenotype files.
+This module supports reading and writing PLINK2-style phenotype files.
 
 Documentation
 -------------
 
-The :ref:`phenotypes.py API docs <api-haptools-data-phenotypes>` contain example usage of the Phenotypes class.
+1. The **.pheno** `phenotype format specification <https://www.cog-genomics.org/plink/2.0/input#pheno>`_
+2. The :ref:`phenotypes.py API docs <api-haptools-data-phenotypes>` contain example usage of the :class:`Phenotypes` class
 
 Classes
 -------
-:class:`Phenotypes`
-+++++++++++++++++++
-HI
+Phenotypes
+++++++++++
+Reading a file
+**************
+Loading a **.pheno** file is easy:
+
+.. code-block:: python
+
+	phenotypes = data.Phenotypes.load('tests/data/simple.pheno')
+	phenotypes.data # returns a np array of shape p x k
+
+The ``load()`` method initializes an instance of the :class:`Phenotypes` class and calls the ``read()`` method as well as the ``standardize()`` method. To forego the standardization, you'll need to call the ``read()`` method manually.
+
+.. code-block:: python
+
+	phenotypes = data.Phenotypes('tests/data/simple.pheno')
+	phenotypes.read()
+	phenotypes.data # returns a np array of shape p x k
+
+Both the ``load()`` and ``read()`` methods support the `samples` parameter that allows you to request a specific set of sample IDs to read from the file.
+
+.. code-block:: python
+
+	phenotypes = data.Phenotypes('tests/data/simple.pheno')
+	phenotypes.read(samples=["HG00097", "HG00099"])
+
+Iterating over a file
+*********************
+If you're worried that the contents of the **.pheno** file will be large, you may opt to parse the file line-by-line instead of loading it all into memory at once.
+
+In cases like these, you can use the ``__iter__()`` method in a for-loop:
+
+.. code-block:: python
+
+	phenotypes = data.Phenotypes('tests/data/simple.pheno')
+	for line in phenotypes:
+	    print(line)
+
+You'll have to call ``__iter()__`` manually if you want to specify any function parameters:
+
+.. code-block:: python
+
+	phenotypes = data.Phenotypes('tests/data/simple.pheno')
+	for line in phenotypes.__iter__(samples=["HG00097", "HG00099"]):
+	    print(line)
+
+Writing a file
+**************
+To write to a **.pheno** file, you must first initialize a :class:`Phenotypes` object and then fill out the necessary properties:
+
+.. code-block:: python
+
+	phenotypes = data.Phenotypes('tests/data/example-write.pheno')
+	phenotypes.data = np.array([[1, 0.2], [1, 0.5], [0, 0.9]], dtype='float64')
+	phenotypes.samples = ("HG00097", "HG00099", "HG00100")
+	phenotypes.names = ("height", "bmi")
+	phenotypes.write()
+
+covariates.py
+~~~~~~~~~~~~~
+Overview
+--------
+This module supports reading and writing PLINK2-style covariate files.
+
+Documentation
+-------------
+
+1. The **.covar** `covariate format specification <https://www.cog-genomics.org/plink/2.0/input#covar>`_
+2. The :ref:`covariates.py API docs <api-haptools-data-covariates>` contain example usage of the :class:`Covariates` class
+
+Classes
+-------
+Covariates
+++++++++++
+The :class:`Covariates` class is simply a sub-class of the :class:`Phenotypes` class. It has all of the same methods and properties. There are no major differences between the two classes, except between the file extensions that they use.
