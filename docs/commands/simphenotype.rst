@@ -12,7 +12,7 @@ Usage
 ~~~~~
 .. code-block:: bash
 
-   haptools transform \
+   haptools simphenotype \
    --replications INT \
    --heritability FLOAT \
    --prevalence FLOAT \
@@ -25,7 +25,7 @@ Usage
 
 Model
 ~~~~~
-Each haplotype is encoded as an independent causal variable in the linear model.
+Each normalized haplotype :math:`\vec{Z_j}` is encoded as an independent causal variable in a linear model:
 
 .. math::
 
