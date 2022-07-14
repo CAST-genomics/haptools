@@ -146,6 +146,8 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 	genotypes.data[0, 3] = (1, 1)
 	genotypes.write()
 
+.. _api-data-genotypesplink:
+
 GenotypesPLINK
 ++++++++++++++
 The :class:`GenotypesPLINK` class offers experimental support for reading and writing PLINK2 PGEN, PVAR, and PSAM files. We are able to read genotypes from a PLINK2 PGEN files in a fraction of the time of VCFs. Reading from VCFs is :math:`O(n*p)`, while reading from PGEN files is approximately :math:`O(1)`.
@@ -165,8 +167,22 @@ The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` cla
 
 	genotypes = data.GenotypesPLINK.load('tests/data/simple.pgen')
 	genotypes.data     # a numpy array of shape n x p x 2
-	genotypes.variants # a numpy structured array of shape p x 4
+	genotypes.variants # a numpy structured array of shape p x 6
 	genotypes.samples  # a tuple of strings of length n
+
+In addition to the ``read()`` and ``load()`` methods, the :class:`GenotypesPLINK` class also has methods for reading (or writing) PVAR or PSAM files separately, without having to read (or write) the PGEN file as well.
+
+.. code-block:: python
+
+	genotypes = data.GenotypesPLINK('tests/data/simple.pgen')
+
+	genotypes.read_variants()
+	genotypes.variants # a numpy structured array of shape p x 6
+
+	genotypes.read_samples()
+	genotypes.samples  # a tuple of strings of length n
+
+	genotypes.data     # simply None
 
 Limiting memory usage
 *********************
