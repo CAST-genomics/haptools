@@ -399,11 +399,13 @@ class Genotypes(Data):
         if np.any(missing):
             samp_idx, variant_idx = np.nonzero(missing)
             if discard_also:
-                self.log.info(
-                    f"Ignoring missing genotypes from {len(samp_idx)} samples"
-                )
+                original_num_samples = len(self.samples)
                 self.data = np.delete(self.data, samp_idx, axis=0)
                 self.samples = tuple(np.delete(self.samples, samp_idx))
+                self.log.info(
+                    f"Ignoring missing genotypes from "
+                    f"{original_num_samples - len(self.samples)} samples"
+                )
                 self._samp_idx = None
             else:
                 raise ValueError(
@@ -901,6 +903,11 @@ class GenotypesPLINK(GenotypesRefAlt):
             )
             indices = indices[:num_seen]
             self.variants = self.variants[:num_seen]
+        if not len(indices):
+            self.log.warning(
+                "Failed to load any variants. If you specified a region, check that "
+                "the contig name matches! For example, double-check the 'chr' prefix."
+            )
         return indices
 
     def read(
@@ -1011,11 +1018,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                     data[data == -9] = -1
                     data = np.dstack((data[::2, :], data[1::2, :])).astype(np.uint8)
                 self.data[:, start:end] = data
-        if 0 in self.data.shape:
-            self.log.warning(
-                "Failed to load genotypes. If you specified a region, check that the"
-                " contig name matches! For example, double-check the 'chr' prefix."
-            )
 
     def _iterate(
         self,

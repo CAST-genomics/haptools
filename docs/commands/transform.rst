@@ -8,7 +8,7 @@ Transform a set of genotypes via a list of haplotypes. Create a new VCF containi
 
 The ``transform`` command takes as input a set of genotypes in VCF and a list of haplotypes (specified as a :doc:`.hap file </formats/haplotypes>`) and outputs a set of haplotype "genotypes" in VCF.
 
-You may also specify genotypes in PLIN2 PGEN format. See the documentation for the :class:`GenotypesPLINK` class in :ref:`the API docs <api-data-genotypesplink>` for more information.
+You may also specify genotypes in PLIN2 PGEN format. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
 
 Usage
 ~~~~~

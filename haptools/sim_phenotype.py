@@ -8,7 +8,14 @@ import numpy as np
 import numpy.typing as npt
 
 from .data import Haplotype as HaplotypeBase
-from .data import Genotypes, GenotypesRefAlt, Phenotypes, Haplotypes, Extra
+from .data import (
+    Genotypes,
+    GenotypesRefAlt,
+    GenotypesPLINK,
+    Phenotypes,
+    Haplotypes,
+    Extra
+)
 
 
 @dataclass
@@ -173,6 +180,7 @@ def simulate_pt(
     prevalence: float = None,
     region: str = None,
     samples: list[str] = None,
+    chunk_size: int = None,
     output: Path = Path("-"),
     log: Logger = None,
 ):
@@ -180,8 +188,8 @@ def simulate_pt(
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
     set of haplotypes.
 
-    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
-    to the .hap format spec
+    GENOTYPES must be formatted as a VCF or PGEN file and HAPLOTYPES must be formatted
+    according to the .hap format spec
 
     \f
     Examples
@@ -191,7 +199,7 @@ def simulate_pt(
     Parameters
     ----------
     genotypes : Path
-        The path to the genotypes in VCF format
+        The path to the genotypes in VCF or PGEN format
     haplotypes : Path
         The path to the haplotypes in a .hap file
     replications : int, optional
@@ -217,6 +225,12 @@ def simulate_pt(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
     output : Path, optional
         The location to which to write the simulated phenotypes
     log : Logger, optional
@@ -236,8 +250,12 @@ def simulate_pt(
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
-    log.info("Loading genotypes")
-    gt = GenotypesRefAlt(genotypes, log=log)
+    if genotypes.suffix == ".pgen":
+        log.info("Loading genotypes from PGEN file")
+        gt = GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
+    else:
+        log.info("Loading genotypes from VCF/BCF file")
+        gt = GenotypesRefAlt(genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     log.info("QC-ing genotypes")

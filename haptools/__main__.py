@@ -164,6 +164,7 @@ def simphenotype(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    chunk_size: int = None,
     output: Path = Path("-"),
     verbosity: str = 'ERROR',
 ):
@@ -208,6 +209,12 @@ def simphenotype(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
     output : Path, optional
         The location to which to write the simulated phenotypes
     verbosity : str, optional
@@ -239,7 +246,7 @@ def simphenotype(
     # Run simulation
     simulate_pt(
         genotypes, haplotypes, replications, heritability, prevalence, region, samples,
-        output, log
+        chunk_size, output, log
     )
 
 @main.command(short_help="Transform a genotypes matrix via a set of haplotypes")

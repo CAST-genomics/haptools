@@ -152,7 +152,9 @@ GenotypesPLINK
 ++++++++++++++
 The :class:`GenotypesPLINK` class offers experimental support for reading and writing PLINK2 PGEN, PVAR, and PSAM files. We are able to read genotypes from a PLINK2 PGEN files in a fraction of the time of VCFs. Reading from VCFs is :math:`O(n*p)`, while reading from PGEN files is approximately :math:`O(1)`.
 
-.. image:: https://drive.google.com/uc?export=view&id=1_JARKJQ0LX-DzL0XsHW1aiQgLCOJ1ZvC
+.. figure:: https://drive.google.com/uc?export=view&id=1_JARKJQ0LX-DzL0XsHW1aiQgLCOJ1ZvC
+
+	The time required to load various genotype file formats.
 
 .. warning::
 	Use of this class is not officially supported yet because it relies upon the as-yet-unpublished ``pgenlib`` python library. See `issue #16 <https://github.com/gymrek-lab/haptools/pull/16>`_ for current progress on this challenge. In the meantime, you must install the library manually from Github via ``pip``.

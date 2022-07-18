@@ -68,7 +68,7 @@ def transform_haps(
         gt = data.GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = data.GenotypesaRefAlt(genotypes, log=log)
+        gt = data.GenotypesRefAlt(genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
@@ -85,16 +85,16 @@ def transform_haps(
             f"file. Here are the first few missing variants: {diff[:first_few]}"
         )
 
-    log.info("Transforming genotypes via haplotypes")
     if output.suffix == ".pgen":
-        log.info("Writing genotypes to PGEN file")
+        out_file_type = "PGEN"
         hp_gt = data.GenotypesPLINK(fname=output, log=log, chunk_size=chunk_size)
     else:
-        log.info("Writing genotypes to VCF/BCF file")
+        out_file_type = "VCF/BCF"
         hp_gt = data.GenotypesaRefAlt(fname=output, log=log)
+    log.info("Transforming genotypes via haplotypes")
     hp.transform(gt, hp_gt)
 
-    log.info("Writing haplotypes to VCF")
+    log.info(f"Writing haplotypes to {out_file_type} file")
     hp_gt.write()
 
     return hp_gt
