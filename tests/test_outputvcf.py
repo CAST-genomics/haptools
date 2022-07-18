@@ -85,7 +85,85 @@ def test_vcf_output():
     os.remove(str(out_prefix)+'.vcf')
     return
 
-def test_validate_params():
+class TestValidateParams():
 
-    return
+    #model files
+    #read it in as open(model_file, 'r')
+ 
+    
 
+    #model_file exception validation
+    def test_model_files(self):
+        faulty_model = DATADIR.joinpath("dat_files/faulty_model.dat")
+        mapdir = DATADIR.joinpath("plink.chr1.GRCh38.map")
+        chroms = 1
+        popsize = 0
+        vcf_file = DATADIR.joinpath("outvcf_test.vcf")
+        sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
+
+        with pytest.raises(Exception) as e:
+            validate_params(faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file)
+            assert (str(e.value)) == "Can't convert samples number to an integer."
+            assert (str(e.value)) == "Invalid number of populations given: {num_pops}. We require at least 2."
+
+     
+        faulty_model = DATADIR.joinpath("dat_files/faul_mod.dat")
+        with pytest.raises(Exception):
+            validate_params(faulty_model, mapdir, chroms, .1, vcf_file, sampleinfo_file)
+            assert Exception == "Number of samples is less than 1."
+        
+
+   
+"""""
+    
+
+    
+     with pytest.raises(Exception):
+        validate_params(faulty_model, mapdir, chroms, .1, vcf_file, sampleinfo_file)
+        assert Exception == "Number of samples is less than 1."
+
+        
+
+  
+          #when code fails it throws an exception -- make sure proper exception is thrown
+    model_file.read()
+        #sum of each row must equal 1 
+    if model_file > 1 or model_file < 1:
+        assert(False)
+
+        #admixed first like must = 0
+    assert ["Admixed"][1] == 0
+
+        #each row must be greater than 
+        #code that handels this gives exception
+        #need to refer to the specific column i am counting
+    count_row = 0
+    for count in model_file:
+        if count - count_row != 0:
+            assert(false)
+        count_row + 1
+
+
+    #maps
+    #we care about 1,3,4 column
+    #just make sure they exist
+
+    #output
+    #make sure it has some sort of prefix - path + string at end of path
+    #this is a path
+    ##simple - 2 column (for now)
+    #population code
+
+
+
+
+        try:
+        validate_params(faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file)
+    except Exception as e:
+        assert e == Exception("Can't convert samples number to an integer.")
+
+
+    
+"""
+
+    
