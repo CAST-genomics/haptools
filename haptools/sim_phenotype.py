@@ -123,7 +123,8 @@ class PhenoSimulator:
         # extract the relevant haplotype info from the Haplotype objects
         ids = [hap.id for hap in effects]
         betas = np.array([hap.beta for hap in effects])
-        self.log.info(f"Extracting haplotype genotypes for haps: {ids}")
+        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
+        self.log.debug(f"Beta values are {betas}")
         # extract the haplotype "genotypes" and compute the phenotypes
         gts = self.gens.subset(variants=ids).data.sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[0]} causal effects")

@@ -190,7 +190,7 @@ def simphenotype(
     heritability : int, optional
         The heritability of the simulated trait; must be a float between 0 and 1
 
-        If not provided, it will be computed from the sum of the squared effect sizes
+        If not provided, it will be computed from the sum of the squared effect sizes.
     prevalence : int, optional
         The prevalence of the disease if the trait should be simulated as case/control;
         must be a float between 0 and 1
