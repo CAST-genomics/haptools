@@ -59,7 +59,7 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-   haptools simphenotype -o simulated.pheno tests/data/example.vcf.gz tests/data/example.hap.gz
+   haptools simphenotype -o simulated.pheno tests/data/example.vcf.gz tests/data/simphenotype.hap
 
 Simulate two replicates of a case/control trait that occurs in 60% of your samples with a heritability of 0.8. Encode all of the haplotypes in ``tests/data/example.hap.gz`` as independent causal variables.
 

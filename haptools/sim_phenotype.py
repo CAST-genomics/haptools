@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 from itertools import combinations
-from logging import getLogger, Logger
+from logging import getLogger, Logger, DEBUG
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -145,7 +145,13 @@ class PhenoSimulator:
             noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
-        pt += self.rng.normal(0, noise, size=pt.shape)
+        pt_noise = self.rng.normal(0, noise, size=pt.shape)
+        if self.log.getEffectiveLevel() == DEBUG:
+            # if we're in debug mode, compute the pearson correlation and report it
+            # but don't do this otherwise to keep things fast
+            corr = np.corrcoef(pt, pt + pt_noise)[1, 0]
+            self.log.debug(f"Estimated heritability is {corr}")
+        pt += pt_noise
         # now, handle case/control
         name_suffix = ""
         if prevalence is not None:
