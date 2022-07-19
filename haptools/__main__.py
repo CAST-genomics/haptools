@@ -95,7 +95,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     "-h",
     "--heritability",
     type=click.FloatRange(min=0, max=1),
-    default=1,
+    default=None,
     show_default=True,
     help="Trait heritability",
 )
@@ -159,7 +159,7 @@ def simphenotype(
     genotypes: Path,
     haplotypes: Path,
     replications: int = 1,
-    heritability: float = 1,
+    heritability: float = None,
     prevalence: float = None,
     region: str = None,
     samples: tuple[str] = tuple(),
@@ -189,6 +189,8 @@ def simphenotype(
         The number of rounds of simulation to perform
     heritability : int, optional
         The heritability of the simulated trait; must be a float between 0 and 1
+
+        If not provided, it will be computed from the sum of the squared effect sizes
     prevalence : int, optional
         The prevalence of the disease if the trait should be simulated as case/control;
         must be a float between 0 and 1

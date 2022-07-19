@@ -92,7 +92,7 @@ class PhenoSimulator:
     def run(
         self,
         effects: list[Haplotype],
-        heritability: float = 1,
+        heritability: float = None,
         prevalence: float = None,
     ) -> npt.NDArray:
         """
@@ -108,8 +108,7 @@ class PhenoSimulator:
         heritability: float, optional
             The simulated heritability of the trait
 
-            If not provided, this will be estimated from the variability of the
-            genotypes
+            If not provided, this will default to the sum of the squared effect sizes
         prevalence: float, optional
             How common should the disease be within the population?
 
@@ -133,9 +132,16 @@ class PhenoSimulator:
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
-        self.log.info(f"Adding environmental component for h^2: {heritability}")
-        # compute the environmental effect
-        noise = np.var(pt) * (np.reciprocal(heritability) - 1)
+        if heritability is None:
+            # compute the environmental effect
+            noise = np.var(pt) * (np.reciprocal(heritability) - 1)
+        else:
+            self.log.debug("Computing heritability as the sum of the squared betas")
+            heritability = np.power(betas, 2).sum()
+            if heritability > 1:
+                heritability = 1
+            noise = 1 - heritability
+        self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt += self.rng.normal(0, noise, size=pt.shape)
         # now, handle case/control
@@ -169,7 +175,7 @@ def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
     num_replications: int = 1,
-    heritability: float = 1,
+    heritability: float = None,
     prevalence: float = None,
     region: str = None,
     samples: list[str] = None,
@@ -198,6 +204,8 @@ def simulate_pt(
         The number of rounds of simulation to perform
     heritability : int, optional
         The heritability of the simulated trait; must be a float between 0 and 1
+
+        If not provided, it will be computed from the sum of the squared effect sizes
     prevalence : int, optional
         The prevalence of the disease if the trait should be simulated as case/control;
         must be a float between 0 and 1

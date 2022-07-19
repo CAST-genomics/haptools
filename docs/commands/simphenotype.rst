@@ -41,7 +41,11 @@ where
 
    \sigma^2 = Var[\sum_j \beta_j \vec{Z_j}] * (\frac 1 {h^2} - 1)
 
-The heritability :math:`h^2` is user-specified but defaults to 1 when not provided.
+The heritability :math:`h^2` is user-specified, but if it is not provided, then :math:`\sigma^2` will be computed purely from the effect sizes, instead:
+
+.. math::
+
+   \sigma^2 = \Biggl \lbrace {1 - \sum \beta_j^2 \quad \quad {\sum \beta_j^2 \le 1} \atop 0 \quad \quad \quad \quad \quad \text{ otherwise }}
 
 If a prevalence for the disease is specified, the final :math:`\vec{y}` value will be thresholded to produce a binary case/control trait with the desired fraction of diseased individuals.
 
