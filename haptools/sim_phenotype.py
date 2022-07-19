@@ -133,14 +133,15 @@ class PhenoSimulator:
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
         if heritability is None:
-            # compute the environmental effect
-            noise = np.var(pt) * (np.reciprocal(heritability) - 1)
-        else:
             self.log.debug("Computing heritability as the sum of the squared betas")
             heritability = np.power(betas, 2).sum()
             if heritability > 1:
                 heritability = 1
+            # compute the environmental effect
             noise = 1 - heritability
+        else:
+            # compute the environmental effect
+            noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt += self.rng.normal(0, noise, size=pt.shape)
