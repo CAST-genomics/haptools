@@ -53,6 +53,8 @@ Output
 ~~~~~~
 Phenotypes are output in the PLINK2-style ``.pheno`` file format. If ``--replications`` was set to greater than 1, additional columns are output for each simulated trait.
 
+Note that case/control phenotypes are encoded as 0 (control) + 1 (case) **not** 1 (control) + 2 (case). The latter is used by PLINK2 unless the ``--1`` flag is used (see `the PLIN2 docs <https://www.cog-genomics.org/plink/2.0/input#input_missing_phenotype>`_). Therefore, you must use ``--1`` when providing our ``.pheno`` files to PLINK.
+
 Examples
 ~~~~~~~~
 .. code-block:: bash
