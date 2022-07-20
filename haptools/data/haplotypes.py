@@ -385,7 +385,7 @@ class Haplotypes(Data):
 
     Attributes
     ----------
-    fname: Path
+    fname: Path | str
         The path to the file containing the data
     data: dict[str, Haplotype]
         A dict of Haplotype objects keyed by their IDs
@@ -415,7 +415,7 @@ class Haplotypes(Data):
 
     def __init__(
         self,
-        fname: Path,
+        fname: Path | str,
         haplotype: type[Haplotype] = Haplotype,
         variant: type[Variant] = Variant,
         log: Logger = None,
@@ -427,7 +427,10 @@ class Haplotypes(Data):
 
     @classmethod
     def load(
-        cls: Haplotypes, fname: Path, region: str = None, haplotypes: set[str] = None
+        cls: Haplotypes,
+        fname: Path | str,
+        region: str = None,
+        haplotypes: set[str] = None,
     ) -> Haplotypes:
         """
         Load haplotypes from a .hap file
@@ -440,7 +443,7 @@ class Haplotypes(Data):
             See documentation for :py:attr:`~.Data.fname`
         region: str, optional
             See documentation for :py:meth:`~.Haplotypes.read`
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             See documentation for :py:meth:`~.Haplotypes.read`
 
         Returns
@@ -455,7 +458,7 @@ class Haplotypes(Data):
     def check_header(self, lines: list[str], check_version=False):
         """
         Check 1) that the version number matches and 2) that extra fields declared in
-        # the .haps file can be handled by the the Variant and Haplotype classes
+        # the .haps file can be handled by the Variant and Haplotype classes
         # provided in __init__()
 
         Parameters
@@ -539,7 +542,7 @@ class Haplotypes(Data):
             For this to work, the .hap file must be indexed and the seqname must match!
 
             Defaults to loading all haplotypes
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             A list of haplotype IDs corresponding to a subset of the haplotypes to
             extract
 
@@ -560,6 +563,7 @@ class Haplotypes(Data):
                 var_haps.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
+        self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
@@ -575,7 +579,7 @@ class Haplotypes(Data):
             For this to work, the .hap file must be indexed and the seqname must match!
 
             Defaults to loading all haplotypes
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             A list of haplotype IDs corresponding to a subset of the haplotypes to
             extract
 

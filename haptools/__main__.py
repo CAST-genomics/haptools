@@ -120,8 +120,8 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     default=None,
     show_default="all haplotypes",
     help=(
-        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
-        "For this to work, the VCF and .hap file must be indexed and the seqname "
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
     )
 )
@@ -172,6 +172,7 @@ def simphenotype(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    chunk_size: int = None,
     output: Path = Path("-"),
     verbosity: str = 'ERROR',
 ):
@@ -218,6 +219,12 @@ def simphenotype(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
     output : Path, optional
         The location to which to write the simulated phenotypes
     verbosity : str, optional
@@ -249,7 +256,7 @@ def simphenotype(
     # Run simulation
     simulate_pt(
         genotypes, haplotypes, replications, heritability, prevalence, region, samples,
-        output, log
+        chunk_size, output, log
     )
 
 @main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
@@ -261,8 +268,8 @@ def simphenotype(
     default=None,
     show_default="all haplotypes",
     help=(
-        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'"
-        "For this to work, the VCF and .hap file must be indexed and the seqname "
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
     )
 )
@@ -289,6 +296,32 @@ def simphenotype(
     ),
 )
 @click.option(
+    "-h",
+    "--haplotype-ids",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
+        "\nFor this to work, the .hap file must be indexed"
+    ),
+)
+@click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
+)
+@click.option(
+    "--discard-missing",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Ignore any samples that are missing genotypes for the required variants",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -310,14 +343,17 @@ def transform(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    haplotype_ids: tuple[str] = tuple(),
+    chunk_size: int = None,
+    discard_missing: bool = False,
     output: Path = Path("-"),
     verbosity: str = 'CRITICAL',
 ):
     """
     Creates a VCF composed of haplotypes
 
-    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
-    to the .hap format spec
+    GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
+    according to the .hap format spec
 
     \f
     Examples
@@ -327,7 +363,7 @@ def transform(
     Parameters
     ----------
     genotypes : Path
-        The path to the genotypes in VCF format
+        The path to the genotypes
     haplotypes : Path
         The path to the haplotypes in a .hap file
     region : str, optional
@@ -344,6 +380,20 @@ def transform(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    haplotype_ids: tuple[str], optional
+        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
+    discard_missing : bool, optional
+        Discard any samples that are missing any of the required samples
+
+        The default is simply to complain about it
     output : Path, optional
         The location to which to write output
     verbosity : str, optional
@@ -372,7 +422,15 @@ def transform(
     else:
         samples = None
 
-    transform_haps(genotypes, haplotypes, region, samples, output, log)
+    if haplotype_ids:
+        haplotype_ids = set(haplotype_ids)
+    else:
+        haplotype_ids = None
+
+    transform_haps(
+        genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
+        discard_missing, output, log
+    )
 
 
 if __name__ == "__main__":

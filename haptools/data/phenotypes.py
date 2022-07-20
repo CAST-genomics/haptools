@@ -21,7 +21,7 @@ class Phenotypes(Data):
     ----------
     data : np.array
         The phenotypes in an n (samples) x m (phenotypes) array
-    fname : Path
+    fname : Path | str
         The path to the read-only file containing the data
     samples : tuple
         The names of each of the n samples
@@ -32,17 +32,19 @@ class Phenotypes(Data):
 
     Examples
     --------
-    >>> phenotypes = Phenotypes.load('tests/data/simple.tsv')
+    >>> phenotypes = Phenotypes.load('tests/data/simple.pheno')
     """
 
-    def __init__(self, fname: Path, log: Logger = None):
+    def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
         self.samples = tuple()
         self.names = tuple()
         self._ext = "pheno"
 
     @classmethod
-    def load(cls: Phenotypes, fname: Path, samples: list[str] = None) -> Phenotypes:
+    def load(
+        cls: Phenotypes, fname: Path | str, samples: list[str] = None
+    ) -> Phenotypes:
         """
         Load phenotypes from a TSV file
 
@@ -196,6 +198,8 @@ class Phenotypes(Data):
             for samp, phen in zip(self.samples, self.data):
                 line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
                 haps.write(f"{samp}\t" + line + "\n")
+
+    # TODO: check_missing() (they'll be encoded as NA, nan, or -9)
 
     def standardize(self):
         """

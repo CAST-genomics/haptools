@@ -31,6 +31,7 @@
    :hidden:
    :maxdepth: 1
 
+   api/data
    api/modules
 
 .. toctree::
