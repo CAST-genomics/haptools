@@ -9,8 +9,10 @@
    :hidden:
    :maxdepth: 1
 
-   formats/inputs.rst
+   formats/genotypes.rst
    formats/haplotypes.rst
+   formats/phenotypes.rst
+   formats/sample_info.rst
 
 .. toctree::
    :caption: Commands
@@ -20,6 +22,7 @@
 
    commands/simgenotype.rst
    commands/simphenotype.rst
+   commands/karyogram.rst
    commands/transform.rst
 
 .. toctree::

@@ -1,4 +1,4 @@
-# Haptools karyogram
+# karyogram
 
 `haptools karyogram` takes as input a breakpoints file (e.g. as output by `haptools simgenotype`) and a sample name, and plots a karyogram depicting local ancestry tracks.
 

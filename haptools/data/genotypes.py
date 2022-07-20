@@ -1,9 +1,11 @@
 from __future__ import annotations
+import re
 from csv import reader
 from pathlib import Path
 from typing import Iterator
 from collections import namedtuple
 from logging import getLogger, Logger
+from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
@@ -36,6 +38,10 @@ class Genotypes(Data):
     _prephased : bool
         If True, assume that the genotypes are phased. Otherwise, extract their phase
         when reading from the VCF.
+    _samp_idx : dict[str, int]
+        Sample index; maps samples to indices in self.samples
+    _var_idx : dict[str, int]
+        Variant index; maps variant IDs to indices in self.variants
 
     Examples
     --------
@@ -59,6 +65,8 @@ class Genotypes(Data):
             ],
         )
         self._prephased = False
+        self._samp_idx = None
+        self._var_idx = None
 
     @classmethod
     def load(
@@ -93,8 +101,7 @@ class Genotypes(Data):
         genotypes.read(region, samples, variants)
         genotypes.check_missing()
         genotypes.check_biallelic()
-        if not self._prephased:
-            genotypes.check_phase()
+        genotypes.check_phase()
         # genotypes.to_MAC()
         return genotypes
 
@@ -280,6 +287,89 @@ class Genotypes(Data):
         # see https://stackoverflow.com/a/36726497
         return self._iterate(vcf, region, variants)
 
+    def index(self, samples: bool = True, variants: bool = True):
+        """
+        Call this function once to improve the amortized time-complexity of look-ups of
+        samples and variants by their ID. This is useful if you intend to later subset
+        by a set of samples or variant IDs.
+        The time complexity of this function should be roughly O(n+m) if both
+        parameters are True. Otherwise, it will be either O(n) or O(m).
+
+        Parameters
+        ----------
+        samples: bool, optional
+            Whether to index the samples for fast loop-up. Adds complexity O(n).
+        variants: bool, optional
+            Whether to index the variants for fast look-up. Adds complexity O(m).
+        """
+        if samples and self._samp_idx is None:
+            self._samp_idx = dict(zip(self.samples, range(len(self.samples))))
+        if variants and self._var_idx is None:
+            self._var_idx = dict(zip(self.variants["id"], range(len(self.variants))))
+
+    def subset(
+        self,
+        samples: tuple[str] = None,
+        variants: tuple[str] = None,
+        inplace: bool = False,
+    ):
+        """
+        Subset these genotypes to a smaller set of samples or a smaller set of variants
+
+        The order of the samples and variants in the subsetted instance will match
+        the order in the provided tuple parameters.
+
+        Parameters
+        ----------
+        samples: tuple[str]
+            A subset of samples to keep
+        variants: tuple[str]
+            A subset of variant IDs to keep
+        inplace: bool, optional
+            If False, return a new Genotypes object; otherwise, alter the current one
+
+        Returns
+        -------
+            A new Genotypes object if inplace is set to False, else returns None
+        """
+        # First, initialize variables
+        gts = self
+        if not inplace:
+            gts = self.__class__(self.fname, self.log)
+        gts.samples = self.samples
+        gts.variants = self.variants
+        gts.data = self.data
+        # Index the current set of samples and variants so we can have fast look-up
+        self.index(samples=(samples is not None), variants=(variants is not None))
+        # Subset the samples
+        if samples is not None:
+            gts.samples = tuple(samp for samp in samples if samp in self._samp_idx)
+            if len(gts.samples) < len(samples):
+                diff = len(samples) - len(gts.samples)
+                self.log.warning(
+                    f"Saw {diff} fewer samples than requested. Proceeding with "
+                    f"{len(gts.samples)} samples."
+                )
+            samp_idx = tuple(self._samp_idx[samp] for samp in gts.samples)
+            if inplace:
+                self._samp_idx = None
+            gts.data = gts.data[samp_idx, :]
+        # Subset the variants
+        if variants is not None:
+            var_idx = [self._var_idx[var] for var in variants if var in self._var_idx]
+            if len(var_idx) < len(variants):
+                diff = len(variants) - len(var_idx)
+                self.log.warning(
+                    f"Saw {diff} fewer variants than requested. Proceeding with "
+                    f"{len(var_idx)} variants."
+                )
+            gts.variants = self.variants[var_idx]
+            if inplace:
+                self._var_idx = None
+            gts.data = gts.data[:, var_idx]
+        if not inplace:
+            return gts
+
     def check_missing(self, discard_also=False):
         """
         Check that each sample is properly genotyped
@@ -306,6 +396,7 @@ class Genotypes(Data):
                 )
                 self.data = np.delete(self.data, samp_idx, axis=0)
                 self.samples = tuple(np.delete(self.samples, samp_idx))
+                self._samp_idx = None
             else:
                 raise ValueError(
                     "Genotype with ID {} at POS {}:{} is missing for sample {}".format(
@@ -347,6 +438,7 @@ class Genotypes(Data):
                 self.log.info(f"Ignoring {len(variant_idx)} multiallelic variants")
                 self.data = np.delete(self.data, variant_idx, axis=1)
                 self.variants = np.delete(self.variants, variant_idx)
+                self._var_idx = None
             else:
                 raise ValueError(
                     "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
@@ -462,6 +554,8 @@ class GenotypesRefAlt(Genotypes):
             ],
         )
         self._prephased = False
+        self._samp_idx = None
+        self._var_idx = None
 
     def _variant_arr(self, record: Variant):
         """
@@ -496,10 +590,15 @@ class GenotypesRefAlt(Genotypes):
                 ("Description", "Genotype"),
             ],
         )
-        for sample in self.samples:
-            # TODO: figure out how to make this work for large datasets
-            # it gets stuck and takes a long time to exit this loop
-            vcf.header.add_sample(sample)
+        try:
+            vcf.header.add_samples(self.samples)
+        except AttributeError:
+            self.log.warning(
+                "Upgrade to pysam >=0.19.1 to reduce the time required to create "
+                "VCFs. See https://github.com/pysam-developers/pysam/issues/1104"
+            )
+            for sample in self.samples:
+                vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
         for var_idx, var in enumerate(self.variants):
             rec = {
@@ -547,8 +646,81 @@ class GenotypesPLINK(GenotypesRefAlt):
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
+    def read_samples(self, samples: list[str] = None):
+        """
+        Read sample IDs from a PSAM file into a list stored in
+        :py:attr:`~.GenotypesPLINK.samples`
+
+        One of either variants or max_variants MUST be specified!
+
+        Parameters
+        ----------
+        samples : list[str], optional
+            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+
+        Returns
+        -------
+        npt.NDArray[np.uint32]
+            The indices of each of the samples within the PSAM file
+        """
+        if len(self.samples) != 0:
+            self.log.warning("Sample data has already been loaded. Overriding.")
+        if samples is not None and not isinstance(samples, set):
+            samples = set(samples)
+        with hook_compressed(self.fname.with_suffix(".psam"), mode="rt") as psam:
+            psamples = reader(psam, delimiter="\t")
+            # find the line that declares the header
+            for header in psamples:
+                if header[0].startswith("#FID") or header[0].startswith("#IID"):
+                    break
+            # we need the header to contain the IID column
+            if header[0][0] != "#":
+                raise ValueError("Your PSAM file is missing a header!")
+                col_idx = 1
+                self.log.info(
+                    "Your PVAR file lacks a proper header! Assuming first five columns"
+                    " are [CHROM, POS, ID, REF, ALT] in that order..."
+                )
+                # TODO: add header back in to psamples using itertools.chain?
+            else:
+                header[0] = header[0][1:]
+                try:
+                    col_idx = header.index("IID")
+                except ValueError:
+                    raise ValueError("Your PSAM file must have an IID column.")
+            self.samples = {
+                ct: samp[col_idx]
+                for ct, samp in enumerate(psamples)
+                if (samples is None) or (samp[col_idx] in samples)
+            }
+            indices = np.array(list(self.samples.keys()), dtype=np.uint32)
+            self.samples = list(self.samples.values())
+            return indices
+
+    def _check_region(
+        self, pos: tuple, chrom: str, start: int = 0, end: int = float("inf")
+    ):
+        """
+        Check that pos lies within the provided chrom, start, and end coordinates
+
+        This is a helper function for :py:meth:`~.GenotypesPLINK.read_variants`
+
+        Parameters
+        ----------
+        pos : tuple[str, int]
+            A tuple of two elements: contig (str) and chromosomal position (int)
+        chrom: str
+            The contig of the region to check
+        start: int, optional
+            The start position of the region
+        end: int, optional
+            The end position of the region
+        """
+        return (pos[0] == chrom) and (start <= pos[1]) and (end >= pos[1])
+
     def read_variants(
         self,
+        region: str = None,
         variants: set[str] = None,
         max_variants: int = None,
     ):
@@ -578,53 +750,68 @@ class GenotypesPLINK(GenotypesRefAlt):
             max_variants = len(variants)
         if max_variants is None:
             raise ValueError("Provide either the variants or max_variants parameter!")
-        # TODO: try using pysam.tabix_iterator with the parser param specified for VCF
-        if region:
-            pvar = TabixFile(str(self.fname.with_suffix(".pvar")))
-            pvariants = pvar.fetch(region)
-        else:
-            pvar = hook_compressed(self.fname.with_suffix(".pvar"), mode="rt")
+        # split the region string so each portion is an element
+        if region is not None:
+            region = re.split(":|-", region)
+            if len(region) > 1:
+                region[1:] = [int(pos) for pos in region[1:] if pos]
+        with hook_compressed(self.fname.with_suffix(".pvar"), mode="rt") as pvar:
             pvariants = reader(pvar, delimiter="\t")
-        # first, preallocate the array
-        self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
-        header = next(pvariants)
-        # there should be at least five columns
-        if len(header) < 5:
-            raise ValueError("Your PVAR file should have at least five columns.")
-        if header[0][0] == "#":
-            header[0] = header[0][1:]
-        else:
-            raise ValueError("Your PVAR file is missing a header!")
-            header = ["CHROM", "POS", "ID", "REF", "ALT"]
-            self.log.info(
-                "Your PVAR file lacks a proper header! Assuming first five columns"
-                " are [CHROM, POS, ID, REF, ALT] in that order..."
-            )
-            # TODO: add header back in to pvariants using itertools.chain?
-        cid = {item: header.index(item.upper()) for item in self.variants.dtype.names}
-        if variants is not None:
+            # first, preallocate the array
+            self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
+            # find the line that declares the header
+            for header in pvariants:
+                if not header[0].startswith("##"):
+                    break
+            # there should be at least five columns
+            if len(header) < 5:
+                raise ValueError("Your PVAR file should have at least five columns.")
+            if header[0][0] == "#":
+                header[0] = header[0][1:]
+            else:
+                raise ValueError("Your PVAR file is missing a header!")
+                header = ["CHROM", "POS", "ID", "REF", "ALT"]
+                self.log.info(
+                    "Your PVAR file lacks a proper header! Assuming first five columns"
+                    " are [CHROM, POS, ID, REF, ALT] in that order..."
+                )
+                # TODO: add header back in to pvariants using itertools.chain?
+            cid = {
+                item: header.index(item.upper())
+                for item in self.variants.dtype.names
+                if item != "aaf"
+            }
             indices = np.empty((max_variants,), dtype=np.uint32)
-        num_seen = 0
-        for ct, rec in enumerate(pvariants):
-            if variants is not None:
-                if rec[cid["id"]] not in variants:
+            num_seen = 0
+            for ct, rec in enumerate(pvariants):
+                if region and not self._check_region(
+                    (rec[cid["chrom"]], int(rec[cid["pos"]])), *region
+                ):
                     continue
+                if variants is not None:
+                    if rec[cid["id"]] not in variants:
+                        continue
                 indices[num_seen] = ct
-            self.variants[num_seen] = np.array(
-                (
-                    rec[cid["id"]],
-                    rec[cid["chrom"]],
-                    rec[cid["pos"]],
-                    0,
-                    rec[cid["ref"]],
-                    rec[cid["alt"]],
-                ),
-                dtype=self.variants.dtype,
+                self.variants[num_seen] = np.array(
+                    (
+                        rec[cid["id"]],
+                        rec[cid["chrom"]],
+                        rec[cid["pos"]],
+                        0,
+                        rec[cid["ref"]],
+                        rec[cid["alt"]],
+                    ),
+                    dtype=self.variants.dtype,
+                )
+                num_seen += 1
+        if max_variants > num_seen:
+            self.log.info(
+                f"Removing {max_variants-num_seen} unneeded variant records that "
+                "were preallocated b/c max_variants was specified."
             )
-            num_seen += 1
-        pvar.close()
-        if variants is not None:
-            return indices
+            indices = indices[:num_seen]
+            self.variants = self.variants[:num_seen]
+        return indices
 
     def read(
         self,
@@ -648,34 +835,57 @@ class GenotypesPLINK(GenotypesRefAlt):
         max_variants : int, optional
             See documentation for :py:attr:`~.GenotypesRefAlt.read`
         """
-        super().read()
-        # load the pgen-reader file
-        # note: very little is loaded into memory at this point
+        super(Genotypes, self).read()
         # TODO: figure out how to install this package
         from pgenlib import PgenReader
 
-        pgen = PgenReader(bytes(self.fname, "utf8"))
+        sample_idxs = self.read_samples(samples)
+        with PgenReader(
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+        ) as pgen:
 
-        if variants is not None:
-            max_variants = len(variants)
-        if max_variants is None:
-            # use the pgen file to figure out how many variants there are
-            max_variants = pgen.get_variant_ct()
-        indices = self.read_variants(region, variants, max_variants)
+            if variants is not None:
+                max_variants = len(variants)
+            if max_variants is None:
+                # use the pgen file to figure out how many variants there are
+                max_variants = pgen.get_variant_ct()
+            indices = self.read_variants(region, variants, max_variants)
 
-        variant_ct_start = 0
-        variant_ct_end = max_variants
-        variant_ct = variant_ct_end - variant_ct_start
-
-        sample_ct = pgen.get_raw_sample_ct()
-        # the genotypes start out as a simple 2D array with twice the number of samples
-        # so each column is a different chromosomal strand
-        self.data = np.empty((variant_ct, sample_ct * 2), dtype=np.int32)
-        pgen.read_alleles(indices, self.data)
-        # extract the genotypes to a np matrix of size n x p x 2
-        # the last dimension has two items:
-        # 1) presence of REF in strand one
-        # 2) presence of REF in strand two
-        self.data = np.dstack((self.data[:, ::2], self.data[:, 1::2]))
-        # transpose the GT matrix so that samples are rows and variants are columns
-        self.data = self.data.transpose((1, 0, 2))
+            # the genotypes start out as a simple 2D array with twice the number of samples
+            if not self._prephased:
+                # raise an error message b/c this is untested code that doesn't really
+                # seem to work properly
+                # for ex, the phasing info is not boolean for some reason?
+                raise ValueError("Not implemented yet!")
+                # ...so each column is a different chromosomal strand
+                self.data = np.empty(
+                    (len(indices), len(sample_idxs) * 2), dtype=np.int32
+                )
+                phasing = np.empty((len(indices), len(sample_idxs)), dtype=np.uint8)
+                # The haplotype-major mode of read_alleles_and_phasepresent_list has
+                # not been implemented yet, so we need to read the genotypes in sample-
+                # major mode and then transpose them
+                pgen.read_alleles_and_phasepresent_list(indices, self.data, phasing)
+                # missing alleles will have a value of -9
+                # let's make them be -1 to be consistent with cyvcf2
+                self.data[self.data == -9] = -1
+                self.data = np.dstack((self.data[:, ::2], self.data[:, 1::2])).astype(
+                    np.uint8
+                )
+                self.data = np.concatenate(
+                    (self.data, phasing[:, :, np.newaxis]), axis=2
+                )
+                # transpose the GT matrix so that samples are rows and variants are columns
+                self.data = self.data.transpose((1, 0, 2))
+            else:
+                # ...so each row is a different chromosomal strand
+                self.data = np.empty(
+                    (len(sample_idxs) * 2, len(indices)), dtype=np.int32
+                )
+                pgen.read_alleles_list(indices, self.data, hap_maj=True)
+                # missing alleles will have a value of -9
+                # let's make them be -1 to be consistent with cyvcf2
+                self.data[self.data == -9] = -1
+                self.data = np.dstack((self.data[::2, :], self.data[1::2, :])).astype(
+                    np.uint8
+                )

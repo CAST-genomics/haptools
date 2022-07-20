@@ -1,11 +1,14 @@
 from __future__ import annotations
 from csv import reader
 from pathlib import Path
-from collections import namedtuple
+from io import TextIOBase
+from collections.abc import Iterable
 from logging import getLogger, Logger
 from fileinput import hook_compressed
+from collections import namedtuple, Counter
 
 import numpy as np
+import numpy.typing as npt
 
 from .data import Data
 
@@ -17,11 +20,13 @@ class Phenotypes(Data):
     Attributes
     ----------
     data : np.array
-        The phenotypes in an n (samples) x 1 (phenotype value) array
+        The phenotypes in an n (samples) x m (phenotypes) array
     fname : Path
         The path to the read-only file containing the data
     samples : tuple
         The names of each of the n samples
+    names : tuple[str]
+        The names of the phenotypes
     log: Logger
         A logging instance for recording debug statements.
 
@@ -33,6 +38,8 @@ class Phenotypes(Data):
     def __init__(self, fname: Path, log: Logger = None):
         super().__init__(fname, log)
         self.samples = tuple()
+        self.names = tuple()
+        self._ext = "pheno"
 
     @classmethod
     def load(cls: Phenotypes, fname: Path, samples: list[str] = None) -> Phenotypes:
@@ -75,36 +82,28 @@ class Phenotypes(Data):
             If the provided file doesn't follow the expected format
         """
         super().read()
-        # load all info into memory
-        # use hook_compressed to automatically handle gz files
-        with hook_compressed(self.fname, mode="rt") as phens:
-            phen_text = reader(phens, delimiter="\t")
-            # convert to list and subset samples if need be
-            if samples:
-                samples = set(samples)
-                phen_text = [phen for phen in phen_text if phen[0] in samples]
-            else:
-                phen_text = list(phen_text)
-        # there should only be two columns
-        if len(phen_text[0]) != 2:
-            self.log.warning("The phenotype TSV should only have two columns.")
-        # the second column should be castable to a float
-        try:
-            float(phen_text[0][1])
-        except:
-            self.log.error("The second column of the TSV file must numeric.")
+        # call self.__iter__() to obtain the data and samples
+        data, self.samples = zip(*self.__iter__(samples))
+        self.log.info(f"Loaded {len(self.samples)} samples from .{self._ext} file")
         # fill out the samples and data properties
-        self.samples, self.data = zip(*phen_text)
-        # coerce strings to floats
-        self.data = np.array(self.data, dtype="float64")
+        # collect data in a np array
+        self.data = np.array(data)
 
-    def __iter__(self, samples: list[str] = None) -> Iterator[namedtuple]:
+    def _iterate(
+        self, phens: TextIOBase, phen_text: Iterable, samples: set[str] = None
+    ):
         """
-        Read phenotypes from a TSV line by line without storing anything
+        A generator over the lines of a TSV
+
+        This is a helper function for :py:meth:`~.Phenotypes.__iter__`
 
         Parameters
         ----------
-        samples : list[str], optional
+        phens: TextIOBase
+            The file handler for the stream
+        phen_text: Iterable
+            The csv.reader object containing the lines of text from the file as lists
+        samples : set[str], optional
             A subset of the samples from which to extract phenotypes
 
             Defaults to loading phenotypes from all samples
@@ -115,17 +114,88 @@ class Phenotypes(Data):
             An iterator over each line in the file, where each line is encoded as a
             namedtuple containing each of the class properties
         """
-        with hook_compressed(self.fname, mode="rt") as phens:
-            phen_text = reader(phens, delimiter="\t")
-            Record = namedtuple("Record", "data samples")
-            for phen in phen_text:
-                if samples is None or phen[0] in samples:
-                    try:
-                        yield Record(float(phen[1]), phen[0])
-                    except:
-                        self.log.error(
-                            "The second column of the TSV file must numeric."
-                        )
+        self.log.info(f"Loading {len(self.names)} columns from .{self._ext} file")
+        Record = namedtuple("Record", "data samples")
+        for phen in phen_text:
+            if samples is None or phen[0] in samples:
+                try:
+                    yield Record(np.array(phen[1:], dtype="float64"), phen[0])
+                except:
+                    self.log.error(
+                        f"Every column in the .{self._ext} file (besides the sample"
+                        " column) must be numeric."
+                    )
+        phens.close()
+
+    def __iter__(self, samples: list[str] = None) -> Iterable[namedtuple]:
+        """
+        Read phenotypes from a TSV line by line without storing anything
+
+        Parameters
+        ----------
+        samples : list[str], optional
+            A subset of the samples from which to extract phenotypes
+
+            Defaults to loading phenotypes from all samples
+
+        Returns
+        ------
+        Iterable[namedtuple]
+            See documentation for :py:meth:`~.Phenotypes._iterate`
+        """
+        phens = hook_compressed(self.fname, mode="rt")
+        phen_text = reader(phens, delimiter="\t")
+        # ignore all of the comment lines
+        while True:
+            header = next(phen_text)
+            if not header[0].startswith("#") or header[0].startswith("#IID"):
+                break
+
+        # there should be at least two columns
+        if len(header) < 2:
+            raise ValueError(f"The .{self._ext} file should have at least two columns.")
+        # the first column should be called "#IID"
+        if header[0] != "#IID":
+            self.log.warning(
+                f"The first column of the .{self._ext} file should contain sample IDs"
+                " and should be named '#IID' in the header line"
+            )
+        self.names = tuple(header[1:])
+        samples = set(samples) if samples else None
+        # call another function to force the lines above to be run immediately
+        # see https://stackoverflow.com/a/36726497
+        return self._iterate(phens, phen_text, samples)
+
+    def write(self):
+        """
+        Write the phenotypes in this class to a file at :py:attr:`~.Phenotypes.fname`
+
+        Examples
+        --------
+        To write to a file, you must first initialize a Phenotypes object and then
+        fill out the names, data, and samples properties:
+        >>> phenotypes = Phenotypes('tests/data/simple.pheno')
+        >>> phenotypes.names = ('height',)
+        >>> phenotypes.data = np.array([1, 1, 2], dtype='float64')
+        >>> phenotypes.samples = ('HG00096', 'HG00097', 'HG00099')
+        >>> phenotypes.write()
+        """
+        # make sure the names are unique
+        uniq_names = Counter()
+        names = [None] * len(self.names)
+        for idx, name in enumerate(self.names):
+            suffix = ""
+            if uniq_names[name]:
+                suffix = f"-{uniq_names[name]}"
+            names[idx] = name + suffix
+            uniq_names[name] += 1
+        # now we can finally write the file
+        with hook_compressed(self.fname, mode="wt") as haps:
+            haps.write("#IID\t" + "\t".join(names) + "\n")
+            formatter = {"float_kind": lambda x: "%.2f" % x}
+            for samp, phen in zip(self.samples, self.data):
+                line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
+                haps.write(f"{samp}\t" + line + "\n")
 
     def standardize(self):
         """
@@ -133,4 +203,34 @@ class Phenotypes(Data):
 
         This function modifies :py:attr:`~.Genotypes.data` in-place
         """
-        self.data = (self.data - np.mean(self.data)) / np.std(self.data)
+        self.data = (self.data - np.mean(self.data, axis=0)) / np.std(self.data, axis=0)
+
+    def append(self, name: str, data: npt.NDArray):
+        """
+        Append a new set of phenotypes to the current set
+
+        Parameters
+        ----------
+        name: str
+            The name of the new phenotype
+        data: npt.NDArray
+            A 1D np array of the same length as :py:attr:`~.Phenotypes.samples`,
+            containing the phenotype values for each sample. Must have the same dtype
+            as :py:attr:`~.Phenotypes.data.`
+        """
+        if len(self.samples):
+            if len(self.samples) != len(data):
+                self.log.error(
+                    "The data provided to the add() method is not of the appropriate"
+                    "length"
+                )
+        else:
+            self.log.warning(
+                "Set the samples property of the Phenotypes instance before calling "
+                "the add() method"
+            )
+        if self.unset():
+            self.data = data[:, np.newaxis]
+        else:
+            self.data = np.concatenate((self.data, data[:, np.newaxis]), axis=1)
+        self.names = self.names + (name,)

@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
 
-from haptools.haplotype import HaptoolsHaplotype
+from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
     Genotypes,
     GenotypesRefAlt,
@@ -217,95 +217,193 @@ class TestGenotypes:
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == tuple(samples)
 
+    def test_subset_genotypes(self):
+        gts = self._get_fake_genotypes()
 
-def test_load_phenotypes(caplog):
-    # create a phenotype vector with shape: num_samples x 1
-    expected = np.array([1, 1, 2, 2, 0])
+        # subset to just the samples we want
+        expected_data = gts.data[:3]
+        expected_variants = gts.variants
+        samples = ("HG00096", "HG00097", "HG00099")
+        gts_sub = gts.subset(samples=samples)
+        assert gts_sub.samples == samples
+        np.testing.assert_allclose(gts_sub.data, expected_data)
+        assert np.array_equal(gts_sub.variants, expected_variants)
 
-    # can we load the data from the phenotype file?
-    phens = Phenotypes(DATADIR.joinpath("simple.tsv"))
-    phens.read()
-    np.testing.assert_allclose(phens.data, expected)
-    assert phens.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        # subset to just the variants we want
+        expected_data = gts.data[:, [1, 2]]
+        expected_variants = gts.variants[[1, 2]]
+        variants = ("1:10116:A:G", "1:10117:C:A")
+        gts_sub = gts.subset(variants=variants)
+        assert gts_sub.samples == gts.samples
+        np.testing.assert_allclose(gts_sub.data, expected_data)
+        assert np.array_equal(gts_sub.variants, expected_variants)
 
-    # try loading the data again - it should warn b/c we've already done it
-    phens.read()
-    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
-
-    expected = (expected - np.mean(expected)) / np.std(expected)
-    phens.standardize()
-    np.testing.assert_allclose(phens.data, expected)
-
-
-def test_load_phenotypes_iterate():
-    # create a phenotype vector with shape: num_samples x 1
-    expected = np.array([1, 1, 2, 2, 0])
-    samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
-
-    # can we load the data from the phenotype file?
-    phens = Phenotypes(DATADIR.joinpath("simple.tsv"))
-    for idx, line in enumerate(phens):
-        np.testing.assert_allclose(line.data, expected[idx])
-        assert line.samples == samples[idx]
-
-
-def test_load_phenotypes_subset():
-    # create a phenotype vector with shape: num_samples x 1
-    expected = np.array([1, 1, 2, 2, 0])
-
-    # subset for just the samples we want
-    expected = expected[[1, 3]]
-
-    # can we load the data from the phenotype file?
-    phens = Phenotypes(DATADIR.joinpath("simple.tsv"))
-    samples = ["HG00097", "HG00100"]
-    phens.read(samples=samples)
-    np.testing.assert_allclose(phens.data, expected)
-    assert phens.samples == tuple(samples)
+        # subset both: samples and variants
+        expected_data = gts.data[[3, 4], :2]
+        expected_variants = gts.variants[:2]
+        samples = ("HG00100", "HG00101")
+        variants = ("1:10114:T:C", "1:10116:A:G")
+        gts_sub = gts.subset(samples=samples, variants=variants)
+        assert gts_sub.samples == samples
+        np.testing.assert_allclose(gts_sub.data, expected_data)
+        assert np.array_equal(gts_sub.variants, expected_variants)
 
 
-def test_load_covariates(caplog):
-    # create a covariate vector with shape: num_samples x num_covars
-    expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
+class TestPhenotypes:
+    def _get_expected_phenotypes(self):
+        # create a phen matrix with shape: samples x phenotypes
+        expected = np.array(
+            [
+                [1, 1, 2, 2, 0],
+                [3, 6, 8, 1, 4],
+            ],
+            dtype="float64",
+        ).T
+        return expected
 
-    # can we load the data from the covariates file?
-    covars = Covariates(DATADIR.joinpath("covars.tsv"))
-    covars.read()
-    np.testing.assert_allclose(covars.data, expected)
-    assert covars.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
-    assert covars.names == ("sex", "age")
+    def _get_fake_phenotypes(self):
+        gts = Phenotypes(fname=None)
+        gts.data = self._get_expected_phenotypes()
+        gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        gts.names = ("height", "bmi")
+        return gts
 
-    # try loading the data again - it should warn b/c we've already done it
-    covars.read()
-    assert len(caplog.records) == 1 and caplog.records[0].levelname == "WARNING"
+    def test_load_phenotypes(self, caplog):
+        expected_phen = self._get_fake_phenotypes()
+        expected = expected_phen.data
+
+        # can we load the data from the phenotype file?
+        phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
+        phens.read()
+        np.testing.assert_allclose(phens.data, expected)
+        assert phens.samples == expected_phen.samples
+
+        # try loading the data again - it should warn b/c we've already done it
+        caplog.clear()
+        phens.read()
+        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
+
+        expected = (expected - np.mean(expected, axis=0)) / np.std(expected, axis=0)
+        phens.standardize()
+        np.testing.assert_allclose(phens.data, expected)
+
+    def test_load_phenotypes_iterate(self):
+        expected_phen = self._get_fake_phenotypes()
+        expected = expected_phen.data
+        samples = expected_phen.samples
+
+        # can we load the data from the phenotype file?
+        phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
+        for idx, line in enumerate(phens):
+            np.testing.assert_allclose(line.data, expected[idx])
+            assert line.samples == samples[idx]
+
+    def test_load_phenotypes_subset(self):
+        expected_phen = self._get_fake_phenotypes()
+        expected = expected_phen.data
+        samples = ["HG00097", "HG00100"]
+
+        # subset for just the samples we want
+        expected = expected[[1, 3]]
+
+        # can we load the data from the phenotype file?
+        phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
+        phens.read(samples=samples)
+        np.testing.assert_allclose(phens.data, expected)
+        assert phens.samples == tuple(samples)
+
+    def test_write_phenotypes(self):
+        expected_phen = self._get_fake_phenotypes()
+
+        # first, we write the data
+        expected_phen.fname = DATADIR.joinpath("test.pheno")
+        expected_phen.write()
+
+        # now, let's load the data and check that it's what we wrote
+        result = Phenotypes(expected_phen.fname)
+        result.read()
+        np.testing.assert_allclose(expected_phen.data, result.data)
+        assert expected_phen.names == result.names
+        assert expected_phen.samples == result.samples
+
+        # let's clean up after ourselves and delete the file
+        os.remove(str(expected_phen.fname))
+
+    def test_append_phenotype(self):
+        expected1 = self._get_fake_phenotypes()
+        expected2 = self._get_fake_phenotypes()
+
+        # add a phenotype called "test" to the set of phenotypes
+        new_phen = np.array([5, 2, 8, 0, 3], dtype=expected2.data.dtype)
+        expected2.append("test", new_phen)
+
+        # did it get added correctly?
+        assert expected1.data.shape[1] == expected2.data.shape[1] - 1
+        assert len(expected1.names) == len(expected2.names) - 1
+        assert expected2.names[2] == "test"
+        assert len(expected1.samples) == len(expected2.samples)
+        np.testing.assert_allclose(expected1.data, expected2.data[:, :2])
+        np.testing.assert_allclose(expected2.data[:, 2], new_phen)
 
 
-def test_load_covariates_iterate():
-    # create a covariate vector with shape: num_samples x num_covars
-    expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
-    samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+class TestCovariates:
+    def _get_expected_covariates(self):
+        # create a covar matrix with shape: samples x covariates
+        expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
+        return expected
 
-    # can we load the data from the covariates file?
-    covars = Covariates(DATADIR.joinpath("covars.tsv"))
-    for idx, line in enumerate(covars):
-        np.testing.assert_allclose(line.data, expected[idx])
-        assert line.samples == samples[idx]
-        assert line.names == ("sex", "age")
+    def _get_fake_covariates(self):
+        gts = Phenotypes(fname=None)
+        gts.data = self._get_expected_covariates()
+        gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        gts.names = ("sex", "age")
+        return gts
 
+    def test_load_covariates(self, caplog):
+        # create a covariate vector with shape: num_samples x num_covars
+        expected_covar = self._get_fake_covariates()
+        expected = expected_covar.data
+        samples = expected_covar.samples
 
-def test_load_covariates_subset():
-    # create a covariate vector with shape: num_samples x num_covars
-    expected = np.array([(0, 4), (1, 20), (1, 33), (0, 15), (0, 78)])
+        # can we load the data from the covariates file?
+        covars = Covariates(DATADIR.joinpath("simple.covar"))
+        covars.read()
+        np.testing.assert_allclose(covars.data, expected)
+        assert covars.samples == samples
+        assert covars.names == ("sex", "age")
 
-    # subset for just the samples we want
-    expected = expected[[1, 3]]
+        # try loading the data again - it should warn b/c we've already done it
+        caplog.clear()
+        covars.read()
+        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-    # can we load the data from the covariate file?
-    covars = Covariates(DATADIR.joinpath("covars.tsv"))
-    samples = ["HG00097", "HG00100"]
-    covars.read(samples=samples)
-    np.testing.assert_allclose(covars.data, expected)
-    assert covars.samples == tuple(samples)
+    def test_load_covariates_iterate(self):
+        # create a covariate vector with shape: num_samples x num_covars
+        expected_covar = self._get_fake_covariates()
+        expected = expected_covar.data
+        samples = expected_covar.samples
+
+        # can we load the data from the covariates file?
+        covars = Covariates(DATADIR.joinpath("simple.covar"))
+        for idx, line in enumerate(covars):
+            np.testing.assert_allclose(line.data, expected[idx])
+            assert line.samples == samples[idx]
+        assert covars.names == ("sex", "age")
+
+    def test_load_covariates_subset(self):
+        # create a covariate vector with shape: num_samples x num_covars
+        expected_covar = self._get_fake_covariates()
+        expected = expected_covar.data
+        samples = ["HG00097", "HG00100"]
+
+        # subset for just the samples we want
+        expected = expected[[1, 3]]
+
+        # can we load the data from the covariate file?
+        covars = Covariates(DATADIR.joinpath("simple.covar"))
+        covars.read(samples=samples)
+        np.testing.assert_allclose(covars.data, expected)
+        assert covars.samples == tuple(samples)
 
 
 class TestHaplotypes:

@@ -52,8 +52,16 @@ haptools.data.haplotypes module
    :undoc-members:
    :show-inheritance:
 
+haptools.sim_phenotype module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.sim_phenotype
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 haptools.sim_genotype module
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: haptools.sim_genotype
    :members:

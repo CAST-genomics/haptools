@@ -24,7 +24,7 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-	haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz | less
+	haptools transform tests/data/example.vcf.gz tests/data/basic.hap.gz | less
 
 .. code-block:: bash
 
