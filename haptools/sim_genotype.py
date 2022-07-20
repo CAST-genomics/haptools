@@ -1,15 +1,17 @@
+from __future__ import annotations
+
+import os
 import re
-#import vcf
 import glob
 import time
 import numpy as np
+from cyvcf2 import VCF
+from pysam import VariantFile
+from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
-# TODO update toml file with matplotlib version see aryas PR as well as pyvcf
 
-# TODO at a certain point we are going to need to ensure populations in model file are also in invcf files
-#      This is only required for outputting the haplotypes in a vcf
-def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
+def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
@@ -24,13 +26,15 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
         ex: 40    Admixed    CEU   YRI
             1       0        0.05  0.95
             2       0.20     0.05  0.75
-    vcf: str
+    vcf_file: str
         file path that contains samples and respective variants
-    sampleinfo: str
+    sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
     out: str
         output prefix
     """
+
+    print(f"Outputting VCF file {vcf_file}")
 
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
@@ -38,29 +42,145 @@ def output_vcf(breakpoints, model_file, vcf, sampleinfo, out):
 
     # read on populations from model file
     mfile = open(model_file, 'r')
-    num_samples, admix, pops = mfile.readline().strip().split()
+    num_samples, admix, *pops = mfile.readline().strip().split()
 
-    # TODO verify that below is what I want ie only contain populations specified
     # filter sampleinfo so only populations from model file are there
-    samplefile = open(sampleinfo, 'r')
-    sample_pop = dict()
+    samplefile = open(sampleinfo_file, 'r')
+    pop_sample = defaultdict(list)
     for line in samplefile:
         sample, pop = line.strip().split()
         if pop in pops:
-            sample_pop[sample] = pop
+            pop_sample[pop].append(sample)
 
     # check if pops are there and if they aren't throw an error
-    assert len(pops) == len(list(set(sample_pop.values())))
+    assert sorted(pops) == sorted(list(set(pop_sample.keys())))
 
-    # preprocess breakpoints so we can output line by line
-    # TODO
+    # read VCF to get sample names and their order so we can easily call GTs via their index from their sample. 
+    #      IE sample HG00097 is index 1 in a list of samples [HG00096 HG00097 HG00098]
+    # create sample dictionary that holds sample name to the index in the vcf file for quick access 
+    vcf = VCF(vcf_file)
+    sample_dict = {}
+    for ind, sample in enumerate(vcf.samples):
+        sample_dict[sample] = ind
+
+    # create index array to store for every sample which haplotype 
+    # block we are currently processing and choose what samples 
+    # will be used for each haplotype block
+    current_bkps = np.zeros(len(breakpoints), dtype=np.int)
+    hapblock_samples = []
+    for haplotype in breakpoints:
+        hap_samples = []
+        for block in haplotype:
+            sample_name = np.random.choice(pop_sample[block.get_pop()])
+            sample_ind = sample_dict[sample_name]
+            hap_samples.append(sample_ind)
+        hapblock_samples.append(hap_samples)
+
+    # output vcf header to new vcf file we create
+    output_samples = [f"Sample_{hap+1}" for hap in range(int(len(hapblock_samples)/2))]
 
     # Process
-    # Choose starting samples (random choice) in VCF from respective population for each haplotype
+    # Choose starting samples (random choice) in VCF from respective population for each haplotype segment
     #     Also precalculate (random choice) all samples that will be switched too once the current local ancestry block ends.
     # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
     # Once VCF is complete we've output everything we wanted
+    # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
+    _write_vcf(breakpoints, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
+    return
 
+def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
+    """
+    in_vcf = cyvcf2 variants we are reading in
+    out_vcf = output vcf file we output too
+    """
+    # output vcf file
+    write_vcf = VariantFile(out_vcf, mode="w")
+
+    # make sure the header is properly structured
+    for contig in range(23):
+        write_vcf.header.contigs.add(str(contig+1))
+    for sample in out_samples:
+        write_vcf.header.add_sample(sample)
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "GT"),
+            ("Number", 1),
+            ("Type", "String"),
+            ("Description", "Genotype"),
+        ],
+    )
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "POP"),
+            ("Number", 2),
+            ("Type", "String"),
+            ("Description", "Origin Population of each respective allele in GT"),
+        ],
+    )
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "SAMPLE"),
+            ("Number", 2),
+            ("Type", "String"),
+            ("Description", "Origin sample and haplotype of each respective allele in GT"),
+        ],
+    )
+    for var in in_vcf:
+        rec = {
+            "contig": var.CHROM,
+            "start": var.start,
+            "stop": var.end,
+            "qual": None,
+            "alleles": (var.REF, *var.ALT),
+            "id": var.ID,
+            "filter": None,
+        }
+        
+        # parse the record into a pysam.VariantRecord
+        record = write_vcf.new_record(**rec)
+
+        for hap in range(len(hapblock_samples)):
+            sample_num = hap // 2
+
+            # If breakpoint end coord is < current variant update breakpoint
+            bkp = breakpoints[hap][current_bkps[hap]]
+            while bkp.get_chrom() < int(var.CHROM) or (bkp.get_chrom() == int(var.CHROM) and bkp.get_end_coord() < int(var.start)):
+                current_bkps[hap] += 1
+                bkp = breakpoints[hap][current_bkps[hap]]
+            
+            var_sample = hapblock_samples[hap][current_bkps[hap]]
+            if hap % 2 == 0:
+                # store variant
+                if hap > 0:
+                    record.samples[f"Sample_{sample_num}"]["GT"] = tuple(gt)
+                    record.samples[f"Sample_{sample_num}"]["POP"] = tuple(pops)
+                    record.samples[f"Sample_{sample_num}"]["SAMPLE"] = tuple(samples)
+                    record.samples[f"Sample_{sample_num}"].phased = True
+                gt = []
+                pops = []
+                samples = []
+                hap_var = var.genotypes[var_sample][hap % 2]
+                gt.append(hap_var)
+                pops.append(bkp.get_pop())
+                samples.append(vcf_samples[var_sample] + f"-{hap_var}")
+            else:
+                hap_var = var.genotypes[var_sample][hap % 2]
+                gt.append(hap_var)
+                pops.append(bkp.get_pop())
+                samples.append(vcf_samples[var_sample] + f"-{hap_var}")
+
+        sample_num = hap // 2
+        record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
+        record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
+        record.samples[f"Sample_{sample_num+1}"]["SAMPLE"] = tuple(samples)
+        record.samples[f"Sample_{sample_num+1}"].phased = True
+
+        # write the record to a file
+        write_vcf.write(record)
+    write_vcf.close()
     return
 
 def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
@@ -68,24 +188,30 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     Simulate admixed genotypes based on the parameters of model_file. 
     Parameters
     ----------
-        model: str
-            File with the following structure. (Must be tab delimited)
-            Header = # samples, Admixed, {all pop labels}
-            Below  = generation#, frac, frac
-            ex: 40    Admixed    CEU   YRI
-                1       0        0.05  0.95
-                2       0.20     0.05  0.75
-        coords_dir: str
-            Directory containing files ending in .map with genetic map coords 
-                in cM used for recombination points
-        chroms: list(str)
-            List of chromosomes to simulate admixture for.
-        popsize: int
-            size of population created for each generation. 
-        seed: int
-            Seed used for randomization.
-    Return
-
+    model: str
+        File with the following structure. (Must be tab delimited)
+        Header = # samples, Admixed, {all pop labels}
+        Below  = generation#, frac, frac
+        ex: 40    Admixed    CEU   YRI
+            1       0        0.05  0.95
+            2       0.20     0.05  0.75
+    coords_dir: str
+        Directory containing files ending in .map with genetic map coords 
+            in cM used for recombination points
+    chroms: list(str)
+        List of chromosomes to simulate admixture for.
+    popsize: int
+        size of population created for each generation. 
+    seed: int
+        Seed used for randomization.
+    Returns
+    -------
+    num_samples: int
+        Total number of samples to output 
+    next_gen_samples: list(list(HaplotypeSegment))
+        Each list is a person containing a variable number of Haplotype Segments
+        based on how many recombination events occurred throughout the generations
+        of ancestors for this person.
     """
     # initialize seed used for breakpoints
     if seed:
@@ -123,6 +249,9 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
             for line in cfile:
                 # create marker from each line and append to coords
                 data = line.strip().split()
+                if len(data) != 4:
+                    raise Exception(f"Map file contains an incorrect amount of fields {len(data)}. It should contain 4.")
+                
                 if data[0] == 'X':
                     chrom = 23
                 else:
@@ -169,9 +298,6 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         pop_fracs = np.array(pop_fracs).astype(np.float) 
         sim_gens = cur_gen - prev_gen
         
-        assert sim_gens > 0
-        assert np.absolute(np.sum(pop_fracs)-1) < 1e-6
-
         # sim generation
         print(f"Simulating generation {prev_gen+1}")
         next_gen_samples = _simulate(popsize, pops, pop_fracs, prev_gen, chroms,
@@ -193,6 +319,23 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     return num_samples, next_gen_samples
 
 def write_breakpoints(samples, breakpoints, out):
+    """
+    Write out a subsample of breakpoints to out determined by samples.
+    Parameters
+    ----------
+    samples: int
+        Number of samples to output
+    breakpoints: list(list(HaplotypeSegment))
+        Each list is a person containing a variable number of Haplotype Segments
+        based on how many recombination events occurred throughout the generations
+        of ancestors for this person.
+    out: str
+        output prefix used to output the breakpoint file
+    Returns
+    -------
+    breakpoints: list(list(HaplotypeSegment))
+        subsampled breakpoints only containing number of samples
+    """
     breakpt_file = out + '.bp'
     print(f"Outputting breakpoint file {breakpt_file}")
 
@@ -220,6 +363,45 @@ def write_breakpoints(samples, breakpoints, out):
     return breakpoints
 
 def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, recomb_probs, prev_gen_samples=None):
+    """
+    Simulate a single generation of creating a population. 
+    Parameters
+    ----------
+    samples: int
+        Number of samples to output
+    pops: list(str)
+        List of populations to be simulated
+    pop_fracs: list(float)
+        Fraction of the populations that contribute 
+        ex: 40    Admixed    CEU   YRI
+            1       0        0.05  0.95 -> pop_fracs=[0, 0.05, 0.95]
+            2       0.20     0.05  0.75 -> pop_fracs=[0.2, 0.05, 0.75]
+        Generation 2 has 20% admixed from the prior generation, 5% pure CEU,
+        and 75% pure YRI that contribute to creation of generation 2
+    pop_gen: int
+        Current generation being simulated
+    chroms: list(str)
+        sorted list of chromosomes used to generate samples. 
+    coords: list(list(GeneticMarker))
+        Each list of markers corresponds to a chromosome in chroms.
+        ie if our list of chroms is [3,4,6] then the first list is to chrom 3, second to 4, etc.
+    end_coords: list(GeneticMarker)
+        List of the last genetic markers for each chromosome specified in chroms.
+        The indices of the list correspond to those in chroms. 
+    recomb_probs: Numpy 2d array
+        rows = chroms
+        cols = number of genetic markers-1
+        Holds probabilities for each marker for whether a recombination event will occur.
+        prob of event = 1-np.exp(-dist/100) where dist is in cM and is calculated via the
+            current and prior genetic markers
+    prev_gen_samples: list[list[HaplotypeSegment]], optional
+        Prior generation of samples used to choose parents and swap markers when recombination
+        events occur. Each list is a person's haplotype of segments having a distinct population label.
+    Returns
+    -------
+    hap_samples: list(list(HaplotypeSegment))
+        Current generation of samples of the same format to prev_gen_samples. 
+    """
     # convert chroms to integer and change X to 23
     chroms = [int(chrom) if chrom != 'X' else 23 for chrom in chroms]
 
@@ -389,6 +571,18 @@ def get_segment(pop, str_pops, haplotype, chrom, start_coord, end_coord, end_pos
 def start_segment(start, chrom, segments):
     """
     Find first segment that is on chrom and its end coordinate is > start via binary search.
+    Parameters
+    ----------
+    start: int
+        Coordinate in bp for the start of the segment to output
+    chrom: int
+        Chromosome that the segments lie on. 
+    segments: list(HaplotypeSegments)
+        List of the hapltoype segments to search from for a starting point.
+    Returns
+    -------
+    mid: int
+        Index of the first genetic segment to collect for output. 
     """
     low = 0
     high = len(segments)-1
@@ -434,3 +628,92 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
+    # validate model file
+    mfile = open(model, 'r')
+    num_samples, *pops = mfile.readline().strip().split()
+
+    try:
+        num_samples = int(num_samples)
+    except:
+        raise Exception("Can't convert samples number to an integer.")
+
+    num_pops = len(pops)
+
+    if num_pops < 2:
+        raise Exception("Invalid number of populations given: {num_pops}. We require at least 2.")
+
+    if num_samples < 1:
+        raise Exception("Number of samples is less than 1.")
+    
+    # ensure the number of pops = number in pop_fracs
+    prev_gen = 0
+    for gen in mfile:
+        cur_gen, *pop_fracs = gen.strip().split()
+        try:
+            cur_gen = int(cur_gen)
+        except:
+            raise Exception("Can't convert generation to integer.")
+
+        try:
+            pop_fracs = np.array(pop_fracs).astype(np.float)
+        except:
+            raise Exception("Can't convert population fractions to type float.")
+
+        sim_gens = cur_gen - prev_gen
+        
+        if len(pop_fracs) != num_pops:
+            raise Exception("Total fractions given to populations do not match number of populations in the header.")
+        if sim_gens < 1:
+            raise Exception("Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens} is less than 1. "
+                            "Please ensure the generations given in the first column are correct.")
+        if np.absolute(np.sum(pop_fracs)-1) > 1e-6:
+            raise Exception("Population fractions for generation {cur_gen} do not sum to 1.")
+
+        prev_gen = cur_gen 
+
+    # Validate mapdir ensuring it contains proper files.
+    if not os.path.isdir(mapdir):
+        raise Exception("Map directory given is not a valid path.")
+    
+    try:
+        all_coord_files = glob.glob(f'{mapdir}/*.map')
+        all_coord_files = [coord_file for coord_file in all_coord_files \
+            if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+    except:
+        raise Exception("Could not parse map directory files.")
+    
+    if not all_coord_files:
+        raise Exception("No valid coordinate files found. Must contain chr\{1-22,X\} in the file name.")
+    
+    # validate chroms given are correctly named
+    valid_chroms = [str(x) for x in range(1,23)] + ['X']
+    for chrom in chroms:
+        if chrom not in valid_chroms:
+            raise Exception(f"Chromosome {chrom} in the list given is not valid.")
+
+    # validate popsize
+    if not isinstance(popsize, int):
+        raise Exception("Popsize is not an Integer.")
+    if popsize <= 0:
+        raise Exception("Popsize must be greater than 0.")
+
+    # Collect samples from vcf
+    try:
+        vcf = VCF(invcf)
+        vcf_samples = vcf.samples
+    except:
+        raise Exception("Unable to collect vcf samples.")
+
+    # validate sample_info file (ensure pops given are in model file and samples in vcf file)
+    # ensure sample_info col 2 in pops
+    for line in open(sample_info, 'r'):
+        sample = line.split()[0]
+        info_pop = line.split()[1]
+
+        if sample not in vcf_samples:
+            raise Exception("Sample in sampleinfo file is not present in the vcf file.")
+        
+        if info_pop not in pops:
+            raise Exception("Population {info_pop} in sampleinfo file is not present in the model file.")
+    return

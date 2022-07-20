@@ -52,8 +52,8 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @main.command()
 @click.option('--model', help="Admixture model in .dat format. See docs for info.", \
     type=str, required=True)
-@click.option('--mapdir', help="Directory containing files ending in .map with genetic map coords ", \
-    type=str, required=True)
+@click.option('--mapdir', help="Directory containing files with chr\{1-22,X\} and ending in .map in the file name with genetic map coords.", \
+    required=True, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
 @click.option('--out', help="Prefix to name output files.", \
     type=str, required=True)
 @click.option('--chroms', help='Sorted and comma delimited list of chromosomes to simulate. ex: 1,2,3,5,6,21,X', \
@@ -62,22 +62,30 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     type=int, required=False, default=None)
 @click.option('--popsize', help="Number of samples to simulate each generation", \
     type=int, required=False, default=10000, hidden=True)
-@click.option('--invcf')
-@click.option('--sample_info')
+@click.option('--invcf', help="VCF file used as reference for creation of simulated samples respective genotypes.", required=True)
+@click.option('--sample_info', help="File that maps samples from the reference VCF (--invcf) to population codes " \
+              "describing the populations in the header of the model file.", required=True)
 def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     """
-    Simulate admixed genomes under a pre-defined model
+    Simulate admixed genomes under a pre-defined model.
 
     Example:
-    haptools simgenotype \
-      --model tests/data/dat_files/AFR_south_carolina.dat \
-      --mapdir map/ \
-      --out test
+
+    \b
+    haptools simgenotype \ 
+      --model ./tests/data/outvcf_gen.dat \ 
+      --mapdir ./tests/data/map/ \ 
+      --chroms 1,2 \ 
+      --invcf ./tests/data/outvcf_test.vcf \ 
+      --sample_info ./tests/data/outvcf_info.tab \ 
+      --out ./tests/data/example_simgenotype
     """
-    from .sim_genotypes import simulate_gt, write_breakpoints
+    from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
     chroms = chroms.split(',')
+    validate_params(model, mapdir, chroms, popsize, invcf, sample_info)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
+    output_vcf(breakpoints, model, invcf, sample_info, out)
 
 ############ Haptools simphenotype ###############
 @main.command()

@@ -26,6 +26,10 @@ Examples
 
 	haptools transform tests/data/example.vcf.gz tests/data/basic.hap.gz | less
 
+.. code-block:: bash
+
+	haptools transform -o output.vcf.gz -s NA12878 tests/data/apoe.vcf.gz tests/data/apoe4.hap
+
 Detailed Usage
 ~~~~~~~~~~~~~~
 
