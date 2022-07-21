@@ -979,7 +979,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                             "You don't have enough memory to load these genotypes! Try"
                             " specifying a value to the chunks_size parameter, instead"
                         )
-                    phasing = np.zeros((size, len(sample_idxs) * 2), dtype=np.uint8)
+                    phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
                     # in sample-major mode and then transpose them
@@ -989,7 +989,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # missing alleles will have a value of -9
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
-                    phasing = phasing[:, : len(sample_idxs)]
                     # add phase info, then transpose the GT matrix so that samples are
                     # rows and variants are columns
                     data = np.concatenate(
