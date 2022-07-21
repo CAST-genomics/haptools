@@ -1,6 +1,5 @@
 from __future__ import annotations
 import re
-import subprocess
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -10,6 +9,7 @@ from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
+from pgenlib import PgenReader, PgenWriter
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
 
@@ -933,16 +933,6 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:attr:`~.GenotypesRefAlt.read`
         """
         super(Genotypes, self).read()
-        # TODO: figure out how to install this package
-        try:
-            from pgenlib import PgenReader
-        except ImportError:
-            raise ImportError(
-                "We cannot read PGEN files without the pgenlib library. Please install"
-                " pgenlib via\npip install git+https://github.com/chrchang/plink-ng.gi"
-                "t#subdirectory=2.0/Python"
-            )
-
         sample_idxs = self.read_samples(samples)
         with PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
@@ -1097,16 +1087,6 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:meth:`~.GenotypesPLINK._iterate`
         """
         super(Genotypes, self).read()
-        # TODO: figure out how to install this package
-        try:
-            from pgenlib import PgenReader
-        except ImportError:
-            raise ImportError(
-                "We cannot read PGEN files without the pgenlib library. Please install"
-                " pgenlib via\npip install git+https://github.com/chrchang/plink-ng.gi"
-                "t#subdirectory=2.0/Python"
-            )
-
         sample_idxs = self.read_samples(samples)
         pgen = PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
         # call another function to force the lines above to be run immediately
@@ -1162,17 +1142,6 @@ class GenotypesPLINK(GenotypesRefAlt):
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
-
-        # TODO: figure out how to install this package
-        try:
-            from pgenlib import PgenWriter
-        except ImportError:
-            raise ImportError(
-                "We cannot write PGEN files without the pgenlib library. Please "
-                "install pgenlib via\npip install git+https://github.com/chrchang/plin"
-                "k-ng.git#subdirectory=2.0/Python"
-            )
-
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
         data = self.data.transpose((1, 0, 2))

@@ -156,13 +156,6 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 
 	The time required to load various genotype file formats.
 
-.. warning::
-	Use of this class is not officially supported yet because it relies upon the as-yet-unpublished ``pgenlib`` python library. See `issue #16 <https://github.com/gymrek-lab/haptools/pull/16>`_ for current progress on this challenge. In the meantime, you must install the library manually from Github via ``pip``.
-
-	.. code-block:: bash
-
-		pip install git+https://github.com/chrchang/plink-ng.git#subdirectory=2.0/Python
-
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
 .. code-block:: python
