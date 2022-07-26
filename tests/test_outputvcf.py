@@ -89,7 +89,7 @@ def test_vcf_output():
 
 #model_file exception validation
 def test_model_files():
-    mapdir = DATADIR.joinpath("map/plink.chr1.GRCh38.map")
+    mapdir = DATADIR.joinpath("map/")
     print(mapdir)
     chroms = 1
     popsize = 1000
@@ -156,5 +156,18 @@ def test_model_files():
         validate_params(model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file)
     assert (str(e.value)) == "No valid coordinate files found. Must contain chr\{1-22,X\} in the file name."
 
+    
+    popsize = "NA"
+    with pytest.raises(Exception) as e:
+        validate_params(model, mapdir, chroms, popsize, vcf_file, sampleinfo_file)
+    assert (str(e.value)) == "Popsize is not an Integer."
 
+
+
+    """""
+    chroms = 50
+    with pytest.raises(Exception) as e:
+        validate_params(model, mapdir, chroms, popsize, vcf_file, sampleinfo_file)
+    assert (str(e.value)) == f"Chromosome {chroms} in the list given is not valid."
+    """
 
