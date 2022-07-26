@@ -88,51 +88,42 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     output_vcf(breakpoints, model, invcf, sample_info, out)
 
 ############ Haptools simphenotype ###############
-DEFAULT_SIMU_REP = 1
-DEFAULT_SIMU_HSQ = 0.1
-DEFAULT_SIMU_K = 0.1
-##################################################
 @main.command()
-@click.option('--vcf', help='Phased VCF file', type=str, required=True)
-@click.option('--hap', help='Haplotype file with effect sizes', \
-        type=str, required=True)
-@click.option('--out', help='Prefix for output files', \
-        type=str, required=True)
-@click.option('--simu-qt', help='Simulate a quantitative trait', \
-        default=False, is_flag=True)
-@click.option('--simu-cc', help='Simulate a case/control trait', \
-        default=False, is_flag=True)
-@click.option('--simu-rep', help='Number of rounds of simulation to perform', \
-        type=int, default=DEFAULT_SIMU_REP)
-@click.option('--simu-hsq', help='Trait heritability', \
-        type=float, default=DEFAULT_SIMU_HSQ)
-@click.option('--simu-k', help='Specify the disease prevalence', \
-        type=float, default=DEFAULT_SIMU_K)
-def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
-    """
-    Haplotype-aware phenotype simulation
-    """
-    from .sim_phenotypes import simulate_pt
-    # Basic checks on input
-    # TODO - check VCF zipped, check only one of simu-qt/simu-cc,
-    # check values of other inputs
-    # Only use simu-k for case/control
-
-    # Run simulation
-    simulate_pt(vcf, hap, simu_rep, \
-        simu_hsq, simu_k, simu_qt, simu_cc, out)
-
-@main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
 @click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
 @click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "-r",
+    "--replications",
+    type=click.IntRange(min=1),
+    default=1,
+    show_default=True,
+    help="Number of rounds of simulation to perform",
+)
+@click.option(
+    "-h",
+    "--heritability",
+    type=click.FloatRange(min=0, max=1),
+    default=None,
+    show_default=True,
+    help="Trait heritability",
+)
+@click.option(
+    "-p",
+    "--prevalence",
+    type=click.FloatRange(min=0, max=1, min_open=False, max_open=True),
+    show_default="quantitative trait",
+    help="Disease prevalence if simulating a case-control trait"
+)
 @click.option(
     "--region",
     type=str,
     default=None,
-    show_default="all genotypes",
-    help="""
-    The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'\n
-    For this to work, the VCF must be indexed and the seqname must match!""",
+    show_default="all haplotypes",
+    help=(
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
+        "provided must correspond with one in the files"
+    )
 )
 @click.option(
     "-s",
@@ -160,9 +151,9 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     "-o",
     "--output",
     type=click.Path(path_type=Path),
-    default=Path("-"),
+    default=Path("/dev/stdout"),
     show_default="stdout",
-    help="A VCF file containing haplotype 'genotypes'",
+    help="A TSV file containing simulated phenotypes",
 )
 @click.option(
     "-v",
@@ -172,17 +163,22 @@ def simphenotype(vcf, hap, simu_rep, simu_hsq, simu_k, simu_qt, simu_cc, out):
     show_default="only errors",
     help="The level of verbosity desired",
 )
-def transform(
+def simphenotype(
     genotypes: Path,
     haplotypes: Path,
+    replications: int = 1,
+    heritability: float = None,
+    prevalence: float = None,
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    chunk_size: int = None,
     output: Path = Path("-"),
-    verbosity: str = 'CRITICAL',
+    verbosity: str = 'ERROR',
 ):
     """
-    Creates a VCF composed of haplotypes
+    Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
+    set of haplotypes.
 
     GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
     to the .hap format spec
@@ -190,7 +186,7 @@ def transform(
     \f
     Examples
     --------
-    >>> haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz > example_haps.vcf
+    >>> haptools simphenotype tests/data/example.vcf.gz tests/data/example.hap.gz > simulated.pheno
 
     Parameters
     ----------
@@ -198,22 +194,45 @@ def transform(
         The path to the genotypes in VCF format
     haplotypes : Path
         The path to the haplotypes in a .hap file
+    replications : int, optional
+        The number of rounds of simulation to perform
+    heritability : int, optional
+        The heritability of the simulated trait; must be a float between 0 and 1
+
+        If not provided, it will be computed from the sum of the squared effect sizes.
+    prevalence : int, optional
+        The prevalence of the disease if the trait should be simulated as case/control;
+        must be a float between 0 and 1
+
+        If not provided, a quantitative trait will be simulated, instead
     region : str, optional
-        See documentation for :py:meth:`~.data.Genotypes.read`
-    sample : Tuple[str], optional
-        See documentation for :py:meth:`~.data.Genotypes.read`
+        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+        For this to work, the VCF and .hap file must be indexed and the seqname must
+        match!
+
+        Defaults to loading all haplotypes
+    sample : tuple[str], optional
+        A subset of the samples from which to extract genotypes
+
+        Defaults to loading genotypes from all samples
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
     output : Path, optional
-        The location to which to write output
+        The location to which to write the simulated phenotypes
     verbosity : str, optional
         The level of verbosity desired in messages written to stderr
     """
     import logging
 
-    from haptools import data
-    from .haplotype import HaptoolsHaplotype
+    from .sim_phenotype import simulate_pt
 
     log = logging.getLogger("run")
     logging.basicConfig(
@@ -234,23 +253,184 @@ def transform(
     else:
         samples = None
 
-    log.info("Loading haplotypes")
-    hp = data.Haplotypes(haplotypes)
-    hp.read(region=region)
-    log.info("Extracting variants from haplotypes")
-    variants = {var.id for hap in hp.data.values() for var in hap.variants}
-    log.info("Loading genotypes")
-    gt = data.GenotypesRefAlt(genotypes, log=log)
-    # gt._prephased = True
-    gt.read(region=region, samples=samples, variants=variants)
-    gt.check_missing(discard_also=True)
-    gt.check_biallelic(discard_also=True)
-    gt.check_phase()
-    log.info("Transforming genotypes via haplotypes")
-    hp_gt = data.GenotypesRefAlt(fname=output, log=log)
-    hp.transform(gt, hp_gt)
-    log.info("Writing haplotypes to VCF")
-    hp_gt.write()
+    # Run simulation
+    simulate_pt(
+        genotypes, haplotypes, replications, heritability, prevalence, region, samples,
+        chunk_size, output, log
+    )
+
+@main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
+@click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
+@click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--region",
+    type=str,
+    default=None,
+    show_default="all haplotypes",
+    help=(
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
+        "provided must correspond with one in the files"
+    )
+)
+@click.option(
+    "-s",
+    "--sample",
+    "samples",
+    type=str,
+    multiple=True,
+    show_default="all samples",
+    help=(
+        "A list of the samples to subset from the genotypes file (ex: '-s sample1 -s"
+        " sample2')"
+    ),
+)
+@click.option(
+    "-S",
+    "--samples-file",
+    type=click.File("r"),
+    show_default="all samples",
+    help=(
+        "A single column txt file containing a list of the samples (one per line) to"
+        " subset from the genotypes file"
+    ),
+)
+@click.option(
+    "-h",
+    "--haplotype-ids",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
+        "\nFor this to work, the .hap file must be indexed"
+    ),
+)
+@click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
+)
+@click.option(
+    "--discard-missing",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Ignore any samples that are missing genotypes for the required variants",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    default=Path("-"),
+    show_default="stdout",
+    help="A VCF file containing haplotype 'genotypes'",
+)
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="ERROR",
+    show_default="only errors",
+    help="The level of verbosity desired",
+)
+def transform(
+    genotypes: Path,
+    haplotypes: Path,
+    region: str = None,
+    samples: tuple[str] = tuple(),
+    samples_file: Path = None,
+    haplotype_ids: tuple[str] = tuple(),
+    chunk_size: int = None,
+    discard_missing: bool = False,
+    output: Path = Path("-"),
+    verbosity: str = 'CRITICAL',
+):
+    """
+    Creates a VCF composed of haplotypes
+
+    GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
+    according to the .hap format spec
+
+    \f
+    Examples
+    --------
+    >>> haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz > example_haps.vcf
+
+    Parameters
+    ----------
+    genotypes : Path
+        The path to the genotypes
+    haplotypes : Path
+        The path to the haplotypes in a .hap file
+    region : str, optional
+        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+        For this to work, the VCF and .hap file must be indexed and the seqname must
+        match!
+
+        Defaults to loading all haplotypes
+    sample : tuple[str], optional
+        A subset of the samples from which to extract genotypes
+
+        Defaults to loading genotypes from all samples
+    samples_file : Path, optional
+        A single column txt file containing a list of the samples (one per line) to
+        subset from the genotypes file
+    haplotype_ids: tuple[str], optional
+        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
+    discard_missing : bool, optional
+        Discard any samples that are missing any of the required samples
+
+        The default is simply to complain about it
+    output : Path, optional
+        The location to which to write output
+    verbosity : str, optional
+        The level of verbosity desired in messages written to stderr
+    """
+    import logging
+
+    from .transform import transform_haps
+
+    log = logging.getLogger("run")
+    logging.basicConfig(
+        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+    )
+    # handle samples
+    if samples and samples_file:
+        raise click.UsageError(
+            "You may only use one of --sample or --samples-file but not both."
+        )
+    if samples_file:
+        with samples_file as samps_file:
+            samples = samps_file.read().splitlines()
+    elif samples:
+        # needs to be converted from tuple to list
+        samples = list(samples)
+    else:
+        samples = None
+
+    if haplotype_ids:
+        haplotype_ids = set(haplotype_ids)
+    else:
+        haplotype_ids = None
+
+    transform_haps(
+        genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
+        discard_missing, output, log
+    )
 
 
 if __name__ == "__main__":

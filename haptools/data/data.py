@@ -15,7 +15,7 @@ class Data(ABC):
 
     Attributes
     ----------
-    fname : Path
+    fname : Path | str
         The path to the read-only file containing the data
     data : np.array
         The contents of the data file, once loaded
@@ -23,7 +23,9 @@ class Data(ABC):
         A logging instance for recording debug statements.
     """
 
-    def __init__(self, fname: Path, log: Logger = None):
+    def __init__(self, fname: Path | str, log: Logger = None):
+        if isinstance(fname, str):
+            fname = Path(fname)
         self.fname = fname
         self.data = None
         self.log = log or getLogger(self.__class__.__name__)
