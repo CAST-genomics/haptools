@@ -9,7 +9,10 @@ Homepage: https://haptools.readthedocs.io/
 
 ## Installation
 
-UNDER CONSTRUCTION
+We have not officially published `haptools` yet, but in the meantime, you can install it directly from our Github repository.
+```bash
+pip install git+https://github.com/gymrek-lab/haptools.git
+```
 
 ## Haptools utilities
 
@@ -21,12 +24,13 @@ Haptools consists of multiple utilities listed below. Click on a utility to see 
 
 * [`haptools karyogram`](docs/commands/karyogram.md): Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by `haptools simgenome`.
 
+* [`haptools transform`](https://haptools.readthedocs.io/en/latest/commands/transform.html): Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
+
 Outputs produced by these utilities are compatible with each other. For example
 `haptools simgenome` outputs a VCF file with local ancestry information annotated for each variant. The output VCF file can be used as input to `haptools simphenotype` to simulate phenotype information. `haptools simgenome` also outputs a list of local ancestry breakpoints which can be visualized using `haptools karyogram`. 
 
 ## Contributing
 
-If you are interested in contributing to `haptools`, please get in touch by submitting a Github issue or contacting us at mlamkin@ucsd.edu.
+We gladly welcome any contributions to `haptools`!
 
-
-
+Please read [our contribution guidelines](https://haptools.readthedocs.io/en/latest/project_info/contributing.html) and then submit a [Github issue](https://github.com/gymrek-lab/haptools/issues).

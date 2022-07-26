@@ -11,7 +11,7 @@ documentation = "https://haptools.readthedocs.io"
 [tool.poetry.dependencies]
 python = ">=3.7,<3.11"
 click = "^8.0.3"
-pysam = "^0.18.0"
+pysam = "^0.19.1"
 cyvcf2 = "^0.30.14"
 brewer2mpl = "^1.4.1"
 matplotlib = "^3.5.1"

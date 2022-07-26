@@ -1,5 +1,4 @@
 from __future__ import annotations
-import re
 from pathlib import Path
 from logging import getLogger, Logger
 from fileinput import hook_compressed
@@ -88,7 +87,7 @@ class Extra:
         """
         Convert an Extra into a fmt string
 
-        Retruns
+        Returns
         -------
         str
             A python format string (ex: "{beta:.3f}")
@@ -235,8 +234,8 @@ class Haplotype:
         The chromosomal end position of the haplotype
     id: str
         The haplotype's unique ID
-    variants: list[Variant]
-        A list of the variants in this haplotype
+    variants: tuple[Variant]
+        The variants in this haplotype
     _extras: tuple[Extra]
         Extra fields for the haplotype
 
@@ -278,7 +277,7 @@ class Haplotype:
     @property
     # TODO: use @cached_property in py3.8
     def varIDs(self):
-        return {var.id for var in self.variants}
+        return tuple(var.id for var in self.variants)
 
     @classmethod
     def from_hap_spec(
@@ -335,9 +334,7 @@ class Haplotype:
         """
         return tuple(extra.to_hap_spec("H") for extra in cls._extras)
 
-    def transform(
-        self, genotypes: GenotypesRefAlt, samples: list[str] = None
-    ) -> npt.NDArray[bool]:
+    def transform(self, genotypes: GenotypesRefAlt) -> npt.NDArray[bool]:
         """
         Transform a genotypes matrix via the current haplotype
 
@@ -351,8 +348,6 @@ class Haplotype:
 
             If the genotypes have not been loaded into the Genotypes object yet, this
             method will call Genotypes.read(), while loading only the needed variants
-        samples : list[str], optional
-            See documentation for :py:attr:`~.Genotypes.read`
 
         Returns
         -------
@@ -361,34 +356,27 @@ class Haplotype:
             denotes the presence of the haplotype in one chromosome of a sample
         """
         var_IDs = self.varIDs
-        # check: have the genotypes been loaded yet?
-        # if not, we can load just the variants we need
-        if genotypes.unset():
-            start = min(var.start for var in self.variants)
-            end = max(var.end for var in self.variants)
-            region = f"{self.chrom}:{start}-{end}"
-            genotypes.read(region=region, samples=samples, variants=var_IDs)
-            genotypes.check_biallelic(discard_also=True)
-            genotypes.check_phase()
-        # create a dict where the variants are keyed by ID
-        var_dict = {
-            var["id"]: var["ref"] for var in genotypes.variants if var["id"] in var_IDs
-        }
-        var_idxs = [
-            idx for idx, var in enumerate(genotypes.variants) if var["id"] in var_IDs
-        ]
-        missing_IDs = var_IDs - var_dict.keys()
-        if len(missing_IDs):
+        gts = genotypes.subset(variants=var_IDs)
+        # check: were any of the variants absent from the genotypes?
+        if len(gts.variants) < len(var_IDs):
+            missing_IDs = set(var_IDs) - set(gts.variants["id"])
             raise ValueError(
                 f"Variants {missing_IDs} are present in haplotype '{self.id}' but "
                 "absent in the provided genotypes"
             )
         # create a np array denoting the alleles that we want
-        alleles = [int(var.allele != var_dict[var.id]) for var in self.variants]
-        allele_arr = np.array([[[al] for al in alleles]])  # shape: (1, n, 1)
+        # note: the excessive use of square-brackets gives us shape (1, n, 1)
+        allele_arr = np.array(
+            [
+                [
+                    [int(var.allele != gts.variants[i]["ref"])]
+                    for i, var in enumerate(self.variants)
+                ]
+            ]
+        )
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
-        return np.all(allele_arr == genotypes.data[:, var_idxs], axis=1)
+        return np.all(allele_arr == gts.data, axis=1)
 
 
 class Haplotypes(Data):
@@ -397,7 +385,7 @@ class Haplotypes(Data):
 
     Attributes
     ----------
-    fname: Path
+    fname: Path | str
         The path to the file containing the data
     data: dict[str, Haplotype]
         A dict of Haplotype objects keyed by their IDs
@@ -427,7 +415,7 @@ class Haplotypes(Data):
 
     def __init__(
         self,
-        fname: Path,
+        fname: Path | str,
         haplotype: type[Haplotype] = Haplotype,
         variant: type[Variant] = Variant,
         log: Logger = None,
@@ -439,7 +427,10 @@ class Haplotypes(Data):
 
     @classmethod
     def load(
-        cls: Haplotypes, fname: Path, region: str = None, haplotypes: set[str] = None
+        cls: Haplotypes,
+        fname: Path | str,
+        region: str = None,
+        haplotypes: set[str] = None,
     ) -> Haplotypes:
         """
         Load haplotypes from a .hap file
@@ -452,7 +443,7 @@ class Haplotypes(Data):
             See documentation for :py:attr:`~.Data.fname`
         region: str, optional
             See documentation for :py:meth:`~.Haplotypes.read`
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             See documentation for :py:meth:`~.Haplotypes.read`
 
         Returns
@@ -467,7 +458,7 @@ class Haplotypes(Data):
     def check_header(self, lines: list[str], check_version=False):
         """
         Check 1) that the version number matches and 2) that extra fields declared in
-        # the .haps file can be handled by the the Variant and Haplotype classes
+        # the .haps file can be handled by the Variant and Haplotype classes
         # provided in __init__()
 
         Parameters
@@ -505,7 +496,7 @@ class Haplotypes(Data):
                     expected_lines.remove(line)
                 except ValueError:
                     # extract the name of the extra field
-                    name = line.split("\t", maxsplit=1)[1]
+                    name = line.split("\t", maxsplit=2)[1]
                     raise ValueError(
                         f"The extra field '{name}' is declared in the header of the"
                         " .hap file but is not accepted by this tool."
@@ -551,7 +542,7 @@ class Haplotypes(Data):
             For this to work, the .hap file must be indexed and the seqname must match!
 
             Defaults to loading all haplotypes
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             A list of haplotype IDs corresponding to a subset of the haplotypes to
             extract
 
@@ -572,6 +563,7 @@ class Haplotypes(Data):
                 var_haps.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
+        self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
@@ -587,7 +579,7 @@ class Haplotypes(Data):
             For this to work, the .hap file must be indexed and the seqname must match!
 
             Defaults to loading all haplotypes
-        haplotypes: list[str], optional
+        haplotypes: set[str], optional
             A list of haplotype IDs corresponding to a subset of the haplotypes to
             extract
 
@@ -730,12 +722,7 @@ class Haplotypes(Data):
 
     def write(self):
         """
-        Write the contents of this Haplotypes object to the file given by fname
-
-        Parameters
-        ----------
-        file: TextIO
-            A file-like object to which this Haplotypes object should be written.
+        Write the contents of this Haplotypes object to the file at :py:attr:`~.Haplotypes.fname`
 
         Examples
         --------
@@ -752,9 +739,7 @@ class Haplotypes(Data):
     def transform(
         self,
         genotypes: GenotypesRefAlt,
-        hap_gts: GenotypesRefAlt,
-        samples: list[str] = None,
-        low_memory: bool = False,
+        hap_gts: GenotypesRefAlt = None,
     ) -> GenotypesRefAlt:
         """
         Transform a genotypes matrix via the current haplotype
@@ -766,42 +751,32 @@ class Haplotypes(Data):
         ----------
         genotypes : GenotypesRefAlt
             The genotypes which to transform using the current haplotype
-
-            If the genotypes have not been loaded into the Genotypes object yet, this
-            method will call Genotypes.read(), while loading only the needed variants
         hap_gts: GenotypesRefAlt
             An empty GenotypesRefAlt object into which the haplotype genotypes should
             be stored
-        samples : list[str], optional
-            See documentation for :py:attr:`~.Genotypes.read`
-        low_memory : bool, optional
-            If True, each haplotype's genotypes will be loaded one at a time.
 
         Returns
         -------
         GenotypesRefAlt
             A Genotypes object composed of haplotypes instead of regular variants.
         """
+        # Initialize GenotypesRefAlt return value
+        if hap_gts is None:
+            hap_gts = GenotypesRefAlt(fname=None, log=self.log)
         hap_gts.samples = genotypes.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
-            dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("pos", np.uint32),
-                ("aaf", np.float64),
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ],
+            dtype=hap_gts.variants.dtype,
         )
+        # Obtain and merge the haplotype genotypes
         self.log.info(
             f"Transforming a set of genotypes from {len(genotypes.variants)} total "
             f"variants with a list of {len(self.data)} haplotypes"
         )
         hap_gts.data = np.concatenate(
             tuple(
-                hap.transform(genotypes, samples)[:, np.newaxis]
-                for hap in self.data.values()
+                hap.transform(genotypes)[:, np.newaxis] for hap in self.data.values()
             ),
             axis=1,
-        ).astype(np.uint8)
+        ).astype(genotypes.data.dtype)
+        return hap_gts

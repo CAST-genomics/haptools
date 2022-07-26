@@ -1,8 +1,8 @@
 .. _formats-haplotypes:
 
 
-.hap
-====
+Haplotypes
+==========
 
 This document describes our custom file format specification for haplotypes: the ``.hap`` file.
 
