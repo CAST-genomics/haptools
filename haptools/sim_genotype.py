@@ -672,10 +672,17 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
 
         prev_gen = cur_gen 
 
-    # Validate mapdir ensuring it contains proper files.
+    # Check if mapdir is a valid path
     if not os.path.isdir(mapdir):
         raise Exception("Map directory given is not a valid path.")
     
+    # validate chroms given are correctly named
+    valid_chroms = [str(x) for x in range(1,23)] + ['X']
+    for chrom in chroms:
+        if chrom not in valid_chroms:
+            raise Exception(f"Chromosome {chrom} in the list given is not valid.")
+
+    # Validate mapdir ensuring it contains proper files.
     try:
         all_coord_files = glob.glob(f'{mapdir}/*.map')
         all_coord_files = [coord_file for coord_file in all_coord_files \
@@ -686,12 +693,6 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
     if not all_coord_files:
         raise Exception("No valid coordinate files found. Must contain chr\{1-22,X\} in the file name.")
     
-    # validate chroms given are correctly named
-    valid_chroms = [str(x) for x in range(1,23)] + ['X']
-    for chrom in chroms:
-        if chrom not in valid_chroms:
-            raise Exception(f"Chromosome {chrom} in the list given is not valid.")
-
     # validate popsize
     if not isinstance(popsize, int):
         raise Exception("Popsize is not an Integer.")
