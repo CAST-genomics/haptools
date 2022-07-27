@@ -628,7 +628,7 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp):
     # validate model file
     mfile = open(model, 'r')
     num_samples, *pops = mfile.readline().strip().split()
@@ -698,6 +698,10 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
         raise Exception("Popsize is not an Integer.")
     if popsize <= 0:
         raise Exception("Popsize must be greater than 0.")
+
+    # Complete check if we're only outputting a breakpoint
+    if only_bp:
+        return
 
     # Collect samples from vcf
     try:

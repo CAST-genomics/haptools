@@ -66,7 +66,7 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @click.option('--sample_info', help="File that maps samples from the reference VCF (--invcf) to population codes " \
               "describing the populations in the header of the model file.", required=True)
 @click.option('--only_breakpoint', help="Flag used to determine whether to only output breakpoints or continue to simulate a vcf file.", \
-    type=bool, required=False, default=False, hidden=True)
+    is_flag=True, required=False, hidden=True)
 def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, only_breakpoint):
     """
     Simulate admixed genomes under a pre-defined model.
@@ -84,7 +84,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
     """
     from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
     chroms = chroms.split(',')
-    validate_params(model, mapdir, chroms, popsize, invcf, sample_info)
+    validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
     if not only_breakpoint:
