@@ -708,13 +708,18 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
 
     # validate sample_info file (ensure pops given are in model file and samples in vcf file)
     # ensure sample_info col 2 in pops
+    sample_pops = set()
     for line in open(sample_info, 'r'):
         sample = line.split()[0]
         info_pop = line.split()[1]
+        sample_pops.add(info_pop)
 
         if sample not in vcf_samples:
             raise Exception("Sample in sampleinfo file is not present in the vcf file.")
-        
-        if info_pop not in pops:
-            raise Exception("Population {info_pop} in sampleinfo file is not present in the model file.")
+    
+    # Ensure that all populations from the model file are listed in the sample info file
+    for model_pop in pops:
+        if model_pop not in list(sample_pops):
+            raise Exception("Population {model_pop} in model file is not present in the sample info file.")
+
     return
