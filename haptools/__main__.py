@@ -65,7 +65,9 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @click.option('--invcf', help="VCF file used as reference for creation of simulated samples respective genotypes.", required=True)
 @click.option('--sample_info', help="File that maps samples from the reference VCF (--invcf) to population codes " \
               "describing the populations in the header of the model file.", required=True)
-def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
+@click.option('--only_breakpoint', help="Flag used to determine whether to only output breakpoints or continue to simulate a vcf file.", \
+    type=bool, required=False, default=False, hidden=True)
+def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, only_breakpoint):
     """
     Simulate admixed genomes under a pre-defined model.
 
@@ -85,7 +87,8 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     validate_params(model, mapdir, chroms, popsize, invcf, sample_info)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
-    output_vcf(breakpoints, model, invcf, sample_info, out)
+    if not only_breakpoint:
+        output_vcf(breakpoints, model, invcf, sample_info, out)
 
 ############ Haptools simphenotype ###############
 @main.command()
