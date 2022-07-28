@@ -306,6 +306,11 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         # simulate remaining generations
         for i in range(1, sim_gens):
             print(f"Simulating generation {prev_gen+i+1}")
+
+            # update pop_fracs to have 100% admixture since this generation has not been specified in model file
+            pop_fracs = [0]*len(pops)
+            pop_fracs[0] = 1
+
             # simulate next generations using previous generations to sample from for admixture
             next_gen_samples = _simulate(popsize, pops, pop_fracs, prev_gen+i, chroms,
                                          coords, end_coords, recomb_probs, next_gen_samples)
