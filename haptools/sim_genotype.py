@@ -641,7 +641,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp)
     num_pops = len(pops)
 
     if num_pops < 2:
-        raise Exception("Invalid number of populations given: {num_pops}. We require at least 2.")
+        raise Exception(f"Invalid number of populations given: {num_pops}. We require at least 2.")
 
     if num_samples < 1:
         raise Exception("Number of samples is less than 1.")
@@ -665,10 +665,10 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp)
         if len(pop_fracs) != num_pops:
             raise Exception("Total fractions given to populations do not match number of populations in the header.")
         if sim_gens < 1:
-            raise Exception("Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens} is less than 1. "
+            raise Exception(f"Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens} is less than 1. "
                             "Please ensure the generations given in the first column are correct.")
         if np.absolute(np.sum(pop_fracs)-1) > 1e-6:
-            raise Exception("Population fractions for generation {cur_gen} do not sum to 1.")
+            raise Exception(f"Population fractions for generation {cur_gen} do not sum to 1.")
 
         prev_gen = cur_gen 
 
@@ -724,6 +724,6 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp)
     # Ensure that all populations from the model file are listed in the sample info file
     for model_pop in pops:
         if model_pop not in list(sample_pops):
-            raise Exception("Population {model_pop} in model file is not present in the sample info file.")
+            raise Exception(f"Population {model_pop} in model file is not present in the sample info file.")
 
     return
