@@ -433,6 +433,192 @@ def transform(
     )
 
 
+@main.command(short_help="Compute pair-wise LD")
+@click.argument("target", type=str)
+@click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
+@click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--region",
+    type=str,
+    default=None,
+    show_default="all haplotypes",
+    help=(
+        "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
+        "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
+        "provided must correspond with one in the files"
+    )
+)
+@click.option(
+    "-s",
+    "--sample",
+    "samples",
+    type=str,
+    multiple=True,
+    show_default="all samples",
+    help=(
+        "A list of the samples to subset from the genotypes file (ex: '-s sample1 -s"
+        " sample2')"
+    ),
+)
+@click.option(
+    "-S",
+    "--samples-file",
+    type=click.File("r"),
+    show_default="all samples",
+    help=(
+        "A single column txt file containing a list of the samples (one per line) to"
+        " subset from the genotypes file"
+    ),
+)
+@click.option(
+    "-h",
+    "--haplotype-ids",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
+        "\nFor this to work, the .hap file must be indexed"
+    ),
+)
+@click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
+)
+@click.option(
+    "--discard-missing",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Ignore any samples that are missing genotypes for the required variants",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    default=Path("/dev/stdout"),
+    show_default="stdout",
+    help="A .hap file containing haplotypes and their LD with TARGET",
+)
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="ERROR",
+    show_default="only errors",
+    help="The level of verbosity desired",
+)
+def ld(
+    target: str,
+    genotypes: Path,
+    haplotypes: Path,
+    region: str = None,
+    samples: tuple[str] = tuple(),
+    samples_file: Path = None,
+    haplotype_ids: tuple[str] = tuple(),
+    chunk_size: int = None,
+    discard_missing: bool = False,
+    output: Path = Path("/dev/stdout"),
+    verbosity: str = 'CRITICAL',
+):
+    """
+    Compute the pair-wise LD (Pearson's correlation) between haplotypes and a single
+    variant or haplotype
+
+    GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
+    according to the .hap format spec
+
+    TARGET refers to the ID of a variant or haplotype. LD is computed pair-wise between
+    TARGET and all of the other haplotypes in the .hap file
+
+    If TARGET is a variant ID, the ID must appear in GENOTYPES. Otherwise, it must
+    be present in the .hap file
+
+    \f
+    Examples
+    --------
+    >>> haptools ld 'chr21.q.3365*1' tests/data/example.vcf.gz tests/data/basic.hap.gz
+
+    Parameters
+    ----------
+    target : str
+        The ID of a variant (in the genotypes file) or haplotype (in the .hap file)
+        with which all pair-wise LD comparisons will be made
+    genotypes : Path
+        The path to the genotypes
+    haplotypes : Path
+        The path to the haplotypes in a .hap file
+    region : str, optional
+        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+        For this to work, the VCF and .hap file must be indexed and the seqname must
+        match!
+
+        Defaults to loading all haplotypes
+    sample : tuple[str], optional
+        A subset of the samples from which to extract genotypes
+
+        Defaults to loading genotypes from all samples
+    samples_file : Path, optional
+        A single column txt file containing a list of the samples (one per line) to
+        subset from the genotypes file
+    haplotype_ids: tuple[str], optional
+        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
+    chunk_size: int, optional
+        The max number of variants to fetch from the PGEN file at any given time
+
+        If this value is provided, variants from the PGEN file will be loaded in
+        chunks so as to use less memory. This argument is ignored if the genotypes are
+        not in PGEN format.
+    discard_missing : bool, optional
+        Discard any samples that are missing any of the required genotypes
+
+        The default is simply to complain about it
+    output : Path, optional
+        The location to which to write output
+    verbosity : str, optional
+        The level of verbosity desired in messages written to stderr
+    """
+    import logging
+
+    from .ld import calc_ld
+
+    log = logging.getLogger("haptools ld")
+    logging.basicConfig(
+        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+    )
+    # handle samples
+    if samples and samples_file:
+        raise click.UsageError(
+            "You may only use one of --sample or --samples-file but not both."
+        )
+    if samples_file:
+        with samples_file as samps_file:
+            samples = samps_file.read().splitlines()
+    elif samples:
+        # needs to be converted from tuple to list
+        samples = list(samples)
+    else:
+        samples = None
+
+    if haplotype_ids:
+        haplotype_ids = set(haplotype_ids)
+    else:
+        haplotype_ids = None
+
+    calc_ld(
+        target, genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
+        discard_missing, output, log
+    )
+
+
 if __name__ == "__main__":
     # run the CLI if someone tries 'python -m haptools' on the command line
     main(prog_name="haptools")
