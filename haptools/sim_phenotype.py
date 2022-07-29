@@ -267,10 +267,10 @@ def simulate_pt(
 
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
-        gt = GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
+        gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = GenotypesRefAlt(genotypes, log=log)
+        gt = GenotypesRefAlt(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     log.info("QC-ing genotypes")
