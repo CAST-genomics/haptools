@@ -13,7 +13,7 @@ from .data import (
     GenotypesPLINK,
     Phenotypes,
     Haplotypes,
-    Extra
+    Extra,
 )
 
 

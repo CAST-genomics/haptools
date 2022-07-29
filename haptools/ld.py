@@ -21,9 +21,7 @@ class Haplotype(HaplotypeBase):
     _extras: tuple = field(
         repr=False,
         init=False,
-        default=(
-            data.Extra("ld", ".3f", "Linkage-disequilibrium"),
-        ),
+        default=(data.Extra("ld", ".3f", "Linkage-disequilibrium"),),
     )
 
 
