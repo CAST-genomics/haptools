@@ -287,9 +287,6 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     prev_gen = 0
     next_gen_samples = []
 
-    # Time code
-    start = time.time()
-
     # iterate over generations in model file
     for gen in mfile:
         # setup population proportions and generations to simulate
@@ -316,9 +313,6 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
                                          coords, end_coords, recomb_probs, next_gen_samples)
 
         prev_gen = cur_gen 
-
-    end = time.time()
-    print(f"Time elapsed for simulation: {end - start}")
 
     mfile.close()
     return num_samples, next_gen_samples
