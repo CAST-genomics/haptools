@@ -472,7 +472,8 @@ def transform(
 )
 @click.option(
     "-h",
-    "--haplotype-ids",
+    "--hap-id",
+    "haplotype_ids",
     type=str,
     multiple=True,
     show_default="all haplotypes",
