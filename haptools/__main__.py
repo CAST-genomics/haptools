@@ -234,7 +234,7 @@ def simphenotype(
 
     from .sim_phenotype import simulate_pt
 
-    log = logging.getLogger("run")
+    log = logging.getLogger("haptools simphenotype")
     logging.basicConfig(
         format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
         level=verbosity,
@@ -391,7 +391,7 @@ def transform(
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
     discard_missing : bool, optional
-        Discard any samples that are missing any of the required samples
+        Discard any samples that are missing any of the required genotypes
 
         The default is simply to complain about it
     output : Path, optional
@@ -403,7 +403,7 @@ def transform(
 
     from .transform import transform_haps
 
-    log = logging.getLogger("run")
+    log = logging.getLogger("haptools transform")
     logging.basicConfig(
         format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
         level=verbosity,

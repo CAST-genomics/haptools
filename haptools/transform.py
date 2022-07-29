@@ -41,7 +41,7 @@ def transform_haps(
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
     discard_missing : bool, optional
-        Discard any samples that are missing any of the required samples
+        Discard any samples that are missing any of the required genotypes
 
         The default is simply to complain about it
     output : Path, optional
@@ -50,7 +50,7 @@ def transform_haps(
         A logging module to which to write messages about progress and any errors
     """
     if log is None:
-        log = logging.getLogger("run")
+        log = logging.getLogger("haptools transform")
         logging.basicConfig(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",

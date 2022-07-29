@@ -1,6 +1,5 @@
 from __future__ import annotations
 from pathlib import Path
-from itertools import combinations
 from logging import getLogger, Logger, DEBUG
 from dataclasses import dataclass, field
 
@@ -253,7 +252,7 @@ def simulate_pt(
         The logging module for this task
     """
     if log is None:
-        log = logging.getLogger("run")
+        log = logging.getLogger("haptools simphenotype")
         logging.basicConfig(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",
