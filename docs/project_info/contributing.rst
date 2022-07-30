@@ -78,7 +78,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        poetry install -E docs -E test
+        poetry install -E docs -E test -E files
 
 ---------------------
 Managing Dependencies

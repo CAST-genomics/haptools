@@ -9,7 +9,6 @@ from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
-from pgenlib import PgenReader, PgenWriter
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
 
@@ -661,6 +660,16 @@ class GenotypesPLINK(GenotypesRefAlt):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
+        try:
+            global pgenlib
+            import pgenlib
+        except ImportError:
+            raise ImportError(
+                "We cannot read PGEN files without the pgenlib library. Please "
+                "reinstall haptools with the 'files' extra requirements via\n"
+                "pip install git+https://github.com/gymrek-lab/haptools.git##egg=hapto"
+                "ols[files]"
+            )
 
     def read_samples(self, samples: list[str] = None):
         """
@@ -933,8 +942,9 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:attr:`~.GenotypesRefAlt.read`
         """
         super(Genotypes, self).read()
+        import pgenlib
         sample_idxs = self.read_samples(samples)
-        with PgenReader(
+        with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
         ) as pgen:
             # how many variants to load?
@@ -1010,7 +1020,7 @@ class GenotypesPLINK(GenotypesRefAlt):
 
     def _iterate(
         self,
-        pgen: PgenReader,
+        pgen: pgenlib.PgenReader,
         region: str = None,
         variants: set[str] = None,
     ):
@@ -1021,7 +1031,7 @@ class GenotypesPLINK(GenotypesRefAlt):
 
         Parameters
         ----------
-        pgen: PgenReader
+        pgen: pgenlib.PgenReader
             The pgenlib.PgenReader object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -1086,8 +1096,9 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:meth:`~.GenotypesPLINK._iterate`
         """
         super(Genotypes, self).read()
+        import pgenlib
         sample_idxs = self.read_samples(samples)
-        pgen = PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
+        pgen = pgenlib.PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
@@ -1138,6 +1149,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         Write the variants in this class to PLINK2 files at
         :py:attr:`~.GenotypesPLINK.fname`
         """
+        import pgenlib
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
@@ -1152,7 +1164,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             chunks = len(self.variants)
 
         # write the pgen file
-        with PgenWriter(
+        with pgenlib.PgenWriter(
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
