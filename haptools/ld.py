@@ -14,7 +14,8 @@ class Haplotype(HaplotypeBase):
     """
     A haplotype with sufficient fields for the ld command
 
-    Properties and functions are shared with the base Haplotype object, "HaplotypeBase"
+    Properties and functions are shared with the base Haplotype object,
+    :py:attr:`~.HaplotypeBase`
     """
 
     ld: float
