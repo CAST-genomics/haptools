@@ -91,6 +91,11 @@ def calc_ld(
     # check to see whether the target was a haplotype
     if target in hp.data:
         target = hp.data.pop(target)
+        if len(hp.data) == 0:
+            log.error(
+                "There must be at least one more haplotype in the .hap file "
+                "than the TARGET haplotype specified."
+            )
 
     # check that all of the haplotypes were loaded successfully and warn otherwise
     if haplotype_ids is not None and len(haplotype_ids) > len(hp.data):

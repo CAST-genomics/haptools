@@ -27,9 +27,19 @@ Usage
 
 Examples
 ~~~~~~~~
+*TARGET* can either be a haplotype or a variant.
+
+For example, let's compute LD with the haplotype 'chr21.q.3365*1'.
+
 .. code-block:: bash
 
 	haptools ld 'chr21.q.3365*1' tests/data/example.vcf.gz tests/data/basic.hap.gz | less
+
+Or, let's compute LD with the variant 'rs429358'.
+
+.. code-block:: bash
+
+	haptools ld -o apoe4_ld.hap rs429358 tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
 Detailed Usage
 ~~~~~~~~~~~~~~
