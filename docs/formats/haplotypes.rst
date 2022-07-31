@@ -21,21 +21,53 @@ This is a tab-separated file composed of different types of lines. The first fie
    * - V
      - Variant
 
-Each line type (besides #) has a set of mandatory fields described below. Additional "extra" fields can be appended to these to customize the file.
+Each line type (besides ``#``) has a set of mandatory fields described below. Additional "extra" fields can be appended to these to customize the file.
 
 ``#`` Comment line
 ~~~~~~~~~~~~~~~~~~
-Comment lines begin with ``#`` and are ignored. Consecutive comment lines that appear at the beginning of the file are treated as part of the header.
+Comment lines begin with ``#`` and are ignored. It is best practice to immediately follow all comment lines with a space. Otherwise, the line may be at risk of being interpreted as part of the header, especially if the file is sorted with Unix's ``sort``.
 
-Extra fields must be declared in the header. The declaration must be a tab-separated line containing the following fields:
+Header line
+~~~~~~~~~~~
+Header lines begin with ``#`` and must precede all other line types, except for comment lines. Comment lines can be interleaved with the header lines in any order.
 
-1. Line type (ex: ``H`` or ``V``)
-2. Name
+There are two types of header lines: those with file metadata and those that declare extra fields.
+
+Header lines themselves can appear in any order as long as the metadata lines precede the extra field declarations.
+
+Metadata lines in the header
+----------------------------
+Metadata lines have the following, tab-separated fields:
+
+1. A header symbol ``#``
+2. Metadata name
+3. Value(s)
+
+It is best practice to include a metadata line declaring the version of the haplotype format that your file uses. Otherwise, your file will be assumed to use the latest version of the specification, version 0.0.2.
+
+.. code-block::
+
+  #	version	0.0.2
+
+If you are declaring any extra fields (see the next section), then you should include a metadata line that declares the order of the extra fields. For example, if the ``H`` haplotype lines in your file have two extra fields, "ancestry" and "beta", that appear in that order:
+
+.. code-block::
+
+  #	order H	ancestry	beta
+
+..
+  _TODO: figure out how to do this for H and V lines
+
+Declaring extra fields in the header
+------------------------------------
+Any extra fields in the file must be declared in the header. To declare an extra field, create a tab-separated line containing the following fields:
+
+1. A header symbol followed by a line type symbol (ex: ``#H`` or ``#V``)
+2. Field name
 3. Python format string (ex: 'd' for int, 's' for string, or '.3f' for a float with 3 decimals)
 4. Description
 
 Note that the first field must follow the ``#`` symbol immediately (ex: ``#H`` or ``#V``).
-
 
 ``H`` Haplotype
 ~~~~~~~~~~~~~~~
@@ -116,7 +148,7 @@ You can find an example with extra fields added within `tests/data/simphenotype.
 
 Compressing and indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~
-We encourage you to bgzip compress and/or index your ``.hap`` file whenever possible. This will reduce both disk usage and the time required to parse the file.
+We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever possible. This will reduce both disk usage and the time required to parse the file, but it is entirely optional.
 
 .. code-block:: bash
 
