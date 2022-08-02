@@ -639,7 +639,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp)
 
     num_pops = len(pops)
 
-    if num_pops < 2:
+    if num_pops < 3:
         raise Exception(f"Invalid number of populations given: {num_pops}. We require at least 2.")
 
     if num_samples < 1:
@@ -718,10 +718,10 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp)
         sample_pops.add(info_pop)
 
         if sample not in vcf_samples:
-            raise Exception("Sample in sampleinfo file is not present in the vcf file.")
+            raise Exception(f"Sample {sample} in sampleinfo file is not present in the vcf file.")
     
     # Ensure that all populations from the model file are listed in the sample info file
-    for model_pop in pops:
+    for model_pop in pops[1:]:
         if model_pop not in list(sample_pops):
             raise Exception(f"Population {model_pop} in model file is not present in the sample info file.")
 
