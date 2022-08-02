@@ -5,8 +5,6 @@ https://github.com/armartin/ancestry_pipeline/blob/master/plot_karyogram.py
 """
 
 import os
-import argparse
-import pylab
 import brewer2mpl
 import matplotlib
 matplotlib.use("Agg")
@@ -17,6 +15,9 @@ import matplotlib.collections as mcol
 import numpy as np
 import os
 import sys
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 PADDING = 0.4 # PADDING between chromosomes
 
@@ -42,7 +43,7 @@ def GetChrom(chrom):
     else:
         return int(chrom)
 
-def GetHaplotypeBlocks(bp_file, sample_name):
+def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file):
     """
     Extract haplotype blocks for the desired sample
     from the bp file
@@ -53,6 +54,9 @@ def GetHaplotypeBlocks(bp_file, sample_name):
        Path to .bp file with breakpoints
     sample_name : str
        Sample ID to extract
+    centromeres_file : str
+        If not None then use the chromosome ends listed to extend 
+        chromosomes to proper end coordinates
     
     Returns
     -------
@@ -61,7 +65,6 @@ def GetHaplotypeBlocks(bp_file, sample_name):
        'pop', 'chrom', 'start', 'end'
     """
     sample_blocks = [] # blocks for the two copies
-
     parsing_sample = False # keep track of if we're in the middle of parsing a sample
     blocks = [] # keep track of current blocks
 
@@ -105,6 +108,27 @@ def GetHaplotypeBlocks(bp_file, sample_name):
     # Happens if the sample is at the end of the file
     if parsing_sample:
         sample_blocks.append(blocks)
+
+    # If the centromeres file is given update the blocks so the last 
+    # block of the chromosome is extended to its actual end in cM
+    if centromeres_file:
+        # collect all actual chromosome ends
+        chrom_ends = {}
+        with open(centromeres_file, 'r') as cfile:
+            for line in cfile:
+                chrom_data = line.strip().split()
+                chrom_ends[GetChrom(chrom_data[0])] = float(chrom_data[-1])
+
+        # update current haplotype tracts to end at actual chrom ends
+        for hap, block in enumerate(sample_blocks):
+            prev_chrom = block[0]['chrom']
+            for tind, tract in enumerate(block):
+                cur_chrom = tract['chrom']
+                if cur_chrom != prev_chrom:
+                    sample_blocks[hap][tind-1]['end'] = chrom_ends[prev_chrom]
+                prev_chrom = cur_chrom
+            # Update last chromosome since chromosome won't change
+            sample_blocks[hap][tind-1]['end'] = chrom_ends[prev_chrom]
 
     return sample_blocks
 
@@ -198,7 +222,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     """
     # Parse haplotype blocks from the bp file for the 
     # specified sample
-    sample_blocks = GetHaplotypeBlocks(bp_file, sample_name)
+    sample_blocks = GetHaplotypeBlocks(bp_file, sample_name, centromeres_file)
     if len(sample_blocks) == 0:
         sys.stderr.write("ERROR: no haplotype blocks identified for %s. "%sample_name)
         sys.stderr.write("Make sure %s_1 and %s_2 are in the .bp file.\n"%(sample_name, sample_name))

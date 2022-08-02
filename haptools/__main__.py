@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import sys
+import time
 import click
 from pathlib import Path
 
@@ -36,10 +37,12 @@ def main():
 def karyogram(bp, sample, out, title, centromeres, colors):
     """
     Visualize a karyogram of local ancestry tracks
-
+    
     Example:
-    haptools karyogram --bp tests/data/5gen.bp --sample Sample_1 \
-       --out test.png --centromeres tests/data/centromeres_hg19.txt \
+
+    \b
+    haptools karyogram --bp tests/data/5gen.bp --sample Sample_1 \\
+       --out test.png --centromeres tests/data/centromeres_hg19.txt \\
        --colors 'CEU:blue,YRI:red'
     """
     from .karyogram import PlotKaryogram
@@ -67,7 +70,9 @@ def karyogram(bp, sample, out, title, centromeres, colors):
               "describing the populations in the header of the model file.", required=True)
 @click.option('--only_breakpoint', help="Flag used to determine whether to only output breakpoints or continue to simulate a vcf file.", \
     is_flag=True, required=False, hidden=True)
-def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, only_breakpoint):
+@click.option('--verbose', help="Output time metrics for each section, breakpoint simulation, vcf creation, and total exection.", \
+     is_flag=True, required=False, hidden=True)
+def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, only_breakpoint, verbose):
     """
     Simulate admixed genomes under a pre-defined model.
 
@@ -83,12 +88,23 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
       --out ./tests/data/example_simgenotype
     """
     from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
+    start = time.time()
+
     chroms = chroms.split(',')
     validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
+    bp_end = time.time()
+
+    vcf_start = time.time()
     if not only_breakpoint:
         output_vcf(breakpoints, model, invcf, sample_info, out)
+    end = time.time()
+
+    if verbose:
+        print(f"Time elapsed for breakpoint simulation: {bp_end - start}")
+        print(f"Time elapse for creating vcf: {end - vcf_start}")
+        print(f"Time elapsed for simgenotype execution: {end - start}")
 
 ############ Haptools simphenotype ###############
 @main.command()
