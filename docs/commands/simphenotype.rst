@@ -77,5 +77,5 @@ Detailed Usage
 
 .. click:: haptools.__main__:main
    :prog: haptools
-   :show-nested:
+   :nested: full
    :commands: simphenotype
