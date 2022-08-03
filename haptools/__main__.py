@@ -182,53 +182,6 @@ def simphenotype(
 
     GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
     to the .hap format spec
-
-    \f
-    Examples
-    --------
-    >>> haptools simphenotype tests/data/example.vcf.gz tests/data/example.hap.gz > simulated.pheno
-
-    Parameters
-    ----------
-    genotypes : Path
-        The path to the genotypes in VCF format
-    haplotypes : Path
-        The path to the haplotypes in a .hap file
-    replications : int, optional
-        The number of rounds of simulation to perform
-    heritability : int, optional
-        The heritability of the simulated trait; must be a float between 0 and 1
-
-        If not provided, it will be computed from the sum of the squared effect sizes.
-    prevalence : int, optional
-        The prevalence of the disease if the trait should be simulated as case/control;
-        must be a float between 0 and 1
-
-        If not provided, a quantitative trait will be simulated, instead
-    region : str, optional
-        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
-
-        For this to work, the VCF and .hap file must be indexed and the seqname must
-        match!
-
-        Defaults to loading all haplotypes
-    sample : tuple[str], optional
-        A subset of the samples from which to extract genotypes
-
-        Defaults to loading genotypes from all samples
-    samples_file : Path, optional
-        A single column txt file containing a list of the samples (one per line) to
-        subset from the genotypes file
-    chunk_size: int, optional
-        The max number of variants to fetch from the PGEN file at any given time
-
-        If this value is provided, variants from the PGEN file will be loaded in
-        chunks so as to use less memory. This argument is ignored if the genotypes are
-        not in PGEN format.
-    output : Path, optional
-        The location to which to write the simulated phenotypes
-    verbosity : str, optional
-        The level of verbosity desired in messages written to stderr
     """
     import logging
 
@@ -354,50 +307,6 @@ def transform(
 
     GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
     according to the .hap format spec
-
-    \f
-    Examples
-    --------
-    >>> haptools transform tests/data/example.vcf.gz tests/data/example.hap.gz > example_haps.vcf
-
-    Parameters
-    ----------
-    genotypes : Path
-        The path to the genotypes
-    haplotypes : Path
-        The path to the haplotypes in a .hap file
-    region : str, optional
-        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
-
-        For this to work, the VCF and .hap file must be indexed and the seqname must
-        match!
-
-        Defaults to loading all haplotypes
-    sample : tuple[str], optional
-        A subset of the samples from which to extract genotypes
-
-        Defaults to loading genotypes from all samples
-    samples_file : Path, optional
-        A single column txt file containing a list of the samples (one per line) to
-        subset from the genotypes file
-    haplotype_ids: tuple[str], optional
-        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
-
-        If not provided, all haplotypes will be used.
-    chunk_size: int, optional
-        The max number of variants to fetch from the PGEN file at any given time
-
-        If this value is provided, variants from the PGEN file will be loaded in
-        chunks so as to use less memory. This argument is ignored if the genotypes are
-        not in PGEN format.
-    discard_missing : bool, optional
-        Discard any samples that are missing any of the required genotypes
-
-        The default is simply to complain about it
-    output : Path, optional
-        The location to which to write output
-    verbosity : str, optional
-        The level of verbosity desired in messages written to stderr
     """
     import logging
 
@@ -538,53 +447,6 @@ def ld(
 
     If TARGET is a variant ID, the ID must appear in GENOTYPES. Otherwise, it must
     be present in the .hap file
-
-    \f
-    Examples
-    --------
-    >>> haptools ld 'chr21.q.3365*1' tests/data/example.vcf.gz tests/data/basic.hap.gz
-
-    Parameters
-    ----------
-    target : str
-        The ID of a variant (in the genotypes file) or haplotype (in the .hap file)
-        with which all pair-wise LD comparisons will be made
-    genotypes : Path
-        The path to the genotypes
-    haplotypes : Path
-        The path to the haplotypes in a .hap file
-    region : str, optional
-        The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
-
-        For this to work, the VCF and .hap file must be indexed and the seqname must
-        match!
-
-        Defaults to loading all haplotypes
-    sample : tuple[str], optional
-        A subset of the samples from which to extract genotypes
-
-        Defaults to loading genotypes from all samples
-    samples_file : Path, optional
-        A single column txt file containing a list of the samples (one per line) to
-        subset from the genotypes file
-    haplotype_ids: tuple[str], optional
-        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
-
-        If not provided, all haplotypes will be used.
-    chunk_size: int, optional
-        The max number of variants to fetch from the PGEN file at any given time
-
-        If this value is provided, variants from the PGEN file will be loaded in
-        chunks so as to use less memory. This argument is ignored if the genotypes are
-        not in PGEN format.
-    discard_missing : bool, optional
-        Discard any samples that are missing any of the required genotypes
-
-        The default is simply to complain about it
-    output : Path, optional
-        The location to which to write output
-    verbosity : str, optional
-        The level of verbosity desired in messages written to stderr
     """
     import logging
 
