@@ -380,15 +380,27 @@ def transform(
     ),
 )
 @click.option(
-    "-h",
-    "--hap-id",
-    "haplotype_ids",
+    "-i",
+    "--id",
+    "ids",
     type=str,
     multiple=True,
     show_default="all haplotypes",
     help=(
-        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
+        "A list of the haplotype IDs to use from the .hap file (ex: '-i H1 -i H2'). "
+        "Or, if --from-gts, a list of the variant IDs to use from the genotypes file."
         "\nFor this to work, the .hap file must be indexed"
+    ),
+)
+@click.option(
+    "-I",
+    "--ids-file",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A single column txt file containing a list of the haplotype (or variant) IDs "
+        "(one per line) to subset from the .hap (or genotype) file"
     ),
 )
 @click.option(
@@ -405,6 +417,14 @@ def transform(
     show_default=True,
     default=False,
     help="Ignore any samples that are missing genotypes for the required variants",
+)
+@click.option(
+    "--from-gts",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="By default, LD is computed with the haplotypes in the .hap file. Use this "
+    "switch to compute LD with the genotypes in the genotypes file, instead."
 )
 @click.option(
     "-o",
@@ -429,21 +449,23 @@ def ld(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
-    haplotype_ids: tuple[str] = tuple(),
+    ids: tuple[str] = tuple(),
+    ids_file: Path = None,
     chunk_size: int = None,
     discard_missing: bool = False,
+    from_gts: bool = False,
     output: Path = Path("/dev/stdout"),
     verbosity: str = 'CRITICAL',
 ):
     """
-    Compute the pair-wise LD (Pearson's correlation) between haplotypes and a single
-    variant or haplotype
+    Compute the pair-wise LD (Pearson's correlation) between haplotypes (or variants)
+    and a single TARGET haplotype (or variant)
 
     GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
     according to the .hap format spec
 
     TARGET refers to the ID of a variant or haplotype. LD is computed pair-wise between
-    TARGET and all of the other haplotypes in the .hap file
+    TARGET and all of the other haplotypes in the .hap (or genotype) file
 
     If TARGET is a variant ID, the ID must appear in GENOTYPES. Otherwise, it must
     be present in the .hap file
@@ -471,14 +493,17 @@ def ld(
     else:
         samples = None
 
-    if haplotype_ids:
-        haplotype_ids = set(haplotype_ids)
+    if ids_file:
+        with ids_file as id_file:
+            ids = set(id_file.read().splitlines())
+    elif ids:
+        ids = set(ids)
     else:
-        haplotype_ids = None
+        ids = None
 
     calc_ld(
-        target, genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
-        discard_missing, output, log
+        target, genotypes, haplotypes, region, samples, ids, chunk_size,
+        discard_missing, from_gts, output, log
     )
 
 
