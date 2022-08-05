@@ -547,8 +547,6 @@ class Haplotypes(Data):
             extract
 
             Defaults to loading haplotypes from all samples
-
-            For this to work, the .hap file must be indexed
         """
         super().read()
         self.data = {}
@@ -585,8 +583,6 @@ class Haplotypes(Data):
 
             Defaults to loading haplotypes from all samples
 
-            For this to work, the .hap file must be indexed
-
         Yields
         ------
         Iterator[Variant|Haplotype]
@@ -612,7 +608,7 @@ class Haplotypes(Data):
         # if the user requested a specific region or set of haplotypes, then we should
         # handle it using tabix
         # else, we use a regular text opener
-        if region or haplotypes:
+        if region:
             haps_file = TabixFile(str(self.fname))
             self.check_header(list(haps_file.header))
             if region:
@@ -687,13 +683,16 @@ class Haplotypes(Data):
                             header_lines = None
                             self.log.info("Finished reading header.")
                         if line_type == "H":
-                            yield self.types["H"].from_hap_spec(line)
+                            temp_hap = self.types["H"].from_hap_spec(line)
+                            if haplotypes is None or temp_hap.id in haplotypes:
+                                yield temp_hap
                         elif line_type == "V":
                             hap_id, var = self.types["V"].from_hap_spec(line)
-                            # add the haplotype, since otherwise, the user won't know
-                            # which haplotype this variant belongs to
-                            var.hap = hap_id
-                            yield var
+                            if haplotypes is None or hap_id in haplotypes:
+                                # add the haplotype, since otherwise, the user won't
+                                # know which haplotype this variant belongs to
+                                var.hap = hap_id
+                                yield var
                         else:
                             self.log.warning(
                                 f"Ignoring unsupported line type '{line[0]}'"
@@ -722,7 +721,8 @@ class Haplotypes(Data):
 
     def write(self):
         """
-        Write the contents of this Haplotypes object to the file at :py:attr:`~.Haplotypes.fname`
+        Write the contents of this Haplotypes object to the file at
+        :py:attr:`~.Haplotypes.fname`
 
         Examples
         --------

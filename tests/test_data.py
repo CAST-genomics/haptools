@@ -583,10 +583,9 @@ class TestHaplotypes:
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap"))
-        # this should fail with an informative error b/c the file isn't indexed
-        with pytest.raises(OSError) as info:
-            haps.read(haplotypes={"chr21.q.3365*1"})
-        assert len(str(info.value))
+        # this shouldn't fail anymore as of version 0.0.2
+        haps.read(haplotypes={"chr21.q.3365*1"})
+        assert expected == haps.data
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(haplotypes={"chr21.q.3365*1"})
