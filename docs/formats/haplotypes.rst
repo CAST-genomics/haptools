@@ -40,7 +40,7 @@ Metadata lines in the header
 Metadata lines have the following, tab-separated fields:
 
 1. A header symbol ``#``
-2. Metadata name
+2. A unique metadata name
 3. Value(s)
 
 It is best practice to include a metadata line declaring the version of the haplotype format that your file uses. Otherwise, your file will be assumed to use the latest version of the specification, version 0.0.2.
@@ -53,10 +53,7 @@ If you are declaring any extra fields (see the next section), then you should in
 
 .. code-block::
 
-  #	order H	ancestry	beta
-
-..
-  _TODO: figure out how to do this for H and V lines
+  #	orderH	ancestry	beta
 
 Declaring extra fields in the header
 ------------------------------------
