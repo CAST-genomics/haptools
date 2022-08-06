@@ -253,7 +253,7 @@ class TestGenotypes:
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
         pgenlib = pytest.importorskip("pgenlib")
-        gts_ref_alt = TestGenotypes()._get_fake_genotypes_refalt()
+        gts_ref_alt = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
         gts.samples = gts_ref_alt.samples

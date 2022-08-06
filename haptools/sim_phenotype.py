@@ -194,6 +194,7 @@ def simulate_pt(
     prevalence: float = None,
     region: str = None,
     samples: list[str] = None,
+    haplotype_ids: tuple[str] = tuple(),
     chunk_size: int = None,
     output: Path = Path("-"),
     log: Logger = None,
@@ -241,6 +242,10 @@ def simulate_pt(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    haplotype_ids: tuple[str], optional
+        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
     chunk_size: int, optional
         The max number of variants to fetch from the PGEN file at any given time
 
@@ -261,7 +266,7 @@ def simulate_pt(
 
     log.info("Loading haplotypes")
     hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
-    hp.read(region=region)
+    hp.read(region=region, haplotypes=haplotype_ids)
 
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
@@ -278,6 +283,16 @@ def simulate_pt(
     gt.check_missing()
     gt.check_biallelic()
     gt.check_phase()
+
+    # check that all of the variants were loaded successfully and warn otherwise
+    if len(variants) < len(gt.variants):
+        diff = list(variants.difference(gt.variants["id"]))
+        first_few = 5 if len(diff) > 5 else len(diff)
+        log.warning(
+            f"{len(diff)} variants could not be found in the genotypes file. Check "
+            "that the IDs in your .hap file correspond with those in the genotypes "
+            f"file. Here are the first few missing variants: {diff[:first_few]}"
+        )
 
     log.info("Transforming genotypes via haplotypes")
     hp_gt = GenotypesRefAlt(fname=None, log=log)

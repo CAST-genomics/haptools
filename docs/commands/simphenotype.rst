@@ -19,6 +19,8 @@ Usage
    --region TEXT \
    --sample SAMPLE \
    --samples-file FILENAME \
+   --hap-id ID \
+   --chunk-size INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
    GENOTYPES HAPLOTYPES

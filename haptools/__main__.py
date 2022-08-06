@@ -167,6 +167,26 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
     ),
 )
 @click.option(
+    "-h",
+    "--hap-id",
+    "haplotype_ids",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
+        "\nFor this to work, the .hap file must be indexed"
+    ),
+)
+@click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -191,6 +211,7 @@ def simphenotype(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    haplotype_ids: tuple[str] = tuple(),
     chunk_size: int = None,
     output: Path = Path("-"),
     verbosity: str = 'ERROR',
@@ -238,6 +259,10 @@ def simphenotype(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
+    haplotype_ids: tuple[str], optional
+        A list of haplotype IDs to obtain from the .hap file. All others are ignored.
+
+        If not provided, all haplotypes will be used.
     chunk_size: int, optional
         The max number of variants to fetch from the PGEN file at any given time
 
@@ -275,7 +300,7 @@ def simphenotype(
     # Run simulation
     simulate_pt(
         genotypes, haplotypes, replications, heritability, prevalence, region, samples,
-        chunk_size, output, log
+        haplotype_ids, chunk_size, output, log
     )
 
 @main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
@@ -316,7 +341,8 @@ def simphenotype(
 )
 @click.option(
     "-h",
-    "--haplotype-ids",
+    "--hap-id",
+    "haplotype_ids",
     type=str,
     multiple=True,
     show_default="all haplotypes",
