@@ -455,59 +455,103 @@ class Haplotypes(Data):
         haps.read(region, haplotypes)
         return haps
 
-    def check_header(self, lines: list[str], check_version=False):
+    def check_header(
+        self,
+        lines: list[str],
+        check_version=True,
+        softly=False,
+    ) -> dict:
         """
-        Check 1) that the version number matches and 2) that extra fields declared in
-        # the .haps file can be handled by the Variant and Haplotype classes
-        # provided in __init__()
+        1) Check and parse any metadata and 2) check that any extra fields declared in
+        the .haps file can be handled by the Variant and Haplotype classes
+        provided in __init__()
+
+        This function is called automatically by other methods that read .hap files
 
         Parameters
         ----------
         lines: list[str]
-            Header lines from the .hap file
-        check_version: bool = False
+            Header lines from the .hap file. Any lines beginning with # may appear
+            in this list, especially if the file is sorted. So this may include regular
+            comments, too.
+        check_version: bool, optional
             Whether to also check the version of the file
+        softly: bool, optional
+            If True, then this function will not raise any ValueErrors. Instead, it
+            will only issue errors via the logging module, which may be ignored.
 
         Raises
         ------
         ValueError
             If any of the header lines are not supported
+
+        Returns
+        -------
+        The metadata for the file, contained within the header lines and encoded as a
+        dictionary where the names are keys and any subsequent fields are values
         """
-        self.log.info("Checking header")
-        if check_version:
-            version_line = lines[0].split("\t")
-            assert version_line[1] == "version", (
-                "The version of the format spec must be declared as the first line of"
-                " the header."
-            )
-            if version_line[2] != self.version:
-                self.log.warning(
-                    f"The version of the provided .hap file is {version_line} but this"
-                    f" tool expected {self.version}"
-                )
+        # first, set the error messenger depending on the softly parameter
+        if softly:
+            def err_msgr(msg):
+                self.log.error(msg)
+        else:
+            def err_msgr(msg):
+                raise ValueError(msg)
+        # init metadata dict and expected extra fields
+        meta = {}
         expected_lines = [
             line
             for line_type in self.types.values()
             for line in line_type.extras_head()
         ]
+        self.log.info("Checking header")
         for line in lines:
+            # the line could be either a metadata line, an extra-field declaration, or
+            # a humble comment. (In the latter case, we just ignore it)
             if line[1] in self.types.keys():
                 try:
                     expected_lines.remove(line)
                 except ValueError:
                     # extract the name of the extra field
                     name = line.split("\t", maxsplit=2)[1]
-                    raise ValueError(
+                    error_msgr(
                         f"The extra field '{name}' is declared in the header of the"
                         " .hap file but is not accepted by this tool."
                     )
+            elif line[1] == "\t":
+                line = line[2:].split("\t")
+                if check_version and line[0] == "version" and line[1] != self.version:
+                    self.log.debug("Checking .hap format spec version")
+                    # the observed and expected major, minor, and patch versions
+                    o_major, o_minor, o_patch = map(int, line[1].split("."))
+                    e_major, e_minor, e_patch = map(int, self.version.split("."))
+                    if o_major != e_major or o_minor > e_minor:
+                        error_msgr(
+                            f"The version of the provided .hap file is v{line[1]} but "
+                            f"this tool only works with >= v{e_major}.0.x and <= "
+                            f"v{e_major}.{e_minor}.x .hap files"
+                        )
+                    elif o_minor < e_minor:
+                        self.log.warning(
+                            f"The version of the provided .hap file, v{line[1]}, "
+                            f"is outdated. Consider upgrading to v{self.version}"
+                        )
+                    elif o_patch < e_patch:
+                        self.log.warning("There have been bug-fixes to the .hap spec")
+                    meta["version"] = line[1]
+                elif line[0] in ["order"+t for t in self.types.keys()]:
+                    self.log.debug(
+                        f"Storing {line[0][-1]} extra fields in order {*line[1:],}"
+                    )
+                    meta[line[0]] = line[1:]
         # if there are any fields left...
         if expected_lines:
             names = [line.split("\t", maxsplit=2)[1] for line in expected_lines]
-            raise ValueError(
+            error_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
                 f"don't seem to be declared in the header: {*names,}"
             )
+        return meta
 
     def _line_type(self, line: str) -> type:
         """
