@@ -156,7 +156,9 @@ class Variant:
         return "V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}" + extras
 
     @classmethod
-    def from_hap_spec(cls: Variant, line: str) -> tuple[str, Variant]:
+    def from_hap_spec(
+        cls: Variant, line: str, order: tuple[str] = None,
+    ) -> tuple[str, Variant]:
         """
         Convert a variant line into a Variant object in the .hap format spec
 
@@ -167,6 +169,8 @@ class Variant:
         ----------
         line: str
             A variant (V) line from the .hap file
+        order: tuple[str], optional
+            The order of the extra fields if different from the order in _extras
 
         Returns
         -------
@@ -281,7 +285,10 @@ class Haplotype:
 
     @classmethod
     def from_hap_spec(
-        cls: Haplotype, line: str, variants: tuple = tuple()
+        cls: Haplotype,
+        line: str,
+        variants: tuple[Variant] = tuple(),
+        order: tuple[str] = None,
     ) -> Haplotype:
         """
         Convert a variant line into a Haplotype object in the .hap format spec
@@ -293,6 +300,10 @@ class Haplotype:
         ----------
         line: str
             A variant (H) line from the .hap file
+        variants: tuple[Variant], optional
+            The Variants in this haplotype
+        order: tuple[str], optional
+            The order of the extra fields if different from the order in _extras
 
         Returns
         -------
@@ -621,6 +632,30 @@ class Haplotypes(Data):
             self.data[hap].variants = tuple(var_haps[hap])
         self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
+    def _get_extra_types(
+        self, extras: dict[str, tuple[Extra]], order: dict[str, tuple] = None,
+    ) -> dict[str, dict[str. type]]:
+        """
+        Get the types of each extra field, for each line type
+
+        This is a helper function for __iter__()
+
+        Parameters
+        ----------
+        extras: dict[str, tuple[Extra]]
+            For each line type (as the keys), what kinds of extra fields were declared?
+        order: dict[str, tuple], optional
+            For each line type (as the keys), what is the ordering of the extra fields?
+
+        Returns
+        -------
+        dict[str, dict[str. type]]
+            For each line type (as the keys), return a dict mapping each extra field
+            name to its type (ex: str, int, float, etc)
+        """
+        pass
+
+
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
     ) -> Iterator[Variant | Haplotype]:
@@ -663,12 +698,13 @@ class Haplotypes(Data):
         ... ):
         ...     print(line)
         """
-        # if the user requested a specific region or set of haplotypes, then we should
-        # handle it using tabix
+        # if the user requested a specific region, then we should handle it using tabix
         # else, we use a regular text opener
         if region:
             haps_file = TabixFile(str(self.fname))
-            self.check_header(list(haps_file.header))
+            metas, extras = self.check_header(list(haps_file.header))
+            extra_types = self._get_extra_types(extras, metas.get("order"))
+            # TODO: include these extra_types in the final calculation
             if region:
                 region_positions = region.split(":", maxsplit=1)[1]
                 # fetch region
@@ -732,12 +768,16 @@ class Haplotypes(Data):
                             header_lines.append(line)
                         except AttributeError:
                             # this happens when we encounter a line beginning with a #
-                            # after already having seen an H or V line
-                            # in this case, it's usually just a comment, so we can ignore
+                            # after already having seen a valid line type (like H or V)
+                            # These are usually just comment lines, so we can ignore it
                             pass
                     else:
                         if header_lines:
-                            self.check_header(header_lines)
+                            metas, extras = self.check_header(header_lines)
+                            extra_types = self._get_extra_types(
+                                extras, metas.get("order")
+                            )
+                            # TODO: include these extra_types in the final calculation
                             header_lines = None
                             self.log.info("Finished reading header.")
                         if line_type == "H":
