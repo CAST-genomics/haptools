@@ -15,7 +15,7 @@ This is a tab-separated file composed of different types of lines. The first fie
    * - Type
      - Description
    * - #
-     - Comment
+     - Comment/Header
    * - H
      - Haplotype
    * - V
@@ -25,7 +25,9 @@ Each line type (besides ``#``) has a set of mandatory fields described below. Ad
 
 ``#`` Comment line
 ~~~~~~~~~~~~~~~~~~
-Comment lines begin with ``#`` and are ignored. It is best practice to immediately follow all comment lines with a space. Otherwise, the line may be at risk of being interpreted as part of the header, especially if the file is sorted with Unix's ``sort``.
+Comment lines begin with ``#`` and are ignored. They can appear anywhere in a ``.hap`` file.
+
+It is best practice to immediately follow all comment lines with a space. Otherwise, the line may be at risk of being interpreted as part of the header, especially if the file is sorted.
 
 Header line
 ~~~~~~~~~~~
@@ -33,7 +35,7 @@ Header lines begin with ``#`` and must precede all other line types, except for 
 
 There are two types of header lines: those with file metadata and those that declare extra fields.
 
-Header lines themselves can appear in any order as long as the metadata lines precede the extra field declarations.
+Header lines themselves can appear in any order. We recommend putting all of the metadata lines before the extra field declarations, as a best practice.
 
 Metadata lines in the header
 ----------------------------
@@ -43,13 +45,13 @@ Metadata lines have the following, tab-separated fields:
 2. A unique metadata name
 3. Value(s)
 
-It is best practice to include a metadata line declaring the version of the haplotype format that your file uses. Otherwise, your file will be assumed to use the latest version of the specification, version 0.0.2.
+It is best practice to include a metadata line declaring the version of the haplotype format that your file uses. Otherwise, your file will be assumed to use the latest version of the specification.
 
 .. code-block::
 
-  #	version	0.0.2
+  #	version	0.1.0
 
-If you are declaring any extra fields (see the next section), then you should include a metadata line that declares the order of the extra fields. For example, if the ``H`` haplotype lines in your file have two extra fields, "ancestry" and "beta", that appear in that order:
+If you are declaring any extra fields (see the next section), then you should include a metadata line that declares the order of the extra fields. For example, if the ``H`` haplotype lines in your file have two extra fields, "ancestry" and "beta", that appear in that order, you would write
 
 .. code-block::
 
@@ -149,11 +151,11 @@ We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever 
 
 .. code-block:: bash
 
-  sort -k1,4 -o file.hap file.hap
+  LC_ALL=C sort -k1,4 -o file.hap file.hap
   bgzip file.hap
   tabix -s 2 -b 3 -e 4 file.hap.gz
 
-In order to properly index the file, the IDs in the haplotype lines must be different from their chromosomes. In addition, you must sort on the first field (ie the line type symbol) in addition to the latter three.
+In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones. In addition, you must sort on the first field (ie the line type symbol) in addition to the latter three.
 
 Extra fields
 ~~~~~~~~~~~~
@@ -161,7 +163,7 @@ Additional fields can be appended to the ends of the haplotype and variant lines
 
 haptools extras
 ---------------
-The following extra fields should be declared for your ``.hap`` file to be compatible with ``simphenotype``.
+The following extra fields should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
 
 .. code-block::
 
@@ -195,3 +197,18 @@ The following extra fields should be declared for your ``.hap`` file to be compa
 ``V`` Variant
 +++++++++++++
 No extra fields are required here.
+
+Changelog
+~~~~~~~~~
+v0.1.0
+------
+Updates to the header lines in the specification.
+
+We've created a new type of metadata line for specifying the "order" of the extra fields in each line.
+Previously, the order was inferred from the order of the extra-field declarations in the header. Unfortunately, sorting can change that. By specifying the order of the extra fields up-front, you can ensure that the file will be parsed the same regardless of whether it is sorted.
+
+If your ``.hap`` file does not have any extra fields, you can safely bump the version number without changing the file.
+
+v0.0.1
+------
+Initialized the spec! See `PR #43 <https://github.com/gymrek-lab/haptools/pull/43>`_.
