@@ -201,7 +201,7 @@ class Variant:
         return self._fmt.format(**self.__dict__, hap=hap_id)
 
     @classmethod
-    def extras_head(cls) -> tuple:
+    def extras_head(cls) -> set:
         """
         Return the header lines of the extra fields that are supported
 
@@ -210,7 +210,7 @@ class Variant:
         tuple
             The header lines of the extra fields
         """
-        return tuple(extra.to_hap_spec("V") for extra in cls._extras)
+        return set(extra.to_hap_spec("V") for extra in cls._extras)
 
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
@@ -323,7 +323,7 @@ class Haplotype:
         return self._fmt.format(**self.__dict__)
 
     @classmethod
-    def extras_head(cls) -> tuple:
+    def extras_head(cls) -> set:
         """
         Return the header lines of the extra fields that are supported
 
@@ -332,7 +332,7 @@ class Haplotype:
         tuple
             The header lines of the extra fields
         """
-        return tuple(extra.to_hap_spec("H") for extra in cls._extras)
+        return set(extra.to_hap_spec("H") for extra in cls._extras)
 
     def transform(self, genotypes: GenotypesRefAlt) -> npt.NDArray[bool]:
         """
@@ -456,11 +456,8 @@ class Haplotypes(Data):
         return haps
 
     def check_header(
-        self,
-        lines: list[str],
-        check_version=True,
-        softly=False,
-    ) -> dict:
+        self, lines: list[str], check_version=True, softly=False,
+    ) -> tuple[dict, dict[str, tuple[Extra]]]:
         """
         1) Check and parse any metadata and 2) check that any extra fields declared in
         the .haps file can be handled by the Variant and Haplotype classes
@@ -487,8 +484,11 @@ class Haplotypes(Data):
 
         Returns
         -------
-        The metadata for the file, contained within the header lines and encoded as a
-        dictionary where the names are keys and any subsequent fields are values
+        tuple[dict, dict[str, tuple[Extra]]]
+            The metadata for the file, contained within the header lines and encoded as
+            a dictionary where the names are keys and any subsequent fields are values
+
+            The second dictionary encodes the set of declared Extras for each line type
         """
         # first, set the error messenger depending on the softly parameter
         if softly:
@@ -497,61 +497,75 @@ class Haplotypes(Data):
         else:
             def err_msgr(msg):
                 raise ValueError(msg)
-        # init metadata dict and expected extra fields
-        meta = {}
-        expected_lines = [
-            line
-            for line_type in self.types.values()
-            for line in line_type.extras_head()
-        ]
+        # init metadata dict, extra dict, and expected extra fields
+        metas = {}
+        extras = {line_t: [] for line_t, line_type in self.types.items()}
+        exp_extras = {
+            line_t: {line for line in line_type.extras_head()}
+            for line_t, line_type in self.types.items()
+        }
         self.log.info("Checking header")
         for line in lines:
             # the line could be either a metadata line, an extra-field declaration, or
             # a humble comment. (In the latter case, we just ignore it)
-            if line[1] in self.types.keys():
+            if line[2] == "\t" and line[1] in self.types.keys():
+                # try to parse the extra line and store it for later
                 try:
-                    expected_lines.remove(line)
-                except ValueError:
-                    # extract the name of the extra field
-                    name = line.split("\t", maxsplit=2)[1]
+                    extras[line[1]].append(Extra.from_hap_spec(line))
+                except:
+                    # if we can't parse, we just assume this was a comment
+                    self.log.debug(
+                        f"Line '{line}' looks like an extra field declaration, but "
+                        "failed to parse as one. Ignoring for now."
+                    )
+                    continue
+                # now, let's check that this field was expected
+                try:
+                    exp_extras[line[1]].remove(line)
+                except KeyError:
                     error_msgr(
                         f"The extra field '{name}' is declared in the header of the"
                         " .hap file but is not accepted by this tool."
                     )
             elif line[1] == "\t":
-                line = line[2:].split("\t")
-                if check_version and line[0] == "version" and line[1] != self.version:
+                met = line[2:].split("\t")
+                if check_version and met[0] == "version" and met[1] != self.version:
                     self.log.debug("Checking .hap format spec version")
                     # the observed and expected major, minor, and patch versions
-                    o_major, o_minor, o_patch = map(int, line[1].split("."))
+                    o_major, o_minor, o_patch = map(int, met[1].split("."))
                     e_major, e_minor, e_patch = map(int, self.version.split("."))
                     if o_major != e_major or o_minor > e_minor:
                         error_msgr(
-                            f"The version of the provided .hap file is v{line[1]} but "
+                            f"The version of the provided .hap file is v{met[1]} but "
                             f"this tool only works with >= v{e_major}.0.x and <= "
                             f"v{e_major}.{e_minor}.x .hap files"
                         )
                     elif o_minor < e_minor:
                         self.log.warning(
-                            f"The version of the provided .hap file, v{line[1]}, "
+                            f"The version of the provided .hap file, v{met[1]}, "
                             f"is outdated. Consider upgrading to v{self.version}"
                         )
                     elif o_patch < e_patch:
                         self.log.warning("There have been bug-fixes to the .hap spec")
-                    meta["version"] = line[1]
-                elif line[0] in ["order"+t for t in self.types.keys()]:
+                    metas["version"] = met[1]
+                elif met[0] in ["order"+t for t in self.types.keys()]:
                     self.log.debug(
-                        f"Storing {line[0][-1]} extra fields in order {*line[1:],}"
+                        f"Storing {met[0][-1]} extra fields in order {*met[1:],}"
                     )
-                    meta[line[0]] = line[1:]
+                    metas.setdefault("order", {})[met[0][5:]] = tuple(met[1:])
+                else:
+                    self.log.debug(
+                        f"Line '{line}' looks like a metadata line but we could't "
+                        "recognize the metadata name. Ignoring for now."
+                    )
         # if there are any fields left...
-        if expected_lines:
-            names = [line.split("\t", maxsplit=2)[1] for line in expected_lines]
+        if any(exp_extras.values()):
+            names = [line.split("\t", maxsplit=2)[1] for line in exp_extras]
             error_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
                 f"don't seem to be declared in the header: {*names,}"
             )
-        return meta
+        return metas, extras
 
     def _line_type(self, line: str) -> type:
         """
