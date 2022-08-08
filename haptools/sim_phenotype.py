@@ -9,12 +9,12 @@ import numpy.typing as npt
 
 from .data import Haplotype as HaplotypeBase
 from .data import (
+    Extra,
     Genotypes,
-    GenotypesRefAlt,
-    GenotypesPLINK,
     Phenotypes,
     Haplotypes,
-    Extra
+    GenotypesPLINK,
+    GenotypesRefAlt,
 )
 
 

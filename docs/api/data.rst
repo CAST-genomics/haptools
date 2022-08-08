@@ -304,7 +304,27 @@ The :class:`Haplotypes` class will initialize :class:`Haplotype` objects in its 
 1. ``from_hap_spec()`` - this static method initializes a Haplotype object from a line in the **.hap** file.
 2. ``to_hap_spec()`` - this method converts a Haplotype object into a line in the **.hap** file
 
-To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Haplotype` class and add the extra properties.
+To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Haplotype` class and add the extra properties that you want to load. For example, let's add an extra field called "ancestry" that is encoded as a string.
+
+.. code-block:: python
+
+    from dataclasses import dataclass, field
+    from haptools.data import Haplotype, Extra
+
+    @dataclass
+    class CustomHaplotype(Haplotype):
+        score: float
+        _extras: tuple = field(
+            repr=False,
+            init=False,
+            default=(
+                Extra("ancestry", "s", "Local ancestry"),
+            ),
+        )
+
+    haps = Haplotypes("file.hap", haplotype=CustomHaplotype)
+    haps.read()
+    haps.write()
 
 Variant
 +++++++
@@ -315,7 +335,27 @@ The :class:`Haplotypes` class will initialize :class:`Variant` objects in its ``
 1. ``from_hap_spec()`` - this static method initializes a :class:`Variant` object from a line in the **.hap** file.
 2. ``to_hap_spec()`` - this method converts a :class:`Variant` object into a line in the **.hap** file
 
-To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Variant` class and add the extra properties.
+To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Variant` class and add the extra properties that you want to load. For example, let's add an extra field called "score" that is encoded as a float with a precision of three decimal places.
+
+.. code-block:: python
+
+    from dataclasses import dataclass, field
+    from haptools.data import Haplotype, Extra
+
+    @dataclass
+    class CustomVariant(Variant):
+        score: float
+        _extras: tuple = field(
+            repr=False,
+            init=False,
+            default=(
+                Extra("score", ".3f", "Importance of inclusion"),
+            ),
+        )
+
+    haps = Haplotypes("file.hap", variant=CustomVariant)
+    haps.read()
+    haps.write()
 
 phenotypes.py
 ~~~~~~~~~~~~~

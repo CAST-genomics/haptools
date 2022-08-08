@@ -129,8 +129,12 @@ class Variant:
     >>> @dataclass
     >>> class CustomVariant(Variant):
     ...     score: float
-    ...     _extras: tuple = (
-    ...         Extra("score", ".3f", "Importance of inclusion"),
+    ...     _extras: tuple = field(
+    ...         repr=False,
+    ...         init=False,
+    ...         default = (
+    ...             Extra("score", ".3f", "Importance of inclusion"),
+    ...         ),
     ...     )
     """
 
@@ -251,8 +255,12 @@ class Haplotype:
     >>> @dataclass
     >>> class CustomHaplotype(Haplotype):
     ...     ancestry: str
-    ...     _extras: tuple = (
-    ...         Extra("ancestry", "s", "Local ancestry"),
+    ...     _extras: tuple = field(
+    ...         repr=False,
+    ...         init=False,
+    ...         default = (
+    ...             Extra("ancestry", "s", "Local ancestry"),
+    ...         ),
     ...     )
     """
 
