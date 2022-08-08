@@ -542,30 +542,31 @@ class Haplotypes(Data):
                 try:
                     exp_extras[line[1]].remove(line)
                 except KeyError:
-                    error_msgr(
+                    err_msgr(
                         f"The extra field '{name}' is declared in the header of the"
                         " .hap file but is not accepted by this tool."
                     )
             elif line[1] == "\t":
                 met = line[2:].split("\t")
-                if check_version and met[0] == "version" and met[1] != self.version:
+                if check_version and met[0] == "version":
                     self.log.debug("Checking .hap format spec version")
-                    # the observed and expected major, minor, and patch versions
-                    o_major, o_minor, o_patch = map(int, met[1].split("."))
-                    e_major, e_minor, e_patch = map(int, self.version.split("."))
-                    if o_major != e_major or o_minor > e_minor:
-                        error_msgr(
-                            f"The version of the provided .hap file is v{met[1]} but "
-                            f"this tool only works with >= v{e_major}.0.x and <= "
-                            f"v{e_major}.{e_minor}.x .hap files"
-                        )
-                    elif o_minor < e_minor:
-                        self.log.warning(
-                            f"The version of the provided .hap file, v{met[1]}, "
-                            f"is outdated. Consider upgrading to v{self.version}"
-                        )
-                    elif o_patch < e_patch:
-                        self.log.warning("There have been bug-fixes to the .hap spec")
+                    if met[1] != self.version:
+                        # the observed and expected major, minor, and patch versions
+                        o_major, o_minor, o_patch = map(int, met[1].split("."))
+                        e_major, e_minor, e_patch = map(int, self.version.split("."))
+                        if o_major != e_major or o_minor > e_minor:
+                            err_msgr(
+                                f"The version of the provided .hap file is v{met[1]} "
+                                f"but this tool only works with >= v{e_major}.0.x and "
+                                f"<= v{e_major}.{e_minor}.x .hap files"
+                            )
+                        elif o_minor < e_minor:
+                            self.log.warning(
+                                f"The version of the provided .hap file, v{met[1]}, "
+                                f"is outdated. Consider upgrading to v{self.version}"
+                            )
+                        elif o_patch < e_patch:
+                            self.log.warning("There have been fixes to the .hap spec")
                     metas["version"] = met[1]
                 elif met[0] in ["order"+t for t in self.types.keys()]:
                     self.log.debug(
