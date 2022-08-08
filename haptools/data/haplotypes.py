@@ -95,6 +95,20 @@ class Extra:
         return "{" + self.name + ":" + self.fmt + "}"
 
 
+class classproperty(object):
+    """
+    A daad-simple read-only decorator that combines the functionality of
+    @classmethod and @property
+
+    Stolen from https://stackoverflow.com/a/13624858/16815703
+    """
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, owner_self, owner_cls):
+        return self.fget(owner_cls)
+
+
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
 @dataclass
@@ -159,9 +173,25 @@ class Variant:
             extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
         return "V\t{hap:s}\t{start:d}\t{end:d}\t{id:s}\t{allele:s}" + extras
 
+    @classproperty
+    # TODO: use @cached_property in py3.8
+    def types(cls) -> dict[str, type]:
+        """
+        Obtain the types of each property in the object
+
+        Returns
+        -------
+        dict[str, type]
+            A mapping of each property in the object to its type
+        """
+        return {
+            k:v for k, v in get_type_hints(cls).items()
+            if not k.startswith("_")
+        }
+
     @classmethod
     def from_hap_spec(
-        cls: Variant, line: str, order: tuple[str] = None,
+        cls: Variant, line: str, types: dict[str, type] = None,
     ) -> tuple[str, Variant]:
         """
         Convert a variant line into a Variant object in the .hap format spec
@@ -173,7 +203,7 @@ class Variant:
         ----------
         line: str
             A variant (V) line from the .hap file
-        order: tuple[str], optional
+        types: dict[str, type], optional
             The order of the extra fields if different from the order in _extras
 
         Returns
@@ -184,12 +214,12 @@ class Variant:
         assert line[0] == "V", "Attempting to init a Variant with a non-V line"
         line = line[2:].split("\t")
         hap_id = line[0]
-        var_fields = {}
-        idx = 1
-        for name, val in get_type_hints(cls).items():
-            if not name.startswith("_"):
-                var_fields[name] = val(line[idx])
-                idx += 1
+        line = line[1:]
+        types = types or cls.types
+        var_fields = {
+            name: val(line[idx])
+            for idx, (name, val) in enumerate(types.items())
+        }
         return hap_id, cls(**var_fields)
 
     def to_hap_spec(self, hap_id: str) -> str:
@@ -219,6 +249,18 @@ class Variant:
             The header lines of the extra fields
         """
         return set(extra.to_hap_spec("V") for extra in cls._extras)
+
+    @classmethod
+    def extras_order(cls) -> tuple[str]:
+        """
+        The names of the extra fields in order
+
+        Returns
+        -------
+        tuple[str]
+            The names of the extra fields in the order in which they are stored
+        """
+        return tuple(extra.name for extra in cls._extras)
 
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
@@ -291,12 +333,28 @@ class Haplotype:
     def varIDs(self):
         return tuple(var.id for var in self.variants)
 
+    @classproperty
+    # TODO: use @cached_property in py3.8
+    def types(cls) -> dict[str, type]:
+        """
+        Obtain the types of each property in the object
+
+        Returns
+        -------
+        dict[str, type]
+            A mapping of each property in the object to its type
+        """
+        return {
+            k:v for k, v in get_type_hints(cls).items()
+            if not (k.startswith("_") or k == "variants")
+        }
+
     @classmethod
     def from_hap_spec(
         cls: Haplotype,
         line: str,
         variants: tuple[Variant] = tuple(),
-        order: tuple[str] = None,
+        types: dict[str, type] = None,
     ) -> Haplotype:
         """
         Convert a variant line into a Haplotype object in the .hap format spec
@@ -310,8 +368,8 @@ class Haplotype:
             A variant (H) line from the .hap file
         variants: tuple[Variant], optional
             The Variants in this haplotype
-        order: tuple[str], optional
-            The order of the extra fields if different from the order in _extras
+        types: dict[str, type], optional
+            The types of each property in the object
 
         Returns
         -------
@@ -320,12 +378,11 @@ class Haplotype:
         """
         assert line[0] == "H", "Attempting to init a Haplotype with a non-H line"
         line = line[2:].split("\t")
-        hap_fields = {}
-        idx = 0
-        for name, val in get_type_hints(cls).items():
-            if name != "variants" and not name.startswith("_"):
-                hap_fields[name] = val(line[idx])
-                idx += 1
+        types = types or cls.types
+        hap_fields = {
+            name: val(line[idx])
+            for idx, (name, val) in enumerate(types.items())
+        }
         hap = cls(**hap_fields)
         hap.variants = variants
         return hap
@@ -352,6 +409,18 @@ class Haplotype:
             The header lines of the extra fields
         """
         return set(extra.to_hap_spec("H") for extra in cls._extras)
+
+    @classmethod
+    def extras_order(cls) -> tuple[str]:
+        """
+        The names of the extra fields in order
+
+        Returns
+        -------
+        tuple[str]
+            The names of the extra fields in the order in which they are stored
+        """
+        return tuple(extra.name for extra in cls._extras)
 
     def transform(self, genotypes: GenotypesRefAlt) -> npt.NDArray[bool]:
         """
@@ -442,7 +511,7 @@ class Haplotypes(Data):
         super().__init__(fname, log)
         self.data = None
         self.types = {"H": haplotype, "V": variant}
-        self.version = "0.0.1"
+        self.version = "0.1.0"
 
     @classmethod
     def load(
@@ -641,11 +710,11 @@ class Haplotypes(Data):
             self.data[hap].variants = tuple(var_haps[hap])
         self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
-    def _get_extra_types(
+    def _get_field_types(
         self, extras: dict[str, tuple[Extra]], order: dict[str, tuple] = None,
     ) -> dict[str, dict[str. type]]:
         """
-        Get the types of each extra field, for each line type
+        Get the types of each field in a line, for each line type
 
         This is a helper function for __iter__()
 
@@ -658,11 +727,25 @@ class Haplotypes(Data):
 
         Returns
         -------
-        dict[str, dict[str. type]]
+        dict[str, dict[str, type]]
             For each line type (as the keys), return a dict mapping each extra field
             name to its type (ex: str, int, float, etc)
+
+            The items are returned in the order that they appear in either the extras
+            or order parameters
         """
-        pass
+        types = {}
+        for symbol, line_type in self.types.items():
+            types[symbol] = line_type.types
+            if order is not None and symbol in order:
+                extras_order = order[symbol]
+            else:
+                extras_order = tuple(extra.name for extra in extras[symbol])
+            for extra in extras_order:
+                # remove the extra from types[symbol] and then add it back in again
+                # so that the extras appear in the same order as extras_order
+                types[symbol][extra] = types[symbol].pop(extra)
+        return types
 
 
     def __iter__(
@@ -712,15 +795,14 @@ class Haplotypes(Data):
         if region:
             haps_file = TabixFile(str(self.fname))
             metas, extras = self.check_header(list(haps_file.header))
-            extra_types = self._get_extra_types(extras, metas.get("order"))
-            # TODO: include these extra_types in the final calculation
+            types = self._get_field_types(extras, metas.get("order"))
             if region:
                 region_positions = region.split(":", maxsplit=1)[1]
                 # fetch region
                 # we already know that each line will start with an H, so we don't
                 # need to check that
                 for line in haps_file.fetch(region):
-                    hap = self.types["H"].from_hap_spec(line)
+                    hap = self.types["H"].from_hap_spec(line, types=types["H"])
                     if haplotypes is not None:
                         if hap.id not in haplotypes:
                             continue
@@ -731,7 +813,7 @@ class Haplotypes(Data):
                     # we only want lines that start with an H
                     line_type = self._line_type(line)
                     if line_type == "H":
-                        hap = self.types["H"].from_hap_spec(line)
+                        hap = self.types["H"].from_hap_spec(line, types=types["H"])
                         if hap.id in haplotypes:
                             yield hap
                             haplotypes.remove(hap.id)
@@ -752,7 +834,7 @@ class Haplotypes(Data):
                 for line in haps_file.fetch(hap_region):
                     line_type = self._line_type(line)
                     if line_type == "V":
-                        var = self.types["V"].from_hap_spec(line)[1]
+                        var = self.types["V"].from_hap_spec(line, types=types["V"])[1]
                         # add the haplotype, since otherwise, the user won't know
                         # which haplotype this variant belongs to
                         var.hap = hap_id
@@ -783,18 +865,15 @@ class Haplotypes(Data):
                     else:
                         if header_lines:
                             metas, extras = self.check_header(header_lines)
-                            extra_types = self._get_extra_types(
-                                extras, metas.get("order")
-                            )
-                            # TODO: include these extra_types in the final calculation
+                            types = self._get_field_types(extras, metas.get("order"))
                             header_lines = None
                             self.log.info("Finished reading header.")
                         if line_type == "H":
-                            temp_hap = self.types["H"].from_hap_spec(line)
+                            temp_hap = self.types["H"].from_hap_spec(line, types=types["H"])
                             if haplotypes is None or temp_hap.id in haplotypes:
                                 yield temp_hap
                         elif line_type == "V":
-                            hap_id, var = self.types["V"].from_hap_spec(line)
+                            hap_id, var = self.types["V"].from_hap_spec(line, types=types["V"])
                             if haplotypes is None or hap_id in haplotypes:
                                 # add the haplotype, since otherwise, the user won't
                                 # know which haplotype this variant belongs to
@@ -814,9 +893,11 @@ class Haplotypes(Data):
         Generator[str, None, None]
             A list of lines (strings) to include in the output
         """
+        for symbol, line_instance in self.types.items():
+            yield f"#\torder\t{symbol}" + "\t".join(line_instance.extras_order())
         yield "#\tversion\t" + self.version
-        for line_type in self.types:
-            yield from self.types[line_type].extras_head()
+        for line_instance in self.types.values():
+            yield from line_instance.extras_head()
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
         for hap in self.data.values():
