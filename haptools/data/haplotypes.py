@@ -102,6 +102,7 @@ class classproperty(object):
 
     Stolen from https://stackoverflow.com/a/13624858/16815703
     """
+
     def __init__(self, fget):
         self.fget = fget
 
@@ -184,14 +185,13 @@ class Variant:
         dict[str, type]
             A mapping of each property in the object to its type
         """
-        return {
-            k:v for k, v in get_type_hints(cls).items()
-            if not k.startswith("_")
-        }
+        return {k: v for k, v in get_type_hints(cls).items() if not k.startswith("_")}
 
     @classmethod
     def from_hap_spec(
-        cls: Variant, line: str, types: dict[str, type] = None,
+        cls: Variant,
+        line: str,
+        types: dict[str, type] = None,
     ) -> tuple[str, Variant]:
         """
         Convert a variant line into a Variant object in the .hap format spec
@@ -217,8 +217,7 @@ class Variant:
         line = line[1:]
         types = types or cls.types
         var_fields = {
-            name: val(line[idx])
-            for idx, (name, val) in enumerate(types.items())
+            name: val(line[idx]) for idx, (name, val) in enumerate(types.items())
         }
         return hap_id, cls(**var_fields)
 
@@ -345,7 +344,8 @@ class Haplotype:
             A mapping of each property in the object to its type
         """
         return {
-            k:v for k, v in get_type_hints(cls).items()
+            k: v
+            for k, v in get_type_hints(cls).items()
             if not (k.startswith("_") or k == "variants")
         }
 
@@ -380,8 +380,7 @@ class Haplotype:
         line = line[2:].split("\t")
         types = types or cls.types
         hap_fields = {
-            name: val(line[idx])
-            for idx, (name, val) in enumerate(types.items())
+            name: val(line[idx]) for idx, (name, val) in enumerate(types.items())
         }
         hap = cls(**hap_fields)
         hap.variants = variants
@@ -544,7 +543,10 @@ class Haplotypes(Data):
         return haps
 
     def check_header(
-        self, lines: list[str], check_version=True, softly=False,
+        self,
+        lines: list[str],
+        check_version=True,
+        softly=False,
     ) -> tuple[dict, dict[str, tuple[Extra]]]:
         """
         1) Check and parse any metadata and 2) check that any extra fields declared in
@@ -580,11 +582,15 @@ class Haplotypes(Data):
         """
         # first, set the error messenger depending on the softly parameter
         if softly:
+
             def err_msgr(msg):
                 self.log.error(msg)
+
         else:
+
             def err_msgr(msg):
                 raise ValueError(msg)
+
         # init metadata dict, extra dict, and expected extra fields
         metas = {}
         extras = {line_t: [] for line_t, line_type in self.types.items()}
@@ -638,7 +644,7 @@ class Haplotypes(Data):
                         elif o_patch < e_patch:
                             self.log.warning("There have been fixes to the .hap spec")
                     metas["version"] = met[1]
-                elif met[0] in ["order"+t for t in self.types.keys()]:
+                elif met[0] in ["order" + t for t in self.types.keys()]:
                     self.log.debug(
                         f"Storing {met[0][-1]} extra fields in order {*met[1:],}"
                     )
@@ -712,8 +718,10 @@ class Haplotypes(Data):
         self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
     def _get_field_types(
-        self, extras: dict[str, tuple[Extra]], order: dict[str, tuple] = None,
-    ) -> dict[str, dict[str. type]]:
+        self,
+        extras: dict[str, tuple[Extra]],
+        order: dict[str, tuple] = None,
+    ) -> dict[str, dict[str.type]]:
         """
         Get the types of each field in a line, for each line type
 
@@ -747,7 +755,6 @@ class Haplotypes(Data):
                 # so that the extras appear in the same order as extras_order
                 types[symbol][extra] = types[symbol].pop(extra)
         return types
-
 
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
@@ -870,11 +877,15 @@ class Haplotypes(Data):
                             header_lines = None
                             self.log.info("Finished reading header.")
                         if line_type == "H":
-                            temp_hap = self.types["H"].from_hap_spec(line, types=types["H"])
+                            temp_hap = self.types["H"].from_hap_spec(
+                                line, types=types["H"]
+                            )
                             if haplotypes is None or temp_hap.id in haplotypes:
                                 yield temp_hap
                         elif line_type == "V":
-                            hap_id, var = self.types["V"].from_hap_spec(line, types=types["V"])
+                            hap_id, var = self.types["V"].from_hap_spec(
+                                line, types=types["V"]
+                            )
                             if haplotypes is None or hap_id in haplotypes:
                                 # add the haplotype, since otherwise, the user won't
                                 # know which haplotype this variant belongs to

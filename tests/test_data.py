@@ -7,14 +7,15 @@ import numpy.lib.recfunctions as rfn
 
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
+    Extra,
+    Variant,
+    Haplotype,
     Genotypes,
-    GenotypesRefAlt,
-    GenotypesPLINK,
     Phenotypes,
     Covariates,
     Haplotypes,
-    Variant,
-    Haplotype,
+    GenotypesRefAlt,
+    GenotypesPLINK,
 )
 
 
@@ -583,7 +584,7 @@ class TestHaplotypes:
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap"))
-        # this shouldn't fail anymore as of version 0.0.2
+        # this shouldn't fail anymore as of version 0.1.0
         haps.read(haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
