@@ -202,7 +202,7 @@ Changelog
 ~~~~~~~~~
 v0.1.0
 ------
-Updates to the header lines in the specification.
+Updates to the header lines in the specification. See `PR #80 <https://github.com/gymrek-lab/haptools/pull/80>`_.
 
 We've created a new type of metadata line for specifying the "order" of the extra fields in each line.
 Previously, the order was inferred from the order of the extra-field declarations in the header. Unfortunately, sorting can change that. By specifying the order of the extra fields up-front, you can ensure that the file will be parsed the same regardless of whether it is sorted.

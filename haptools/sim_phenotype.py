@@ -1,8 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
 from itertools import combinations
-from logging import getLogger, Logger, DEBUG
 from dataclasses import dataclass, field
+from logging import getLogger, Logger, DEBUG
 
 import numpy as np
 import numpy.typing as npt

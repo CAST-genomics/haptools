@@ -608,6 +608,7 @@ class Haplotypes(Data):
                     )
                     continue
                 # now, let's check that this field was expected
+                name = extras[line[1]][-1].name
                 try:
                     exp_extras[line[1]].remove(line)
                 except KeyError:
@@ -894,7 +895,7 @@ class Haplotypes(Data):
             A list of lines (strings) to include in the output
         """
         for symbol, line_instance in self.types.items():
-            yield f"#\torder\t{symbol}" + "\t".join(line_instance.extras_order())
+            yield f"#\torder\t{symbol}\t" + "\t".join(line_instance.extras_order())
         yield "#\tversion\t" + self.version
         for line_instance in self.types.values():
             yield from line_instance.extras_head()
