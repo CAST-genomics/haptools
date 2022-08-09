@@ -906,7 +906,9 @@ class Haplotypes(Data):
             A list of lines (strings) to include in the output
         """
         for symbol, line_instance in self.types.items():
-            yield f"#\torder\t{symbol}\t" + "\t".join(line_instance.extras_order())
+            extras_order = line_instance.extras_order()
+            if extras_order:
+                yield f"#\torder{symbol}\t" + "\t".join(line_instance.extras_order())
         yield "#\tversion\t" + self.version
         for line_instance in self.types.values():
             yield from line_instance.extras_head()

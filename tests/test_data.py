@@ -643,8 +643,7 @@ class TestHaplotypes:
         # remove the file
         os.remove("tests/data/test.hap")
 
-    def test_write_extras(self):
-        # what do we expect to see from the simphenotype.hap file?
+    def _get_writable_haplotypes(self):
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
                 "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
@@ -658,6 +657,11 @@ class TestHaplotypes:
         }
         for hap_id, hap in self._basic_haps().items():
             expected[hap_id].variants = hap.variants
+        return expected
+
+    def test_write_extras(self):
+        # what do we expect to see from the test.hap file?
+        expected = self._get_writable_haplotypes()
 
         haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
         haps.data = expected
