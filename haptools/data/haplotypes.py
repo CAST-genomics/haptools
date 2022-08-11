@@ -509,6 +509,8 @@ class Haplotypes(Data):
     ):
         super().__init__(fname, log)
         self.data = None
+        # note: it's important that self.types is created such that its keys are sorted
+        # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant}
         self.version = "0.1.0"
 
@@ -911,7 +913,7 @@ class Haplotypes(Data):
                 yield f"#\torder{symbol}\t" + "\t".join(line_instance.extras_order())
         yield "#\tversion\t" + self.version
         for line_instance in self.types.values():
-            yield from line_instance.extras_head()
+            yield from sorted(line_instance.extras_head())
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
         for hap in self.data.values():
@@ -925,6 +927,9 @@ class Haplotypes(Data):
         """
         Write the contents of this Haplotypes object to the file at
         :py:attr:`~.Haplotypes.fname`
+
+        If the items in :py:attr:`~.Haplotypes.data` are sorted, the output should be
+        automatically sorted such that "sort -k1,4" would leave the output unchanged
 
         Examples
         --------
