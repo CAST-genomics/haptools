@@ -551,7 +551,7 @@ class Haplotypes(Data):
         lines: list[str],
         check_version=True,
         softly=False,
-    ) -> tuple[dict, dict[str, tuple[Extra]]]:
+    ) -> tuple[dict, dict[str, tuple[str]]]:
         """
         1) Check and parse any metadata and 2) check that any extra fields declared in
         the .haps file can be handled by the Variant and Haplotype classes
@@ -582,7 +582,8 @@ class Haplotypes(Data):
             The metadata for the file, contained within the header lines and encoded as
             a dictionary where the names are keys and any subsequent fields are values
 
-            The second dictionary encodes the set of declared Extras for each line type
+            The second dictionary encodes the set of declared extra field names for
+            each line type
         """
         # first, set the error messenger depending on the softly parameter
         if softly:
@@ -599,7 +600,7 @@ class Haplotypes(Data):
         metas = {}
         extras = {line_t: [] for line_t, line_type in self.types.items()}
         exp_extras = {
-            line_t: {line for line in line_type.extras_head()}
+            line_t: {name for name in line_type.extras_order()}
             for line_t, line_type in self.types.items()
         }
         self.log.info("Checking header")
@@ -607,9 +608,10 @@ class Haplotypes(Data):
             # the line could be either a metadata line, an extra-field declaration, or
             # a humble comment. (In the latter case, we just ignore it)
             if line[2] == "\t" and line[1] in self.types.keys():
+                line_t = line[1]
                 # try to parse the extra line and store it for later
                 try:
-                    extras[line[1]].append(Extra.from_hap_spec(line))
+                    extras[line_t].append(Extra.from_hap_spec(line).name)
                 except:
                     # if we can't parse, we just assume this was a comment
                     self.log.debug(
@@ -618,7 +620,7 @@ class Haplotypes(Data):
                     )
                     continue
                 # now, let's check that this field was expected
-                exp_extras[line[1]].discard(line)
+                exp_extras[line_t].discard(extras[line_t][-1])
             elif line[1] == "\t":
                 met = line[2:].split("\t")
                 if check_version and met[0] == "version":
@@ -653,7 +655,7 @@ class Haplotypes(Data):
                     )
         # if there are any fields left...
         if any(exp_extras.values()):
-            names = [line.split("\t", maxsplit=2)[1] for line in exp_extras]
+            names = [n for name in exp_extras.values() for n in name]
             error_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
                 f"don't seem to be declared in the header: {*names,}"
@@ -716,7 +718,7 @@ class Haplotypes(Data):
 
     def _get_field_types(
         self,
-        extras: dict[str, tuple[Extra]],
+        extras: dict[str, tuple[str]],
         order: dict[str, tuple] = None,
     ) -> dict[str, dict[str.type]]:
         """
@@ -726,7 +728,7 @@ class Haplotypes(Data):
 
         Parameters
         ----------
-        extras: dict[str, tuple[Extra]]
+        extras: dict[str, tuple[str]]
             For each line type (as the keys), what kinds of extra fields were declared?
         order: dict[str, tuple], optional
             For each line type (as the keys), what is the ordering of the extra fields?
@@ -748,7 +750,7 @@ class Haplotypes(Data):
             if order is not None and symbol in order:
                 extras_order = order[symbol]
             else:
-                extras_order = tuple(extra.name for extra in extras[symbol])
+                extras_order = extras[symbol]
             for extra in extras_order:
                 try:
                     # remove the extra from types[symbol] and then add it back in again
