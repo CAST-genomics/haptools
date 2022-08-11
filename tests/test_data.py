@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from dataclasses import dataclass, field
 
 import pytest
 import numpy as np
@@ -575,9 +576,16 @@ class TestHaplotypes:
         return haps
 
     def test_load(self):
+        expected = self._basic_haps()
+
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
-        assert self._basic_haps() == haps.data
+        assert expected == haps.data
+
+        # also check the indexed file
+        # it should be the same
+        haps = Haplotypes.load(DATADIR.joinpath("basic.hap.gz"))
+        assert expected == haps.data
 
     def test_read_subset(self):
         expected = {}
@@ -670,6 +678,51 @@ class TestHaplotypes:
         haps.data = None
         haps.read()
         assert expected == haps.data
+
+        # remove the file
+        os.remove("tests/data/test.hap")
+
+    def test_write_plus_extra(self):
+        @dataclass
+        class HaplotypePlusExtra(HaptoolsHaplotype):
+            """
+            A haplotype with an additional, unnecessary extra field
+
+            Properties and functions are shared with the HaptoolsHaplotype object
+            """
+
+            score: float
+            _extras: tuple = field(
+                repr=False,
+                init=False,
+                default=(
+                    Extra("ancestry", "s", "Local ancestry"),
+                    Extra("score", ".2f", "Score for a thing"),
+                    Extra("beta", ".2f", "Effect size in linear model"),
+                ),
+            )
+        # what do we want to write to the test.hap file?
+        expected = {
+            "chr21.q.3365*1": HaplotypePlusExtra(
+                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73, 0.40
+            ),
+            "chr21.q.3365*10": HaplotypePlusExtra(
+                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30, 0.28
+            ),
+            "chr21.q.3365*11": HaplotypePlusExtra(
+                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49, 0.84
+            ),
+        }
+        for hap_id, hap in self._basic_haps().items():
+            expected[hap_id].variants = hap.variants
+
+        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaplotypePlusExtra)
+        haps.data = expected
+        haps.write()
+
+        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
+        haps.read()
+        assert haps.data == self._get_writable_haplotypes()
 
         # remove the file
         os.remove("tests/data/test.hap")
