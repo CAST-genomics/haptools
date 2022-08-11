@@ -218,6 +218,7 @@ class Variant:
         types = types or cls.types
         var_fields = {
             name: val(line[idx]) for idx, (name, val) in enumerate(types.items())
+            if val is not None
         }
         return hap_id, cls(**var_fields)
 
@@ -381,6 +382,7 @@ class Haplotype:
         types = types or cls.types
         hap_fields = {
             name: val(line[idx]) for idx, (name, val) in enumerate(types.items())
+            if val is not None
         }
         hap = cls(**hap_fields)
         hap.variants = variants
@@ -616,14 +618,7 @@ class Haplotypes(Data):
                     )
                     continue
                 # now, let's check that this field was expected
-                name = extras[line[1]][-1].name
-                try:
-                    exp_extras[line[1]].remove(line)
-                except KeyError:
-                    err_msgr(
-                        f"The extra field '{name}' is declared in the header of the"
-                        " .hap file but is not accepted by this tool."
-                    )
+                exp_extras[line[1]].discard(line)
             elif line[1] == "\t":
                 met = line[2:].split("\t")
                 if check_version and met[0] == "version":
@@ -742,6 +737,8 @@ class Haplotypes(Data):
             For each line type (as the keys), return a dict mapping each extra field
             name to its type (ex: str, int, float, etc)
 
+            Extra fields that are not requested will be included with a type of None
+
             The items are returned in the order that they appear in either the extras
             or order parameters
         """
@@ -753,9 +750,16 @@ class Haplotypes(Data):
             else:
                 extras_order = tuple(extra.name for extra in extras[symbol])
             for extra in extras_order:
-                # remove the extra from types[symbol] and then add it back in again
-                # so that the extras appear in the same order as extras_order
-                types[symbol][extra] = types[symbol].pop(extra)
+                try:
+                    # remove the extra from types[symbol] and then add it back in again
+                    # so that the extras appear in the same order as extras_order
+                    types[symbol][extra] = types[symbol].pop(extra)
+                except KeyError:
+                    self.log.debug(
+                        f"Ignoring extra field '{extra}' that is unnecessary for "
+                        "running this tool"
+                    )
+                    types[symbol][extra] = None
         return types
 
     def __iter__(
