@@ -217,7 +217,8 @@ class Variant:
         line = line[1:]
         types = types or cls.types
         var_fields = {
-            name: val(line[idx]) for idx, (name, val) in enumerate(types.items())
+            name: val(line[idx])
+            for idx, (name, val) in enumerate(types.items())
             if val is not None
         }
         return hap_id, cls(**var_fields)
@@ -381,7 +382,8 @@ class Haplotype:
         line = line[2:].split("\t")
         types = types or cls.types
         hap_fields = {
-            name: val(line[idx]) for idx, (name, val) in enumerate(types.items())
+            name: val(line[idx])
+            for idx, (name, val) in enumerate(types.items())
             if val is not None
         }
         hap = cls(**hap_fields)
@@ -953,9 +955,10 @@ class Haplotypes(Data):
             yield from sorted(line_instance.extras_head())
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
-        for hap_id in (sorted(self.data) if sort else self.data):
+        sorted_hap_ids = sorted(self.data.keys()) if sort else self.data.keys()
+        for hap_id in sorted_hap_ids:
             for var in self.data[hap_id].variants:
-                yield self.types["V"].to_hap_spec(var, hap.id)
+                yield self.types["V"].to_hap_spec(var, hap_id)
 
     def __repr__(self):
         return "\n".join(self.to_str())
@@ -965,8 +968,8 @@ class Haplotypes(Data):
         Write the contents of this Haplotypes object to the file at
         :py:attr:`~.Haplotypes.fname`
 
-        If the items in :py:attr:`~.Haplotypes.data` are sorted, the output should be
-        automatically sorted such that "sort -k1,4" would leave the output unchanged
+        If the items in :py:attr:`~.Haplotypes.data` are sorted, then the output should
+        be automatically sorted such that "sort -k1,4" would leave the output unchanged
 
         Examples
         --------
