@@ -33,6 +33,7 @@
 
    api/data
    api/modules
+   api/examples
 
 .. toctree::
    :caption: Project Info

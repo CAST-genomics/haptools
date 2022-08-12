@@ -281,7 +281,7 @@ To write to a **.hap** file, you must first initialize a :class:`Haplotypes` obj
 	haplotypes = data.Haplotypes('tests/data/example-write.hap')
 	haplotypes.data = {}
 	haplotypes.data['H1'] = Haplotype(chrom='chr1', start=0, end=10, id='H1')
-	haplotypes.data['H1'].variants = [Variant(start=0, end=1, id='rs123', allele='A')]
+	haplotypes.data['H1'].variants = (Variant(start=0, end=1, id='rs123', allele='A'),)
 	haplotypes.write()
 
 Obtaining haplotype "genotypes"
