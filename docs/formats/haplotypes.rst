@@ -161,14 +161,18 @@ Extra fields
 ~~~~~~~~~~~~
 Additional fields can be appended to the ends of the haplotype and variant lines as long as they are declared in the header.
 
-haptools extras
----------------
-The following extra fields should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
+.. _formats-haplotypes-extrafields-simphenotype:
 
-.. code-block::
+simphenotype
+------------
+The *ancestry* and *beta* extra fields should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
 
-  #H	ancestry	s	Local ancestry
-  #H	beta	.2f	Effect size in linear model
+You can download an example header for this file from `tests/data/simphenotype.hap <https://github.com/gymrek-lab/haptools/blob/main/tests/data/simphenotype.hap>`_
+
+.. code-block:: bash
+
+  curl https://raw.githubusercontent.com/gymrek-lab/haptools/main/tests/data/simphenotype.hap 2>/dev/null | head -n4
+
 
 ..
   _TODO: figure out how to tab this code block so that the tabs get copied when someone copies from it
@@ -205,9 +209,11 @@ v0.1.0
 Updates to the header lines in the specification. See `PR #80 <https://github.com/gymrek-lab/haptools/pull/80>`_.
 
 We've created a new type of metadata line for specifying the "order" of the extra fields in each line.
-Previously, the order was inferred from the order of the extra-field declarations in the header. Unfortunately, sorting can change that. By specifying the order of the extra fields up-front, you can ensure that the file will be parsed the same regardless of whether it is sorted.
+In the absence of this metadata line, the extra fields will be assumed to appear in the order of the extra-field declarations in the header. Unfortunately, sorting can change that. By specifying the order of the extra fields up-front, you can ensure that the file will be parsed the same regardless of whether it is sorted.
 
-If your ``.hap`` file does not have any extra fields, you can safely bump the version number without changing the file.
+In addition, we now allow you to have additional extra fields besides the ones that are used by the specific tool you are using. For example, the ``transform`` subcommand used to complain if it found any extra fields in your ``.hap`` file. But now, it will gracefully ignore those extra fields and load only the fields that it might need.
+
+If your ``.hap`` file does not have any extra fields, you can safely bump the version number without changing the rest of your file.
 
 v0.0.1
 ------

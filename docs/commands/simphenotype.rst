@@ -8,6 +8,9 @@ Simulates a complex trait, taking into account haplotype- or local-ancestry- spe
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
 
+.. note::
+   Your ``.hap`` files must contain extra fields. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
+
 Usage
 ~~~~~
 .. code-block:: bash
