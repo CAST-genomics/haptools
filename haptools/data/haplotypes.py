@@ -3,7 +3,7 @@ from pathlib import Path
 from logging import getLogger, Logger
 from fileinput import hook_compressed
 from dataclasses import dataclass, field, fields
-from typing import Iterator, get_type_hints, Generator
+from typing import Iterator, get_type_hints, Generator, Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -546,6 +546,41 @@ class Haplotypes(Data):
         haps.read(region, haplotypes)
         return haps
 
+    def check_version(self, version: str, err_msgr: Callable) -> tuple[int, int, int]:
+        """
+        Check the observed version string against the current version string of this
+        instance
+
+        Parameters
+        ----------
+        version: str
+            The observed version string
+        err_msgr: Callable
+            A function which takes a single parameter (the error message) and errors
+            appropriately
+
+        Returns
+        -------
+        The parsed, observed version string
+        """
+        # the observed and expected major, minor, and patch versions
+        o_major, o_minor, o_patch = map(int, version.split("."))
+        e_major, e_minor, e_patch = map(int, self.version.split("."))
+        if o_major != e_major or o_minor > e_minor:
+            err_msgr(
+                f"The version of the provided .hap file is v{version} "
+                f"but this tool only works with >= v{e_major}.0.x and "
+                f"<= v{e_major}.{e_minor}.x .hap files"
+            )
+        elif o_minor < e_minor:
+            self.log.warning(
+                f"The version of the provided .hap file (v{version}) "
+                f"is outdated. Consider upgrading to v{self.version}"
+            )
+        elif o_patch < e_patch:
+            self.log.warning("There have been fixes to the .hap spec")
+        return o_major, o_minor, o_patch
+
     def check_header(
         self,
         lines: list[str],
@@ -626,22 +661,7 @@ class Haplotypes(Data):
                 if check_version and met[0] == "version":
                     self.log.debug("Checking .hap format spec version")
                     if met[1] != self.version:
-                        # the observed and expected major, minor, and patch versions
-                        o_major, o_minor, o_patch = map(int, met[1].split("."))
-                        e_major, e_minor, e_patch = map(int, self.version.split("."))
-                        if o_major != e_major or o_minor > e_minor:
-                            err_msgr(
-                                f"The version of the provided .hap file is v{met[1]} "
-                                f"but this tool only works with >= v{e_major}.0.x and "
-                                f"<= v{e_major}.{e_minor}.x .hap files"
-                            )
-                        elif o_minor < e_minor:
-                            self.log.warning(
-                                f"The version of the provided .hap file, v{met[1]}, "
-                                f"is outdated. Consider upgrading to v{self.version}"
-                            )
-                        elif o_patch < e_patch:
-                            self.log.warning("There have been fixes to the .hap spec")
+                        self.check_version(met[1], err_msgr)
                     metas["version"] = met[1]
                 elif met[0] in ["order" + t for t in self.types.keys()]:
                     self.log.debug(
@@ -806,9 +826,15 @@ class Haplotypes(Data):
         ... ):
         ...     print(line)
         """
-        # if the user requested a specific region, then we should handle it using tabix
-        # else, we use a regular text opener
-        if region:
+        indexed = True
+        try:
+            haps_file = TabixFile(str(self.fname))
+        except OSError:
+            indexed = False
+        # if the user requested a specific region or subset of haplotypes and the file
+        # is indexed, then we should handle it using tabix
+        # else, we use a regular text opener - b/c there's no benefit to using tabix
+        if region or (haplotypes and indexed):
             haps_file = TabixFile(str(self.fname))
             metas, extras = self.check_header(list(haps_file.header))
             types = self._get_field_types(extras, metas.get("order"))
@@ -904,9 +930,14 @@ class Haplotypes(Data):
                                 f"Ignoring unsupported line type '{line[0]}'"
                             )
 
-    def to_str(self) -> Generator[str, None, None]:
+    def to_str(self, sort: bool = True) -> Generator[str, None, None]:
         """
         Create a string representation of this Haplotype
+
+        Parameters
+        ----------
+        sort: bool, optional
+            Whether to attempt to output lines in sorted order
 
         Yields
         ------
@@ -922,8 +953,8 @@ class Haplotypes(Data):
             yield from sorted(line_instance.extras_head())
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
-        for hap in self.data.values():
-            for var in hap.variants:
+        for hap_id in (sorted(self.data) if sort else self.data):
+            for var in self.data[hap_id].variants:
                 yield self.types["V"].to_hap_spec(var, hap.id)
 
     def __repr__(self):
@@ -986,10 +1017,6 @@ class Haplotypes(Data):
             f"Transforming a set of genotypes from {len(genotypes.variants)} total "
             f"variants with a list of {len(self.data)} haplotypes"
         )
-        hap_gts.data = np.concatenate(
-            tuple(
-                hap.transform(genotypes)[:, np.newaxis] for hap in self.data.values()
-            ),
-            axis=1,
-        ).astype(genotypes.data.dtype)
+        arrs = tuple(h.transform(genotypes)[:, np.newaxis] for h in self.data.values())
+        hap_gts.data = np.concatenate(arrs, axis=1).astype(genotypes.data.dtype)
         return hap_gts
