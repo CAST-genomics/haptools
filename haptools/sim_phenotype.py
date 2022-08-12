@@ -194,7 +194,7 @@ def simulate_pt(
     prevalence: float = None,
     region: str = None,
     samples: list[str] = None,
-    haplotype_ids: tuple[str] = tuple(),
+    haplotype_ids: set[str] = None,
     chunk_size: int = None,
     output: Path = Path("-"),
     log: Logger = None,
@@ -242,7 +242,7 @@ def simulate_pt(
     samples_file : Path, optional
         A single column txt file containing a list of the samples (one per line) to
         subset from the genotypes file
-    haplotype_ids: tuple[str], optional
+    haplotype_ids: set[str], optional
         A list of haplotype IDs to obtain from the .hap file. All others are ignored.
 
         If not provided, all haplotypes will be used.

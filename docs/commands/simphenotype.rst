@@ -20,9 +20,9 @@ Usage
    --heritability FLOAT \
    --prevalence FLOAT \
    --region TEXT \
-   --sample SAMPLE \
+   --sample SAMPLE --sample SAMPLE \
    --samples-file FILENAME \
-   --hap-id ID \
+   --id ID --id ID \
    --chunk-size INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \

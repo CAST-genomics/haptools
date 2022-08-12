@@ -16,9 +16,10 @@ Usage
 
 	haptools transform \
 	--region TEXT \
-	--sample SAMPLE \
+	--sample SAMPLE --sample SAMPLE \
 	--samples-file FILENAME \
-	--hap-id ID \
+	--id ID --id ID \
+	--ids-file FILENAME \
 	--chunk-size INT \
 	--discard-missing \
 	--output PATH \
