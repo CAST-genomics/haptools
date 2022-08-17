@@ -324,7 +324,7 @@ class TestGenotypesPLINK:
     def test_write_genotypes(self):
         gts = self._get_fake_genotypes_plink()
 
-        fname = DATADIR.joinpath("test.pgen")
+        fname = DATADIR.joinpath("test_write.pgen")
         gts.fname = fname
         gts.write()
 
@@ -350,7 +350,7 @@ class TestGenotypesPLINK:
         gts.data = np.dstack((gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8)))
         gts.data[:2, 1, 2] = 0
 
-        fname = DATADIR.joinpath("test.pgen")
+        fname = DATADIR.joinpath("test_unphased.pgen")
         gts.fname = fname
         gts.write()
 
