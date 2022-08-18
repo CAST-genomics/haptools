@@ -1,3 +1,4 @@
+from cgi import test
 import os
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -69,6 +70,18 @@ def test_lt_equal_haps():
     hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
     hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
     assert hap1 <= hap2
+
+
+def test_sort():
+    test_hap1 = Haplotypes("tests/data/test_sort_unordered.hap")
+    test_hap2 = Haplotypes("tests/data/test_sort_ordered.hap")
+    test_hap1.read()
+    test_hap1.sort()
+    test_hap1.write()
+
+    with open(test_hap2.fname) as f1, open(test_hap1.fname) as f2:
+        for line1, line2 in zip(f1, f2):
+            assert line1 == line2
 
 
 class TestGenotypes:
