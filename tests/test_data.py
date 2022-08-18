@@ -25,6 +25,12 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 def test_lt_haps():
     hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
+    hap2 = Haplotype(chrom="B", start=2, end=1000, id="test2")
+    assert hap1 < hap2
+
+
+def test_gt_haps():
+    hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
     hap2 = Haplotype(chrom="A", start=2, end=1000, id="test2")
     assert hap1 > hap2
 
@@ -32,7 +38,37 @@ def test_lt_haps():
 def test_lt_var():
     var1 = Variant(start=1, end=1000, id="test1", allele="test1")
     var2 = Variant(start=1, end=1001, id="test2", allele="test2")
+    assert var1 < var2
+
+
+def test_gt_var():
+    var1 = Variant(start=7, end=1000, id="test1", allele="test1")
+    var2 = Variant(start=1, end=1001, id="test2", allele="test2")
     assert var1 > var2
+
+
+def test_gt_equal_var():
+    var1 = Variant(start=1, end=1000, id="test", allele="test")
+    var2 = Variant(start=1, end=1000, id="test", allele="test")
+    assert var1 >= var2
+
+
+def test_gt_equal_haps():
+    hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
+    hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
+    assert hap1 >= hap2
+
+
+def test_lt_equal_var():
+    var1 = Variant(start=1, end=1000, id="test1", allele="test1")
+    var2 = Variant(start=1, end=1001, id="test2", allele="test2")
+    assert var1 <= var2
+
+
+def test_lt_equal_haps():
+    hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
+    hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
+    assert hap1 <= hap2
 
 
 class TestGenotypes:

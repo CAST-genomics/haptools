@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import total_ordering
 from pathlib import Path
 from logging import getLogger, Logger
 from fileinput import hook_compressed
@@ -112,6 +113,7 @@ class classproperty(object):
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
+@total_ordering
 @dataclass
 class Variant:
     """
@@ -276,6 +278,7 @@ class Variant:
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
+@total_ordering
 @dataclass
 class Haplotype:
     """
