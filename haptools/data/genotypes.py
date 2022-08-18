@@ -94,7 +94,7 @@ class Genotypes(Data):
 
         Returns
         -------
-        genotypes
+        Genotypes
             A Genotypes object with the data loaded into its properties
         """
         genotypes = cls(fname)
