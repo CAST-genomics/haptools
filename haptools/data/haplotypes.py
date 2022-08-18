@@ -263,6 +263,16 @@ class Variant:
         """
         return tuple(extra.name for extra in cls._extras)
 
+    def __lt__(self, other):
+
+        if self.start == other.start:
+            if self.end == other.end:
+                return self.id < other.id
+            else:
+                return self.end < other.end
+        else:
+            return self.start < other.start
+
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
@@ -468,6 +478,21 @@ class Haplotype:
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
         return np.all(allele_arr == gts.data, axis=1)
+
+    def __lt__(self, other):
+        if self.chrom == other.chrom:
+            if self.start == other.start:
+                if self.end == other.end:
+                    return self.id < other.id
+                else:
+                    return self.end < other.end
+            else:
+                return self.start < other.start
+        else:
+            return self.chrom < other.chrom
+
+    def sort(self):
+        self.variants = tuple(sorted(self.variants))
 
 
 class Haplotypes(Data):
@@ -1023,3 +1048,8 @@ class Haplotypes(Data):
         arrs = tuple(h.transform(genotypes)[:, np.newaxis] for h in self.data.values())
         hap_gts.data = np.concatenate(arrs, axis=1).astype(genotypes.data.dtype)
         return hap_gts
+
+    def sort(self):
+        self.data = dict(sorted(self.data.items(), key=lambda item: item[1]))
+        for hap in self.data.values():
+            hap.sort()

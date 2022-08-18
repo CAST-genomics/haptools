@@ -23,6 +23,18 @@ from haptools.data import (
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
+def test_lt_haps():
+    hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
+    hap2 = Haplotype(chrom="A", start=2, end=1000, id="test2")
+    assert hap1 > hap2
+
+
+def test_lt_var():
+    var1 = Variant(start=1, end=1000, id="test1", allele="test1")
+    var2 = Variant(start=1, end=1001, id="test2", allele="test2")
+    assert var1 > var2
+
+
 class TestGenotypes:
     def _get_expected_genotypes(self):
         # create a GT matrix with shape: samples x SNPs x (strands+phase)
@@ -701,6 +713,7 @@ class TestHaplotypes:
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
             )
+
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
