@@ -1,6 +1,5 @@
 from __future__ import annotations
 from pathlib import Path
-from itertools import combinations
 from dataclasses import dataclass, field
 from logging import getLogger, Logger, DEBUG
 
@@ -258,7 +257,7 @@ def simulate_pt(
         The logging module for this task
     """
     if log is None:
-        log = logging.getLogger("run")
+        log = logging.getLogger("haptools simphenotype")
         logging.basicConfig(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",
@@ -273,10 +272,10 @@ def simulate_pt(
 
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
-        gt = GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
+        gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = GenotypesRefAlt(genotypes, log=log)
+        gt = GenotypesRefAlt(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     log.info("QC-ing genotypes")

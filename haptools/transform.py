@@ -41,7 +41,7 @@ def transform_haps(
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
     discard_missing : bool, optional
-        Discard any samples that are missing any of the required samples
+        Discard any samples that are missing any of the required genotypes
 
         The default is simply to complain about it
     output : Path, optional
@@ -50,7 +50,7 @@ def transform_haps(
         A logging module to which to write messages about progress and any errors
     """
     if log is None:
-        log = logging.getLogger("run")
+        log = logging.getLogger("haptools transform")
         logging.basicConfig(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",
@@ -60,15 +60,25 @@ def transform_haps(
     hp = data.Haplotypes(haplotypes, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
+    # check that all of the haplotypes were loaded successfully and warn otherwise
+    if haplotype_ids is not None and len(haplotype_ids) > len(hp.data):
+        diff = list(haplotype_ids.difference(hp.data.keys()))
+        first_few = 5 if len(diff) > 5 else len(diff)
+        log.warning(
+            f"{len(diff)} haplotypes could not be found in the .hap file. Check "
+            "that the IDs in your .hap file correspond with those you provided. "
+            f"Here are the first few missing haplotypes: {diff[:first_few]}"
+        )
+
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
-        gt = data.GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
+        gt = data.GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = data.GenotypesRefAlt(genotypes, log=log)
+        gt = data.GenotypesRefAlt(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
