@@ -287,9 +287,6 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     prev_gen = 0
     next_gen_samples = []
 
-    # Time code
-    start = time.time()
-
     # iterate over generations in model file
     for gen in mfile:
         # setup population proportions and generations to simulate
@@ -306,14 +303,16 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         # simulate remaining generations
         for i in range(1, sim_gens):
             print(f"Simulating generation {prev_gen+i+1}")
+
+            # update pop_fracs to have 100% admixture since this generation has not been specified in model file
+            pop_fracs = [0]*len(pops)
+            pop_fracs[0] = 1
+
             # simulate next generations using previous generations to sample from for admixture
             next_gen_samples = _simulate(popsize, pops, pop_fracs, prev_gen+i, chroms,
                                          coords, end_coords, recomb_probs, next_gen_samples)
 
         prev_gen = cur_gen 
-
-    end = time.time()
-    print(f"Time elapsed for simulation: {end - start}")
 
     mfile.close()
     return num_samples, next_gen_samples
@@ -628,7 +627,7 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp):
     # validate model file
     mfile = open(model, 'r')
     num_samples, *pops = mfile.readline().strip().split()
@@ -640,8 +639,8 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
 
     num_pops = len(pops)
 
-    if num_pops < 2:
-        raise Exception("Invalid number of populations given: {num_pops}. We require at least 2.")
+    if num_pops < 3:
+        raise Exception(f"Invalid number of populations given: {num_pops}. We require at least 2.")
 
     if num_samples < 1:
         raise Exception("Number of samples is less than 1.")
@@ -665,17 +664,24 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
         if len(pop_fracs) != num_pops:
             raise Exception("Total fractions given to populations do not match number of populations in the header.")
         if sim_gens < 1:
-            raise Exception("Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens} is less than 1. "
+            raise Exception(f"Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens} is less than 1. "
                             "Please ensure the generations given in the first column are correct.")
         if np.absolute(np.sum(pop_fracs)-1) > 1e-6:
-            raise Exception("Population fractions for generation {cur_gen} do not sum to 1.")
+            raise Exception(f"Population fractions for generation {cur_gen} do not sum to 1.")
 
         prev_gen = cur_gen 
 
-    # Validate mapdir ensuring it contains proper files.
+    # Check if mapdir is a valid path
     if not os.path.isdir(mapdir):
         raise Exception("Map directory given is not a valid path.")
     
+    # validate chroms given are correctly named
+    valid_chroms = [str(x) for x in range(1,23)] + ['X']
+    for chrom in chroms:
+        if chrom not in valid_chroms:
+            raise Exception(f"Chromosome {chrom} in the list given is not valid.")
+
+    # Validate mapdir ensuring it contains proper files.
     try:
         all_coord_files = glob.glob(f'{mapdir}/*.map')
         all_coord_files = [coord_file for coord_file in all_coord_files \
@@ -686,17 +692,15 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
     if not all_coord_files:
         raise Exception("No valid coordinate files found. Must contain chr\{1-22,X\} in the file name.")
     
-    # validate chroms given are correctly named
-    valid_chroms = [str(x) for x in range(1,23)] + ['X']
-    for chrom in chroms:
-        if chrom not in valid_chroms:
-            raise Exception(f"Chromosome {chrom} in the list given is not valid.")
-
     # validate popsize
     if not isinstance(popsize, int):
         raise Exception("Popsize is not an Integer.")
     if popsize <= 0:
         raise Exception("Popsize must be greater than 0.")
+
+    # Complete check if we're only outputting a breakpoint
+    if only_bp:
+        return
 
     # Collect samples from vcf
     try:
@@ -707,13 +711,18 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info):
 
     # validate sample_info file (ensure pops given are in model file and samples in vcf file)
     # ensure sample_info col 2 in pops
+    sample_pops = set()
     for line in open(sample_info, 'r'):
         sample = line.split()[0]
         info_pop = line.split()[1]
+        sample_pops.add(info_pop)
 
         if sample not in vcf_samples:
-            raise Exception("Sample in sampleinfo file is not present in the vcf file.")
-        
-        if info_pop not in pops:
-            raise Exception("Population {info_pop} in sampleinfo file is not present in the model file.")
+            raise Exception(f"Sample {sample} in sampleinfo file is not present in the vcf file.")
+    
+    # Ensure that all populations from the model file are listed in the sample info file
+    for model_pop in pops[1:]:
+        if model_pop not in list(sample_pops):
+            raise Exception(f"Population {model_pop} in model file is not present in the sample info file.")
+
     return

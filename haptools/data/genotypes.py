@@ -1,6 +1,5 @@
 from __future__ import annotations
 import re
-import subprocess
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -403,7 +402,7 @@ class Genotypes(Data):
                 self.data = np.delete(self.data, samp_idx, axis=0)
                 self.samples = tuple(np.delete(self.samples, samp_idx))
                 self.log.info(
-                    f"Ignoring missing genotypes from "
+                    "Ignoring missing genotypes from "
                     f"{original_num_samples - len(self.samples)} samples"
                 )
                 self._samp_idx = None
@@ -661,6 +660,16 @@ class GenotypesPLINK(GenotypesRefAlt):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
+        try:
+            global pgenlib
+            import pgenlib
+        except ImportError:
+            raise ImportError(
+                "We cannot read PGEN files without the pgenlib library. Please "
+                "reinstall haptools with the 'files' extra requirements via\n"
+                "pip install git+https://github.com/gymrek-lab/haptools.git##egg=hapto"
+                "ols[files]"
+            )
 
     def read_samples(self, samples: list[str] = None):
         """
@@ -933,18 +942,9 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:attr:`~.GenotypesRefAlt.read`
         """
         super(Genotypes, self).read()
-        # TODO: figure out how to install this package
-        try:
-            from pgenlib import PgenReader
-        except ImportError:
-            raise ImportError(
-                "We cannot read PGEN files without the pgenlib library. Please install"
-                " pgenlib via\npip install git+https://github.com/chrchang/plink-ng.gi"
-                "t#subdirectory=2.0/Python"
-            )
-
+        import pgenlib
         sample_idxs = self.read_samples(samples)
-        with PgenReader(
+        with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
         ) as pgen:
             # how many variants to load?
@@ -989,7 +989,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                             "You don't have enough memory to load these genotypes! Try"
                             " specifying a value to the chunks_size parameter, instead"
                         )
-                    phasing = np.zeros((size, len(sample_idxs) * 2), dtype=np.uint8)
+                    phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
                     # in sample-major mode and then transpose them
@@ -999,7 +999,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # missing alleles will have a value of -9
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
-                    phasing = phasing[:, : len(sample_idxs)]
                     # add phase info, then transpose the GT matrix so that samples are
                     # rows and variants are columns
                     data = np.concatenate(
@@ -1021,7 +1020,7 @@ class GenotypesPLINK(GenotypesRefAlt):
 
     def _iterate(
         self,
-        pgen: PgenReader,
+        pgen: pgenlib.PgenReader,
         region: str = None,
         variants: set[str] = None,
     ):
@@ -1032,7 +1031,7 @@ class GenotypesPLINK(GenotypesRefAlt):
 
         Parameters
         ----------
-        pgen: PgenReader
+        pgen: pgenlib.PgenReader
             The pgenlib.PgenReader object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -1097,18 +1096,9 @@ class GenotypesPLINK(GenotypesRefAlt):
             See documentation for :py:meth:`~.GenotypesPLINK._iterate`
         """
         super(Genotypes, self).read()
-        # TODO: figure out how to install this package
-        try:
-            from pgenlib import PgenReader
-        except ImportError:
-            raise ImportError(
-                "We cannot read PGEN files without the pgenlib library. Please install"
-                " pgenlib via\npip install git+https://github.com/chrchang/plink-ng.gi"
-                "t#subdirectory=2.0/Python"
-            )
-
+        import pgenlib
         sample_idxs = self.read_samples(samples)
-        pgen = PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
+        pgen = pgenlib.PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
@@ -1159,20 +1149,10 @@ class GenotypesPLINK(GenotypesRefAlt):
         Write the variants in this class to PLINK2 files at
         :py:attr:`~.GenotypesPLINK.fname`
         """
+        import pgenlib
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
-
-        # TODO: figure out how to install this package
-        try:
-            from pgenlib import PgenWriter
-        except ImportError:
-            raise ImportError(
-                "We cannot write PGEN files without the pgenlib library. Please "
-                "install pgenlib via\npip install git+https://github.com/chrchang/plin"
-                "k-ng.git#subdirectory=2.0/Python"
-            )
-
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
         data = self.data.transpose((1, 0, 2))
@@ -1184,7 +1164,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             chunks = len(self.variants)
 
         # write the pgen file
-        with PgenWriter(
+        with pgenlib.PgenWriter(
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),

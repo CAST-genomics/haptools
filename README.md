@@ -13,6 +13,10 @@ We have not officially published `haptools` yet, but in the meantime, you can in
 ```bash
 pip install git+https://github.com/gymrek-lab/haptools.git
 ```
+Installing `haptools` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
+```bash
+pip install git+https://github.com/gymrek-lab/haptools.git#egg=haptools[files]
+````
 
 ## Haptools utilities
 

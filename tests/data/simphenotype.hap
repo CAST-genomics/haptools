@@ -1,4 +1,5 @@
-#	version	0.0.1
+#	orderH	ancestry	beta
+#	version	0.1.0
 #H	ancestry	s	Local ancestry
 #H	beta	.2f	Effect size in linear model
 H	21	26928472	26941960	chr21.q.3365*1	ASW	0.73

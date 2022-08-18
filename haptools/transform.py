@@ -100,7 +100,7 @@ def transform_haps(
         hp_gt = data.GenotypesPLINK(fname=output, log=log, chunk_size=chunk_size)
     else:
         out_file_type = "VCF/BCF"
-        hp_gt = data.GenotypesaRefAlt(fname=output, log=log)
+        hp_gt = data.GenotypesRefAlt(fname=output, log=log)
     log.info("Transforming genotypes via haplotypes")
     hp.transform(gt, hp_gt)
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import sys
+import time
 import click
 from pathlib import Path
 
@@ -36,10 +37,12 @@ def main():
 def karyogram(bp, sample, out, title, centromeres, colors):
     """
     Visualize a karyogram of local ancestry tracks
-
+    
     Example:
-    haptools karyogram --bp tests/data/5gen.bp --sample Sample_1 \
-       --out test.png --centromeres tests/data/centromeres_hg19.txt \
+
+    \b
+    haptools karyogram --bp tests/data/5gen.bp --sample Sample_1 \\
+       --out test.png --centromeres tests/data/centromeres_hg19.txt \\
        --colors 'CEU:blue,YRI:red'
     """
     from .karyogram import PlotKaryogram
@@ -65,7 +68,11 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @click.option('--invcf', help="VCF file used as reference for creation of simulated samples respective genotypes.", required=True)
 @click.option('--sample_info', help="File that maps samples from the reference VCF (--invcf) to population codes " \
               "describing the populations in the header of the model file.", required=True)
-def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
+@click.option('--only_breakpoint', help="Flag used to determine whether to only output breakpoints or continue to simulate a vcf file.", \
+    is_flag=True, required=False, hidden=True)
+@click.option('--verbose', help="Output time metrics for each section, breakpoint simulation, vcf creation, and total exection.", \
+     is_flag=True, required=False, hidden=True)
+def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, only_breakpoint, verbose):
     """
     Simulate admixed genomes under a pre-defined model.
 
@@ -81,11 +88,23 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
       --out ./tests/data/example_simgenotype
     """
     from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
+    start = time.time()
+
     chroms = chroms.split(',')
-    validate_params(model, mapdir, chroms, popsize, invcf, sample_info)
+    validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
-    output_vcf(breakpoints, model, invcf, sample_info, out)
+    bp_end = time.time()
+
+    vcf_start = time.time()
+    if not only_breakpoint:
+        output_vcf(breakpoints, model, invcf, sample_info, out)
+    end = time.time()
+
+    if verbose:
+        print(f"Time elapsed for breakpoint simulation: {bp_end - start}")
+        print(f"Time elapse for creating vcf: {end - vcf_start}")
+        print(f"Time elapsed for simgenotype execution: {end - start}")
 
 ############ Haptools simphenotype ###############
 @main.command()
@@ -148,6 +167,25 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms):
     ),
 )
 @click.option(
+    "-i",
+    "--id",
+    "ids",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A list of the haplotype IDs to use from the .hap file (ex: '-i H1 -i H2')."
+    ),
+)
+@click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -172,6 +210,7 @@ def simphenotype(
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
+    ids: tuple[str] = tuple(),
     chunk_size: int = None,
     output: Path = Path("-"),
     verbosity: str = 'ERROR',
@@ -206,10 +245,15 @@ def simphenotype(
     else:
         samples = None
 
+    if ids:
+        ids = set(ids)
+    else:
+        ids = None
+
     # Run simulation
     simulate_pt(
         genotypes, haplotypes, replications, heritability, prevalence, region, samples,
-        chunk_size, output, log
+        ids, chunk_size, output, log
     )
 
 @main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
@@ -249,14 +293,25 @@ def simphenotype(
     ),
 )
 @click.option(
-    "-h",
-    "--haplotype-ids",
+    "-i",
+    "--id",
+    "ids",
     type=str,
     multiple=True,
     show_default="all haplotypes",
     help=(
-        "A list of the haplotype IDs to use from the .hap file (ex: '-h H1 -h H2')."
-        "\nFor this to work, the .hap file must be indexed"
+        "A list of the haplotype IDs to use from the .hap file (ex: '-i H1 -i H2')."
+    ),
+)
+@click.option(
+    "-I",
+    "--ids-file",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A single column txt file containing a list of the haplotype IDs "
+        "(one per line) to subset from the .hap file"
     ),
 )
 @click.option(
@@ -340,7 +395,6 @@ def transform(
         genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
         discard_missing, output, log
     )
-
 
 @main.command(short_help="Compute pair-wise LD")
 @click.argument("target", type=str)
