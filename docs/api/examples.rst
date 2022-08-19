@@ -54,6 +54,7 @@ As an example, let's say we would like to convert the following ``.blocks.det`` 
 
     hp.write()
 
+.. _api-examples-snps2hap:
 
 Creating a ``.hap`` file of SNPs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -84,9 +85,10 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
 
     # load the genotypes file
     # you can use either a VCF or PGEN file
-    gt = data.GenotypesRefAlt.load("tests/data/apoe.vcf.gz", variants=variants)
-    # the advantage of using a PGEN file is that you can load the variants quickly
-    # w/o having to load the genotypes, too
+    gt = data.GenotypesRefAlt("tests/data/apoe.vcf.gz")
+    gt.read(variants=variants)
+    # the advantage of using a PGEN file is that you can use read_variants() to load
+    # the variants quickly w/o having to load the genotypes, too
     gt = data.GenotypesPGEN("tests/data/apoe.pgen")
     gt.read_variants(variants=variants)
 

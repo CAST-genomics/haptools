@@ -174,7 +174,19 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
     multiple=True,
     show_default="all haplotypes",
     help=(
-        "A list of the haplotype IDs to use from the .hap file (ex: '-i H1 -i H2')."
+        "A list of the haplotype IDs from the .hap file to use as causal variables "
+        "(ex: '-i H1 -i H2')."
+    ),
+)
+@click.option(
+    "-I",
+    "--ids-file",
+    type=str,
+    multiple=True,
+    show_default="all haplotypes",
+    help=(
+        "A single column txt file containing a list of the haplotype IDs "
+        "(one per line) to subset from the .hap file"
     ),
 )
 @click.option(
@@ -211,6 +223,7 @@ def simphenotype(
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
     ids: tuple[str] = tuple(),
+    ids_file: Path = None,
     chunk_size: int = None,
     output: Path = Path("-"),
     verbosity: str = 'ERROR',
@@ -245,7 +258,10 @@ def simphenotype(
     else:
         samples = None
 
-    if ids:
+    if ids_file:
+        with ids_file as id_file:
+            ids = set(id_file.read().splitlines())
+    elif ids:
         ids = set(ids)
     else:
         ids = None
@@ -387,13 +403,16 @@ def transform(
     else:
         samples = None
 
-    if haplotype_ids:
-        haplotype_ids = set(haplotype_ids)
+    if ids_file:
+        with ids_file as id_file:
+            ids = set(id_file.read().splitlines())
+    elif ids:
+        ids = set(ids)
     else:
-        haplotype_ids = None
+        ids = None
 
     transform_haps(
-        genotypes, haplotypes, region, samples, haplotype_ids, chunk_size,
+        genotypes, haplotypes, region, samples, ids, chunk_size,
         discard_missing, output, log
     )
 
