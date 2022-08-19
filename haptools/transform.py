@@ -5,6 +5,77 @@ from pathlib import Path
 from haptools import data
 
 
+class GenotypesAncestry(data.GenotypesRefAlt):
+    """
+    Extends the GenotypesRefAlt class for ancestry data
+
+    The ancestry information is stored within the FORMAT field of the VCF
+
+    Attributes
+    ----------
+    data : np.array
+        See documentation for :py:attr:`~.Genotypes.data`
+    fname : Path | str
+        See documentation for :py:attr:`~.Genotypes.fname`
+    samples : tuple[str]
+        See documentation for :py:attr:`~.Genotypes.samples`
+    variants : np.array
+        See documentation for :py:attr:`~.GenotypesRefAlt.variants`
+    ancestry : np.array
+        The ancestral population of each allele in each sample of
+        :py:attr:`~.GenotypesAncestry.data`
+    log: Logger
+        See documentation for :py:attr:`~.Genotypes.log`
+    """
+    def __init__(self, fname: Path | str, log: Logger = None):
+        super().__init__(fname, log)
+        self.ancestry = None
+
+    def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
+        """
+        See documentation for :py:meth:`~.Genotypes._iterate`
+        """
+        pass
+
+    def read(
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
+        """
+        See documentation for :py:meth:`~.Genotypes.read`
+        """
+        pass
+
+    def subset(
+        self,
+        samples: tuple[str] = None,
+        variants: tuple[str] = None,
+        inplace: bool = False,
+    ):
+        """
+        See documentation for :py:meth:`~.Genotypes.subset`
+        """
+        pass
+
+    def check_missing(self, discard_also=False):
+        """
+        See documentation for :py:meth:`~.Genotypes.check_missing`
+        """
+        pass
+
+    def check_biallelic(self, discard_also=False):
+        """
+        See documentation for :py:meth:`~.Genotypes.check_biallelic`
+        """
+        pass
+
+    def write(self):
+        raise ValueError("Not implemented")
+
+
 def transform_haps(
     genotypes: Path,
     haplotypes: Path,

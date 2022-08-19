@@ -73,6 +73,8 @@ haptools.sim_genotype module
    :undoc-members:
    :show-inheritance:
 
+.. _api-haptools-sim_phenotype:
+
 haptools.sim_phenotype module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

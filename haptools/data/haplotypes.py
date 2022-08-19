@@ -678,7 +678,7 @@ class Haplotypes(Data):
         # if there are any fields left...
         if any(exp_extras.values()):
             names = [n for name in exp_extras.values() for n in name]
-            error_msgr(
+            err_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
                 f"don't seem to be declared in the header: {*names,}"
             )
