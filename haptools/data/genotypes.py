@@ -943,6 +943,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         super(Genotypes, self).read()
         import pgenlib
+
         sample_idxs = self.read_samples(samples)
         with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
@@ -1097,8 +1098,11 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         super(Genotypes, self).read()
         import pgenlib
+
         sample_idxs = self.read_samples(samples)
-        pgen = pgenlib.PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
+        pgen = pgenlib.PgenReader(
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+        )
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
@@ -1150,6 +1154,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         :py:attr:`~.GenotypesPLINK.fname`
         """
         import pgenlib
+
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
