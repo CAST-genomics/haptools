@@ -43,7 +43,7 @@ def GetChrom(chrom):
     else:
         return int(chrom)
 
-def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file):
+def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file=None):
     """
     Extract haplotype blocks for the desired sample
     from the bp file
@@ -54,7 +54,7 @@ def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file):
        Path to .bp file with breakpoints
     sample_name : str
        Sample ID to extract
-    centromeres_file : str
+    centromeres_file : str, optional
         If not None then use the chromosome ends listed to extend 
         chromosomes to proper end coordinates
     

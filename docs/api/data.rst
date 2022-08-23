@@ -157,11 +157,11 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 	The time required to load various genotype file formats.
 
 .. warning::
-	Use of this class is not officially supported yet because it relies upon the as-yet-unpublished ``pgenlib`` python library. See `issue #16 <https://github.com/gymrek-lab/haptools/pull/16>`_ for current progress on this challenge. In the meantime, you must install the library manually from Github via ``pip``.
+	This class depends on the ``Pgenlib`` python library. This can be installed automatically with ``haptools`` if you specify the "files" extra requirements during installation.
 
 	.. code-block:: bash
 
-		pip install git+https://github.com/chrchang/plink-ng.git#subdirectory=2.0/Python
+		pip install git+https://github.com/gymrek-lab/haptools.git#egg=haptools[files]
 
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
@@ -281,7 +281,7 @@ To write to a **.hap** file, you must first initialize a :class:`Haplotypes` obj
 	haplotypes = data.Haplotypes('tests/data/example-write.hap')
 	haplotypes.data = {}
 	haplotypes.data['H1'] = Haplotype(chrom='chr1', start=0, end=10, id='H1')
-	haplotypes.data['H1'].variants = [Variant(start=0, end=1, id='rs123', allele='A')]
+	haplotypes.data['H1'].variants = (Variant(start=0, end=1, id='rs123', allele='A'),)
 	haplotypes.write()
 
 Obtaining haplotype "genotypes"
@@ -304,7 +304,27 @@ The :class:`Haplotypes` class will initialize :class:`Haplotype` objects in its 
 1. ``from_hap_spec()`` - this static method initializes a Haplotype object from a line in the **.hap** file.
 2. ``to_hap_spec()`` - this method converts a Haplotype object into a line in the **.hap** file
 
-To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Haplotype` class and add the extra properties.
+To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Haplotype` class and add the extra properties that you want to load. For example, let's add an extra field called "ancestry" that is encoded as a string.
+
+.. code-block:: python
+
+    from dataclasses import dataclass, field
+    from haptools.data import Haplotype, Extra
+
+    @dataclass
+    class CustomHaplotype(Haplotype):
+        score: float
+        _extras: tuple = field(
+            repr=False,
+            init=False,
+            default=(
+                Extra("ancestry", "s", "Local ancestry"),
+            ),
+        )
+
+    haps = Haplotypes("file.hap", haplotype=CustomHaplotype)
+    haps.read()
+    haps.write()
 
 Variant
 +++++++
@@ -315,7 +335,27 @@ The :class:`Haplotypes` class will initialize :class:`Variant` objects in its ``
 1. ``from_hap_spec()`` - this static method initializes a :class:`Variant` object from a line in the **.hap** file.
 2. ``to_hap_spec()`` - this method converts a :class:`Variant` object into a line in the **.hap** file
 
-To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Variant` class and add the extra properties.
+To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Variant` class and add the extra properties that you want to load. For example, let's add an extra field called "score" that is encoded as a float with a precision of three decimal places.
+
+.. code-block:: python
+
+    from dataclasses import dataclass, field
+    from haptools.data import Haplotype, Extra
+
+    @dataclass
+    class CustomVariant(Variant):
+        score: float
+        _extras: tuple = field(
+            repr=False,
+            init=False,
+            default=(
+                Extra("score", ".3f", "Importance of inclusion"),
+            ),
+        )
+
+    haps = Haplotypes("file.hap", variant=CustomVariant)
+    haps.read()
+    haps.write()
 
 phenotypes.py
 ~~~~~~~~~~~~~

@@ -4,9 +4,14 @@
 simphenotype
 ============
 
-Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variables to use within the simulation by specifying them in a ``.hap`` file.
+Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variables to use within the simulation by specifying them in a :doc:`.hap file </formats/haplotypes>`.
+
+To encode simple SNPs as causal variants within a ``.hap`` file, use the haptools API like in :ref:`this example <api-examples-snps2hap>`.
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
+
+.. note::
+   Your ``.hap`` files must contain extra fields. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
 
 Usage
 ~~~~~
@@ -17,8 +22,11 @@ Usage
    --heritability FLOAT \
    --prevalence FLOAT \
    --region TEXT \
-   --sample SAMPLE \
+   --sample SAMPLE --sample SAMPLE \
    --samples-file FILENAME \
+   --id ID --id ID \
+   --ids-file FILENAME \
+   --chunk-size INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
    GENOTYPES HAPLOTYPES
@@ -61,6 +69,12 @@ Examples
 
    haptools simphenotype -o simulated.pheno tests/data/example.vcf.gz tests/data/simphenotype.hap
 
+By default, all of the haplotypes in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
+
+.. code-block:: bash
+
+   haptools simphenotype --id 'chr21.q.3365*1' tests/data/example.vcf.gz tests/data/simphenotype.hap
+
 Simulate two replicates of a case/control trait that occurs in 60% of your samples with a heritability of 0.8. Encode all of the haplotypes in ``tests/data/example.hap.gz`` as independent causal variables.
 
 .. code-block:: bash
@@ -77,5 +91,5 @@ Detailed Usage
 
 .. click:: haptools.__main__:main
    :prog: haptools
-   :show-nested:
+   :nested: full
    :commands: simphenotype

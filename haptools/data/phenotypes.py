@@ -192,12 +192,12 @@ class Phenotypes(Data):
             names[idx] = name + suffix
             uniq_names[name] += 1
         # now we can finally write the file
-        with hook_compressed(self.fname, mode="wt") as haps:
-            haps.write("#IID\t" + "\t".join(names) + "\n")
+        with hook_compressed(self.fname, mode="wt") as phens:
+            phens.write("#IID\t" + "\t".join(names) + "\n")
             formatter = {"float_kind": lambda x: "%.2f" % x}
             for samp, phen in zip(self.samples, self.data):
                 line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
-                haps.write(f"{samp}\t" + line + "\n")
+                phens.write(f"{samp}\t" + line + "\n")
 
     # TODO: check_missing() (they'll be encoded as NA, nan, or -9)
 

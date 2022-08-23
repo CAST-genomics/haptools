@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from dataclasses import dataclass, field
 
 import pytest
 import numpy as np
@@ -7,14 +8,15 @@ import numpy.lib.recfunctions as rfn
 
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
+    Extra,
+    Variant,
+    Haplotype,
     Genotypes,
-    GenotypesRefAlt,
-    GenotypesPLINK,
     Phenotypes,
     Covariates,
     Haplotypes,
-    Variant,
-    Haplotype,
+    GenotypesRefAlt,
+    GenotypesPLINK,
 )
 
 
@@ -253,7 +255,7 @@ class TestGenotypes:
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
         pgenlib = pytest.importorskip("pgenlib")
-        gts_ref_alt = TestGenotypes()._get_fake_genotypes_refalt()
+        gts_ref_alt = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
         gts.samples = gts_ref_alt.samples
@@ -322,7 +324,7 @@ class TestGenotypesPLINK:
     def test_write_genotypes(self):
         gts = self._get_fake_genotypes_plink()
 
-        fname = DATADIR.joinpath("test.pgen")
+        fname = DATADIR.joinpath("test_write.pgen")
         gts.fname = fname
         gts.write()
 
@@ -348,7 +350,7 @@ class TestGenotypesPLINK:
         gts.data = np.dstack((gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8)))
         gts.data[:2, 1, 2] = 0
 
-        fname = DATADIR.joinpath("test.pgen")
+        fname = DATADIR.joinpath("test_unphased.pgen")
         gts.fname = fname
         gts.write()
 
@@ -574,19 +576,25 @@ class TestHaplotypes:
         return haps
 
     def test_load(self):
+        expected = self._basic_haps()
+
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
-        assert self._basic_haps() == haps.data
+        assert expected == haps.data
+
+        # also check the indexed file
+        # it should be the same
+        haps = Haplotypes.load(DATADIR.joinpath("basic.hap.gz"))
+        assert expected == haps.data
 
     def test_read_subset(self):
         expected = {}
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap"))
-        # this should fail with an informative error b/c the file isn't indexed
-        with pytest.raises(OSError) as info:
-            haps.read(haplotypes={"chr21.q.3365*1"})
-        assert len(str(info.value))
+        # this shouldn't fail anymore as of version 0.1.0
+        haps.read(haplotypes={"chr21.q.3365*1"})
+        assert expected == haps.data
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(haplotypes={"chr21.q.3365*1"})
@@ -643,8 +651,7 @@ class TestHaplotypes:
         # remove the file
         os.remove("tests/data/test.hap")
 
-    def test_write_extras(self):
-        # what do we expect to see from the simphenotype.hap file?
+    def _get_writable_haplotypes(self):
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
                 "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
@@ -658,6 +665,11 @@ class TestHaplotypes:
         }
         for hap_id, hap in self._basic_haps().items():
             expected[hap_id].variants = hap.variants
+        return expected
+
+    def test_write_extras(self):
+        # what do we expect to see from the test.hap file?
+        expected = self._get_writable_haplotypes()
 
         haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
         haps.data = expected
@@ -666,6 +678,51 @@ class TestHaplotypes:
         haps.data = None
         haps.read()
         assert expected == haps.data
+
+        # remove the file
+        os.remove("tests/data/test.hap")
+
+    def test_write_plus_extra(self):
+        @dataclass
+        class HaplotypePlusExtra(HaptoolsHaplotype):
+            """
+            A haplotype with an additional, unnecessary extra field
+
+            Properties and functions are shared with the HaptoolsHaplotype object
+            """
+
+            score: float
+            _extras: tuple = field(
+                repr=False,
+                init=False,
+                default=(
+                    Extra("ancestry", "s", "Local ancestry"),
+                    Extra("score", ".2f", "Score for a thing"),
+                    Extra("beta", ".2f", "Effect size in linear model"),
+                ),
+            )
+        # what do we want to write to the test.hap file?
+        expected = {
+            "chr21.q.3365*1": HaplotypePlusExtra(
+                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73, 0.40
+            ),
+            "chr21.q.3365*10": HaplotypePlusExtra(
+                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30, 0.28
+            ),
+            "chr21.q.3365*11": HaplotypePlusExtra(
+                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49, 0.84
+            ),
+        }
+        for hap_id, hap in self._basic_haps().items():
+            expected[hap_id].variants = hap.variants
+
+        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaplotypePlusExtra)
+        haps.data = expected
+        haps.write()
+
+        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
+        haps.read()
+        assert haps.data == self._get_writable_haplotypes()
 
         # remove the file
         os.remove("tests/data/test.hap")
