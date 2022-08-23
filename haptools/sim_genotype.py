@@ -99,8 +99,7 @@ def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_sam
     # make sure the header is properly structured
     for contig in range(23):
         write_vcf.header.contigs.add(str(contig+1))
-    for sample in out_samples:
-        write_vcf.header.add_sample(sample)
+    write_vcf.header.add_samples(out_samples)
     write_vcf.header.add_meta(
         "FORMAT",
         items=[
