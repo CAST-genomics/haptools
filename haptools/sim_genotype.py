@@ -381,10 +381,10 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
     chroms: list(str)
         sorted list of chromosomes used to generate samples. 
     coords: list(list(GeneticMarker))
-        Each list of markers corresponds to a chromosome in chroms.
+        Each list of markers (cM) corresponds to a chromosome in chroms.
         ie if our list of chroms is [3,4,6] then the first list is to chrom 3, second to 4, etc.
     end_coords: list(GeneticMarker)
-        List of the last genetic markers for each chromosome specified in chroms.
+        List of the last genetic markers (cM) for each chromosome specified in chroms.
         The indices of the list correspond to those in chroms. 
     recomb_probs: Numpy 2d array
         rows = chroms
