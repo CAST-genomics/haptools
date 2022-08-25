@@ -505,7 +505,6 @@ if __name__ == "__main__":
 ############ Haptools index ###############
 
 @main.command(short_help="Sort and index .hap files")
-
 @click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
 @click.option(
     "-o",
@@ -529,6 +528,23 @@ def index(
     output: Path = None,
     verbosity: str = 'CRITICAL',
 ):
+
+    """
+    
+        Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
+
+        Parameters
+        ----------
+        
+        haplotypes : Path
+            The path to the haplotypes in a .hap file
+        output : Path, optional
+            The location to which to write output.  If an output location is not specified, the output will have the same name as the input file.
+        log : Logger, optional
+            A logging module to which to write messages about progress and any errors
+
+
+    """
 
     import logging
     from .index import index_haps
