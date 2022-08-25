@@ -543,7 +543,6 @@ def index(
         log : Logger, optional
             A logging module to which to write messages about progress and any errors
 
-
     """
 
     import logging
