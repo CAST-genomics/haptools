@@ -14,11 +14,19 @@ for temp sort, then write to temp, the bgzip it, then move it to output path -- 
 
 also write doc string for less than and sort for haplotypes and haplotype and variant class
 """
+def append_suffix(
+    path: Path,
+    suffix: str,
+):
+    return path.with_suffix(path.suffix + suffix)
+    
+
+
 
 def index_haps(
     haplotypes: Path,
-    log: Logger = None,
     output: Path = None,
+    log: Logger = None,
 ):
 
     if log is None:
@@ -29,34 +37,40 @@ def index_haps(
         )
 
     log.info("Loading haplotypes")
+
     #creates instance of haplotypes class
     hp = data.Haplotypes(haplotypes, log=log)
     #load the file into memory
     hp.read()
     hp.sort()
     #before tabix we need to write it as a temp file
-    with tempfile.NamedTemporaryFile() as tmp:
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
         #tmp.name creates unique file when ran
         hp.fname = Path(tmp.name)
+        log.debug(f"writing haplotypes to {hp.fname}")
         hp.write()
+    #compresses and indexes file   
+    #this createse 2 files
+        tabix_index(str(hp.fname), seq_col=1, start_col=2, end_col=3)
+        hp.fname = append_suffix(hp.fname, ".gz")
 
-     #compresses and indexes file   
-    tabix_index(str(hp.fname), seq_col=2, start_col=3, end_col=4)
+        #move temp path to output path
+        #check if it is none
+        if output is None:
+            if haplotypes.suffix.endswith(".gz"):
+                output = haplotypes
+            #if none we want to change output to be same as input
+            else:
+                output = append_suffix(haplotypes, ".gz")
+        #rename/move as a path        
+        hp.fname.rename(output)
 
-    #move temp path to output path
-    #check if it is none
-    if output is None:
-        if haplotypes.suffix.endswith(".gz"):
-            output = haplotypes
-        #if none we want to change output to be same as input
-        else:
-            output = haplotypes.append_suffix(".gz")
-    #rename/move as a path        
-    hp.fname.rename(output)
-
-    #repeat process for .tbi
-    hp.fname.append_suffix(".tbi").rename(output.append_suffix(".tbi"))
+        #repeat process for .tbi
+        #first part is reffering to what already exists and adds .tbi
+        #second part (rename) is new name of file.  old name of file but then rename to new path
+        append_suffix(hp.fname, ".tbi").rename(append_suffix(output, ".tbi"))
     
+        
 
 
     
