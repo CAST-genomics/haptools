@@ -240,9 +240,10 @@ def simphenotype(
     from .sim_phenotype import simulate_pt
 
     log = logging.getLogger("haptools simphenotype")
+    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
+        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity, datefmt='%H:%M:%S',
     )
     # handle samples
     if samples and samples_file:
@@ -385,9 +386,10 @@ def transform(
     from .transform import transform_haps
 
     log = logging.getLogger("haptools transform")
+    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
+        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity, datefmt='%H:%M:%S',
     )
     # handle samples
     if samples and samples_file:
@@ -549,9 +551,10 @@ def ld(
     from .ld import calc_ld
 
     log = logging.getLogger("haptools ld")
+    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
+        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity, datefmt='%H:%M:%S',
     )
     # handle samples
     if samples and samples_file:
