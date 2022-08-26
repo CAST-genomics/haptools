@@ -340,6 +340,14 @@ def simphenotype(
     help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
 )
 @click.option(
+    "-C",
+    "--haps-chunk-size",
+    type=int,
+    default=None,
+    show_default="all haplotypes",
+    help="Transform in chunks of X haplotypes; reduces memory",
+)
+@click.option(
     "--discard-missing",
     is_flag=True,
     show_default=True,
@@ -371,6 +379,7 @@ def transform(
     ids: tuple[str] = tuple(),
     ids_file: Path = None,
     chunk_size: int = None,
+    haps_chunk_size: int = None,
     discard_missing: bool = False,
     output: Path = Path("-"),
     verbosity: str = 'CRITICAL',
@@ -414,7 +423,7 @@ def transform(
         ids = None
 
     transform_haps(
-        genotypes, haplotypes, region, samples, ids, chunk_size,
+        genotypes, haplotypes, region, samples, ids, chunk_size, haps_chunk_size,
         discard_missing, output, log
     )
 

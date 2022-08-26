@@ -456,7 +456,9 @@ class Haplotype:
                 "absent in the provided genotypes"
             )
         # create a np array denoting the alleles that we want
-        # note: the excessive use of square-brackets gives us shape (1, n, 1)
+        # note: the excessive use of square-brackets gives us shape (1, p, 1)
+        # where p denotes the number of alleles in this haplotype
+        # That shape is broadcastable with gts.data which has shape (n, p, 2)
         allele_arr = np.array(
             [
                 [
@@ -985,8 +987,9 @@ class Haplotypes(Data):
 
     def transform(
         self,
-        genotypes: GenotypesRefAlt,
+        gts: GenotypesRefAlt,
         hap_gts: GenotypesRefAlt = None,
+        chunk_size: int = None,
     ) -> GenotypesRefAlt:
         """
         Transform a genotypes matrix via the current haplotype
@@ -996,11 +999,16 @@ class Haplotypes(Data):
 
         Parameters
         ----------
-        genotypes : GenotypesRefAlt
+        gts : GenotypesRefAlt
             The genotypes which to transform using the current haplotype
         hap_gts: GenotypesRefAlt
             An empty GenotypesRefAlt object into which the haplotype genotypes should
             be stored
+        chunk_size: int, optional
+            The max number of haplotypes to transform at any given time
+
+            If this value is provided, haplotypes will be transformed in chunks so as
+            to use less memory
 
         Returns
         -------
@@ -1010,16 +1018,72 @@ class Haplotypes(Data):
         # Initialize GenotypesRefAlt return value
         if hap_gts is None:
             hap_gts = GenotypesRefAlt(fname=None, log=self.log)
-        hap_gts.samples = genotypes.samples
+        hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
             dtype=hap_gts.variants.dtype,
         )
-        # Obtain and merge the haplotype genotypes
+        # how many haplotypes should we transform at once?
+        chunks = chunk_size
+        if chunks is None or chunks > len(self.data):
+            chunks = len(self.data)
+        # initialize arrays needed for proper broadcasting
+        shape = (1, len(self.data), gts.data.shape[1], 1)
+        # create a np mask array denoting which alleles belong to each haplotype
+        idx = np.zeros(shape, dtype=np.bool_)
+        # and a np array denoting the allele integer in each haplotype
+        allele_arr = np.zeros(shape, dtype=gts.data.dtype)
+        # index the genotypes for fast look-ups of the variant IDs
+        gts.index(variants=True)
+        # fill out arrays -- iterate through each haplotype
+        for i, hap in enumerate(self.data.values()):
+            try:
+                # obtain the indices of each variant ID
+                ids = [gts._var_idx[vID] for vID in hap.varIDs]
+            except KeyError:
+                # check: were any of the variants absent from the genotypes?
+                missing_IDs = set(hap.varIDs) - set(gts.variants["id"])
+                raise ValueError(
+                    f"Variants {missing_IDs} are present in haplotype '{hap.id}' but "
+                    "absent in the provided genotypes"
+                )
+            idx[0, i, ids, 0] = True
+            allele_arr[0, i, ids, 0] = np.array([
+                int(var.allele != gts.variants[j]["ref"])
+                for j, var in zip(ids, hap.variants)
+            ])
+        # finally, obtain and merge the haplotype genotypes
         self.log.info(
-            f"Transforming a set of genotypes from {len(genotypes.variants)} total "
-            f"variants with a list of {len(self.data)} haplotypes"
+            f"Transforming a set of genotypes of {len(gts.variants)} variants "
+            f"in {len(self.data)} haplotypes in chunks of size {chunks} haplotypes"
+
         )
-        arrs = tuple(h.transform(genotypes)[:, np.newaxis] for h in self.data.values())
-        hap_gts.data = np.concatenate(arrs, axis=1).astype(genotypes.data.dtype)
+        self.log.debug(
+            f"Attempting to create array with dtype {gts.data.dtype} and size "
+            f"{(len(gts.samples), len(self.data), 2)}"
+        )
+        hap_gts.data = np.empty(
+            (gts.data.shape[0], len(self.data), 2), dtype=gts.data.dtype
+        )
+        for start in range(0, len(self.data), chunks):
+            end = start + chunks
+            if end > len(self.data):
+                end = len(self.data)
+            size = end - start
+            self.log.debug(f"Loading from haplotype #{start} to haplotype #{end}")
+            # allele_arr              has shape (1, h, p, 1) and contains allele ints
+            # gts.data[:, np.newaxis] has shape (n, 1, p, 2) and contains allele ints
+            # idx                     has shape (1, h, p, 1) and contains a bool mask
+            #     n = # of samples    h = # of haplotypes    p = # of variants
+            # Note that these shapes are broadcasted, so the result has shape (n, h, 2)
+            try:
+                hap_gts.data[:, start:end] = np.all(
+                    np.equal(allele_arr[:, start:end], gts.data[:, np.newaxis]),
+                    axis=2, where=idx[:, start:end],
+                ).astype(gts.data.dtype)
+            except np.core._exceptions._ArrayMemoryError as e:
+                raise ValueError(
+                    "You don't have enough memory to transform these haplotypes! Try"
+                    " specifying a value to the chunks_size parameter, instead"
+                ) from e
         return hap_gts

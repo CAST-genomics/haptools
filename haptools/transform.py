@@ -83,6 +83,7 @@ def transform_haps(
     samples: list[str] = None,
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
+    haps_chunk_size: int = None,
     discard_missing: bool = False,
     output: Path = Path("-"),
     log: Logger = None,
@@ -111,6 +112,11 @@ def transform_haps(
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
+    haps_chunk_size: int, optional
+        The max number of haplotypes to transform together at any given time
+
+        If this value is provided, haplotypes from the .hap file will be transformed in
+        chunks so as to use less memory.
     discard_missing : bool, optional
         Discard any samples that are missing any of the required genotypes
 
@@ -173,7 +179,7 @@ def transform_haps(
         out_file_type = "VCF/BCF"
         hp_gt = data.GenotypesRefAlt(fname=output, log=log)
     log.info("Transforming genotypes via haplotypes")
-    hp.transform(gt, hp_gt)
+    hp.transform(gt, hp_gt, chunk_size=haps_chunk_size)
 
     log.info(f"Writing haplotypes to {out_file_type} file")
     hp_gt.write()
