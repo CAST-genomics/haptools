@@ -178,4 +178,5 @@ def transform_haps(
     log.info(f"Writing haplotypes to {out_file_type} file")
     hp_gt.write()
 
+    log.debug("Done!")
     return hp_gt
