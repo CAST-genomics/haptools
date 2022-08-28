@@ -1020,17 +1020,17 @@ class Haplotypes(Data):
         # build a fast data structure for querying the alleles in each haplotype:
         # a dict mapping (variant ID, allele) -> a unique index
         alleles = {}
-        # and a dict mapping hap ID -> an array with the indices of the hap's alleles
-        idxs = {}
+        # and a list of arrays containing the indices of each hap's alleles
+        idxs = [None]*len(self.data)
         count = 0
-        for hap in self.data.values():
-            idxs[hap.id] = np.empty(len(hap.variants), dtype=np.uintc)
-            for i, variant in enumerate(hap.variants):
+        for i, hap in enumerate(self.data.values()):
+            idxs[i] = np.empty(len(hap.variants), dtype=np.uintc)
+            for j, variant in enumerate(hap.variants):
                 key = (variant.id, variant.allele)
                 if key not in alleles:
                     alleles[key] = count
                     count += 1
-                idxs[hap.id][i] = alleles[key]
+                idxs[i][j] = alleles[key]
         self.log.debug(f"Copying genotypes for {len(alleles)} distinct alleles")
         gts = gts.subset(variants=tuple(k[0] for k in alleles))
         self.log.debug(f"Creating array denoting alt allele status")
@@ -1051,6 +1051,6 @@ class Haplotypes(Data):
             (gts.data.shape[0], len(self.data), 2), dtype=gts.data.dtype
         )
         self.log.debug("Computing haplotype genotypes. This may take a while")
-        for i, hap in enumerate(self.data.values()):
-            hap_gts.data[:, i] = np.all(equality_arr[:, idxs[hap.id]], axis=1)
+        for i in range(len(self.data)):
+            hap_gts.data[:, i] = np.all(equality_arr[:, idxs[i]], axis=1)
         return hap_gts
