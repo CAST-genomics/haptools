@@ -1,13 +1,15 @@
 from __future__ import annotations
 from pathlib import Path
-from logging import getLogger, Logger
 from fileinput import hook_compressed
+from logging import getLogger, Logger, WARNING
 from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator, Callable
 
 import numpy as np
 import numpy.typing as npt
 from pysam import TabixFile
+from numba.typed import List
+from numba import njit, uintc
 
 from .data import Data
 from .genotypes import GenotypesRefAlt
@@ -985,6 +987,28 @@ class Haplotypes(Data):
             for line in self.to_str():
                 haps.write(line + "\n")
 
+    @staticmethod
+    @njit(cache=True)
+    def _transform(arr: npt.NDArray[bool], idxs: tuple[npt.NDArray[int]], out: npt.NDArray[bool]):
+        """
+        A helper for :py:meth:`~.Haplotypes.transform`
+
+        Parameters
+        ----------
+        arr : npt.NDArray[bool]
+            An array of shape (n, a, 2) where a is the number of alleles
+        idxs : tuple[npt.NDArray[int]]
+            A list of 1D int arrays of unequal size, denoting the indices of each
+            haplotype's alleles in the second dimension of arr
+        out : npt.NDArray[bool]
+            An array of shape (n, h, 2) where h is the number of haplotypes
+
+            The transformed genotypes are stored in here
+        """
+        for i, hap_idxs in enumerate(idxs):
+            for j in hap_idxs:
+                out[:, i] = np.logical_and(out[:, i], arr[:, j])
+
     def transform(
         self,
         gts: GenotypesRefAlt,
@@ -1020,17 +1044,18 @@ class Haplotypes(Data):
         # build a fast data structure for querying the alleles in each haplotype:
         # a dict mapping (variant ID, allele) -> a unique index
         alleles = {}
-        # and a dict mapping hap ID -> an array with the indices of the hap's alleles
-        idxs = {}
+        # and preallocate a list of arrays with the indices of each hap's alleles
+        getLogger('numba').setLevel(WARNING)
+        idxs = List.empty_list(uintc[:], allocated=len(self.data))
         count = 0
-        for hap in self.data.values():
-            idxs[hap.id] = np.empty(len(hap.variants), dtype=np.uintc)
-            for i, variant in enumerate(hap.variants):
+        for i, hap in enumerate(self.data.values()):
+            idxs.append(np.empty(len(hap.variants), dtype=np.uintc))
+            for j, variant in enumerate(hap.variants):
                 key = (variant.id, variant.allele)
                 if key not in alleles:
                     alleles[key] = count
                     count += 1
-                idxs[hap.id][i] = alleles[key]
+                idxs[i][j] = alleles[key]
         self.log.debug(f"Copying genotypes for {len(alleles)} distinct alleles")
         gts = gts.subset(variants=tuple(k[0] for k in alleles))
         self.log.debug(f"Creating array denoting alt allele status")
@@ -1047,10 +1072,9 @@ class Haplotypes(Data):
             f"Allocating array with dtype {gts.data.dtype} and size "
             f"{(len(gts.samples), len(self.data), 2)}"
         )
-        hap_gts.data = np.empty(
+        hap_gts.data = np.ones(
             (gts.data.shape[0], len(self.data), 2), dtype=gts.data.dtype
         )
-        self.log.debug("Computing haplotype genotypes. This may take a while")
-        for i, hap in enumerate(self.data.values()):
-            hap_gts.data[:, i] = np.all(equality_arr[:, idxs[hap.id]], axis=1)
+        self.log.debug("Finally computing haplotype genotypes. This may take a while")
+        self._transform(equality_arr, idxs, hap_gts.data)
         return hap_gts
