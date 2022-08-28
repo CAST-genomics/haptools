@@ -16,7 +16,6 @@ cyvcf2 = "^0.30.14"
 brewer2mpl = "^1.4.1"
 matplotlib = "^3.5.1"
 Pgenlib = { version = "^0.81.2", optional = true }
-numba = "^0.56.0"
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
