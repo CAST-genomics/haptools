@@ -1004,11 +1004,11 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # ...each column is a different chromosomal strand
                     try:
                         data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
-                    except np.core._exceptions.MemoryError:
+                    except np.core._exceptions._ArrayMemoryError as e:
                         raise ValueError(
                             "You don't have enough memory to load these genotypes! Try"
-                            " specifying a value to the chunks_size parameter, instead"
-                        )
+                            " specifying a value to the chunk_size parameter, instead"
+                        ) from e
                     phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
@@ -1208,11 +1208,11 @@ class GenotypesPLINK(GenotypesRefAlt):
                 subset_data = data[start:end]
                 try:
                     cast_data = subset_data.astype(np.int32)
-                except np.core._exceptions.MemoryError:
+                except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
                         "You don't have enough memory to write these genotypes! Try"
-                        " specifying a value to the chunks_size parameter, instead"
-                    )
+                        " specifying a value to the chunk_size parameter, instead"
+                    ) from e
                 # convert any missing genotypes to -9
                 cast_data[subset_data == np.iinfo(np.uint8).max] = -9
                 if self._prephased or self.data.shape[2] < 3:
