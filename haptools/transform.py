@@ -1,8 +1,113 @@
 from __future__ import annotations
 import logging
 from pathlib import Path
+from collections import namedtuple
+from dataclasses import dataclass, field
+
+import numpy as np
+from cyvcf2 import VCF, Variant
 
 from haptools import data
+
+
+@dataclass
+class HaplotypeAncestry(data.Haplotype):
+    """
+    A haplotype with an ancestry field for the transform subcommand
+
+    Properties and functions are shared with the base "Haplotype" object
+    """
+
+    ancestry: str
+    _extras: tuple = field(
+        repr=False,
+        init=False,
+        default=(data.Extra("ancestry", "s", "Local ancestry"),),
+    )
+
+    def transform(self, genotypes: GenotypesRefAlt) -> npt.NDArray[bool]:
+        """
+        Transform a genotypes matrix via the current haplotype and its ancestral
+        population
+
+        See documentation for :py:meth:`~.Haplotype.transform` for more details
+        """
+        var_IDs = self.varIDs
+        gts = genotypes.subset(variants=var_IDs)
+        # check: were any of the variants absent from the genotypes?
+        if len(gts.variants) < len(var_IDs):
+            missing_IDs = set(var_IDs) - set(gts.variants["id"])
+            raise ValueError(
+                f"Variants {missing_IDs} are present in haplotype '{self.id}' but "
+                "absent in the provided genotypes"
+            )
+        # create a np array denoting the alleles that we want
+        # note: the excessive use of square-brackets gives us shape (1, p, 1)
+        # where p denotes the number of alleles in this haplotype
+        # That shape is broadcastable with gts.data which has shape (n, p, 2)
+        allele_arr = np.array(
+            [
+                [
+                    [int(var.allele != gts.variants[i]["ref"])]
+                    for i, var in enumerate(self.variants)
+                ]
+            ]
+        )
+        # look for the presence of each allele in each chromosomal strand
+        # and then just AND them together
+        hap_gts = np.all(allele_arr == gts.data, axis=1)
+        # first, obtain the encoding of this haplotype's ancestry within the genotype
+        # matrix. This will be an integer like 0, 1, 2, or 3 (or -1 if not found)
+        ancestry_label = gts.ancestry_labels.get(self.ancestry, -1)
+        p = gts.data.shape[1]
+        # look for the presence of the desired ancestry in each chromosomal strand
+        # and then just AND across all of the variants in the haplotype
+        ancestry_arr = np.all(gts.ancestry == ancestry_label, axis=1)
+        return np.logical_and(hap_gts, ancestry_arr)
+
+
+class HaplotypesAncestry(data.Haplotypes):
+    """
+    A set of haplotypes with an ancestry field for the transform subcommand
+
+    Properties and functions are shared with the base "Haplotypes" object
+    """
+
+    def __init__(
+        self,
+        fname: Path | str,
+        haplotype: type[HaplotypeAncestry] = HaplotypeAncestry,
+        variant: type[data.Variant] = data.Variant,
+        log: Logger = None,
+    ):
+        """
+        Contrasting with the base Haplotypes class: this class uses HaplotypeAncestry
+        as its default Haplotype class
+        """
+        super().__init__(fname, haplotype=haplotype, variant=variant, log=log)
+
+    def transform(
+        self,
+        gts: GenotypesRefAlt,
+        hap_gts: GenotypesRefAlt = None,
+    ) -> GenotypesRefAlt:
+        # hap_gts = super().transform(gts, hap_gts)
+        # Initialize GenotypesRefAlt return value
+        if hap_gts is None:
+            hap_gts = GenotypesRefAlt(fname=None, log=self.log)
+        hap_gts.samples = gts.samples
+        hap_gts.variants = np.array(
+            [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
+            dtype=hap_gts.variants.dtype,
+        )
+        # Obtain and merge the haplotype genotypes
+        self.log.info(
+            f"Transforming a set of genotypes from {len(gts.variants)} total "
+            f"variants with a list of {len(self.data)} haplotypes"
+        )
+        arrs = tuple(h.transform(gts)[:, np.newaxis] for h in self.data.values())
+        hap_gts.data = np.concatenate(arrs, axis=1).astype(gts.data.dtype)
+        return hap_gts
 
 
 class GenotypesAncestry(data.GenotypesRefAlt):
@@ -27,15 +132,50 @@ class GenotypesAncestry(data.GenotypesRefAlt):
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
+
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
         self.ancestry = None
+        self.ancestry_labels = {}
 
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
         See documentation for :py:meth:`~.Genotypes._iterate`
         """
-        pass
+        self.log.info(f"Loading genotypes from {len(self.samples)} samples")
+        Record = namedtuple("Record", "data ancestry variants")
+        num_seen = 0
+        pop_count = 0
+        # iterate over each line in the VCF
+        # note, this can take a lot of time if there are many samples
+        for variant in vcf(region):
+            if variants is not None and variant.ID not in variants:
+                if num_seen >= len(variants):
+                    # exit early if we've already found all the variants
+                    break
+                continue
+            # save meta information about each variant
+            variant_arr = self._variant_arr(variant)
+            # extract the genotypes to a matrix of size n x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased (if self._prephased is False)
+            data = np.array(variant.genotypes, dtype=np.uint8)
+            data = data[:, : (2 + (not self._prephased))]
+            # also extract the ancestral population of each variant in each individual
+            ancestry = np.empty((data.shape[0], 2), dtype=np.uint8)
+            for i, sample in enumerate(variant.format("POP")):
+                pops = sample.split(",")
+                for pop in pops:
+                    if pop not in self.ancestry_labels:
+                        self.ancestry_labels[pop] = pop_count
+                        pop_count += 1
+                ancestry[i] = tuple(map(self.ancestry_labels.get, pops))
+            # finally, output everything
+            yield Record(data, ancestry, variant_arr)
+            num_seen += 1
+        vcf.close()
 
     def read(
         self,
@@ -47,7 +187,66 @@ class GenotypesAncestry(data.GenotypesRefAlt):
         """
         See documentation for :py:meth:`~.Genotypes.read`
         """
-        pass
+        super(data.Genotypes, self).read()
+        records = self.__iter__(region=region, samples=samples, variants=variants)
+        if variants is not None:
+            max_variants = len(variants)
+        # check whether we can preallocate memory instead of making copies
+        if max_variants is None:
+            self.log.warning(
+                "The max_variants parameter was not specified. We have no choice but to"
+                " append to an ever-growing array, which can lead to memory overuse!"
+            )
+            variants_arr = []
+            data_arr = []
+            ancestry_arr = []
+            for rec in records:
+                variants_arr.append(rec.variants)
+                data_arr.append(rec.data)
+                ancestry_arr.append(rec.ancestry)
+            self.log.info(f"Copying {len(variants_arr)} variants into np arrays.")
+            # convert to np array for speedy operations later on
+            self.variants = np.array(variants_arr, dtype=self.variants.dtype)
+            self.data = np.array(data_arr, dtype=np.uint8)
+            self.ancestry = np.array(ancestry_arr, dtype=np.uint8)
+        else:
+            # preallocate arrays! this will save us lots of memory and speed b/c
+            # appends can sometimes make copies
+            self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
+            # in order to check_phase() later, we must store the phase info, as well
+            self.data = np.empty(
+                (max_variants, len(self.samples), (2 + (not self._prephased))),
+                dtype=np.uint8,
+            )
+            self.ancestry = np.empty(
+                (max_variants, len(self.samples), 2),
+                dtype=np.uint8,
+            )
+            num_seen = 0
+            for rec in records:
+                if num_seen >= max_variants:
+                    break
+                self.variants[num_seen] = rec.variants
+                self.data[num_seen] = rec.data
+                self.ancestry[num_seen] = rec.ancestry
+                num_seen += 1
+            if max_variants > num_seen:
+                self.log.info(
+                    f"Removing {max_variants-num_seen} unneeded variant records that "
+                    "were preallocated b/c max_variants was specified."
+                )
+                self.variants = self.variants[:num_seen]
+                self.data = self.data[:num_seen]
+                self.ancestry = self.data[:num_seen]
+        if 0 in self.data.shape:
+            self.log.warning(
+                "Failed to load genotypes. If you specified a region, check that the"
+                " contig name matches! For example, double-check the 'chr' prefix."
+            )
+        # transpose the GT matrix so that samples are rows and variants are columns
+        self.log.info(f"Transposing genotype matrix of size {self.data.shape}.")
+        self.data = self.data.transpose((1, 0, 2))
+        self.ancestry = self.ancestry.transpose((1, 0, 2))
 
     def subset(
         self,
@@ -58,19 +257,112 @@ class GenotypesAncestry(data.GenotypesRefAlt):
         """
         See documentation for :py:meth:`~.Genotypes.subset`
         """
-        pass
+        # First, initialize variables
+        gts = self
+        if not inplace:
+            gts = self.__class__(self.fname, self.log)
+        gts.samples = self.samples
+        gts.variants = self.variants
+        gts.data = self.data
+        gts.ancestry = self.ancestry
+        gts.ancestry_labels = self.ancestry_labels
+        # Index the current set of samples and variants so we can have fast look-up
+        self.index(samples=(samples is not None), variants=(variants is not None))
+        # Subset the samples
+        if samples is not None:
+            gts.samples = tuple(samp for samp in samples if samp in self._samp_idx)
+            if len(gts.samples) < len(samples):
+                diff = len(samples) - len(gts.samples)
+                self.log.warning(
+                    f"Saw {diff} fewer samples than requested. Proceeding with "
+                    f"{len(gts.samples)} samples."
+                )
+            samp_idx = tuple(self._samp_idx[samp] for samp in gts.samples)
+            if inplace:
+                self._samp_idx = None
+            gts.data = gts.data[samp_idx, :]
+            gts.ancestry = gts.ancestry[samp_idx, :]
+        # Subset the variants
+        if variants is not None:
+            var_idx = [self._var_idx[var] for var in variants if var in self._var_idx]
+            if len(var_idx) < len(variants):
+                diff = len(variants) - len(var_idx)
+                self.log.warning(
+                    f"Saw {diff} fewer variants than requested. Proceeding with "
+                    f"{len(var_idx)} variants."
+                )
+            gts.variants = self.variants[var_idx]
+            if inplace:
+                self._var_idx = None
+            gts.data = gts.data[:, var_idx]
+            gts.ancestry = gts.ancestry[:, var_idx]
+        if not inplace:
+            return gts
 
     def check_missing(self, discard_also=False):
         """
         See documentation for :py:meth:`~.Genotypes.check_missing`
         """
-        pass
+        # check: are there any samples that have genotype values that are empty?
+        # A genotype value equal to the max for uint8 indicates the value was missing
+        missing = np.any(self.data[:, :, :2] == np.iinfo(np.uint8).max, axis=2)
+        if np.any(missing):
+            samp_idx, variant_idx = np.nonzero(missing)
+            if discard_also:
+                original_num_samples = len(self.samples)
+                self.data = np.delete(self.data, samp_idx, axis=0)
+                self.ancestry = np.delete(self.ancestry, samp_idx, axis=0)
+                self.samples = tuple(np.delete(self.samples, samp_idx))
+                self.log.info(
+                    "Ignoring missing genotypes from "
+                    f"{original_num_samples - len(self.samples)} samples"
+                )
+                self._samp_idx = None
+            else:
+                raise ValueError(
+                    "Genotype with ID {} at POS {}:{} is missing for sample {}".format(
+                        *tuple(self.variants[variant_idx[0]])[:3],
+                        self.samples[samp_idx[0]],
+                    )
+                )
+        if discard_also and not self.data.shape[0]:
+            self.log.warning(
+                "All samples were discarded! Check that that none of your variants are"
+                " missing genotypes (GT: '.|.')."
+            )
 
     def check_biallelic(self, discard_also=False):
         """
         See documentation for :py:meth:`~.Genotypes.check_biallelic`
         """
-        pass
+        if self.data.dtype == np.bool_:
+            self.log.warning("All genotypes are already biallelic")
+            return
+        # check: are there any variants that have genotype values above 1?
+        # A genotype value above 1 would imply the variant has more than one ALT allele
+        multiallelic = np.any(self.data[:, :, :2] > 1, axis=2)
+        if np.any(multiallelic):
+            samp_idx, variant_idx = np.nonzero(multiallelic)
+            if discard_also:
+                self.log.info(f"Ignoring {len(variant_idx)} multiallelic variants")
+                self.data = np.delete(self.data, variant_idx, axis=1)
+                self.ancestry = np.delete(self.ancestry, variant_idx, axis=1)
+                self.variants = np.delete(self.variants, variant_idx)
+                self._var_idx = None
+            else:
+                raise ValueError(
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
+                    .format(
+                        *tuple(self.variants[variant_idx[0]])[:3],
+                        self.samples[samp_idx[0]],
+                    )
+                )
+        if discard_also and not self.data.shape[1]:
+            self.log.warning(
+                "All variants were discarded! Check that there are biallelic variants "
+                "in your dataset."
+            )
+        self.data = self.data.astype(np.bool_)
 
     def write(self):
         raise ValueError("Not implemented")
