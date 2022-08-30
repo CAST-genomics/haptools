@@ -170,11 +170,7 @@ class TestGenotypes:
         assert gts.samples == samples
 
     def test_load_genotypes_discard_multiallelic(self):
-        expected = self._get_expected_genotypes()
-
-        # can we load the data from the VCF?
-        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-        gts.read()
+        gts = self._get_fake_genotypes()
 
         # make a copy for later
         data_copy = gts.data.copy().astype(np.bool_)
@@ -701,6 +697,7 @@ class TestHaplotypes:
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
             )
+
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
@@ -786,11 +783,17 @@ class TestHaplotypes:
 
 
 class TestGenotypesRefAlt:
-    def _get_fake_genotypes_refalt(self):
+    def _get_fake_genotypes_refalt(self, with_phase=False):
         base_gts = TestGenotypes()._get_fake_genotypes()
         # copy all of the fields
         gts = GenotypesRefAlt(fname=None)
         gts.data = base_gts.data
+        if with_phase:
+            data_shape = (gts.data.shape[0], gts.data.shape[1], 1)
+            # add phase info back
+            gts.data = np.concatenate(
+                (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
+            )
         gts.samples = base_gts.samples
         # add additional ref and alt alleles
         ref_alt = np.array(

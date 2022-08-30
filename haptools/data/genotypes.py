@@ -257,7 +257,7 @@ class Genotypes(Data):
                 continue
             # save meta information about each variant
             variant_arr = self._variant_arr(variant)
-            # extract the genotypes to a matrix of size p x 3
+            # extract the genotypes to a matrix of size n x 3
             # the last dimension has three items:
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
