@@ -347,6 +347,13 @@ def simphenotype(
     help="Ignore any samples that are missing genotypes for the required variants",
 )
 @click.option(
+    "--ancestry",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Also transform using VCF 'POP' FORMAT field and 'ancestry' .hap extra field",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -372,6 +379,7 @@ def transform(
     ids_file: Path = None,
     chunk_size: int = None,
     discard_missing: bool = False,
+    ancestry: bool = False,
     output: Path = Path("-"),
     verbosity: str = 'CRITICAL',
 ):
@@ -415,7 +423,7 @@ def transform(
 
     transform_haps(
         genotypes, haplotypes, region, samples, ids, chunk_size,
-        discard_missing, output, log
+        discard_missing, ancestry, output, log
     )
 
 @main.command(short_help="Compute pair-wise LD")

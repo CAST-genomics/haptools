@@ -10,6 +10,8 @@ The ``transform`` command takes as input a set of genotypes in VCF and a list of
 
 You may also specify genotypes in PLINK2 PGEN format. Just use the appropriate ".pgen" file extension in the input and/or output. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
 
+If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those output by ``simgenotype``.
+
 Usage
 ~~~~~
 .. code-block:: bash
@@ -22,6 +24,7 @@ Usage
 	--ids-file FILENAME \
 	--chunk-size INT \
 	--discard-missing \
+	--ancestry \
 	--output PATH \
 	--verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
 	GENOTYPES HAPLOTYPES
@@ -43,6 +46,13 @@ To get progress information, increase the verbosity to "INFO":
 .. code-block:: bash
 
 	haptools transform --verbosity INFO -o output.vcf.gz tests/data/apoe.vcf.gz tests/data/apoe4.hap
+
+..
+	To include ancestral population labels in the transformation, use the ``--ancestry`` flag:
+
+	.. code-block:: bash
+
+		haptools transform --ancestry tests/data/example.vcf.gz tests/data/simphenotype.hap
 
 Detailed Usage
 ~~~~~~~~~~~~~~

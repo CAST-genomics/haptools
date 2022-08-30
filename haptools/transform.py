@@ -376,6 +376,7 @@ def transform_haps(
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
     discard_missing: bool = False,
+    ancestry: bool = False,
     output: Path = Path("-"),
     log: Logger = None,
 ):
@@ -407,6 +408,9 @@ def transform_haps(
         Discard any samples that are missing any of the required genotypes
 
         The default is simply to complain about it
+    ancestry : bool, optional
+        Whether to also match ancestral population labels from the VCF against those in
+        the .hap file
     output : Path, optional
         The location to which to write output
     log : Logger, optional
@@ -419,8 +423,9 @@ def transform_haps(
             level="ERROR",
         )
 
+    haps_class = HaplotypesAncestry if ancestry else data.Haplotypes
     log.info("Loading haplotypes")
-    hp = data.Haplotypes(haplotypes, log=log)
+    hp = haps_class(haplotypes, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
     # check that all of the haplotypes were loaded successfully and warn otherwise
@@ -437,11 +442,15 @@ def transform_haps(
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
     if genotypes.suffix == ".pgen":
+        if ancestry:
+            log.error("Loading ancestry info from a PGEN file is not yet supported")
+            ancestry = False
         log.info("Loading genotypes from PGEN file")
         gt = data.GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = data.GenotypesRefAlt(fname=genotypes, log=log)
+        vcf_class = GenotypesAncestry if ancestry else data.GenotypesRefAlt
+        gt = vcf_class(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
