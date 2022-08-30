@@ -17,15 +17,12 @@ Usage
 	--verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
 	HAPLOTYPES
 
-Examples
+Example
 ~~~~~~~~
 .. code-block:: bash
 
-	haptools transform tests/data/example.vcf.gz tests/data/basic.hap.gz | less
+	haptools index tests/data/basic.hap
 
-.. code-block:: bash
-
-	haptools transform -o output.vcf.gz -s NA12878 tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
 Detailed Usage
 ~~~~~~~~~~~~~~

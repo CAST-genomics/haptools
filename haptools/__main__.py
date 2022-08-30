@@ -530,9 +530,7 @@ def index(
 ):
 
     """
-
-        Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
-        
+    Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
     """
 
     import logging
