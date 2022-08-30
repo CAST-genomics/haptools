@@ -6,44 +6,27 @@ from pysam import tabix_index
 from haptools import data
 import tempfile
 
-"""
+
+def append_suffix(
+    path: Path,
+    suffix: str,
+):
+
+    """
 
     Used as a helper method for index_haps.
     If an output path is not provided, the resulting file will have the same name as the input with .gz and .tbi appended to the appropriate files.
 
     Parameters
     ----------
-    
+
     path : Path
         The path to the haplotypes in a .hap file
     suffix : str
         The location to which to write output.  If an output location is not specified, the output will write to the same location as the input file.
 
-"""
-
-
-def append_suffix(
-    path: Path,
-    suffix: str,
-):
+    """
     return path.with_suffix(path.suffix + suffix)
-
-
-"""
-
-    Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
-
-    Parameters
-    ----------
-    
-    haplotypes : Path
-        The path to the haplotypes in a .hap file
-    output : Path, optional
-        The location to which to write output.  If an output location is not specified, the output will have the same name as the input file.
-    log : Logger, optional
-        A logging module to which to write messages about progress and any errors
-
-"""
 
 
 def index_haps(
@@ -51,6 +34,21 @@ def index_haps(
     output: Path = None,
     log: Logger = None,
 ):
+    """
+
+    Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
+
+    Parameters
+    ----------
+
+    haplotypes : Path
+        The path to the haplotypes in a .hap file
+    output : Path, optional
+        The location to which to write output.  If an output location is not specified, the output will have the same name as the input file.
+    log : Logger, optional
+        A logging module to which to write messages about progress and any errors
+
+    """
 
     if log is None:
         log = logging.getLogger("run")

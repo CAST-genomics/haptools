@@ -24,6 +24,7 @@
    commands/simphenotype.rst
    commands/karyogram.rst
    commands/transform.rst
+   commands/index.rst
 
 .. toctree::
    :caption: API

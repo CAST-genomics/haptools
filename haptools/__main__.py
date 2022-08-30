@@ -530,19 +530,9 @@ def index(
 ):
 
     """
-    
+
         Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
-
-        Parameters
-        ----------
         
-        haplotypes : Path
-            The path to the haplotypes in a .hap file
-        output : Path, optional
-            The location to which to write output.  If an output location is not specified, the output will have the same name as the input file.
-        log : Logger, optional
-            A logging module to which to write messages about progress and any errors
-
     """
 
     import logging

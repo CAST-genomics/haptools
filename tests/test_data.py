@@ -1,4 +1,3 @@
-from cgi import test
 import os
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -791,48 +790,40 @@ class TestHaplotypes:
         hap2 = Haplotype(chrom="B", start=2, end=1000, id="test2")
         assert hap1 < hap2
 
-
     def test_gt_haps(self):
         hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
         hap2 = Haplotype(chrom="A", start=2, end=1000, id="test2")
         assert hap1 > hap2
-
 
     def test_lt_var(self):
         var1 = Variant(start=1, end=1000, id="test1", allele="test1")
         var2 = Variant(start=1, end=1001, id="test2", allele="test2")
         assert var1 < var2
 
-
     def test_gt_var(self):
         var1 = Variant(start=7, end=1000, id="test1", allele="test1")
         var2 = Variant(start=1, end=1001, id="test2", allele="test2")
         assert var1 > var2
-
 
     def test_gt_equal_var(self):
         var1 = Variant(start=1, end=1000, id="test", allele="test")
         var2 = Variant(start=1, end=1000, id="test", allele="test")
         assert var1 >= var2
 
-
     def test_gt_equal_haps(self):
         hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
         hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
         assert hap1 >= hap2
-
 
     def test_lt_equal_var(self):
         var1 = Variant(start=1, end=1000, id="test1", allele="test1")
         var2 = Variant(start=1, end=1001, id="test2", allele="test2")
         assert var1 <= var2
 
-
     def test_lt_equal_haps(self):
         hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
         hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
         assert hap1 <= hap2
-
 
     def test_sort(self):
         test_hap1 = Haplotypes("tests/data/test_sort_unordered.hap")
