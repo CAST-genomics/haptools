@@ -1048,7 +1048,7 @@ class Haplotypes(Data):
             f"{(len(gts.samples), len(self.data), 2)}"
         )
         hap_gts.data = np.empty(
-            (gts.data.shape[0], len(self.data), 2), dtype=gts.data.dtype
+            (gts.data.shape[0], len(self.data), 2), dtype=np.bool_
         )
         self.log.debug("Computing haplotype genotypes. This may take a while")
         for i in range(len(self.data)):
