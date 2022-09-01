@@ -1019,22 +1019,26 @@ class Haplotypes(Data):
         )
         # build a fast data structure for querying the alleles in each haplotype:
         # a dict mapping (variant ID, allele) -> a unique index
-        idxs = {}
-        num_haps = len(self.data.values())
+        alleles = {}
+        # and a list of arrays containing the indices of each hap's alleles
+        idxs = [None]*len(self.data)
+        count = 0
         for i, hap in enumerate(self.data.values()):
-            for variant in hap.variants:
+            idxs[i] = np.empty(len(hap.variants), dtype=np.uintc)
+            for j, variant in enumerate(hap.variants):
                 key = (variant.id, variant.allele)
-                if key not in idxs:
-                    idxs[key] = np.zeros(num_haps, dtype=np.bool_)
-                idxs[key][i] = True
-        self.log.debug(f"Copying genotypes for {len(idxs)} distinct alleles")
-        gts = gts.subset(variants=tuple(k[0] for k in idxs))
+                if key not in alleles:
+                    alleles[key] = count
+                    count += 1
+                idxs[i][j] = alleles[key]
+        self.log.debug(f"Copying genotypes for {len(alleles)} distinct alleles")
+        gts = gts.subset(variants=tuple(k[0] for k in alleles))
         self.log.debug(f"Creating array denoting alt allele status")
         # initialize a np array denoting the allele integer in each haplotype
         # with shape (1, gts.data.shape[1], 1) for broadcasting later
         allele_arr = np.array([
             int(allele != gts.variants[i]["ref"])
-            for i, (vID, allele) in enumerate(idxs)
+            for i, (vID, allele) in enumerate(alleles)
         ], dtype=gts.data.dtype)[np.newaxis, :, np.newaxis]
         # finally, obtain and merge the haplotype genotypes
         self.log.info(f"Transforming genotypes for {len(self.data)} haplotypes")
@@ -1043,11 +1047,10 @@ class Haplotypes(Data):
             f"Allocating array with dtype {gts.data.dtype} and size "
             f"{(len(gts.samples), len(self.data), 2)}"
         )
-        hap_gts.data = np.ones(
-            (gts.data.shape[0], len(self.data), 2), dtype=np.bool_
+        hap_gts.data = np.empty(
+            (gts.data.shape[0], len(self.data), 2), dtype=gts.data.dtype
         )
         self.log.debug("Computing haplotype genotypes. This may take a while")
-        for i, haps in enumerate(idxs.values()):
-            hap_gts.data[:, haps] = np.logical_and(hap_gts.data[:, haps], equality_arr[:, i][:, np.newaxis])
-        hap_gts.data = hap_gts.data.astype(gts.data.dtype)
+        for i in range(len(self.data)):
+            hap_gts.data[:, i] = np.all(equality_arr[:, idxs[i]], axis=1)
         return hap_gts
