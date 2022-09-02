@@ -128,7 +128,7 @@ class PhenoSimulator:
         self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
         self.log.debug(f"Beta values are {betas}")
         # extract the haplotype "genotypes" and compute the phenotypes
-        gts = self.gens.subset(variants=ids).data.sum(axis=2)
+        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[0]} causal effects")
         # standardize the genotypes
         gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
@@ -279,7 +279,6 @@ def simulate_pt(
     log.info("QC-ing genotypes")
     gt.check_missing()
     gt.check_biallelic()
-    gt.check_phase()
 
     # check that all of the genotypes were loaded successfully and warn otherwise
     if len(haplotype_ids) < len(gt.variants):
