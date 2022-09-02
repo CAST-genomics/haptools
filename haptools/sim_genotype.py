@@ -626,7 +626,7 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp):
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp=False):
     # validate model file
     mfile = open(model, 'r')
     num_samples, *pops = mfile.readline().strip().split()
