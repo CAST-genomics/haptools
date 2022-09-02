@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 
 import numpy as np
+import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 
 from haptools import data
@@ -25,7 +26,7 @@ class HaplotypeAncestry(data.Haplotype):
         default=(data.Extra("ancestry", "s", "Local ancestry"),),
     )
 
-    def transform(self, genotypes: GenotypesRefAlt) -> npt.NDArray[bool]:
+    def transform(self, genotypes: data.GenotypesRefAlt) -> npt.NDArray[bool]:
         """
         Transform a genotypes matrix via the current haplotype and its ancestral
         population
@@ -87,12 +88,12 @@ class HaplotypesAncestry(data.Haplotypes):
 
     def transform(
         self,
-        gts: GenotypesRefAlt,
-        hap_gts: GenotypesRefAlt = None,
-    ) -> GenotypesRefAlt:
+        gts: data.GenotypesAncestry,
+        hap_gts: data.GenotypesRefAlt = None,
+    ) -> data.GenotypesRefAlt:
         # Initialize GenotypesRefAlt return value
         if hap_gts is None:
-            hap_gts = GenotypesRefAlt(fname=None, log=self.log)
+            hap_gts = data.GenotypesRefAlt(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],

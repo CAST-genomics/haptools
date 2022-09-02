@@ -47,6 +47,14 @@ To get progress information, increase the verbosity to "INFO":
 
 	haptools transform --verbosity INFO -o output.vcf.gz tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
+If your VCF has multi-allelic variants, they must be split into bi-allelic records before you can use ``transform``. After splitting, you should rename the IDs in your file to ensure they remain unique:
+
+.. code-block:: bash
+
+	bcftools norm -m- -Ou input.vcf.gz | \
+	bcftools annotate -Ov --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | \
+	haptools transform -o output.vcf.gz - file.hap
+
 ..
 	To include ancestral population labels in the transformation, use the ``--ancestry`` flag:
 
