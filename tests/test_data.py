@@ -610,13 +610,13 @@ class TestHaplotypes:
         # what do we expect to see from the simphenotype.hap file?
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73
             ),
             "chr21.q.3365*10": HaptoolsHaplotype(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30
             ),
             "chr21.q.3365*11": HaptoolsHaplotype(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -650,13 +650,13 @@ class TestHaplotypes:
     def _get_writable_haplotypes(self):
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73
             ),
             "chr21.q.3365*10": HaptoolsHaplotype(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30
             ),
             "chr21.q.3365*11": HaptoolsHaplotype(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -692,7 +692,6 @@ class TestHaplotypes:
                 repr=False,
                 init=False,
                 default=(
-                    Extra("ancestry", "s", "Local ancestry"),
                     Extra("score", ".2f", "Score for a thing"),
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
@@ -701,13 +700,13 @@ class TestHaplotypes:
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73, 0.40
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73, 0.40
             ),
             "chr21.q.3365*10": HaplotypePlusExtra(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30, 0.28
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30, 0.28
             ),
             "chr21.q.3365*11": HaplotypePlusExtra(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49, 0.84
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49, 0.84
             ),
         }
         for hap_id, hap in self._basic_haps().items():
