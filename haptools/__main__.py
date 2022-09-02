@@ -232,8 +232,10 @@ def simphenotype(
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
     set of haplotypes.
 
-    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
-    to the .hap format spec
+    GENOTYPES must be formatted as a VCF or PGEN file and HAPLOTYPES must be formatted
+    according to the .hap format spec
+
+    Note: GENOTYPES must be the output from the transform subcommand.
     """
     import logging
 

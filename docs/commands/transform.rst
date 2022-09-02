@@ -10,7 +10,7 @@ The ``transform`` command takes as input a set of genotypes in VCF and a list of
 
 You may also specify genotypes in PLINK2 PGEN format. Just use the appropriate ".pgen" file extension in the input and/or output. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
 
-If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those output by ``simgenotype``.
+If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by ``simgenotype``. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
 
 Usage
 ~~~~~
@@ -53,7 +53,7 @@ If your VCF has multi-allelic variants, they must be split into bi-allelic recor
 
 	bcftools norm -m- -Ou input.vcf.gz | \
 	bcftools annotate -Ov --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | \
-	haptools transform -o output.vcf.gz - file.hap
+	haptools transform -o output.vcf.gz /dev/stdin file.hap
 
 ..
 	To include ancestral population labels in the transformation, use the ``--ancestry`` flag:

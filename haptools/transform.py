@@ -421,7 +421,7 @@ def transform_haps(
     Parameters
     ----------
     genotypes : Path
-        The path to the genotypes
+        The path to the genotypes in VCF or PGEN format
     haplotypes : Path
         The path to the haplotypes in a .hap file
     region : str, optional
