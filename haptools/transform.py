@@ -59,7 +59,6 @@ class HaplotypeAncestry(data.Haplotype):
         # first, obtain the encoding of this haplotype's ancestry within the genotype
         # matrix. This will be an integer like 0, 1, 2, or 3 (or -1 if not found)
         ancestry_label = gts.ancestry_labels.get(self.ancestry, -1)
-        p = gts.data.shape[1]
         # look for the presence of the desired ancestry in each chromosomal strand
         # and then just AND across all of the variants in the haplotype
         ancestry_arr = np.all(gts.ancestry == ancestry_label, axis=1)
@@ -91,7 +90,6 @@ class HaplotypesAncestry(data.Haplotypes):
         gts: GenotypesRefAlt,
         hap_gts: GenotypesRefAlt = None,
     ) -> GenotypesRefAlt:
-        # hap_gts = super().transform(gts, hap_gts)
         # Initialize GenotypesRefAlt return value
         if hap_gts is None:
             hap_gts = GenotypesRefAlt(fname=None, log=self.log)
@@ -100,13 +98,48 @@ class HaplotypesAncestry(data.Haplotypes):
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
             dtype=hap_gts.variants.dtype,
         )
-        # Obtain and merge the haplotype genotypes
-        self.log.info(
-            f"Transforming a set of genotypes from {len(gts.variants)} total "
-            f"variants with a list of {len(self.data)} haplotypes"
+        # build a fast data structure for querying the alleles in each haplotype:
+        # a dict mapping (variant ID, allele) -> a unique index
+        alleles = {}
+        # and a list of arrays containing the indices of each hap's alleles
+        idxs = [None]*len(self.data)
+        # and lastly, a list of ancestral population labels for each hap
+        ancestries = np.empty(len(self.data), dtype=np.uint8)
+        count = 0
+        for i, hap in enumerate(self.data.values()):
+            ancestries[i] = gts.ancestry_labels.get(hap.ancestry, -1)
+            idxs[i] = np.empty(len(hap.variants), dtype=np.uintc)
+            for j, variant in enumerate(hap.variants):
+                key = (variant.id, variant.allele)
+                if key not in alleles:
+                    alleles[key] = count
+                    count += 1
+                idxs[i][j] = alleles[key]
+        self.log.debug(f"Copying genotypes for {len(alleles)} distinct alleles")
+        gts = gts.subset(variants=tuple(k[0] for k in alleles))
+        self.log.debug(f"Creating array denoting alt allele status")
+        # initialize a np array denoting the allele integer in each haplotype
+        # with shape (1, gts.data.shape[1], 1) for broadcasting later
+        allele_arr = np.array([
+            int(allele != gts.variants[i]["ref"])
+            for i, (vID, allele) in enumerate(alleles)
+        ], dtype=gts.data.dtype)[np.newaxis, :, np.newaxis]
+        # finally, obtain and merge the haplotype genotypes
+        self.log.info(f"Transforming genotypes for {len(self.data)} haplotypes")
+        equality_arr = np.equal(allele_arr, gts.data)
+        self.log.debug(
+            f"Allocating array with dtype {gts.data.dtype} and size "
+            f"{(len(gts.samples), len(self.data), 2)}"
         )
-        arrs = tuple(h.transform(gts)[:, np.newaxis] for h in self.data.values())
-        hap_gts.data = np.concatenate(arrs, axis=1).astype(gts.data.dtype)
+        hap_gts.data = np.empty(
+            (gts.data.shape[0], len(self.data), 2), dtype=np.bool_
+        )
+        self.log.debug("Computing haplotype genotypes. This may take a while")
+        for i in range(len(self.data)):
+            hap_gts.data[:, i] = np.logical_and(
+                np.all(gts.ancestry[:, idxs[i]] == ancestries[i], axis=1),
+                np.all(equality_arr[:, idxs[i]], axis=1),
+            )
         return hap_gts
 
 
