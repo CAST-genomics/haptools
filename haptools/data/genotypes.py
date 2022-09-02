@@ -317,19 +317,15 @@ class Genotypes(Data):
         if samples and self._samp_idx is None:
             self._samp_idx = dict(zip(self.samples, range(len(self.samples))))
             if len(self._samp_idx) < len(self.samples):
-                duplicates = [
-                    samp_id for samp_id, count in Counter(self.samples).items()
-                    if count > 1
-                ]
+                duplicates = Counter(self.samples).items()
+                duplicates = [samp_id for samp_id, count in duplicates if count > 1]
                 a_few = 5 if len(duplicates) > 5 else len(duplicates)
                 raise ValueError(f"Found duplicate sample IDs: {duplicates[:a_few]}")
         if variants and self._var_idx is None:
             self._var_idx = dict(zip(self.variants["id"], range(len(self.variants))))
             if len(self._var_idx) < len(self.variants):
-                duplicates = [
-                    var_id for var_id, count in Counter(self.variants["id"]).items()
-                    if count > 1
-                ]
+                duplicates = Counter(self.variants["id"]).items()
+                duplicates = [var_id for var_id, count in duplicates if count > 1]
                 a_few = 5 if len(duplicates) > 5 else len(duplicates)
                 raise ValueError(f"Found duplicate variant IDs: {duplicates[:a_few]}")
 

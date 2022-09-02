@@ -23,16 +23,12 @@ from haptools.data import GenotypesRefAlt, Haplotypes, Haplotype, Variant
 
 def create_genotypes(log, samples, variants, with_phase=False):
     gts = GenotypesRefAlt(fname=None, log=log)
-    shape = (samples, variants, 2+with_phase)
+    shape = (samples, variants, 2 + with_phase)
     # create a GT matrix with shape: samples x SNPs x (strands+phase)
-    gts.data = np.random.choice(
-        [0, 1], size=np.prod(shape),
-    ).reshape(shape).astype(np.uint8)
+    gts.data = np.random.choice([0, 1], size=np.prod(shape))
+    gts.data = gts.data.reshape(shape).astype(np.uint8)
     gts.variants = np.array(
-        [
-            (f"SNP{i}", "chr1", i, 0, "T", "C")
-            for i in range(gts.data.shape[1])
-        ],
+        [(f"SNP{i}", "chr1", i, 0, "T", "C") for i in range(gts.data.shape[1])],
         dtype=[
             ("id", "U50"),
             ("chrom", "U10"),
@@ -47,17 +43,18 @@ def create_genotypes(log, samples, variants, with_phase=False):
 
 
 def create_haplotypes(gts, log, haplotypes, variants):
-        haps = Haplotypes(fname=None, log=log)
-        haps.data = {}
-        for i in range(haplotypes):
-            hap_id = f"H{i}"
-            haps.data[hap_id] = Haplotype(chrom="chr1", start=0, end=0, id=f"H{i}")
-            num_alleles = np.random.randint(low=1, high=variants+1)
-            haps.data[hap_id].variants = tuple(
-                Variant(start=0, end=0, id=variant['id'], allele=np.random.choice(["T", "C"]))
-                for variant in np.random.choice(gts.variants, size=num_alleles, replace=False)
-            )
-        return haps
+    haps = Haplotypes(fname=None, log=log)
+    haps.data = {}
+    for i in range(haplotypes):
+        hap_id = f"H{i}"
+        haps.data[hap_id] = Haplotype(chrom="chr1", start=0, end=0, id=f"H{i}")
+        num_alleles = np.random.randint(low=1, high=(variants + 1))
+        hap_variants = np.random.choice(gts.variants, size=num_alleles, replace=False)
+        haps.data[hap_id].variants = tuple(
+            Variant(0, 0, variant["id"], np.random.choice(["T", "C"]))
+            for variant in hap_variants
+        )
+    return haps
 
 
 def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
@@ -99,7 +96,7 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
     type=int,
     default=5,
     show_default=True,
-    help="The number of haplotypes to use when we vary the number of variants and samples",
+    help="The number of haps to use when we vary the number of variants and samples",
 )
 @click.option(
     "--intervals-variants",
@@ -180,18 +177,18 @@ def main(
     Benchmarks classes in the data.genotypes module
     """
     INTERVALS_VALS = {
-        'vars': range(*intervals_variants),
-        'samps': range(*intervals_samples),
-        'haps': range(*intervals_haplotypes),
+        "vars": range(*intervals_variants),
+        "samps": range(*intervals_samples),
+        "haps": range(*intervals_haplotypes),
     }
     REPS = reps
     DEFAULT_VAL = {
-        'vars': default_variants,
-        'samps': default_samples,
-        'haps': default_haplotypes,
+        "vars": default_variants,
+        "samps": default_samples,
+        "haps": default_haplotypes,
     }
     NAME = name
-    VARIABLES = {"samples":"samps", "alleles_max":"vars", "haplotypes":"haps"}
+    VARIABLES = {"samples": "samps", "alleles_max": "vars", "haplotypes": "haps"}
     LOG = logging.getLogger("run")
     logging.basicConfig(
         format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
@@ -207,7 +204,7 @@ def main(
                 for name, val in pickle.load(fh).items():
                     results[name] = val
                 print(f"Loaded items from pickle: {tuple(results.keys())}")
-    
+
     # run each test
     if not skip_bench:
         print("Benchmarking the loading of each file", file=sys.stderr)
