@@ -77,6 +77,13 @@ By default, all of the haplotypes in the ``.hap`` file will be encoded as causal
    haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
    haptools simphenotype --id 'chr21.q.3365*1' /dev/stdin tests/data/simphenotype.hap
 
+To simulate ancestry-specific effects from a genotypes file with population labels, use the ``--ancestry`` switch when running ``transform``:
+
+.. code-block:: bash
+
+   haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
+   haptools simphenotype --id H1 /dev/stdin tests/data/simple.hap
+
 Simulate two replicates of a case/control trait that occurs in 60% of your samples with a heritability of 0.8. Encode all of the haplotypes in ``tests/data/example.hap.gz`` as independent causal variables.
 
 .. code-block:: bash

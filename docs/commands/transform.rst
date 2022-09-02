@@ -33,7 +33,7 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-	haptools transform tests/data/example.vcf.gz tests/data/basic.hap.gz | less
+	haptools transform tests/data/simple.vcf.gz tests/data/simple.hap
 
 Let's try transforming just two samples and let's output to PGEN format:
 
@@ -45,7 +45,13 @@ To get progress information, increase the verbosity to "INFO":
 
 .. code-block:: bash
 
-	haptools transform --verbosity INFO -o output.vcf.gz tests/data/apoe.vcf.gz tests/data/apoe4.hap
+	haptools transform --verbosity INFO -o output.vcf.gz tests/data/example.vcf.gz tests/data/basic.hap.gz
+
+To match haplotypes as well as their ancestral population labels, use the ``--ancestry`` flag:
+
+.. code-block:: bash
+
+	haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap
 
 If your VCF has multi-allelic variants, they must be split into bi-allelic records before you can use ``transform``. After splitting, you should rename the IDs in your file to ensure they remain unique:
 
