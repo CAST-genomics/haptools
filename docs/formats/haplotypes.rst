@@ -97,6 +97,9 @@ Haplotypes contain the following attributes:
      - string
      - Uniquely identifies a haplotype
 
+.. note::
+   It is not currently possible to encode haplotypes that span more than one contig.
+
 ``V`` Variant
 ~~~~~~~~~~~~~
 Each variant line belongs to a particular haplotype. These lines contain the following attributes:
