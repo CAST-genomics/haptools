@@ -6,10 +6,11 @@
 
 ```
 haptools simgenotype \
+  --model MODELFILE \
+  --mapdir GENETICMAPDIR \
+  --chroms LIST,OF,CHROMS \
   --invcf REFVCF \
   --sample_info SAMPLEINFOFILE \
-  --model MODELFILE \
-  --map GENETICMAP \
   --out OUTPREFIX
 ```
 
