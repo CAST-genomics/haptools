@@ -18,14 +18,19 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
 
     Parameters
     ----------
-    breakpoints: list(list(HaplotypeSegment))
+    breakpoints: list[list[HaplotypeSegment]]
+        the simulated breakpoints
     model_file: str
         file with the following structure. (Must be tab delimited)
-        Header = # samples, Admixed, {all pop labels}
-        Below  = generation#, frac, frac
-        ex: 40    Admixed    CEU   YRI
-            1       0        0.05  0.95
-            2       0.20     0.05  0.75
+
+        .. code-block::
+
+            Header = # samples, Admixed, {all pop labels}
+            Below  = generation#, frac, frac
+            ex: 40    Admixed    CEU   YRI
+                1       0        0.05  0.95
+                2       0.20     0.05  0.75
+
     vcf_file: str
         file path that contains samples and respective variants
     sampleinfo_file: str
@@ -184,30 +189,36 @@ def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_sam
 
 def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     """
-    Simulate admixed genotypes based on the parameters of model_file. 
+    Simulate admixed genotypes based on the parameters of model_file.
+
     Parameters
     ----------
     model: str
         File with the following structure. (Must be tab delimited)
-        Header = # samples, Admixed, {all pop labels}
-        Below  = generation#, frac, frac
-        ex: 40    Admixed    CEU   YRI
-            1       0        0.05  0.95
-            2       0.20     0.05  0.75
+
+        .. code-block::
+
+            Header = # samples, Admixed, {all pop labels}
+            Below  = generation#, frac, frac
+            ex: 40    Admixed    CEU   YRI
+                1       0        0.05  0.95
+                2       0.20     0.05  0.75
+
     coords_dir: str
-        Directory containing files ending in .map with genetic map coords 
-            in cM used for recombination points
-    chroms: list(str)
+        Directory containing files ending in .map with genetic map coords in cM used
+        for recombination points
+    chroms: list[str]
         List of chromosomes to simulate admixture for.
     popsize: int
         size of population created for each generation. 
     seed: int
         Seed used for randomization.
+
     Returns
     -------
     num_samples: int
         Total number of samples to output 
-    next_gen_samples: list(list(HaplotypeSegment))
+    next_gen_samples: list[list[HaplotypeSegment]]
         Each list is a person containing a variable number of Haplotype Segments
         based on how many recombination events occurred throughout the generations
         of ancestors for this person.
@@ -319,19 +330,21 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
 def write_breakpoints(samples, breakpoints, out):
     """
     Write out a subsample of breakpoints to out determined by samples.
+
     Parameters
     ----------
     samples: int
         Number of samples to output
-    breakpoints: list(list(HaplotypeSegment))
+    breakpoints: list[list[HaplotypeSegment]]
         Each list is a person containing a variable number of Haplotype Segments
         based on how many recombination events occurred throughout the generations
         of ancestors for this person.
     out: str
         output prefix used to output the breakpoint file
+
     Returns
     -------
-    breakpoints: list(list(HaplotypeSegment))
+    breakpoints: list[list[HaplotypeSegment]]
         subsampled breakpoints only containing number of samples
     """
     breakpt_file = out + '.bp'
@@ -367,9 +380,9 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
     ----------
     samples: int
         Number of samples to output
-    pops: list(str)
+    pops: list[str]
         List of populations to be simulated
-    pop_fracs: list(float)
+    pop_fracs: list[float]
         Fraction of the populations that contribute 
         ex: 40    Admixed    CEU   YRI
             1       0        0.05  0.95 -> pop_fracs=[0, 0.05, 0.95]
@@ -378,12 +391,12 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
         and 75% pure YRI that contribute to creation of generation 2
     pop_gen: int
         Current generation being simulated
-    chroms: list(str)
+    chroms: list[str]
         sorted list of chromosomes used to generate samples. 
-    coords: list(list(GeneticMarker))
+    coords: list[list[GeneticMarker]]
         Each list of markers (cM) corresponds to a chromosome in chroms.
         ie if our list of chroms is [3,4,6] then the first list is to chrom 3, second to 4, etc.
-    end_coords: list(GeneticMarker)
+    end_coords: list[GeneticMarker]
         List of the last genetic markers (cM) for each chromosome specified in chroms.
         The indices of the list correspond to those in chroms. 
     recomb_probs: Numpy 2d array
@@ -397,7 +410,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
         events occur. Each list is a person's haplotype of segments having a distinct population label.
     Returns
     -------
-    hap_samples: list(list(HaplotypeSegment))
+    hap_samples: list[list[HaplotypeSegment]]
         Current generation of samples of the same format to prev_gen_samples. 
     """
     # convert chroms to integer and change X to 23
@@ -522,19 +535,32 @@ def get_segment(pop, str_pops, haplotype, chrom, start_coord, end_coord, end_pos
     Create a segment or segments for an individual of the current generation
     using either a population label (>0) or the previous generation's samples if 
     the admix pop type (0) is used. 
-    Arguments
-        pop - index of population corresponding to the population in str_pops
-        str_pops - array of population names
-        haplotype - index of range [0, len(prev_gen_samples)] to identify
-                    the parent haplotype to copy segments from
-        chrom - chromosome the haplotype segment lies on
-        start_coord - starting coordinate from where to begin taking segments
-                      from previous generation samples
-        end_coord - ending coordinate of haplotype segment
-        end_pos - ending coordinate in centimorgans
-        prev_gen_samples - the previous generation simulated used as the parents
-                           for the current generation
+
+    Parameters
+    ----------
+    pop
+        index of population corresponding to the population in str_pops
+    str_pops
+        array of population names
+    haplotype
+        index of range [0, len(prev_gen_samples)] to identify the parent haplotype
+        to copy segments from
+    chrom
+        chromosome the haplotype segment lies on
+    start_coord
+        starting coordinate from where to begin taking segments from previous
+        generation samples
+    end_coord
+        ending coordinate of haplotype segment
+    end_pos
+        ending coordinate in centimorgans
+    prev_gen_samples
+        the previous generation simulated used as the parents for the current
+        generation
+
     Returns
+    -------
+    list
         A list of HaplotypeSegments storing the population type and end coordinate
     """
     # Take from population data not admixed data
@@ -569,14 +595,16 @@ def get_segment(pop, str_pops, haplotype, chrom, start_coord, end_coord, end_pos
 def start_segment(start, chrom, segments):
     """
     Find first segment that is on chrom and its end coordinate is > start via binary search.
+
     Parameters
     ----------
     start: int
         Coordinate in bp for the start of the segment to output
     chrom: int
         Chromosome that the segments lie on. 
-    segments: list(HaplotypeSegments)
+    segments: list[HaplotypeSegments]
         List of the hapltoype segments to search from for a starting point.
+
     Returns
     -------
     mid: int

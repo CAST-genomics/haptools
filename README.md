@@ -22,7 +22,7 @@ pip install git+https://github.com/gymrek-lab/haptools.git#egg=haptools[files]
 
 Haptools consists of multiple utilities listed below. Click on a utility to see more detailed usage information.
 
-* [`haptools simgenotype`](docs/commands/simgenotype.md): Simulate genotypes for admixed individuals under user-specified demographic histories. 
+* [`haptools simgenotype`](https://haptools.readthedocs.io/en/latest/commands/simgenotype.html): Simulate genotypes for admixed individuals under user-specified demographic histories.
 
 * [`haptools simphenotype`](docs/commands/simphenotype.md): Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. `haptools simphenotype` takes as input a VCF file and outputs simulated phenotypes for each sample.
 
