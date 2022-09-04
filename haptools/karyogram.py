@@ -135,6 +135,7 @@ def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file=None):
 def GetCmRange(sample_blocks):
     """
     Get the min and max cM coordinates from the sample_blocks
+
     Parameters
     ----------
     sample_blocks : list of [hap_blocks]
@@ -158,6 +159,8 @@ def GetCmRange(sample_blocks):
 def GetPopList(sample_blocks):
     """
     Get a list of populations in the sample_blocks
+
+    Parameters
     ----------
     sample_blocks : list of [hap_blocks]
        each hap_block is a dictionary with keys
@@ -177,6 +180,7 @@ def GetPopList(sample_blocks):
 def GetChromOrder(sample_blocks):
     """
     Get a list of chroms in sorted order
+
     Parameters
     ----------
     sample_blocks : list of [hap_blocks]
@@ -240,7 +244,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     ax.set_ylabel('Chromosome')
     if title is not None: ax.set_title(title)
     ax.set_yticks(range(len(chrom_order)))
-    ax.set_yticklabels(chrom_order)    
+    ax.set_yticklabels(chrom_order)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.yaxis.set_ticks_position('left')
@@ -386,4 +390,4 @@ def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax, clipmask_perchrom
     if clipmask_perchrom:
         col.set_clip_path(clipmask_perchrom[block['chrom']], ax.transData)
 
-    ax.add_collection(col) 
+    ax.add_collection(col)
