@@ -12,7 +12,10 @@
    formats/genotypes.rst
    formats/haplotypes.rst
    formats/phenotypes.rst
+   formats/breakpoints.rst
    formats/sample_info.rst
+   formats/models.rst
+   formats/maps.rst
 
 .. toctree::
    :caption: Commands
