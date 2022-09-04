@@ -17,15 +17,15 @@ Basic Usage
 
 See details of the breakpoints file :doc:`here </formats/breakpoints>`. If you specify ``--sample $SAMPLE``, the breakpoints file must have breakpoints for ``$SAMPLE_1`` and ``$SAMPLE_2`` (the two haplotypes of ``$SAMPLE``).
 
-Additionaal options
-~~~~~~~~~~~~~~~~~~~
+Additional Options
+~~~~~~~~~~~~~~~~~~
 You may also specify the following options:
 
 * ``--centromeres <FILE>``: path to a file describing the locations of chromosome ends and centromeres. An example file is given here: ``tests/data/centromeres_hg19.txt``. The columns are: chromosome, chrom_start, centromere, chrom_end. For acrocentric chromosomes, the centromere field is ommitted. This file format was taken from `here <https://github.com/armartin/ancestry_pipeline>`_.
 * ``--colors "pop1:color1,pop2:color2..."``: You can optionally specify which colors should be used for each population. If colors are not given, the script chooses reasonable defaults.
 
-Examples
-~~~~~~~~
+Example
+~~~~~~~
 
 .. code-block:: bash
 
@@ -39,7 +39,6 @@ Examples
 This will output a file ``test_karyogram.png``. The example is shown below.
 
 .. image:: ../images/test_karyogram.png
-  :width: 400
   :alt: Example karyogram
 
 
