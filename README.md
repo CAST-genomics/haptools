@@ -26,7 +26,7 @@ Haptools consists of multiple utilities listed below. Click on a utility to see 
 
 * [`haptools simphenotype`](docs/commands/simphenotype.md): Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. `haptools simphenotype` takes as input a VCF file and outputs simulated phenotypes for each sample.
 
-* [`haptools karyogram`](docs/commands/karyogram.md): Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by `haptools simgenotype`.
+* [`haptools karyogram`](https://haptools.readthedocs.io/en/latest/commands/karyogram.html): Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by `haptools simgenotype`.
 
 * [`haptools transform`](https://haptools.readthedocs.io/en/latest/commands/transform.html): Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
 
