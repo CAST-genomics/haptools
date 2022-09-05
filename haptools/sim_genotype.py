@@ -23,11 +23,14 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     model_file: str
         file with the following structure. (Must be tab delimited)
 
+        * Header: number of samples, Admixed, {all pop labels}
+        * Below: generation number, frac, frac, frac
+
+        For example,
+
         .. code-block::
 
-            Header = # samples, Admixed, {all pop labels}
-            Below  = generation#, frac, frac
-            ex: 40    Admixed    CEU   YRI
+                40    Admixed    CEU   YRI
                 1       0        0.05  0.95
                 2       0.20     0.05  0.75
 
@@ -196,11 +199,14 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     model: str
         File with the following structure. (Must be tab delimited)
 
+        * Header: number of samples, Admixed, {all pop labels}
+        * Below: generation number, frac, frac, frac
+
+        For example,
+
         .. code-block::
 
-            Header = # samples, Admixed, {all pop labels}
-            Below  = generation#, frac, frac
-            ex: 40    Admixed    CEU   YRI
+                40    Admixed    CEU   YRI
                 1       0        0.05  0.95
                 2       0.20     0.05  0.75
 
@@ -375,7 +381,8 @@ def write_breakpoints(samples, breakpoints, out):
 
 def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, recomb_probs, prev_gen_samples=None):
     """
-    Simulate a single generation of creating a population. 
+    Simulate a single generation of creating a population.
+
     Parameters
     ----------
     samples: int
@@ -408,6 +415,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
     prev_gen_samples: list[list[HaplotypeSegment]], optional
         Prior generation of samples used to choose parents and swap markers when recombination
         events occur. Each list is a person's haplotype of segments having a distinct population label.
+
     Returns
     -------
     hap_samples: list[list[HaplotypeSegment]]
