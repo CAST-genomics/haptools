@@ -83,6 +83,14 @@ haptools.sim_phenotype module
    :undoc-members:
    :show-inheritance:
 
+haptools.karyogram module
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.karyogram
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 haptools.transform module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -61,13 +61,6 @@ def main():
 def karyogram(bp, sample, out, title, centromeres, colors):
     """
     Visualize a karyogram of local ancestry tracks
-    
-    Example:
-
-    \b
-    haptools karyogram --bp tests/data/5gen.bp --sample Sample_1 \\
-       --out test.png --centromeres tests/data/centromeres_hg19.txt \\
-       --colors 'CEU:blue,YRI:red'
     """
     from .karyogram import PlotKaryogram
 
