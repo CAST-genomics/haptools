@@ -3,9 +3,9 @@ import re
 from csv import reader
 from pathlib import Path
 from typing import Iterator
-from collections import namedtuple
 from logging import getLogger, Logger
 from fileinput import hook_compressed
+from collections import namedtuple, Counter
 
 import numpy as np
 import numpy.typing as npt
@@ -257,7 +257,7 @@ class Genotypes(Data):
                 continue
             # save meta information about each variant
             variant_arr = self._variant_arr(variant)
-            # extract the genotypes to a matrix of size p x 3
+            # extract the genotypes to a matrix of size n x 3
             # the last dimension has three items:
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
@@ -308,11 +308,26 @@ class Genotypes(Data):
             Whether to index the samples for fast loop-up. Adds complexity O(n).
         variants: bool, optional
             Whether to index the variants for fast look-up. Adds complexity O(m).
+
+        Raises
+        ------
+        ValueError
+            If any samples or variants appear more than once
         """
         if samples and self._samp_idx is None:
             self._samp_idx = dict(zip(self.samples, range(len(self.samples))))
+            if len(self._samp_idx) < len(self.samples):
+                duplicates = Counter(self.samples).items()
+                duplicates = [samp_id for samp_id, count in duplicates if count > 1]
+                a_few = 5 if len(duplicates) > 5 else len(duplicates)
+                raise ValueError(f"Found duplicate sample IDs: {duplicates[:a_few]}")
         if variants and self._var_idx is None:
             self._var_idx = dict(zip(self.variants["id"], range(len(self.variants))))
+            if len(self._var_idx) < len(self.variants):
+                duplicates = Counter(self.variants["id"]).items()
+                duplicates = [var_id for var_id, count in duplicates if count > 1]
+                a_few = 5 if len(duplicates) > 5 else len(duplicates)
+                raise ValueError(f"Found duplicate variant IDs: {duplicates[:a_few]}")
 
     def subset(
         self,
@@ -985,11 +1000,11 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # ...each column is a different chromosomal strand
                     try:
                         data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
-                    except np.core._exceptions.MemoryError:
+                    except np.core._exceptions._ArrayMemoryError as e:
                         raise ValueError(
                             "You don't have enough memory to load these genotypes! Try"
-                            " specifying a value to the chunks_size parameter, instead"
-                        )
+                            " specifying a value to the chunk_size parameter, instead"
+                        ) from e
                     phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
@@ -1189,11 +1204,11 @@ class GenotypesPLINK(GenotypesRefAlt):
                 subset_data = data[start:end]
                 try:
                     cast_data = subset_data.astype(np.int32)
-                except np.core._exceptions.MemoryError:
+                except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
                         "You don't have enough memory to write these genotypes! Try"
-                        " specifying a value to the chunks_size parameter, instead"
-                    )
+                        " specifying a value to the chunk_size parameter, instead"
+                    ) from e
                 # convert any missing genotypes to -9
                 cast_data[subset_data == np.iinfo(np.uint8).max] = -9
                 if self._prephased or self.data.shape[2] < 3:

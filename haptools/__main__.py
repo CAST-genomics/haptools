@@ -324,17 +324,20 @@ def simphenotype(
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
     set of haplotypes.
 
-    GENOTYPES must be formatted as a VCF and HAPLOTYPES must be formatted according
-    to the .hap format spec
+    GENOTYPES must be formatted as a VCF or PGEN file and HAPLOTYPES must be formatted
+    according to the .hap format spec
+
+    Note: GENOTYPES must be the output from the transform subcommand.
     """
     import logging
 
     from .sim_phenotype import simulate_pt
 
     log = logging.getLogger("haptools simphenotype")
+    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
+        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity, datefmt='%H:%M:%S',
     )
     # handle samples
     if samples and samples_file:
@@ -446,6 +449,13 @@ def simphenotype(
     help="Ignore any samples that are missing genotypes for the required variants",
 )
 @click.option(
+    "--ancestry",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Also transform using VCF 'POP' FORMAT field and 'ancestry' .hap extra field",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -471,6 +481,7 @@ def transform(
     ids_file: Path = None,
     chunk_size: int = None,
     discard_missing: bool = False,
+    ancestry: bool = False,
     output: Path = Path("-"),
     verbosity: str = "CRITICAL",
 ):
@@ -485,9 +496,10 @@ def transform(
     from .transform import transform_haps
 
     log = logging.getLogger("haptools transform")
+    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
+        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity, datefmt='%H:%M:%S',
     )
     # handle samples
     if samples and samples_file:
@@ -659,9 +671,10 @@ def ld(
     from .ld import calc_ld
 
     log = logging.getLogger("haptools ld")
+    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
+        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity, datefmt='%H:%M:%S',
     )
     # handle samples
     if samples and samples_file:
