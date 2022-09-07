@@ -95,7 +95,6 @@ def test_vcf_output():
 # model_file exception validation
 def test_model_files():
     mapdir = DATADIR.joinpath("map/")
-    print(mapdir)
     chroms = ["50"]
 
     popsize = 1000
@@ -116,7 +115,7 @@ def test_model_files():
         )
     assert (
         str(e.value)
-    ) == "Invalid number of populations given: {num_pops}. We require at least 2."
+    ) == "Invalid number of populations given: 1. We require at least 2."
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_less_than_1.dat")
     with pytest.raises(Exception) as e:
@@ -158,7 +157,7 @@ def test_model_files():
         )
     assert (
         (str(e.value))
-        == "Current generation {cur_gen} - previous generation {prev_gen} = {sim_gens}"
+        == "Current generation 1 - previous generation 4 = -3"
         " is less than 1. Please ensure the generations given in the first column"
         " are correct."
     )
@@ -170,7 +169,7 @@ def test_model_files():
         )
     assert (
         str(e.value)
-    ) == "Population fractions for generation {cur_gen} do not sum to 1."
+    ) == "Population fractions for generation 1 do not sum to 1."
 
     # Validate mapdir exceptions
     model = DATADIR.joinpath("dat_files/haiti.dat")
@@ -233,7 +232,7 @@ def test_model_files():
         validate_params(
             model, mapdir, chroms, popsize, vcf_file, faulty_sampleinfo_file
         )
-    assert (str(e.value)) == "Sample in sampleinfo file is not present in the vcf file."
+    assert (str(e.value)) == "Sample HG00022 in sampleinfo file is not present in the vcf file."
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_info.dat")
     mfile = open(faulty_model, "r")

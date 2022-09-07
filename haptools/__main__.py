@@ -15,25 +15,49 @@ from pathlib import Path
 @click.version_option()
 def main():
     """
-    haptools: A toolkit for simulating and analyzing genotypes and 
+    haptools: A toolkit for simulating and analyzing genotypes and
     phenotypes while taking into account haplotype information
     """
     pass
 
-############ Haptools karyogram ###############
+
 @main.command()
-@click.option('--bp', help="Path to .bp file with breakpoints", \
-    type=str, required=True)
-@click.option('--sample', help="Sample ID to plot", \
-    type=str, required=True)
-@click.option('--out', help="Name of output file", \
-    type=str, required=True)
-@click.option('--title', help="Optional plot title", \
-    type=str, required=False)
-@click.option('--centromeres', help="Optional file with telomere/centromere cM positions", \
-    type=str, required=False)
-@click.option('--colors', help="Optional color dictionary. Format is e.g. 'YRI:blue,CEU:green'", \
-    type=str, required=False)
+@click.option(
+    "--bp",
+    type=str,
+    required=True,
+    help="Path to .bp file with breakpoints",
+)
+@click.option(
+    "--sample",
+    type=str,
+    required=True,
+    help="Sample ID to plot",
+)
+@click.option(
+    "--out",
+    type=str,
+    required=True,
+    help="Name of output file",
+)
+@click.option(
+    "--title",
+    type=str,
+    required=False,
+    help="Optional plot title",
+)
+@click.option(
+    "--centromeres",
+    type=str,
+    required=False,
+    help="Optional file with telomere/centromere cM positions",
+)
+@click.option(
+    "--colors",
+    type=str,
+    required=False,
+    help="Optional color dictionary. Format is e.g. 'YRI:blue,CEU:green'",
+)
 def karyogram(bp, sample, out, title, centromeres, colors):
     """
     Visualize a karyogram of local ancestry tracks
@@ -46,51 +70,119 @@ def karyogram(bp, sample, out, title, centromeres, colors):
        --colors 'CEU:blue,YRI:red'
     """
     from .karyogram import PlotKaryogram
+
     if colors is not None:
         colors = dict([item.split(":") for item in colors.split(",")])
-    PlotKaryogram(bp, sample, out, \
-        centromeres_file=centromeres, title=title, colors=colors)
+    PlotKaryogram(
+        bp, sample, out, centromeres_file=centromeres, title=title, colors=colors
+    )
 
-############ Haptools simgenotype ###############
+
 @main.command()
-@click.option('--model', help="Admixture model in .dat format. See docs for info.", \
-    type=str, required=True)
-@click.option('--mapdir', help="Directory containing files with chr\{1-22,X\} and ending in .map in the file name with genetic map coords.", \
-    required=True, type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True))
-@click.option('--out', help="Prefix to name output files.", \
-    type=str, required=True)
-@click.option('--chroms', help='Sorted and comma delimited list of chromosomes to simulate. ex: 1,2,3,5,6,21,X', \
-    type=str, default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X", required=True)
-@click.option('--seed', help="Random seed. Set to make simulations reproducible", \
-    type=int, required=False, default=None)
-@click.option('--popsize', help="Number of samples to simulate each generation", \
-    type=int, required=False, default=10000, hidden=True)
-@click.option('--invcf', help="VCF file used as reference for creation of simulated samples respective genotypes.", required=True)
-@click.option('--sample_info', help="File that maps samples from the reference VCF (--invcf) to population codes " \
-              "describing the populations in the header of the model file.", required=True)
-@click.option('--only_breakpoint', help="Flag used to determine whether to only output breakpoints or continue to simulate a vcf file.", \
-    is_flag=True, required=False, hidden=True)
-@click.option('--verbose', help="Output time metrics for each section, breakpoint simulation, vcf creation, and total exection.", \
-     is_flag=True, required=False, hidden=True)
-def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, only_breakpoint, verbose):
+@click.option(
+    "--model",
+    type=str,
+    required=True,
+    help="Admixture model in .dat format. See docs for info.",
+)
+@click.option(
+    "--mapdir",
+    required=True,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
+    help=(
+        "Directory containing files with chr\{1-22,X\} and ending in .map in the file "
+        "name with genetic map coords."
+    ),
+)
+@click.option(
+    "--out",
+    type=str,
+    required=True,
+    help="Prefix to name output files.",
+)
+@click.option(
+    "--chroms",
+    type=str,
+    required=True,
+    default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X",
+    help="Sorted and comma delimited list of chromosomes to simulate",
+)
+@click.option(
+    "--seed",
+    type=int,
+    required=False,
+    default=None,
+    help="Random seed. Set to make simulations reproducible",
+)
+@click.option(
+    "--popsize",
+    type=int,
+    hidden=True,
+    default=10000,
+    required=False,
+    help="Number of samples to simulate each generation",
+)
+@click.option(
+    "--invcf",
+    required=True,
+    help=(
+        "VCF file used as reference for creation of simulated samples respective "
+        "genotypes."
+    ),
+)
+@click.option(
+    "--sample_info",
+    required=True,
+    help=(
+        "File that maps samples from the reference VCF (--invcf) to population codes "
+        "describing the populations in the header of the model file."
+    ),
+)
+@click.option(
+    "--only_breakpoint",
+    hidden=True,
+    is_flag=True,
+    required=False,
+    help=(
+        "Flag used to determine whether to only output breakpoints or continue to "
+        "simulate a vcf file."
+    ),
+)
+@click.option(
+    "--verbose",
+    hidden=True,
+    is_flag=True,
+    required=False,
+    help=(
+        "Output time metrics for each section, breakpoint simulation, vcf creation, "
+        "and total exection."
+    ),
+)
+def simgenotype(
+    invcf,
+    sample_info,
+    model,
+    mapdir,
+    out,
+    popsize,
+    seed,
+    chroms,
+    only_breakpoint,
+    verbose,
+):
     """
     Simulate admixed genomes under a pre-defined model.
-
-    Example:
-
-    \b
-    haptools simgenotype \ 
-      --model ./tests/data/outvcf_gen.dat \ 
-      --mapdir ./tests/data/map/ \ 
-      --chroms 1,2 \ 
-      --invcf ./tests/data/outvcf_test.vcf \ 
-      --sample_info ./tests/data/outvcf_info.tab \ 
-      --out ./tests/data/example_simgenotype
     """
-    from .sim_genotype import simulate_gt, write_breakpoints, output_vcf, validate_params
+    from .sim_genotype import (
+        output_vcf,
+        simulate_gt,
+        validate_params,
+        write_breakpoints,
+    )
+
     start = time.time()
 
-    chroms = chroms.split(',')
+    chroms = chroms.split(",")
     validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
@@ -106,7 +198,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
         print(f"Time elapse for creating vcf: {end - vcf_start}")
         print(f"Time elapsed for simgenotype execution: {end - start}")
 
-############ Haptools simphenotype ###############
+
 @main.command()
 @click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
 @click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
@@ -131,7 +223,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
     "--prevalence",
     type=click.FloatRange(min=0, max=1, min_open=False, max_open=True),
     show_default="quantitative trait",
-    help="Disease prevalence if simulating a case-control trait"
+    help="Disease prevalence if simulating a case-control trait",
 )
 @click.option(
     "--region",
@@ -142,7 +234,7 @@ def simgenotype(invcf, sample_info, model, mapdir, out, popsize, seed, chroms, o
         "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
         "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
-    )
+    ),
 )
 @click.option(
     "-s",
@@ -226,7 +318,7 @@ def simphenotype(
     ids_file: Path = None,
     chunk_size: int = None,
     output: Path = Path("-"),
-    verbosity: str = 'ERROR',
+    verbosity: str = "ERROR",
 ):
     """
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
@@ -271,9 +363,19 @@ def simphenotype(
 
     # Run simulation
     simulate_pt(
-        genotypes, haplotypes, replications, heritability, prevalence, region, samples,
-        ids, chunk_size, output, log
+        genotypes,
+        haplotypes,
+        replications,
+        heritability,
+        prevalence,
+        region,
+        samples,
+        ids,
+        chunk_size,
+        output,
+        log,
     )
+
 
 @main.command(short_help="Transform a genotypes matrix via a set of haplotypes")
 @click.argument("genotypes", type=click.Path(exists=True, path_type=Path))
@@ -287,7 +389,7 @@ def simphenotype(
         "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
         "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
-    )
+    ),
 )
 @click.option(
     "-s",
@@ -318,9 +420,7 @@ def simphenotype(
     type=str,
     multiple=True,
     show_default="all haplotypes",
-    help=(
-        "A list of the haplotype IDs to use from the .hap file (ex: '-i H1 -i H2')."
-    ),
+    help="A list of the haplotype IDs to use from the .hap file (ex: '-i H1 -i H2').",
 )
 @click.option(
     "-I",
@@ -383,7 +483,7 @@ def transform(
     discard_missing: bool = False,
     ancestry: bool = False,
     output: Path = Path("-"),
-    verbosity: str = 'CRITICAL',
+    verbosity: str = "CRITICAL",
 ):
     """
     Creates a VCF composed of haplotypes
@@ -424,9 +524,17 @@ def transform(
         ids = None
 
     transform_haps(
-        genotypes, haplotypes, region, samples, ids, chunk_size,
-        discard_missing, ancestry, output, log
+        genotypes,
+        haplotypes,
+        region,
+        samples,
+        ids,
+        chunk_size,
+        discard_missing,
+        output,
+        log,
     )
+
 
 @main.command(short_help="Compute pair-wise LD")
 @click.argument("target", type=str)
@@ -441,7 +549,7 @@ def transform(
         "The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'."
         "\nFor this to work, the VCF and .hap file must be indexed and the seqname "
         "provided must correspond with one in the files"
-    )
+    ),
 )
 @click.option(
     "-s",
@@ -509,8 +617,10 @@ def transform(
     is_flag=True,
     show_default=True,
     default=False,
-    help="By default, LD is computed with the haplotypes in the .hap file. Use this "
-    "switch to compute LD with the genotypes in the genotypes file, instead."
+    help=(
+        "By default, LD is computed with the haplotypes in the .hap file. Use this "
+        "switch to compute LD with the genotypes in the genotypes file, instead."
+    ),
 )
 @click.option(
     "-o",
@@ -541,7 +651,7 @@ def ld(
     discard_missing: bool = False,
     from_gts: bool = False,
     output: Path = Path("/dev/stdout"),
-    verbosity: str = 'CRITICAL',
+    verbosity: str = "CRITICAL",
 ):
     """
     Compute the pair-wise LD (Pearson's correlation) between haplotypes (or variants)
@@ -589,8 +699,17 @@ def ld(
         ids = None
 
     calc_ld(
-        target, genotypes, haplotypes, region, samples, ids, chunk_size,
-        discard_missing, from_gts, output, log
+        target,
+        genotypes,
+        haplotypes,
+        region,
+        samples,
+        ids,
+        chunk_size,
+        discard_missing,
+        from_gts,
+        output,
+        log,
     )
 
 
