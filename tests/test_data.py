@@ -170,11 +170,7 @@ class TestGenotypes:
         assert gts.samples == samples
 
     def test_load_genotypes_discard_multiallelic(self):
-        expected = self._get_expected_genotypes()
-
-        # can we load the data from the VCF?
-        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-        gts.read()
+        gts = self._get_fake_genotypes()
 
         # make a copy for later
         data_copy = gts.data.copy().astype(np.bool_)
@@ -614,13 +610,13 @@ class TestHaplotypes:
         # what do we expect to see from the simphenotype.hap file?
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73
             ),
             "chr21.q.3365*10": HaptoolsHaplotype(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30
             ),
             "chr21.q.3365*11": HaptoolsHaplotype(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -654,13 +650,13 @@ class TestHaplotypes:
     def _get_writable_haplotypes(self):
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73
             ),
             "chr21.q.3365*10": HaptoolsHaplotype(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30
             ),
             "chr21.q.3365*11": HaptoolsHaplotype(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -696,21 +692,21 @@ class TestHaplotypes:
                 repr=False,
                 init=False,
                 default=(
-                    Extra("ancestry", "s", "Local ancestry"),
                     Extra("score", ".2f", "Score for a thing"),
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
             )
+
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73, 0.40
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73, 0.40
             ),
             "chr21.q.3365*10": HaplotypePlusExtra(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30, 0.28
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30, 0.28
             ),
             "chr21.q.3365*11": HaplotypePlusExtra(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49, 0.84
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49, 0.84
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -786,11 +782,17 @@ class TestHaplotypes:
 
 
 class TestGenotypesRefAlt:
-    def _get_fake_genotypes_refalt(self):
+    def _get_fake_genotypes_refalt(self, with_phase=False):
         base_gts = TestGenotypes()._get_fake_genotypes()
         # copy all of the fields
         gts = GenotypesRefAlt(fname=None)
         gts.data = base_gts.data
+        if with_phase:
+            data_shape = (gts.data.shape[0], gts.data.shape[1], 1)
+            # add phase info back
+            gts.data = np.concatenate(
+                (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
+            )
         gts.samples = base_gts.samples
         # add additional ref and alt alleles
         ref_alt = np.array(

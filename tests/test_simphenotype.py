@@ -46,8 +46,8 @@ class TestSimPhenotype:
 
     def _get_fake_haps(self):
         return [
-            Haplotype("1", 10114, 10115, "1:10114:T:C", "CEU", 0.25),
-            Haplotype("1", 10116, 10117, "1:10116:A:G", "YRI", 0.75),
+            Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25),
+            Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75),
         ]
 
     def _get_expected_phens(self):
