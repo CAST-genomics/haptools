@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 from cyvcf2 import VCF, Variant
+from pysam import VariantFile
 
 from haptools import data
 
@@ -399,7 +400,81 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             )
         self.data = self.data.astype(np.bool_)
 
+    # TODO NEED TO COMPLETE
     def write(self):
+        # logic to do this using genotypes.data n x p x 6 
+        # (samples, variants, output VCF format info (allele1, allele2, pop1, pop2, sample1, sample2)(see Arya's other VCF write function))
+        # Assumption is the data must be phased
+        # CODE SHOULD ASSUME THAT DATA IS IN THE FORMAT n x p x 6 and variants are constant as before
+        """
+        Write the variants in this class to a VCF at :py:attr:`~.GenotypesAncestry.fname`
+        """
+        # TODO UPDATE CURRENTLY THIS IS THE GENOTYPEREFALT CLASS VERSION AND NOT THE VERSION THAT SHOULD OUTPUT THE PROPER VCF FORMATS
+        vcf = VariantFile(str(self.fname), mode="w")
+        # make sure the header is properly structured
+        for contig in set(self.variants["chrom"]):
+            vcf.header.contigs.add(contig)
+        vcf.header.add_meta(
+            "FORMAT",
+            items=[
+                ("ID", "GT"),
+                ("Number", 1),
+                ("Type", "String"),
+                ("Description", "Genotype"),
+            ],
+        )
+        vcf.header.add_meta(
+        "FORMAT",
+            items=[
+                ("ID", "POP"),
+                ("Number", 2),
+                ("Type", "String"),
+                ("Description", "Origin Population of each respective allele in GT"),
+            ],
+        )
+        vcf.header.add_meta(
+        "FORMAT",
+            items=[
+                ("ID", "SAMPLE"),
+                ("Number", 2),
+                ("Type", "String"),
+                ("Description", "Origin sample and haplotype of each respective allele in GT"),
+            ],
+        )
+        try:
+            vcf.header.add_samples(self.samples)
+        except AttributeError:
+            self.log.warning(
+                "Upgrade to pysam >=0.19.1 to reduce the time required to create "
+                "VCFs. See https://github.com/pysam-developers/pysam/issues/1104"
+            )
+            for sample in self.samples:
+                vcf.header.add_sample(sample)
+        self.log.info("Writing VCF records")
+        for var_idx, var in enumerate(self.variants):
+            rec = {
+                "contig": var["chrom"],
+                "start": var["pos"],
+                "stop": var["pos"] + len(var["ref"]) - 1, # TODO probably have to update this unsure what pos and ref refer to
+                "qual": None,
+                "alleles": tuple(var[["ref", "alt"]]),
+                "id": var["id"],
+                "filter": None,
+            }
+            # handle pysam increasing the start site by 1
+            rec["start"] -= 1
+            # parse the record into a pysam.VariantRecord
+            record = vcf.new_record(**rec)
+            for samp_idx, sample in enumerate(self.samples):
+                # TODO: make this work when there are missing values
+                record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
+                record.samples[sample]["POP"] = tuple(self.data[samp_idx, var_idx, 2:4]) # TODO see if data can actuall be setup like this
+                record.samples[sample]["SAMPLE"] = tuple(self.data[samp_idx, var_idx, 4:])
+                # TODO: add proper phase info
+                record.samples[sample].phased = True
+            # write the record to a file
+            vcf.write(record)
+        vcf.close()
         raise ValueError("Not implemented")
 
 

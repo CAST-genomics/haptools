@@ -1,0 +1,11 @@
+##fileformat=VCFv4.2
+##filedate=20180225
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=chr1>
+##contig=<ID=chr2>
+##contig=<ID=chrX>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00096	HG00097	HG00099	HG00100	HG00101
+chr1	10114	1:10114:T:C	T	C	.	.	.	GT	1|1	1|1	0|0	0|0	0|0
+chr1	59423090	1:59423090:A:G	A	G	.	.	.	GT	0|0	0|0	1|1	1|1	1|1
+chr2	10122	2:10122:A:G	A	G	.	.	.	GT	0|0	0|0	1|1	1|1	1|1
+chrX	10122	X:10122:A:G	A	G	.	.	.	GT	0|0	0|0	1|1	1|1	1|1

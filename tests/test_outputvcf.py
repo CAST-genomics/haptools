@@ -45,18 +45,60 @@ def _get_breakpoints(bkp_file):
     breakpoints = np.array(breakpoints, dtype=object)
     return breakpoints
 
+def test_alt_chrom_name():
+    # Test when the ref VCF has chr{X|\d+} form
+    # read in all files and breakpoints
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    bkp_file = DATADIR.joinpath("outvcf_test_chr.bp")
+    vcf_file = DATADIR.joinpath("outvcf_test_chr.vcf")
+    chroms = ['1', '2', 'X']
+    bkps = _get_breakpoints(bkp_file)
 
-def test_todo():
+    # generate output vcf file
+    output_vcf(bkps, chroms, model_file, vcf_file, sampleinfo_file, str(out_prefix))
+
+    # read in vcf file
+    vcf = VCF(str(out_prefix) + ".vcf")
+    for var in vcf:
+        if var.CHROM == "chr1" and var.POS == 10114:
+            assert var.genotypes[0] == [0, 0, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "CEU,CEU"
+
+        elif var.CHROM == "chr1" and var.POS == 59423090:
+            assert var.genotypes[0] == [0, 1, True]
+            assert var.format("POP")[0] == "CEU,YRI"
+            assert var.genotypes[1] == [1, 0, True]
+            assert var.format("POP")[1] == "YRI,CEU"
+
+        elif var.CHROM == "chr2" and var.POS == 10122:
+            assert var.genotypes[0] == [1, 0, True]
+            assert var.format("POP")[0] == "YRI,CEU"
+            assert var.genotypes[1] == [0, 1, True]
+            assert var.format("POP")[1] == "CEU,YRI"
+
+        elif var.CHROM == "chrX" and var.POS == 10122:
+            assert var.genotypes[0] == [1, 1, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "YRI,YRI"
+
+        else:
+            assert False
+
+    # Remove output file from output_vcf located at out_prefix + '.vcf'
+    os.remove(str(out_prefix) + ".vcf")
     return
-
 
 def test_vcf_output():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    chroms = ['1', '2']
     bkps = _get_breakpoints(bkp_file)
 
     # generate output vcf file
-    output_vcf(bkps, model_file, vcf_file, sampleinfo_file, str(out_prefix))
+    output_vcf(bkps, chroms, model_file, vcf_file, sampleinfo_file, str(out_prefix))
 
     # Expected output for each variant (note these are phased so order matters)
     # CHROM	POS  FORMAT	 Sample1      Sample2
@@ -172,7 +214,7 @@ def test_model_files():
     ) == "Population fractions for generation 1 do not sum to 1."
 
     # Validate mapdir exceptions
-    model = DATADIR.joinpath("dat_files/haiti.dat")
+    model = DATADIR.joinpath("dat_files/correct_model.dat")
     faulty_mapdir = DATADIR.joinpath("maps")
     with pytest.raises(Exception) as e:
         validate_params(
@@ -199,7 +241,7 @@ def test_model_files():
         )
     assert (
         (str(e.value))
-        == "No valid coordinate files found. Must contain chr\{1-22,X\} in the file"
+        == "No valid coordinate files found. Must contain chr{1-22,X} in the file"
         " name."
     )
 
