@@ -11,7 +11,7 @@ from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
 
-def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
+def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, out):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
@@ -20,6 +20,8 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     ----------
     breakpoints: list[list[HaplotypeSegment]]
         the simulated breakpoints
+    chroms: list[str]
+        List of chromosomes that were used to simulate
     model_file: str
         file with the following structure. (Must be tab delimited)
 
@@ -74,7 +76,7 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     # create index array to store for every sample which haplotype 
     # block we are currently processing and choose what samples 
     # will be used for each haplotype block
-    current_bkps = np.zeros(len(breakpoints), dtype=np.int)
+    current_bkps = np.zeros(len(breakpoints), dtype=np.int64)
     hapblock_samples = []
     for haplotype in breakpoints:
         hap_samples = []
@@ -93,10 +95,10 @@ def output_vcf(breakpoints, model_file, vcf_file, sampleinfo_file, out):
     # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
     # Once VCF is complete we've output everything we wanted
     # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
-    _write_vcf(breakpoints, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
+    _write_vcf(breakpoints, chroms, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
     return
 
-def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
+def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
     """
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
@@ -104,9 +106,12 @@ def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_sam
     # output vcf file
     write_vcf = VariantFile(out_vcf, mode="w")
 
-    # make sure the header is properly structured
-    for contig in range(23):
-        write_vcf.header.contigs.add(str(contig+1))
+    # make sure the header is properly structured with contig names from ref VCF
+    for contig in in_vcf.seqnames:
+        # remove chr in front of seqname if present and compare
+        if re.search(r'X|\d+', contig).group() in chroms:
+            write_vcf.header.contigs.add(contig)
+    
     write_vcf.header.add_samples(out_samples)
     write_vcf.header.add_meta(
         "FORMAT",
@@ -154,7 +159,10 @@ def _write_vcf(breakpoints, hapblock_samples, vcf_samples, current_bkps, out_sam
 
             # If breakpoint end coord is < current variant update breakpoint
             bkp = breakpoints[hap][current_bkps[hap]]
-            while bkp.get_chrom() < int(var.CHROM) or (bkp.get_chrom() == int(var.CHROM) and bkp.get_end_coord() < int(var.start)):
+            chrom = re.search(r'X|\d+', var.CHROM).group()
+            if chrom == 'X': 
+                chrom = 23
+            while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var.start)):
                 current_bkps[hap] += 1
                 bkp = breakpoints[hap][current_bkps[hap]]
             
@@ -690,7 +698,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp=
             raise Exception("Can't convert generation to integer.")
 
         try:
-            pop_fracs = np.array(pop_fracs).astype(np.float)
+            pop_fracs = np.array(pop_fracs).astype(np.float32)
         except:
             raise Exception("Can't convert population fractions to type float.")
 
@@ -725,13 +733,16 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp=
         raise Exception("Could not parse map directory files.")
     
     if not all_coord_files:
-        raise Exception("No valid coordinate files found. Must contain chr\{1-22,X\} in the file name.")
+        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name.")
     
     # validate popsize
     if not isinstance(popsize, int):
         raise Exception("Popsize is not an Integer.")
     if popsize <= 0:
         raise Exception("Popsize must be greater than 0.")
+
+    # Ensure popsize is proper size to sample from
+    popsize = max(popsize, 10*num_samples)
 
     # Complete check if we're only outputting a breakpoint
     if only_bp:
@@ -760,4 +771,4 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp=
         if model_pop not in list(sample_pops):
             raise Exception(f"Population {model_pop} in model file is not present in the sample info file.")
 
-    return
+    return popsize

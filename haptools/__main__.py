@@ -176,14 +176,14 @@ def simgenotype(
     start = time.time()
 
     chroms = chroms.split(",")
-    validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
+    popsize = validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
     samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
     bp_end = time.time()
 
     vcf_start = time.time()
     if not only_breakpoint:
-        output_vcf(breakpoints, model, invcf, sample_info, out)
+        output_vcf(breakpoints, chroms, model, invcf, sample_info, out)
     end = time.time()
 
     if verbose:
