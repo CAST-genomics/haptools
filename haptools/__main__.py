@@ -132,6 +132,15 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     ),
 )
 @click.option(
+    "--region",
+    required=False,
+    default=None,
+    help=(
+        "Subset the simulation to a specific region in a chromosome using the form chrom:start-end. "
+        "Example 2:1000-2000"
+    ),
+)
+@click.option(
     "--only_breakpoint",
     hidden=True,
     is_flag=True,
@@ -160,6 +169,7 @@ def simgenotype(
     popsize,
     seed,
     chroms,
+    region,
     only_breakpoint,
     verbose,
 ):
@@ -176,14 +186,17 @@ def simgenotype(
     start = time.time()
 
     chroms = chroms.split(",")
-    popsize = validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_breakpoint)
-    samples, breakpoints = simulate_gt(model, mapdir, chroms, popsize, seed)
+    # Handle if mapdir has a '/' at the end
+    if mapdir[-1] == '/':
+        mapdir = mapdir[:-1]
+    popsize = validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint)
+    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed) # TODO TEST THIS CODE TO ENSURE WORKS PROPERLY
     breakpoints = write_breakpoints(samples, breakpoints, out)
     bp_end = time.time()
 
     vcf_start = time.time()
     if not only_breakpoint:
-        output_vcf(breakpoints, chroms, model, invcf, sample_info, out)
+        output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out) #TODO add region functionality
     end = time.time()
 
     if verbose:
