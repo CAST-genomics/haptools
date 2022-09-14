@@ -11,7 +11,7 @@ from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 
 
-def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, out):
+def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, region, out):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
@@ -40,6 +40,9 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, out):
         file path that contains samples and respective variants
     sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
+    region: str
+        String in the form chrom:start-end including both start and end used to subset
+        the simulation process to only within that region.
     out: str
         output prefix
     """
@@ -103,13 +106,19 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
     """
+    # TODO UPDATE FUNCTION SO IT READS IN VCF INFORMATION FROM ARYAS FUNCTION AND WRITES OUT USING ARYAS FUNCTION 
+    # THAT IM WRITING DOING ALL THE TRANSFORMATIONS IN BETWEEN USING MY LOGIC BELOW
+    
     # output vcf file
     write_vcf = VariantFile(out_vcf, mode="w")
 
     # make sure the header is properly structured with contig names from ref VCF
     for contig in in_vcf.seqnames:
         # remove chr in front of seqname if present and compare
-        if re.search(r'X|\d+', contig).group() in chroms:
+        if contig.startswith('chr'):
+            if contig[3:] in chroms:
+                write_vcf.header.contigs.add(contig)
+        if contig in chroms:
             write_vcf.header.contigs.add(contig)
     
     write_vcf.header.add_samples(out_samples)
@@ -198,7 +207,7 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
     write_vcf.close()
     return
 
-def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
+def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     """
     Simulate admixed genotypes based on the parameters of model_file.
 
@@ -223,8 +232,11 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         for recombination points
     chroms: list[str]
         List of chromosomes to simulate admixture for.
+    region: str
+        String in the form chrom:start-end including both start and end used to subset
+        the simulation process to only within that region.
     popsize: int
-        size of population created for each generation. 
+        Size of population created for each generation. 
     seed: int
         Seed used for randomization.
 
@@ -247,10 +259,15 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     num_samples, *pops = mfile.readline().strip().split()
     num_samples = int(num_samples)
 
+    # Parse the region information if present
+    if region:
+        region_info = re.split(":|-", region)
+        region_chr = int(region_info[0])
+        region_st = int(region_info[1])
+        region_end = int(region_info[2])
+
     # coord file structure chr variant cMcoord bpcoord
     # NOTE coord files in directory should have chr{1-22, X} in the name
-    coords = []
-
     def numeric_alpha(x):
         chrom = re.search(r'(?<=chr)(X|\d+)', x).group()
         if chrom == 'X':
@@ -261,11 +278,19 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
     # sort coordinate files to ensure coords read are in sorted order
     # remove all chr files not found in chroms list
     all_coord_files = glob.glob(f'{coords_dir}/*.map')
-    all_coord_files = [coord_file for coord_file in all_coord_files \
+    if region:
+        try:
+            all_coord_files = [coord_file for coord_file in all_coord_files \
+                        if f"chr{region_chr}" in coord_file and str(region_chr) in chroms]
+        except:
+            raise Exception(f"Unable to find region chromosome {region_chr} in map file directory.")
+    else:
+        all_coord_files = [coord_file for coord_file in all_coord_files \
                        if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
-    all_coord_files.sort(key=numeric_alpha)
-
+        all_coord_files.sort(key=numeric_alpha)
+    
     # coords list has form chroms x coords
+    coords = []
     for coords_file in all_coord_files:
         file_coords = []
         with open(coords_file, 'r') as cfile:
@@ -285,6 +310,18 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
                 prev_coord = gen_mark
                 file_coords.append(gen_mark)
         coords.append(file_coords)
+
+    # subset the coordinates to be within the region
+    if region:
+        start_ind = -1
+        for ind, marker in enumerate(coords[0]):
+            if marker.get_bp_pos() >= region_st and start_ind < 0:
+                start_ind = ind
+
+            if marker.get_bp_pos() >= region_end and coords[0][ind-1].get_bp_pos() < region_end:
+                end_ind = ind+1
+                break
+        coords = [coords[0][start_ind:end_ind]]
 
     # store end coords 
     end_coords = [chrom_coord[-1] for chrom_coord in coords]
@@ -316,7 +353,7 @@ def simulate_gt(model_file, coords_dir, chroms, popsize, seed=None):
         # setup population proportions and generations to simulate
         cur_gen, *pop_fracs = gen.strip().split()
         cur_gen = int(cur_gen)
-        pop_fracs = np.array(pop_fracs).astype(np.float) 
+        pop_fracs = np.array(pop_fracs).astype(np.float32) 
         sim_gens = cur_gen - prev_gen
         
         # sim generation
@@ -670,7 +707,7 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp=False):
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_bp=False):
     # validate model file
     mfile = open(model, 'r')
     num_samples, *pops = mfile.readline().strip().split()
@@ -770,5 +807,19 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, only_bp=
     for model_pop in pops[1:]:
         if model_pop not in list(sample_pops):
             raise Exception(f"Population {model_pop} in model file is not present in the sample info file.")
+
+    # Ensure that the region parameter can be properly interpreted
+    if region:
+        try:
+            region_coords = re.split(':|-', region)
+            if region_chr == 'X':
+                region_chr = 23
+            region_chr = int(region_coords[0])
+            region_st = int(region_coords[1])
+            region_end = int(region_coords[2])
+        except:
+            raise Exception(f"Unable to convert individual region coordinates: {region} to integers.")
+        if region_st > region_end:
+            raise Exception(f"End coordinates in region {region_end} are less than the starting coordinates {region_st}.")
 
     return popsize
