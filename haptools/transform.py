@@ -162,6 +162,9 @@ class GenotypesAncestry(data.GenotypesRefAlt):
         See documentation for :py:attr:`~.Genotypes.samples`
     variants : np.array
         See documentation for :py:attr:`~.GenotypesRefAlt.variants`
+    valid_labels: np.array
+        Reference VCF sample and respective variant grabbed for 
+        each sample.
     ancestry : np.array
         The ancestral population of each allele in each sample of
         :py:attr:`~.GenotypesAncestry.data`
@@ -172,6 +175,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
         self.ancestry = None
+        self.valid_labels = None
         self.ancestry_labels = {}
 
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
@@ -402,7 +406,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
 
     # TODO NEED TO COMPLETE
     def write(self):
-        # logic to do this using genotypes.data n x p x 6 
+        # logic to do this using genotypes.data n x p x 3, genotypes.ancestry n x p x 2 (population number), genotypes.valid_labels n x p x 2 (sample from ref VCF and contributing allele)
         # (samples, variants, output VCF format info (allele1, allele2, pop1, pop2, sample1, sample2)(see Arya's other VCF write function))
         # Assumption is the data must be phased
         # CODE SHOULD ASSUME THAT DATA IS IN THE FORMAT n x p x 6 and variants are constant as before
