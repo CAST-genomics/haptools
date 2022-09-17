@@ -22,7 +22,7 @@ class Phenotypes(Data):
     data : np.array
         The phenotypes in an n (samples) x m (phenotypes) array
     fname : Path | str
-        The path to the read-only file containing the data
+        The path to the file containing the data
     samples : tuple
         The names of each of the n samples
     names : tuple[str]
