@@ -10,11 +10,13 @@ from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
     Extra,
     Variant,
+    HapBlock,
     Haplotype,
     Genotypes,
     Phenotypes,
     Covariates,
     Haplotypes,
+    Breakpoints,
     GenotypesRefAlt,
     GenotypesPLINK,
 )
@@ -879,3 +881,105 @@ class TestGenotypesRefAlt:
                 assert gts_ref_alt_write.variants[col][i] == x[col]
 
         os.remove(str(fname))
+
+
+class TestBreakpoints:
+    def _get_expected_breakpoints(self):
+        bps = Breakpoints(fname=None)
+        bps.data = {
+            "Sample_1": {
+                "1": (
+                    [
+                        HapBlock("YRI", 59423086, 85.107755),
+                        HapBlock("CEU", 239403765, 266.495714),
+                    ],
+                    [
+                        HapBlock("YRI", 59423086, 85.107755),
+                        HapBlock("YRI", 239403765, 266.495714),
+                    ],
+                ),
+                "2": (
+                    [
+                        HapBlock("YRI", 229668157, 244.341689),
+                    ],
+                    [
+                        HapBlock("CEU", 229668157, 244.341689),
+                    ],
+                ),
+            },
+            "Sample_2": {
+                "1": (
+                    [
+                        HapBlock("CEU", 59423086, 85.107755),
+                        HapBlock("YRI", 239403765, 266.495714),
+                    ],
+                    [
+                        HapBlock("CEU", 59423086, 85.107755),
+                        HapBlock("CEU", 239403765, 266.495714),
+                    ],
+                ),
+                "2": (
+                    [
+                        HapBlock("CEU", 229668157, 244.341689),
+                    ],
+                    [
+                        HapBlock("YRI", 229668157, 244.341689),
+                    ],
+                ),
+            },
+        }
+        return bps
+
+    def test_load_breakpoints_iterate(self):
+        expected = self._get_expected_breakpoints()
+
+        # can we load the data from the VCF?
+        bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
+        count = 0
+        for samp, blocks in bps:
+            assert blocks == expected.data[samp]
+            count += 1
+        assert count == len(expected.data)
+
+    def test_load_breakpoints(self):
+        expected = self._get_expected_breakpoints()
+
+        # can we load the data from the VCF?
+        bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
+        bps.read()
+
+        # first, check that the samples appear in the proper order
+        assert tuple(bps.data.keys()) == tuple(expected.data.keys())
+
+        # now, check that each sample is the same
+        for samp in bps.data:
+            assert bps.data[samp] == expected.data[samp]
+
+    def test_breakpoints_to_pop_array(self):
+        variants = np.array(
+            [("1", 59423080), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
+            dtype=[("chrom", "U10"), ("pos", np.uint32)],
+        )
+        expected_pop_arr = np.array(
+            [
+                [
+                    [0, 0],
+                    [0, 0],
+                    [1, 0],
+                    [0, 1],
+                ],
+                [
+                    [1, 1],
+                    [1, 1],
+                    [0, 1],
+                    [1, 0],
+                ],
+            ],
+            dtype=np.uint8,
+        )
+
+        expected = self._get_expected_breakpoints()
+        labels, pop_arr = expected.population_array(variants)
+
+        assert labels == {"YRI": 0, "CEU": 1}
+        np.testing.assert_allclose(pop_arr, expected_pop_arr)
