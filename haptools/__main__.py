@@ -190,7 +190,7 @@ def simgenotype(
     if mapdir[-1] == '/':
         mapdir = mapdir[:-1]
     popsize = validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint)
-    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed) # TODO TEST THIS CODE TO ENSURE WORKS PROPERLY
+    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
     bp_end = time.time()
 

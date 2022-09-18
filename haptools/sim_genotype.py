@@ -15,7 +15,6 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
-
     Parameters
     ----------
     breakpoints: list[list[HaplotypeSegment]]
@@ -24,18 +23,13 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
         List of chromosomes that were used to simulate
     model_file: str
         file with the following structure. (Must be tab delimited)
-
         * Header: number of samples, Admixed, {all pop labels}
         * Below: generation number, frac, frac, frac
-
         For example,
-
         .. code-block::
-
                 40    Admixed    CEU   YRI
                 1       0        0.05  0.95
                 2       0.20     0.05  0.75
-
     vcf_file: str
         file path that contains samples and respective variants
     sampleinfo_file: str
@@ -98,17 +92,18 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
     # Once VCF is complete we've output everything we wanted
     # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
-    _write_vcf(breakpoints, chroms, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
+    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
     return
 
-def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
+def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
     """
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
     """
-    # TODO UPDATE FUNCTION SO IT READS IN VCF INFORMATION FROM ARYAS FUNCTION AND WRITES OUT USING ARYAS FUNCTION 
-    # THAT IM WRITING DOING ALL THE TRANSFORMATIONS IN BETWEEN USING MY LOGIC BELOW
-    
+    if region:
+        region_chr, region_st, region_end = _parse_region(region)
+        chroms = [region_chr]
+
     # output vcf file
     write_vcf = VariantFile(out_vcf, mode="w")
 
@@ -150,6 +145,15 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
         ],
     )
     for var in in_vcf:
+        # parse chromosome
+        chrom = re.search(r'X|\d+', var.CHROM).group()
+        if chrom not in chroms: continue
+
+        # limit output to region
+        if region:
+            if var.start < region_st: continue
+            if var.end > region_end: break
+        
         rec = {
             "contig": var.CHROM,
             "start": var.start,
@@ -168,7 +172,6 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
 
             # If breakpoint end coord is < current variant update breakpoint
             bkp = breakpoints[hap][current_bkps[hap]]
-            chrom = re.search(r'X|\d+', var.CHROM).group()
             if chrom == 'X': 
                 chrom = 23
             while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var.start)):
@@ -261,10 +264,7 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
 
     # Parse the region information if present
     if region:
-        region_info = re.split(":|-", region)
-        region_chr = int(region_info[0])
-        region_st = int(region_info[1])
-        region_end = int(region_info[2])
+        region_chr, region_st, region_end = _parse_region(region)
 
     # coord file structure chr variant cMcoord bpcoord
     # NOTE coord files in directory should have chr{1-22, X} in the name
@@ -706,6 +706,13 @@ def start_segment(start, chrom, segments):
             low = mid + 1
 
     return len(segments)
+
+def _parse_region(region):
+    region_info = re.split(":|-", region)
+    region_chr = int(region_info[0])
+    region_st = int(region_info[1])
+    region_end = int(region_info[2])
+    return region_chr, region_st, region_end
 
 def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_bp=False):
     # validate model file
