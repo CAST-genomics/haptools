@@ -198,7 +198,6 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
                 gt.append(hap_var)
                 pops.append(bkp.get_pop())
                 samples.append(vcf_samples[var_sample] + f"-{hap_var}")
-
         sample_num = hap // 2
         record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
         # record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
@@ -224,7 +223,7 @@ def _write_pgen(breakpoints, chroms, hapblock_samples, current_bkps, out_samples
     gts = GenotypesPLINK(out)
     gts.samples = out_samples
     gts.variants = in_vcf.variants
-    gts.data = in_vcf.data.copy()
+    gts.data = np.empty((len(out_samples), len(gts.variants), 2), dtype=in_vcf.data.dtype)
 
     for var_idx, var in enumerate(gts.variants):
         for hap in range(len(hapblock_samples)):
@@ -234,22 +233,19 @@ def _write_pgen(breakpoints, chroms, hapblock_samples, current_bkps, out_samples
             chrom = re.search(r'X|\d+', var["chrom"]).group()
             if chrom == 'X':
                 chrom = 23
-            while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var["pos"])):
+            # Note: for some reason, var.start in _write_vcf() is always equal to var["pos"]-1 in _write_pgen()
+            # We should probably investigate at some point
+            while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var["pos"])-1):
                 current_bkps[hap] += 1
                 bkp = breakpoints[hap][current_bkps[hap]]
             var_sample = hapblock_samples[hap][current_bkps[hap]]
             if hap % 2 == 0:
                 # store variant
                 if hap > 0:
-                    gts.data[sample_num, var_idx] = tuple(gt)
+                    gts.data[sample_num-1, var_idx] = tuple(gt)
                 gt = []
-                hap_var = int(in_vcf.data[var_sample, var_idx, hap % 2])
-                gt.append(hap_var)
-                bkp.get_pop()
-            else:
-                hap_var = int(in_vcf.data[var_sample, var_idx, hap % 2])
-                gt.append(hap_var)
-                bkp.get_pop()
+            hap_var = int(in_vcf.data[var_sample, var_idx, hap % 2])
+            gt.append(hap_var)
         sample_num = hap // 2
         gts.data[sample_num, var_idx] = tuple(gt)
 
