@@ -259,6 +259,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
         colors = dict(zip(pop_list, bmap.mpl_colors))
 
     # Optionally, plot centromeres/telomeres
+    clipmask_perchrom = None
     if centromeres_file is not None:
         clipmask_perchrom = GetCentromereClipMask(centromeres_file, chrom_order)
 
