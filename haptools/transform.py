@@ -262,6 +262,10 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                 (max_variants, len(self.samples), 2),
                 dtype=np.uint8,
             )
+            self.valid_labels = np.empty(
+                (max_variants, len(self.samples), 2),
+                dtype=np.string_,
+            )
             num_seen = 0
             for rec in records:
                 if num_seen >= max_variants:
@@ -277,7 +281,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                 )
                 self.variants = self.variants[:num_seen]
                 self.data = self.data[:num_seen]
-                self.ancestry = self.data[:num_seen]
+                self.ancestry = self.ancestry[:num_seen]
         if 0 in self.data.shape:
             self.log.warning(
                 "Failed to load genotypes. If you specified a region, check that the"
@@ -404,20 +408,28 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             )
         self.data = self.data.astype(np.bool_)
 
-    # TODO NEED TO COMPLETE
-    def write(self):
-        # logic to do this using genotypes.data n x p x 3, genotypes.ancestry n x p x 2 (population number), genotypes.valid_labels n x p x 2 (sample from ref VCF and contributing allele)
-        # (samples, variants, output VCF format info (allele1, allele2, pop1, pop2, sample1, sample2)(see Arya's other VCF write function))
+
+    def write(self, chroms=None):
         # Assumption is the data must be phased
-        # CODE SHOULD ASSUME THAT DATA IS IN THE FORMAT n x p x 6 and variants are constant as before
         """
         Write the variants in this class to a VCF at :py:attr:`~.GenotypesAncestry.fname`
         """
-        # TODO UPDATE CURRENTLY THIS IS THE GENOTYPEREFALT CLASS VERSION AND NOT THE VERSION THAT SHOULD OUTPUT THE PROPER VCF FORMATS
         vcf = VariantFile(str(self.fname), mode="w")
+
         # make sure the header is properly structured
-        for contig in set(self.variants["chrom"]):
-            vcf.header.contigs.add(contig)
+        if not chroms:
+            for contig in set(self.variants["chrom"]):
+                vcf.header.contigs.add(contig)
+        else:
+            # make sure the header is properly structured with contig names from ref VCF
+            for contig in set(self.variants["chrom"]):
+                # remove chr in front of seqname if present and compare
+                if contig.startswith('chr'):
+                    if contig[3:] in chroms:
+                        vcf.header.contigs.add(contig)
+                if contig in chroms:
+                    vcf.header.contigs.add(contig)
+
         vcf.header.add_meta(
             "FORMAT",
             items=[
@@ -472,8 +484,8 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             for samp_idx, sample in enumerate(self.samples):
                 # TODO: make this work when there are missing values
                 record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
-                record.samples[sample]["POP"] = tuple(self.data[samp_idx, var_idx, 2:4]) # TODO see if data can actuall be setup like this
-                record.samples[sample]["SAMPLE"] = tuple(self.data[samp_idx, var_idx, 4:])
+                record.samples[sample]["POP"] = tuple(self.ancestry[samp_idx, var_idx, :])
+                record.samples[sample]["SAMPLE"] = tuple(self.valid_labels[samp_idx, var_idx, :])
                 # TODO: add proper phase info
                 record.samples[sample].phased = True
             # write the record to a file

@@ -17,7 +17,6 @@ def _get_files():
     out_prefix = DATADIR.joinpath("outvcf_out")
     return bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix
 
-
 def _get_breakpoints(bkp_file):
     # Collect breakpoints to proper format used in output_vcf function
     breakpoints = []
@@ -136,7 +135,7 @@ def test_vcf_output():
 def test_region_bkp():
     modelfile = DATADIR.joinpath("outvcf_gen.dat")
     popsize = 100000
-    region = "22:16000-18000"
+    region = {'chr':'22','start':16000, 'end':18000}
     coords_dir = DATADIR.joinpath("map")
     chroms = ["22"]
     seed = 100
@@ -149,7 +148,21 @@ def test_region_bkp():
     return
 
 def test_region_vcf():
-    # TODO
+    region = {'chr':'2', 'start':1, 'end':10122}
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    bkps = _get_breakpoints(bkp_file)
+    chroms = ['2']
+    output_vcf(bkps, chroms, model_file, vcf_file, sampleinfo_file, region, str(out_prefix))
+
+    vcf = VCF(str(out_prefix) + ".vcf")
+    for var in vcf:
+        assert var.POS == 10122 and var.CHROM == '2'
+        assert var.genotypes[0] == [1, 0, True]
+        assert var.format("POP")[0] == "YRI,CEU"
+        assert var.genotypes[1] == [0, 1, True]
+        assert var.format("POP")[1] == "CEU,YRI"
+
+    os.remove(str(out_prefix) + ".vcf")
     return
 
 # model_file exception validation

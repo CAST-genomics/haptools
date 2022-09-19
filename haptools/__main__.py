@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
+import re
 import sys
 import time
 import click
@@ -96,7 +97,7 @@ def karyogram(bp, sample, out, title, centromeres, colors):
 @click.option(
     "--chroms",
     type=str,
-    required=True,
+    required=False,
     default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X",
     help="Sorted and comma delimited list of chromosomes to simulate",
 )
@@ -185,15 +186,32 @@ def simgenotype(
 
     start = time.time()
 
-    chroms = chroms.split(",")
+    # parse region and chroms parameters
+    if not chroms or region:
+        raise Exception("Either chroms or region must be specified.")
+    if region:
+        region_info = re.split(":|-", region)
+        try:
+            region = {'chr':region_info[0], 'start':int(region_info[1]), 
+                      'end':int(region_info[2])}
+            chroms = [region['chr']]
+        except:
+            raise Exception("Unable to parse region. Please ensure it has the correct format "
+                            "<chr>:<start>-<end> eg. 1:1-2000")
+    else:
+        chroms = chroms.split(",")
+
     # Handle if mapdir has a '/' at the end
     if mapdir[-1] == '/':
         mapdir = mapdir[:-1]
+
+    # simulate breakpoints
     popsize = validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint)
-    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed) # TODO TEST THIS CODE TO ENSURE WORKS PROPERLY
+    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
     bp_end = time.time()
 
+    # simulate vcfs
     vcf_start = time.time()
     if not only_breakpoint:
         output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out) #TODO add region functionality

@@ -36,14 +36,15 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
                 40    Admixed    CEU   YRI
                 1       0        0.05  0.95
                 2       0.20     0.05  0.75
-
+                
     vcf_file: str
         file path that contains samples and respective variants
     sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
-    region: str
-        String in the form chrom:start-end including both start and end used to subset
-        the simulation process to only within that region.
+    region: dict()
+        Dictionary with the keys "chr", "start", and "end" holding chromosome,
+        start position adn end position allowing the simulation process to only 
+        within that region.
     out: str
         output prefix
     """
@@ -102,17 +103,14 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # Note: comment out the code below to enable (very experimental!) PGEN support
     # curr_bkps = current_bkps.copy()
     # _write_pgen(breakpoints, chroms, region, hapblock_samples, curr_bkps, output_samples, vcf_file, out+".pgen")
-    _write_vcf(breakpoints, chroms, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
+    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
     return
 
-def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
+def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
     """
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
     """
-    # TODO UPDATE FUNCTION SO IT READS IN VCF INFORMATION FROM ARYAS FUNCTION AND WRITES OUT USING ARYAS FUNCTION 
-    # THAT IM WRITING DOING ALL THE TRANSFORMATIONS IN BETWEEN USING MY LOGIC BELOW
-    
     # output vcf file
     write_vcf = VariantFile(out_vcf, mode="w")
 
@@ -154,6 +152,15 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
         ],
     )
     for var in in_vcf:
+        # parse chromosome
+        chrom = re.search(r'X|\d+', var.CHROM).group()
+        if chrom not in chroms: continue
+
+        # limit output to region
+        if region:
+            if var.start < region["start"]: continue
+            if var.end > region["end"]: break
+        
         rec = {
             "contig": var.CHROM,
             "start": var.start,
@@ -172,7 +179,6 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
 
             # If breakpoint end coord is < current variant update breakpoint
             bkp = breakpoints[hap][current_bkps[hap]]
-            chrom = re.search(r'X|\d+', var.CHROM).group()
             if chrom == 'X': 
                 chrom = 23
             while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var.start)):
@@ -290,9 +296,10 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
         for recombination points
     chroms: list[str]
         List of chromosomes to simulate admixture for.
-    region: str
-        String in the form chrom:start-end including both start and end used to subset
-        the simulation process to only within that region.
+    region: dict()
+        Dictionary with the keys "chr", "start", and "end" holding chromosome,
+        start position adn end position allowing the simulation process to only 
+        within that region.
     popsize: int
         Size of population created for each generation. 
     seed: int
@@ -317,13 +324,6 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     num_samples, *pops = mfile.readline().strip().split()
     num_samples = int(num_samples)
 
-    # Parse the region information if present
-    if region:
-        region_info = re.split(":|-", region)
-        region_chr = int(region_info[0])
-        region_st = int(region_info[1])
-        region_end = int(region_info[2])
-
     # coord file structure chr variant cMcoord bpcoord
     # NOTE coord files in directory should have chr{1-22, X} in the name
     def numeric_alpha(x):
@@ -339,9 +339,9 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     if region:
         try:
             all_coord_files = [coord_file for coord_file in all_coord_files \
-                        if f"chr{region_chr}" in coord_file and str(region_chr) in chroms]
+                        if f"chr{region['chr']}" in coord_file]
         except:
-            raise Exception(f"Unable to find region chromosome {region_chr} in map file directory.")
+            raise Exception(f"Unable to find region chromosome {region['chr']} in map file directory.")
     else:
         all_coord_files = [coord_file for coord_file in all_coord_files \
                        if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
@@ -373,10 +373,10 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     if region:
         start_ind = -1
         for ind, marker in enumerate(coords[0]):
-            if marker.get_bp_pos() >= region_st and start_ind < 0:
+            if marker.get_bp_pos() >= region['start'] and start_ind < 0:
                 start_ind = ind
 
-            if marker.get_bp_pos() >= region_end and coords[0][ind-1].get_bp_pos() < region_end:
+            if marker.get_bp_pos() >= region['end'] and coords[0][ind-1].get_bp_pos() < region['end']:
                 end_ind = ind+1
                 break
         coords = [coords[0][start_ind:end_ind]]
@@ -868,16 +868,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, 
 
     # Ensure that the region parameter can be properly interpreted
     if region:
-        try:
-            region_coords = re.split(':|-', region)
-            if region_chr == 'X':
-                region_chr = 23
-            region_chr = int(region_coords[0])
-            region_st = int(region_coords[1])
-            region_end = int(region_coords[2])
-        except:
-            raise Exception(f"Unable to convert individual region coordinates: {region} to integers.")
-        if region_st > region_end:
-            raise Exception(f"End coordinates in region {region_end} are less than the starting coordinates {region_st}.")
+        if region['start'] > region['end']:
+            raise Exception(f"End coordinates in region {region['end']} are less than the starting coordinates {region['start']}.")
 
     return popsize
