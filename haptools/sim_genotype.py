@@ -15,6 +15,7 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
+
     Parameters
     ----------
     breakpoints: list[list[HaplotypeSegment]]
@@ -23,13 +24,18 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
         List of chromosomes that were used to simulate
     model_file: str
         file with the following structure. (Must be tab delimited)
+
         * Header: number of samples, Admixed, {all pop labels}
         * Below: generation number, frac, frac, frac
+
         For example,
+
         .. code-block::
+
                 40    Admixed    CEU   YRI
                 1       0        0.05  0.95
                 2       0.20     0.05  0.75
+                
     vcf_file: str
         file path that contains samples and respective variants
     sampleinfo_file: str

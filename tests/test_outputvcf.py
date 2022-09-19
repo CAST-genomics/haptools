@@ -148,7 +148,6 @@ def test_region_bkp():
     return
 
 def test_region_vcf():
-    # TODO
     region = "2:1-10122"
     bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
     bkps = _get_breakpoints(bkp_file)
