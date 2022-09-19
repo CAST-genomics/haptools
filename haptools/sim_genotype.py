@@ -40,9 +40,10 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
         file path that contains samples and respective variants
     sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
-    region: str
-        String in the form chrom:start-end including both start and end used to subset
-        the simulation process to only within that region.
+    region: dict()
+        Dictionary with the keys "chr", "start", and "end" holding chromosome,
+        start position adn end position allowing the simulation process to only 
+        within that region.
     out: str
         output prefix
     """
@@ -106,10 +107,6 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
     """
-    if region:
-        region_chr, region_st, region_end = _parse_region(region)
-        chroms = [region_chr]
-
     # output vcf file
     write_vcf = VariantFile(out_vcf, mode="w")
 
@@ -157,8 +154,8 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
 
         # limit output to region
         if region:
-            if var.start < region_st: continue
-            if var.end > region_end: break
+            if var.start < region["start"]: continue
+            if var.end > region["end"]: break
         
         rec = {
             "contig": var.CHROM,
@@ -241,9 +238,10 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
         for recombination points
     chroms: list[str]
         List of chromosomes to simulate admixture for.
-    region: str
-        String in the form chrom:start-end including both start and end used to subset
-        the simulation process to only within that region.
+    region: dict()
+        Dictionary with the keys "chr", "start", and "end" holding chromosome,
+        start position adn end position allowing the simulation process to only 
+        within that region.
     popsize: int
         Size of population created for each generation. 
     seed: int
@@ -268,10 +266,6 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     num_samples, *pops = mfile.readline().strip().split()
     num_samples = int(num_samples)
 
-    # Parse the region information if present
-    if region:
-        region_chr, region_st, region_end = _parse_region(region)
-
     # coord file structure chr variant cMcoord bpcoord
     # NOTE coord files in directory should have chr{1-22, X} in the name
     def numeric_alpha(x):
@@ -287,9 +281,9 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     if region:
         try:
             all_coord_files = [coord_file for coord_file in all_coord_files \
-                        if f"chr{region_chr}" in coord_file and str(region_chr) in chroms]
+                        if f"chr{region['chr']}" in coord_file]
         except:
-            raise Exception(f"Unable to find region chromosome {region_chr} in map file directory.")
+            raise Exception(f"Unable to find region chromosome {region['chr']} in map file directory.")
     else:
         all_coord_files = [coord_file for coord_file in all_coord_files \
                        if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
@@ -321,10 +315,10 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     if region:
         start_ind = -1
         for ind, marker in enumerate(coords[0]):
-            if marker.get_bp_pos() >= region_st and start_ind < 0:
+            if marker.get_bp_pos() >= region['start'] and start_ind < 0:
                 start_ind = ind
 
-            if marker.get_bp_pos() >= region_end and coords[0][ind-1].get_bp_pos() < region_end:
+            if marker.get_bp_pos() >= region['end'] and coords[0][ind-1].get_bp_pos() < region['end']:
                 end_ind = ind+1
                 break
         coords = [coords[0][start_ind:end_ind]]
@@ -713,13 +707,6 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-def _parse_region(region):
-    region_info = re.split(":|-", region)
-    region_chr = int(region_info[0])
-    region_st = int(region_info[1])
-    region_end = int(region_info[2])
-    return region_chr, region_st, region_end
-
 def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_bp=False):
     # validate model file
     mfile = open(model, 'r')
@@ -823,16 +810,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, 
 
     # Ensure that the region parameter can be properly interpreted
     if region:
-        try:
-            region_coords = re.split(':|-', region)
-            if region_chr == 'X':
-                region_chr = 23
-            region_chr = int(region_coords[0])
-            region_st = int(region_coords[1])
-            region_end = int(region_coords[2])
-        except:
-            raise Exception(f"Unable to convert individual region coordinates: {region} to integers.")
-        if region_st > region_end:
-            raise Exception(f"End coordinates in region {region_end} are less than the starting coordinates {region_st}.")
+        if region['start'] > region['end']:
+            raise Exception(f"End coordinates in region {region['end']} are less than the starting coordinates {region['start']}.")
 
     return popsize

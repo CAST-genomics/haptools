@@ -135,7 +135,7 @@ def test_vcf_output():
 def test_region_bkp():
     modelfile = DATADIR.joinpath("outvcf_gen.dat")
     popsize = 100000
-    region = "22:16000-18000"
+    region = {'chr':'22','start':16000, 'end':18000}
     coords_dir = DATADIR.joinpath("map")
     chroms = ["22"]
     seed = 100
@@ -148,10 +148,10 @@ def test_region_bkp():
     return
 
 def test_region_vcf():
-    region = "2:1-10122"
+    region = {'chr':'2', 'start':1, 'end':10122}
     bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
     bkps = _get_breakpoints(bkp_file)
-    chroms = ['1', '2']
+    chroms = ['2']
     output_vcf(bkps, chroms, model_file, vcf_file, sampleinfo_file, region, str(out_prefix))
 
     vcf = VCF(str(out_prefix) + ".vcf")
