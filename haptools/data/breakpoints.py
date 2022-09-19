@@ -20,7 +20,7 @@ from .data import Data
 HapBlock = namedtuple("HapBlock", "pop bp cm")
 
 # This dict maps chroms (as strings) to a tuple of two lists, one for each chromosome
-# TODO: consider using IntervalTrees instead of simple lists:
+# TODO: consider using IntervalTrees (or Discrete Interval Trees) instead of lists:
 #     https://github.com/chaimleib/intervaltree
 # Let's define a type alias, "SampleBlocks", for future use...
 SampleBlocks = NewType(
