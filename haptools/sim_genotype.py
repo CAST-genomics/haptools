@@ -199,6 +199,7 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
                 gt.append(hap_var)
                 pops.append(bkp.get_pop())
                 samples.append(vcf_samples[var_sample] + f"-{hap_var}")
+
         sample_num = hap // 2
         record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
         record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
@@ -221,7 +222,7 @@ def _write_pgen(breakpoints, chroms, region, hapblock_samples, current_bkps, out
     else:
         in_vcf = GenotypesRefAlt(in_vcf)
     in_vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
-    # TODO: check, do we need to do this QC?
+    # TODO: check with someone, do we need to do this QC?
     in_vcf.check_missing(discard_also=True)
     in_vcf.check_biallelic(discard_also=True)
     in_vcf.check_phase()
@@ -258,8 +259,7 @@ def _write_pgen(breakpoints, chroms, region, hapblock_samples, current_bkps, out
                 if hap > 0:
                     gts.data[sample_num-1, var_idx] = tuple(gt)
                 gt = []
-            hap_var = int(in_vcf.data[var_sample, var_idx, hap % 2])
-            gt.append(hap_var)
+            gt.append(int(in_vcf.data[var_sample, var_idx, hap % 2]))
         sample_num = hap // 2
         gts.data[sample_num, var_idx] = tuple(gt)
 
