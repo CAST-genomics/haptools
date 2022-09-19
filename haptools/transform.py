@@ -555,20 +555,24 @@ def transform_haps(
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
+    bps_file = genotypes.with_suffix(".bp")
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
         gt = data.GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = data.GenotypesRefAlt(fname=genotypes, log=log)
+        if ancestry and not bps_file.exists():
+            gt = GenotypesAncestry(fname=genotypes, log=log)
+        else:
+            gt = data.GenotypesRefAlt(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
     gt.check_biallelic()
     gt.check_phase()
 
-    if ancestry:
-        bps_file = genotypes.with_suffix(".bp")
+    if ancestry and not isinstance(gt, GenotypesAncestry):
+        log.info("Loading ancestry info from .bp file")
         if not bps_file.exists():
             raise ValueError("A .bp file is needed when using --ancestry")
         bps = data.Breakpoints(fname=bps_file, log=log)
