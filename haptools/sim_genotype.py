@@ -134,24 +134,24 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
             ("Description", "Genotype"),
         ],
     )
-    # write_vcf.header.add_meta(
-    #     "FORMAT",
-    #     items=[
-    #         ("ID", "POP"),
-    #         ("Number", 2),
-    #         ("Type", "String"),
-    #         ("Description", "Origin Population of each respective allele in GT"),
-    #     ],
-    # )
-    # write_vcf.header.add_meta(
-    #     "FORMAT",
-    #     items=[
-    #         ("ID", "SAMPLE"),
-    #         ("Number", 2),
-    #         ("Type", "String"),
-    #         ("Description", "Origin sample and haplotype of each respective allele in GT"),
-    #     ],
-    # )
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "POP"),
+            ("Number", 2),
+            ("Type", "String"),
+            ("Description", "Origin Population of each respective allele in GT"),
+        ],
+    )
+    write_vcf.header.add_meta(
+        "FORMAT",
+        items=[
+            ("ID", "SAMPLE"),
+            ("Number", 2),
+            ("Type", "String"),
+            ("Description", "Origin sample and haplotype of each respective allele in GT"),
+        ],
+    )
     for var in in_vcf:
         rec = {
             "contig": var.CHROM,
@@ -183,8 +183,8 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
                 # store variant
                 if hap > 0:
                     record.samples[f"Sample_{sample_num}"]["GT"] = tuple(gt)
-                    # record.samples[f"Sample_{sample_num}"]["POP"] = tuple(pops)
-                    # record.samples[f"Sample_{sample_num}"]["SAMPLE"] = tuple(samples)
+                    record.samples[f"Sample_{sample_num}"]["POP"] = tuple(pops)
+                    record.samples[f"Sample_{sample_num}"]["SAMPLE"] = tuple(samples)
                     record.samples[f"Sample_{sample_num}"].phased = True
                 gt = []
                 pops = []
@@ -200,8 +200,8 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
                 samples.append(vcf_samples[var_sample] + f"-{hap_var}")
         sample_num = hap // 2
         record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
-        # record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
-        # record.samples[f"Sample_{sample_num+1}"]["SAMPLE"] = tuple(samples)
+        record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
+        record.samples[f"Sample_{sample_num+1}"]["SAMPLE"] = tuple(samples)
         record.samples[f"Sample_{sample_num+1}"].phased = True
 
         # write the record to a file
