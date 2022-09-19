@@ -99,9 +99,10 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
     # Once VCF is complete we've output everything we wanted
     # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
-    curr_bkps = current_bkps.copy()
-    _write_pgen(breakpoints, chroms, hapblock_samples, current_bkps, output_samples, vcf_file, out+".pgen")
-    _write_vcf(breakpoints, chroms, hapblock_samples, vcf.samples, curr_bkps, output_samples, vcf, out+".vcf")
+    # Note: comment out the code below to enable (very experimental!) PGEN support
+    # curr_bkps = current_bkps.copy()
+    # _write_pgen(breakpoints, chroms, region, hapblock_samples, curr_bkps, output_samples, vcf_file, out+".pgen")
+    _write_vcf(breakpoints, chroms, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
     return
 
 def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
@@ -209,30 +210,43 @@ def _write_vcf(breakpoints, chroms, hapblock_samples, vcf_samples, current_bkps,
     write_vcf.close()
     return
 
-def _write_pgen(breakpoints, chroms, hapblock_samples, current_bkps, out_samples, in_vcf, out):
+def _write_pgen(breakpoints, chroms, region, hapblock_samples, current_bkps, out_samples, in_vcf, out):
     """
     in_vcf = GenotypesRefAlt object we are reading in
     out = pgen file we output to
     """
-    in_vcf = GenotypesRefAlt(in_vcf)
-    in_vcf.read()
+    # initialize input reader
+    if in_vcf.endswith(".pgen"):
+        in_vcf = GenotypesPLINK(in_vcf)
+    else:
+        in_vcf = GenotypesRefAlt(in_vcf)
+    in_vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
+    # TODO: check, do we need to do this QC?
     in_vcf.check_missing(discard_also=True)
     in_vcf.check_biallelic(discard_also=True)
     in_vcf.check_phase()
 
+    # initialize output writer
     gts = GenotypesPLINK(out)
     gts.samples = out_samples
     gts.variants = in_vcf.variants
     gts.data = np.empty((len(out_samples), len(gts.variants), 2), dtype=in_vcf.data.dtype)
 
+    # Now we just fill out gts.data
+    # TODO: figure out if there's a way to optimize the following lines of code so that
+    # this for loop is performed in numpy rather than in python? This is especially
+    # relevant for situations in which the input is PGEN b/c it's probably just as fast
+    # to stream the VCF like this otherwise
     for var_idx, var in enumerate(gts.variants):
+        # parse chromosome
+        chrom = re.search(r'X|\d+', var["chrom"]).group()
+        if chrom not in chroms: continue
+        if chrom == 'X':
+            chrom = 23
         for hap in range(len(hapblock_samples)):
             sample_num = hap // 2
             # If breakpoint end coord is < current variant update breakpoint
             bkp = breakpoints[hap][current_bkps[hap]]
-            chrom = re.search(r'X|\d+', var["chrom"]).group()
-            if chrom == 'X':
-                chrom = 23
             # Note: for some reason, var.start in _write_vcf() is always equal to var["pos"]-1 in _write_pgen()
             # We should probably investigate at some point
             while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var["pos"])-1):
