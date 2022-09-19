@@ -27,6 +27,7 @@ SampleBlocks = NewType(
     "SampleBlocks", "dict[str, tuple[list[HapBlock], list[HapBlock]]]"
 )
 
+
 class Breakpoints(Data):
     """
     A class for processing breakpoints from a file
@@ -136,8 +137,7 @@ class Breakpoints(Data):
                         self.log.error(f"bp file does not start with first strand")
                     elif samp != line[:-2]:
                         self.log.error(
-                            f"'{samp}_1' was not followed by '{samp}_2' "
-                            "in the bp file"
+                            f"'{samp}_1' was not followed by '{samp}_2' in the bp file"
                         )
                 else:
                     if samp is not None and (samples is None or samp in samples):
@@ -150,7 +150,9 @@ class Breakpoints(Data):
                 block = blocks.setdefault(chrom, ([], []))[strand_num]
                 block.append(HapBlock(pop, int(pos), float(cm)))
             else:
-                self.log.warning(f"Ignoring improperly formatted line in bp file: '{line}'")
+                self.log.warning(
+                    f"Ignoring improperly formatted line in bp file: '{line}'"
+                )
         if samp is not None and (samples is None or samp in samples):
             # output the previous sample
             yield samp, blocks
