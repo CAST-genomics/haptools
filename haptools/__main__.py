@@ -187,7 +187,7 @@ def simgenotype(
     start = time.time()
 
     # parse region and chroms parameters
-    if not chroms or region:
+    if not (chroms or region):
         raise Exception("Either chroms or region must be specified.")
     if region:
         region_info = re.split(":|-", region)
