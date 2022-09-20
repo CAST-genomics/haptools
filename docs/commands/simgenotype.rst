@@ -16,10 +16,11 @@ Basic Usage
   --model MODELFILE \
   --mapdir GENETICMAPDIR \
   --chroms LIST,OF,CHROMS \
+  --region CHR:START-END \
   --invcf REFVCF \
   --sample_info SAMPLEINFOFILE \
   --out OUTPREFIX
-
+  
 Detailed information about each option, and example commands using publicly available files, are shown below.
 
 Parameter Descriptions
@@ -27,7 +28,9 @@ Parameter Descriptions
 * ``--invcf`` - Input VCF file used to simulate specifiic haplotypes for resulting samples
 * ``--sample_info`` - File used to map samples in ``REFVCF`` to populations found in ``MODELFILE``
 * ``--model`` - Parameters for simulating admixture across generations
-* ``--map`` - .map file used to determine recombination events during the simulation
+* ``--mapdir`` - Directory containing all .map files with the structure https://www.cog-genomics.org/plink/1.9/formats#map where the third position is in centiMorgans
+* ``--chroms`` - List of chromosomes to be simulated. The map file directory must contain the "chr<CHR>" where <CHR> is the chromosome identifier eg. 1,2,...,X
+* ``--region`` - Limit the simulation to a region within a single chromosome. Overwrites chroms with the chrom listed in this region. eg 1:1-10000 [Optional]
 * ``--out`` - Output prefix of the structure ``/path/to/output`` which results in the vcf file ``output.vcf.gz`` and breakpoints file ``output.bp``
 
 File Formats
