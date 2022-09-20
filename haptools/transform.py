@@ -567,21 +567,39 @@ def transform_haps(
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
+    bps_file = genotypes.with_suffix(".bp")
     if genotypes.suffix == ".pgen":
-        if ancestry:
-            log.error("Loading ancestry info from a PGEN file is not yet supported")
-            ancestry = False
         log.info("Loading genotypes from PGEN file")
         gt = data.GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        vcf_class = GenotypesAncestry if ancestry else data.GenotypesRefAlt
-        gt = vcf_class(fname=genotypes, log=log)
+        if ancestry and not bps_file.exists():
+            gt = GenotypesAncestry(fname=genotypes, log=log)
+        else:
+            gt = data.GenotypesRefAlt(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
     gt.check_biallelic()
     gt.check_phase()
+
+    if ancestry and not isinstance(gt, GenotypesAncestry):
+        log.info("Loading ancestry info from .bp file")
+        if not bps_file.exists():
+            raise ValueError("A .bp file is needed when using --ancestry")
+        bps = data.Breakpoints(fname=bps_file, log=log)
+        bps.read(samples=set(gt.samples))
+        # convert the GenotypesRefAlt object to a GenotypesAncestry object
+        # TODO: figure out a better solution for this
+        # this is just a temp hack to get output from simgenotype to load a bit faster
+        gta = GenotypesAncestry(fname=genotypes.with_suffix(".vcf.gz"), log=log)
+        gta.data = gt.data
+        gta.samples = gt.samples
+        gta.variants = gt.variants
+        gta.ancestry_labels, gta.ancestry = bps.population_array(
+            gt.variants[["chrom", "pos"]]
+        )
+        gt = gta
 
     # check that all of the variants were loaded successfully and warn otherwise
     if len(variants) < len(gt.variants):

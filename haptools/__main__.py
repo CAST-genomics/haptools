@@ -555,6 +555,7 @@ def transform(
         ids,
         chunk_size,
         discard_missing,
+        ancestry,
         output,
         log,
     )
