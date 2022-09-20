@@ -682,7 +682,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             raise ImportError(
                 "We cannot read PGEN files without the pgenlib library. Please "
                 "reinstall haptools with the 'files' extra requirements via\n"
-                "pip install git+https://github.com/gymrek-lab/haptools.git##egg=hapto"
+                "pip install git+https://github.com/cast-genomics/haptools.git##egg=hapto"
                 "ols[files]"
             )
 
