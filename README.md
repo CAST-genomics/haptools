@@ -16,7 +16,12 @@ pip install git+https://github.com/cast-genomics/haptools.git
 Installing `haptools` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
 ```bash
 pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
-````
+```
+
+Note: To reduce the likelihood of errors when installing, we recommend installing haptools within a new conda environment with a recent version of pip:
+```bash
+conda create -n haptools -c conda-forge 'pip>=22.2.2'
+```
 
 ## Haptools utilities
 
