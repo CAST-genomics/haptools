@@ -27,4 +27,4 @@ If you run out memory when using PGEN files, consider reading variants from the 
 
 	.. code-block:: bash
 
-		pip install git+https://github.com/gymrek-lab/haptools.git#egg=haptools[files]
+		pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]

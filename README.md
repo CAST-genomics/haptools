@@ -11,12 +11,17 @@ Homepage: [https://haptools.readthedocs.io/](https://haptools.readthedocs.io/)
 
 We have not officially published `haptools` yet, but in the meantime, you can install it directly from our Github repository.
 ```bash
-pip install git+https://github.com/gymrek-lab/haptools.git
+pip install git+https://github.com/cast-genomics/haptools.git
 ```
 Installing `haptools` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
 ```bash
-pip install git+https://github.com/gymrek-lab/haptools.git#egg=haptools[files]
-````
+pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
+```
+
+Note: To reduce the likelihood of errors when installing, we recommend installing haptools within a new conda environment with a recent version of pip:
+```bash
+conda create -n haptools -c conda-forge 'pip>=22.2.2'
+```
 
 ## Haptools utilities
 
@@ -39,4 +44,4 @@ Outputs produced by these utilities are compatible with each other. For example
 
 We gladly welcome any contributions to `haptools`!
 
-Please read [our contribution guidelines](https://haptools.readthedocs.io/en/latest/project_info/contributing.html) and then submit a [Github issue](https://github.com/gymrek-lab/haptools/issues).
+Please read [our contribution guidelines](https://haptools.readthedocs.io/en/latest/project_info/contributing.html) and then submit a [Github issue](https://github.com/cast-genomics/haptools/issues).
