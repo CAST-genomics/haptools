@@ -25,7 +25,6 @@ Detailed information about each option, and example commands using publicly avai
 
 Parameter Descriptions
 ~~~~~~~~~~~~~~~~~~~~~~
-`--from-gts <#cmdoption-haptools-ld-from-gts>`_
 * ``--model`` - Parameters for simulating admixture across generations including sample size, population fractions, and number of generations.
 * ``--mapdir`` - Directory containing all .map files with the `structure <https://www.cog-genomics.org/plink/1.9/formats#map>`_ where the third position is in centiMorgans
 * ``--chroms`` - List of chromosomes to be simulated. The map file directory must contain the "chr<CHR>" where <CHR> is the chromosome identifier eg. 1,2,...,X
