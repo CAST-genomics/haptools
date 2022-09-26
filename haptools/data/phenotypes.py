@@ -214,7 +214,12 @@ class Phenotypes(Data):
 
         This function modifies :py:attr:`~.Genotypes.data` in-place
         """
-        self.data = (self.data - np.mean(self.data, axis=0)) / np.std(self.data, axis=0)
+        std = np.std(self.data, axis=0)
+        if std == 0:
+            # if the stdev is 0, just set all phenotypes to 0 instead of nan
+            self.data = np.zeros(self.data.shape, dtype=self.data.dtype)
+        else:
+            self.data = (self.data - np.mean(self.data, axis=0)) / np.std(self.data, axis=0)
 
     def append(self, name: str, data: npt.NDArray):
         """
