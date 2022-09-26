@@ -1214,5 +1214,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                 if self._prephased or self.data.shape[2] < 3:
                     pgen.append_alleles_batch(cast_data, all_phased=True)
                 else:
+                    # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
                     pgen.append_partially_phased_batch(cast_data, subset_phase)
