@@ -134,10 +134,8 @@ class PhenoSimulator:
         std = gts.std(axis=0)
         gts = (gts - gts.mean(axis=0)) / std
         # for genotypes where the stdev is 0, just set all values to 0 instead of nan
-        zero_elements = (std == 0)
-        gts[:, zero_elements] = np.zeros(
-            (gts.shape[0], np.sum(zero_elements))
-        )
+        zero_elements = std == 0
+        gts[:, zero_elements] = np.zeros((gts.shape[0], np.sum(zero_elements)))
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
