@@ -402,10 +402,6 @@ class TestPhenotypes:
         phens.read()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-        expected = (expected - np.mean(expected, axis=0)) / np.std(expected, axis=0)
-        phens.standardize()
-        np.testing.assert_allclose(phens.data, expected)
-
     def test_load_phenotypes_iterate(self):
         expected_phen = self._get_fake_phenotypes()
         expected = expected_phen.data
@@ -430,6 +426,26 @@ class TestPhenotypes:
         phens.read(samples=samples)
         np.testing.assert_allclose(phens.data, expected)
         assert phens.samples == tuple(samples)
+
+    def test_standardize(self):
+        expected_phen = self._get_fake_phenotypes()
+        exp_data = expected_phen.data
+
+        exp_data = (exp_data - np.mean(exp_data, axis=0)) / np.std(exp_data, axis=0)
+        expected_phen.standardize()
+        np.testing.assert_allclose(expected_phen.data, exp_data)
+
+        # also test case where the stdev is 0
+        zero_phen = np.zeros((exp_data.shape[0], 1), dtype=exp_data.dtype)
+        exp_data = np.concatenate((exp_data, zero_phen), axis=1)
+        expected_phen.data = np.concatenate(
+            (expected_phen.data, zero_phen + 5),
+            dtype=exp_data.dtype,
+            axis=1,
+        )
+
+        expected_phen.standardize()
+        np.testing.assert_allclose(expected_phen.data, exp_data)
 
     def test_write_phenotypes(self):
         expected_phen = self._get_fake_phenotypes()

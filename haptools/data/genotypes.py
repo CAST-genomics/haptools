@@ -679,11 +679,11 @@ class GenotypesPLINK(GenotypesRefAlt):
             global pgenlib
             import pgenlib
         except ImportError:
+            url = "https://github.com/cast-genomics/haptools.git##egg=haptools[files]"
             raise ImportError(
                 "We cannot read PGEN files without the pgenlib library. Please "
                 "reinstall haptools with the 'files' extra requirements via\n"
-                "pip install git+https://github.com/cast-genomics/haptools.git##egg=hapto"
-                "ols[files]"
+                f"pip install 'git+{url}'"
             )
 
     def read_samples(self, samples: list[str] = None):
@@ -1214,5 +1214,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                 if self._prephased or self.data.shape[2] < 3:
                     pgen.append_alleles_batch(cast_data, all_phased=True)
                 else:
+                    # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
                     pgen.append_partially_phased_batch(cast_data, subset_phase)

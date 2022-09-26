@@ -131,7 +131,11 @@ class PhenoSimulator:
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[0]} causal effects")
         # standardize the genotypes
-        gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
+        std = gts.std(axis=0)
+        gts = (gts - gts.mean(axis=0)) / std
+        # for genotypes where the stdev is 0, just set all values to 0 instead of nan
+        zero_elements = std == 0
+        gts[:, zero_elements] = np.zeros((gts.shape[0], np.sum(zero_elements)))
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability

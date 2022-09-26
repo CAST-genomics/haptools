@@ -212,9 +212,15 @@ class Phenotypes(Data):
         """
         Standardize phenotypes so they have a mean of 0 and a stdev of 1
 
-        This function modifies :py:attr:`~.Genotypes.data` in-place
+        This function modifies :py:attr:`~.Phenotypes.data` in-place
         """
-        self.data = (self.data - np.mean(self.data, axis=0)) / np.std(self.data, axis=0)
+        std = np.std(self.data, axis=0)
+        self.data = (self.data - np.mean(self.data, axis=0)) / std
+        # for phenotypes where the stdev is 0, just set all values to 0 instead of nan
+        zero_elements = std == 0
+        self.data[:, zero_elements] = np.zeros(
+            (self.data.shape[0], np.sum(zero_elements))
+        )
 
     def append(self, name: str, data: npt.NDArray):
         """
