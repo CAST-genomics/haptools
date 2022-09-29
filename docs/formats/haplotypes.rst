@@ -166,11 +166,41 @@ Additional fields can be appended to the ends of the haplotype and variant lines
 
 .. _formats-haplotypes-extrafields-simphenotype:
 
+transform
+---------
+If you would like to simulate an ancestry-based effect, you should run ``transform`` with an *ancestry* extra field declared in your ``.hap`` file.
+
+You can download an example header with an *ancestry* extra field from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
+
+.. code-block:: bash
+
+  curl https://raw.githubusercontent.com/cast-genomics/haptools/main/tests/data/simphenotype.hap 2>/dev/null | head -n4
+
+``H`` Haplotype
++++++++++++++++
+
+.. list-table::
+   :widths: 25 25 25 50
+   :header-rows: 1
+
+   * - Column
+     - Field
+     - Type
+     - Description
+   * - 5
+     - Local Ancestry
+     - string
+     - A population code denoting this haplotype's ancestral origins
+
+``V`` Variant
++++++++++++++
+No extra fields are required here.
+
 simphenotype
 ------------
-The *ancestry* and *beta* extra fields should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
+The *beta* extra field should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
 
-You can download an example header for this file from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
+You can download an example header with a *beta* extra field from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
 
 .. code-block:: bash
 
@@ -193,10 +223,6 @@ You can download an example header for this file from `tests/data/simphenotype.h
      - Type
      - Description
    * - 5
-     - Local Ancestry
-     - string
-     - A population code denoting this haplotype's ancestral origins
-   * - 6
      - Effect Size
      - float
      - The effect size of this haplotype; for use in ``simphenotype``

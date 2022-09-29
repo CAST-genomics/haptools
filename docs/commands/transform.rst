@@ -13,7 +13,7 @@ You may also specify genotypes in PLINK2 PGEN format. Just use the appropriate "
 Ancestry
 ~~~~~~~~
 
-If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field or an accompanying :ref:`.bp file <formats-breakpoints>` (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by ``simgenotype``. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
+If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field or an accompanying :ref:`.bp file <formats-breakpoints>` (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by ``simgenotype``. See :ref:`this section <formats-haplotypes-extrafields-transform>` of the ``.hap`` format spec for more details.
 
 Usage
 ~~~~~
