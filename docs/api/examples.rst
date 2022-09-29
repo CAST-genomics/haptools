@@ -64,12 +64,11 @@ Well, you can encode each SNP as a haplotype containing only a single allele. Fo
 
 .. code-block::
 
-    #	orderH	ancestry	beta
+    #	orderH	beta
     #	version	0.1.0
-    #H	ancestry	s	Local ancestry
     #H	beta	.2f	Effect size in linear model
-    H	19	45411941	45411942	rs429358	EUR	0.73
-    H	19	45412079	45412080	rs7412	EUR	0.30
+    H	19	45411941	45411942	rs429358	0.73
+    H	19	45412079	45412080	rs7412	0.30
     V	rs429358	45411941	45411942	rs429358	C
     V	rs7412	45412079	45412080	rs7412	T
 
@@ -97,12 +96,12 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
     hp.data = {}
 
     for variant in gt.variants:
-    	ID, chrom, pos, alt = variant[["id", "chrom", "pos", "alt"]]
-    	end = pos + len(alt)
+        ID, chrom, pos, alt = variant[["id", "chrom", "pos", "alt"]]
+        end = pos + len(alt)
 
         # create a haplotype line in the .hap file
-        # you should fill out "ancestry" and "beta" with your own values
-        hp.data[ID] = Haplotype(chrom=chrom, start=pos, end=end, id=ID, ancestry="EUR", beta=0.5)
+        # you should fill out "beta" with your own value
+        hp.data[ID] = Haplotype(chrom=chrom, start=pos, end=end, id=ID, beta=0.5)
 
         # create variant lines for each haplotype
         hp.data[ID].variants = (data.Variant(start=pos, end=end, id=ID, allele=alt),)

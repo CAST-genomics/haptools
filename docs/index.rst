@@ -8,11 +8,12 @@ Haptools is a collection of tools for simulating and analyzing genotypes and phe
 Installation
 ~~~~~~~~~~~~
 .. note::
-   To reduce the likelihood of errors when installing, we recommend installing ``haptools`` within a new conda environment with a recent version of pip:
+   To reduce the likelihood of errors, we recommend installing ``haptools`` within a new conda environment using a recent version of pip:
 
    .. code-block:: bash
 
-      conda create -n haptools -c conda-forge 'pip>=22.2.2'
+      conda create -y -n haptools -c conda-forge 'pip>=22.2.2'
+      conda activate haptools
 
 We have not officially published ``haptools`` yet, but in the meantime, you can install it directly from our Github repository.
 
