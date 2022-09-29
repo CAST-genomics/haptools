@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 import glob
 import time
 import numpy as np
@@ -122,8 +123,18 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
                 write_vcf.header.contigs.add(contig)
         if contig in chroms:
             write_vcf.header.contigs.add(contig)
-    
-    write_vcf.header.add_samples(out_samples)
+
+    try:
+        write_vcf.header.add_samples(out_samples)
+    except AttributeError:
+        print(
+            "Upgrade to pysam >=0.19.1 to reduce the time required to create "
+            "VCFs. See https://github.com/pysam-developers/pysam/issues/1104",
+            file = sys.stderr,
+        )
+        for sample in out_samples:
+            write_vcf.header.add_sample(sample)
+
     write_vcf.header.add_meta(
         "FORMAT",
         items=[

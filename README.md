@@ -7,41 +7,4 @@ Haptools is a collection of tools for simulating and analyzing genotypes and phe
 
 Homepage: [https://haptools.readthedocs.io/](https://haptools.readthedocs.io/)
 
-## Installation
-
-We have not officially published `haptools` yet, but in the meantime, you can install it directly from our Github repository.
-```bash
-pip install git+https://github.com/cast-genomics/haptools.git
-```
-Installing `haptools` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
-```bash
-pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
-```
-
-Note: To reduce the likelihood of errors when installing, we recommend installing haptools within a new conda environment with a recent version of pip:
-```bash
-conda create -n haptools -c conda-forge 'pip>=22.2.2'
-```
-
-## Haptools utilities
-
-Haptools consists of multiple utilities listed below. Click on a utility to see more detailed usage information.
-
-* [`haptools simgenotype`](https://haptools.readthedocs.io/en/latest/commands/simgenotype.html): Simulate genotypes for admixed individuals under user-specified demographic histories.
-
-* [`haptools simphenotype`](https://haptools.readthedocs.io/en/latest/commands/simphenotype.html): Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. `haptools simphenotype` takes as input a VCF file and outputs simulated phenotypes for each sample.
-
-* [`haptools karyogram`](https://haptools.readthedocs.io/en/latest/commands/karyogram.html): Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by `haptools simgenotype`.
-
-* [`haptools transform`](https://haptools.readthedocs.io/en/latest/commands/transform.html): Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
-
-* [`haptools ld`](https://haptools.readthedocs.io/en/latest/commands/ld.html): Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
-
-Outputs produced by these utilities are compatible with each other. For example
-`haptools simgenome` outputs a VCF file with local ancestry information annotated for each variant. The output VCF file can be used as input to `haptools simphenotype` to simulate phenotype information. `haptools simgenome` also outputs a list of local ancestry breakpoints which can be visualized using `haptools karyogram`. 
-
-## Contributing
-
-We gladly welcome any contributions to `haptools`!
-
-Please read [our contribution guidelines](https://haptools.readthedocs.io/en/latest/project_info/contributing.html) and then submit a [Github issue](https://github.com/cast-genomics/haptools/issues).
+Visit our homepage for installation and usage instructions.
