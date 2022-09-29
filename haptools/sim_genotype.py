@@ -172,7 +172,6 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
             if var.start < region["start"]: continue
             if var.end > region["end"]: break
         
-        print(var.start)
         rec = {
             "contig": var.CHROM,
             "start": var.start,
