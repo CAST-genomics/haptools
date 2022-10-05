@@ -31,6 +31,7 @@ def append_suffix(
 
 def index_haps(
     haplotypes: Path,
+    sort: bool = False,
     output: Path = None,
     log: Logger = None,
 ):
@@ -59,21 +60,34 @@ def index_haps(
     log.info("Loading haplotypes")
 
     hp = data.Haplotypes(haplotypes, log=log)
-    hp.read()
-    hp.sort()
 
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        hp.fname = Path(tmp.name)
-        log.debug(f"writing haplotypes to {hp.fname}")
-        hp.write()
+    if sort:
+        hp.read()
+        hp.sort()
+
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            hp.fname = Path(tmp.name)
+            log.debug(f"writing haplotypes to {hp.fname}")
+            hp.write()
+    
+    try:
         tabix_index(str(hp.fname), seq_col=1, start_col=2, end_col=3)
-        hp.fname = append_suffix(hp.fname, ".gz")
+    except OSError as e:
+        # check if the error message matches what we expect if the file is unsorted
+        if str(e).startswith("building of index for "):
+            log.error("Indexing failed. Is your file properly sorted?")
+        else:
+            # otherwise, re-raise it
+            raise
+    
+    hp.fname = append_suffix(hp.fname, ".gz")
 
-        if output is None:
-            if haplotypes.suffix.endswith(".gz"):
-                output = haplotypes
-            else:
-                output = append_suffix(haplotypes, ".gz")
-        hp.fname.rename(output)
+    if output is None:
+        if haplotypes.suffix.endswith(".gz"):
+            output = haplotypes
+        else:
+            output = append_suffix(haplotypes, ".gz")
+    hp.fname.rename(output)
 
-        append_suffix(hp.fname, ".tbi").rename(append_suffix(output, ".tbi"))
+    
+    append_suffix(hp.fname, ".tbi").rename(append_suffix(output, ".tbi"))

@@ -5,6 +5,9 @@ import sys
 import time
 import click
 from pathlib import Path
+from haptools.data.haplotypes import Haplotypes
+from haptools import data
+import tempfile
 
 # AVOID IMPORTING ANYTHING HERE
 # any imports we put here will make it slower to use the command line client
@@ -523,8 +526,18 @@ if __name__ == "__main__":
     help="The level of verbosity desired",
 )
 
+@click.option(
+    "--sort/--no-sort",
+    is_flag=True,
+    default=True,
+    help="Sorting of the file will not be performed",
+)
+
+
+
 def index(
     haplotypes: Path,
+    sort: bool= False,
     output: Path = None,
     verbosity: str = 'CRITICAL',
 ):
@@ -542,4 +555,5 @@ def index(
         level=verbosity,
     )
 
-    index_haps(haplotypes, output, log)
+
+    index_haps(haplotypes, sort, output, log)
