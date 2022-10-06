@@ -69,7 +69,7 @@ def index_haps(
             hp.fname = Path(tmp.name)
             log.debug(f"writing haplotypes to {hp.fname}")
             hp.write()
-    
+
     try:
         tabix_index(str(hp.fname), seq_col=1, start_col=2, end_col=3)
     except OSError as e:
@@ -79,7 +79,7 @@ def index_haps(
         else:
             # otherwise, re-raise it
             raise
-    
+
     hp.fname = append_suffix(hp.fname, ".gz")
 
     if output is None:
@@ -89,5 +89,4 @@ def index_haps(
             output = append_suffix(haplotypes, ".gz")
     hp.fname.rename(output)
 
-    
     append_suffix(hp.fname, ".tbi").rename(append_suffix(output, ".tbi"))
