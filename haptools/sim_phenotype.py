@@ -151,7 +151,7 @@ class PhenoSimulator:
             noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
-        pt_noise = self.rng.normal(0, noise, size=pt.shape)
+        pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)
         if self.log.getEffectiveLevel() == DEBUG:
             # if we're in debug mode, compute the pearson correlation and report it
             # but don't do this otherwise to keep things fast
