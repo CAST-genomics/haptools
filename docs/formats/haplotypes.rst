@@ -164,7 +164,7 @@ Extra fields
 ~~~~~~~~~~~~
 Additional fields can be appended to the ends of the haplotype and variant lines as long as they are declared in the header.
 
-.. _formats-haplotypes-extrafields-simphenotype:
+.. _formats-haplotypes-extrafields-transform:
 
 transform
 ---------
@@ -195,6 +195,8 @@ You can download an example header with an *ancestry* extra field from `tests/da
 ``V`` Variant
 +++++++++++++
 No extra fields are required here.
+
+.. _formats-haplotypes-extrafields-simphenotype:
 
 simphenotype
 ------------

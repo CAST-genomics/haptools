@@ -43,7 +43,9 @@ Summary of Commands
 * `haptools ld </commands/ld>`_: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
 
 Outputs produced by these utilities are compatible with each other.
-For example ``haptools simgenotype`` outputs a VCF file with local ancestry information annotated for each variant. The output VCF file can be used as input to ``haptools transform`` and ``haptools simphenotype`` to simulate phenotype information. ``haptools simgenotype`` also outputs a list of local ancestry breakpoints which can be visualized using ``haptools karyogram``.
+For example ``haptools simgenotype`` outputs a VCF file with local ancestry information annotated for each variant.
+The VCF and breakpoints file output by ``haptools simgenotype`` can be used as input to ``haptools transform``, which is then used by ``haptools simphenotype`` to simulate phenotypes for a list of haplotypes.
+The local ancestry breakpoints from ``haptools simgenotype`` can also be visualized using ``haptools karyogram``.
 
 Contributing
 ~~~~~~~~~~~~

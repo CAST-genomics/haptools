@@ -56,6 +56,12 @@ Alternatively, we can compute LD between the APOe4 haplotype and all genotypes i
 
 	haptools ld --from-gts -o apoe4.ld APOe4 tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
+You can select a subset of variants (or haplotypes) using the ``--id`` parameter multiple times (or the ``--ids-file`` parameter).
+
+.. code-block:: bash
+
+	haptools ld --from-gts -i rs543363163 -i rs7412 APOe4 tests/data/apoe.vcf.gz tests/data/apoe4.hap
+
 Detailed Usage
 ~~~~~~~~~~~~~~
 

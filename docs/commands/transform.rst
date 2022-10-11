@@ -64,12 +64,6 @@ If your VCF has multi-allelic variants, they must be split into bi-allelic recor
 	bcftools annotate -Ov --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | \
 	haptools transform -o output.vcf.gz /dev/stdin file.hap
 
-..
-	To include ancestral population labels in the transformation, use the ``--ancestry`` flag:
-
-	.. code-block:: bash
-
-		haptools transform --ancestry tests/data/example.vcf.gz tests/data/simphenotype.hap
 
 Detailed Usage
 ~~~~~~~~~~~~~~
