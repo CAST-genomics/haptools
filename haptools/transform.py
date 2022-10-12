@@ -567,7 +567,12 @@ def transform_haps(
     log.info("Extracting variants from haplotypes")
     variants = {var.id for hap in hp.data.values() for var in hap.variants}
 
-    bps_file = genotypes.with_suffix(".bp")
+    # load the genotypes, but first get the path to the breakpoints file
+    if genotypes.suffix == ".gz":
+        bps_file = genotypes.stem.with_suffix(".bp")
+    else:
+        bps_file = genotypes.with_suffix(".bp")
+    # now, get the genotypes
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
         gt = data.GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
@@ -592,7 +597,7 @@ def transform_haps(
         # convert the GenotypesRefAlt object to a GenotypesAncestry object
         # TODO: figure out a better solution for this
         # this is just a temp hack to get output from simgenotype to load a bit faster
-        gta = GenotypesAncestry(fname=genotypes.with_suffix(".vcf.gz"), log=log)
+        gta = GenotypesAncestry(fname=None, log=log)
         gta.data = gt.data
         gta.samples = gt.samples
         gta.variants = gt.variants
