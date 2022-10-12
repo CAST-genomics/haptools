@@ -46,14 +46,13 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float:
     return np.corrcoef(arrA, arrB)[1, 0]
 
 
-
 def calc_ld(
     target: str,
     genotypes: Path,
     haplotypes: Path,
     region: str = None,
     samples: list[str] = None,
-    ids: set[str] = None,
+    ids: tuple[str] = None,
     chunk_size: int = None,
     discard_missing: bool = False,
     from_gts: bool = False,
@@ -105,6 +104,9 @@ def calc_ld(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",
         )
+
+    # convert IDs to set but save the tuple
+    ids_tup, ids = ids, (set(ids) if ids is not None else None)
 
     log.info("Loading haplotypes")
     hp = data.Haplotypes(haplotypes, log=log)

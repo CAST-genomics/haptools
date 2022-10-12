@@ -717,9 +717,9 @@ def ld(
 
     if ids_file:
         with ids_file as id_file:
-            ids = set(id_file.read().splitlines())
+            ids = tuple(id_file.read().splitlines())
     elif ids:
-        ids = set(ids)
+        ids = tuple(ids)
     else:
         ids = None
 
