@@ -20,8 +20,8 @@ from .data import Data
 HapBlock = namedtuple("HapBlock", "pop bp cm")
 
 # This dict maps chroms (as strings) to a tuple of two lists, one for each chromosome
-# TODO: consider using IntervalTrees (or Discrete Interval Trees) instead of lists:
-#     https://github.com/chaimleib/intervaltree
+# TODO: consider storing this in a np mixed array and then
+# using np.searchsorted() as in https://stackoverflow.com/a/48360950/16815703
 # Let's define a type alias, "SampleBlocks", for future use...
 SampleBlocks = NewType(
     "SampleBlocks", "dict[str, tuple[list[HapBlock], list[HapBlock]]]"
@@ -78,7 +78,7 @@ class Breakpoints(Data):
 
     def read(self, samples: set[str] = None):
         """
-        Read phenotypes from a TSV file into a numpy matrix stored in :py:attr:`~.Penotypes.data`
+        Read breakpoints from a TSV file into a data structure stored in :py:attr:`~.Breakpoints.data`
 
         Parameters
         ----------
@@ -99,7 +99,7 @@ class Breakpoints(Data):
 
     def __iter__(self, samples: set[str] = None) -> Iterable[str, SampleBlocks]:
         """
-        Read phenotypes from a TSV line by line without storing more than a single
+        Read breakpoints from a TSV line by line without storing more than a single
         sample at a time
 
         Parameters
