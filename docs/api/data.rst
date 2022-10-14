@@ -20,7 +20,7 @@ This module also helps reduce common boilerplate, since users can easily *extend
 
 Data
 ~~~~
-Classes in the ``data`` module inherit from an abstract class called Data, providing some level of standardization across classes within the module. All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance.
+Classes in the ``data`` module inherit from an abstract class called Data, providing some level of standardization across classes within the module.
 
 The abstract class requires that all classes contain methods for...
 
@@ -31,6 +31,14 @@ The abstract class requires that all classes contain methods for...
 
 	from haptools import data
 	data.Data
+
+All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. When not provided, Logger instances are initialized with the following settings.
+
+.. code-block:: python
+
+	import logging
+	log = logging.getLogger("haptools command")
+	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="ERROR")
 
 genotypes.py
 ~~~~~~~~~~~~
@@ -188,7 +196,7 @@ In addition to the ``read()`` and ``load()`` methods, the :class:`GenotypesPLINK
 
 Limiting memory usage
 *********************
-Unfortunately, reading from PGEN files can require a lot of memory, at least initially. (Once the genotypes have been loaded, they are converted down to a lower-memory form.) To determine whether you may be having memory issues, you can place the module in "verbose mode" by providing a `python Logger <https://docs.python.org/3/howto/logging.html>`_ object at the "DEBUG" level when initializing the :class:`GenotypesPLINK` class.
+Unfortunately, reading from PGEN files can require a lot of memory, at least initially. (Once the genotypes have been loaded, they are converted down to a lower-memory form.) To determine whether you may be having memory issues, you may opt to place the module in "verbose mode" by providing a `python Logger <https://docs.python.org/3/howto/logging.html>`_ object at the "DEBUG" level when initializing the :class:`GenotypesPLINK` class. This will release helpful debugging messages.
 
 .. code-block:: python
 
