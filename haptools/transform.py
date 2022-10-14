@@ -163,7 +163,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
     variants : np.array
         See documentation for :py:attr:`~.GenotypesRefAlt.variants`
     valid_labels: np.array
-        Reference VCF sample and respective variant grabbed for 
+        Reference VCF sample and respective variant grabbed for
         each sample.
     ancestry : np.array
         The ancestral population of each allele in each sample of
@@ -408,7 +408,6 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             )
         self.data = self.data.astype(np.bool_)
 
-
     def write(self, chroms=None):
         # Assumption is the data must be phased
         """
@@ -424,7 +423,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             # make sure the header is properly structured with contig names from ref VCF
             for contig in set(self.variants["chrom"]):
                 # remove chr in front of seqname if present and compare
-                if contig.startswith('chr'):
+                if contig.startswith("chr"):
                     if contig[3:] in chroms:
                         vcf.header.contigs.add(contig)
                 if contig in chroms:
@@ -440,7 +439,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             ],
         )
         vcf.header.add_meta(
-        "FORMAT",
+            "FORMAT",
             items=[
                 ("ID", "POP"),
                 ("Number", 2),
@@ -449,12 +448,15 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             ],
         )
         vcf.header.add_meta(
-        "FORMAT",
+            "FORMAT",
             items=[
                 ("ID", "SAMPLE"),
                 ("Number", 2),
                 ("Type", "String"),
-                ("Description", "Origin sample and haplotype of each respective allele in GT"),
+                (
+                    "Description",
+                    "Origin sample and haplotype of each respective allele in GT",
+                ),
             ],
         )
         try:
@@ -471,7 +473,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
-                "stop": var["pos"] + len(var["ref"]) - 1, # TODO probably have to update this unsure what pos and ref refer to
+                "stop": var["pos"] + len(var["ref"]) - 1,
                 "qual": None,
                 "alleles": tuple(var[["ref", "alt"]]),
                 "id": var["id"],
@@ -484,8 +486,12 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             for samp_idx, sample in enumerate(self.samples):
                 # TODO: make this work when there are missing values
                 record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
-                record.samples[sample]["POP"] = tuple(self.ancestry[samp_idx, var_idx, :])
-                record.samples[sample]["SAMPLE"] = tuple(self.valid_labels[samp_idx, var_idx, :])
+                record.samples[sample]["POP"] = tuple(
+                    self.ancestry[samp_idx, var_idx, :]
+                )
+                record.samples[sample]["SAMPLE"] = tuple(
+                    self.valid_labels[samp_idx, var_idx, :]
+                )
                 # TODO: add proper phase info
                 record.samples[sample].phased = True
             # write the record to a file
