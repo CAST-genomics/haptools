@@ -160,6 +160,26 @@ We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever 
 
 In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones. In addition, you must sort on the first field (ie the line type symbol) in addition to the latter three.
 
+Querying an indexed file
+~~~~~~~~~~~~~~~~~~~~~~~~
+You can query an indexed ``.hap`` file on both the haplotype and variant levels with the following syntax.
+
+.. code-block:: bash
+
+  tabix file.hap.gz REGION
+
+For example, to extract all haplotypes between positions 100 and 200 on chromosome ``chr19``:
+
+.. code-block:: bash
+
+  tabix file.hap.gz chr19:100-200
+
+Or to get all alleles between positions 100 and 200 on the haplotype with ID ``hap1``:
+
+.. code-block:: bash
+
+  tabix file.hap.gz hap1:100-200
+
 Extra fields
 ~~~~~~~~~~~~
 Additional fields can be appended to the ends of the haplotype and variant lines as long as they are declared in the header.
