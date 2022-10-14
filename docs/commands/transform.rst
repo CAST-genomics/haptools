@@ -42,7 +42,7 @@ Let's try transforming just two samples and let's output to PGEN format:
 
 .. code-block:: bash
 
-	haptools transform -o output.pgen -s NA12878 -s HG01503 tests/data/apoe.vcf.gz tests/data/apoe4.hap
+	haptools transform -o output.pgen -s HG00097 -s NA12878 tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
 To get progress information, increase the verbosity to "INFO":
 

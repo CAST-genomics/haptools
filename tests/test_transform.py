@@ -4,14 +4,16 @@ from pathlib import Path
 import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
+from click.testing import CliRunner
 
 from haptools.transform import (
     HaplotypeAncestry,
     HaplotypesAncestry,
     GenotypesAncestry,
 )
+from haptools.__main__ import main
 from .test_data import TestGenotypesRefAlt
-from haptools.data import Variant, GenotypesRefAlt
+from haptools.data import Variant, GenotypesRefAlt, GenotypesPLINK
 
 
 DATADIR = Path(__file__).parent.joinpath("data")
@@ -186,9 +188,9 @@ class TestHaplotypesAncestry:
             [
                 [[0, 0], [0, 0], [0, 0]],
                 [[0, 0], [0, 0], [0, 0]],
-                [[1, 0], [0, 1], [0, 0]],
+                [[1, 1], [0, 0], [0, 0]],
                 [[0, 0], [0, 0], [0, 0]],
-                [[0, 0], [0, 1], [0, 0]],
+                [[0, 0], [0, 0], [0, 0]],
             ],
             dtype=np.uint8,
         )
@@ -196,9 +198,102 @@ class TestHaplotypesAncestry:
         haps = self._get_dummy_haps()
         gens = TestGenotypesAncestry()._get_fake_genotypes()
         gens.check_phase()
-        gens.data[[2, 4], 0, 1] = 1
-        gens.data[[1, 4], 2, 0] = 1
+
         hap_gt = GenotypesRefAlt(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
+
+        expected[2, 0, 1] = 0
+        expected[[2, 4], 1, 1] = 1
+        gens.data[[2, 4], 0, 1] = 1
+        gens.data[[1, 4], 2, 0] = 1
+
+        hap_gt = GenotypesRefAlt(fname=None)
+        haps.transform(gens, hap_gt)
+        np.testing.assert_allclose(hap_gt.data, expected)
+
         return hap_gt
+
+def test_basic(capfd):
+    cmd = "transform tests/data/simple.vcf.gz tests/data/simple.hap"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "))
+    captured = capfd.readouterr()
+    assert captured.out == """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|1\t0|1\t1|1\t1|1\t0|0
+1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+    assert result.exit_code == 0
+
+def test_basic_pgen_input(capfd):
+    pytest.importorskip("pgenlib")
+    cmd = "transform tests/data/simple.pgen tests/data/simple.hap"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "))
+    captured = capfd.readouterr()
+    assert captured.out == """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|1\t0|1\t1|1\t1|1\t0|0
+1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+    assert result.exit_code == 0
+
+def test_pgen_two_samples(capfd):
+    pytest.importorskip("pgenlib")
+    cmd = "transform -o output.pgen -s HG00097 -s NA12878 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "))
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    output = Path("output.pgen")
+    gt = GenotypesPLINK(output)
+    gt.read()
+    np.testing.assert_allclose(gt.data, np.array(
+            [
+                [[0, 1, 1]],
+                [[0, 0, 1]],
+            ],
+            dtype=np.uint8,
+        )
+    )
+    assert tuple(gt.variants[["id", "chrom", "pos"]][0]) == ('APOe4', '19', 45411941)
+    assert gt.samples == ("HG00097", "NA12878")
+    output.unlink()
+    output.with_suffix(".pvar").unlink()
+    output.with_suffix(".psam").unlink()
+    assert result.exit_code == 0
+
+ancestry_results = """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t1|1\t0|0\t0|0
+1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+
+def test_ancestry_from_vcf(capfd):
+    cmd = "transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "))
+    captured = capfd.readouterr()
+    assert captured.out == ancestry_results
+    assert result.exit_code == 0
+
+def test_ancestry_from_bp(capfd):
+    cmd = "transform --ancestry tests/data/simple.vcf tests/data/simple.hap"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "))
+    captured = capfd.readouterr()
+    assert captured.out == ancestry_results
+    assert result.exit_code == 0
