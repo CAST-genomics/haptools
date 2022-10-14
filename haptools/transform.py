@@ -569,7 +569,7 @@ def transform_haps(
 
     # load the genotypes, but first get the path to the breakpoints file
     if genotypes.suffix == ".gz":
-        bps_file = genotypes.stem.with_suffix(".bp")
+        bps_file = genotypes.with_suffix("").with_suffix(".bp")
     else:
         bps_file = genotypes.with_suffix(".bp")
     # now, get the genotypes
