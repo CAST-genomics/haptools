@@ -266,10 +266,10 @@ class Variant:
         return tuple(extra.name for extra in cls._extras)
 
     def __lt__(self, other: Variant):
-
         """
         Defines ordering for sort() method when dealing with variants.
-        This function will sort first by start followed by end and lastly id.
+
+        This function will sort first by start followed by end and lastly ID
 
         Parameters
         ----------
@@ -498,10 +498,10 @@ class Haplotype:
         return np.all(allele_arr == gts.data, axis=1)
 
     def __lt__(self, other: Haplotype):
-
         """
         Defines ordering for sort() method when dealing with variants.
-        This function will sort first by start followed by end and lastly id.
+
+        This function will sort first by start followed by end and lastly ID
 
         Parameters
         ----------
@@ -525,9 +525,7 @@ class Haplotype:
         else:
             return self.chrom < other.chrom
 
-    
     def sort(self):
-
         """
         Sorts the variants within this Haplotype instance
 
@@ -1090,10 +1088,11 @@ class Haplotypes(Data):
         hap_gts.data = np.concatenate(arrs, axis=1).astype(genotypes.data.dtype)
         return hap_gts
 
-
     def sort(self):
         """
-        Sorts .hap files first by chrom, followed by start, end, and lastly id.
+        Sorts .hap files first by chrom, followed by start, end, and lastly ID
+
+        Also sorts the variants within each haplotype
         """
         self.data = dict(sorted(self.data.items(), key=lambda item: item[1]))
         for hap in self.data.values():

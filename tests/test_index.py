@@ -16,7 +16,7 @@ def test_basic(capfd):
 
     # copy the file so that we don't affect anything in the tests/data directory
     shutil.copy(str(file), str(tmp_file))
-    
+
     cmd = f"index {tmp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "))
@@ -53,7 +53,7 @@ def test_no_sort(capfd):
     # check that the output .hap.gz.tbi file is the same, too
     tbi_nocomment = ".comment.hap.gz.tbi"
     with hook_compressed("test.hap.gz.tbi", mode="rb") as haps:
-        with hook_compressed("tests/data/basic"+tbi_nocomment, mode="rb") as expected:
+        with hook_compressed("tests/data/basic" + tbi_nocomment, mode="rb") as expected:
             assert haps.read() == expected.read()
     assert result.exit_code == 0
 
