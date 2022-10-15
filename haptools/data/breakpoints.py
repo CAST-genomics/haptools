@@ -14,17 +14,17 @@ from .data import Data
 
 
 # A haplotype block consists of
-# 1) A population label (str), like 'YRI'
-# 2) The end position of the block in bp (int), like 1001038
-# 3) The end position of the block in cM (int), like 43.078
-HapBlock = namedtuple("HapBlock", "pop bp cm")
+# 1) pop - A population label (str), like 'YRI'
+# 2) bp  - The end position of the block in bp (int), like 1001038
+# 3) cm  - The end position of the block in cM (float), like 43.078
+HapBlock = [("pop", "U8"), ("bp", np.uint32), ("cm", np.float64)]
 
 # This dict maps chroms (as strings) to a tuple of two lists, one for each chromosome
 # TODO: consider storing this in a np mixed array and then
 # using np.searchsorted() as in https://stackoverflow.com/a/48360950/16815703
 # Let's define a type alias, "SampleBlocks", for future use...
 SampleBlocks = NewType(
-    "SampleBlocks", "dict[str, tuple[list[HapBlock], list[HapBlock]]]"
+    "SampleBlocks", "dict[str, tuple[npt.NDArray[HapBlock], npt.NDArray[HapBlock]]]"
 )
 
 
@@ -97,6 +97,32 @@ class Breakpoints(Data):
         self.data = dict(self.__iter__(samples))
         self.log.info(f"Loaded {len(self.data)} samples from .{self._ext} file")
 
+    @staticmethod
+    def _tuplelist2arr(
+        blocks: dict[str, tuple[list[tuple], list[tuple]]],
+    ) -> SampleBlocks:
+        """
+        Convert lists of tuples into npt.NDArrays within a SampleBlocks object
+
+        This function is a helper for :py:meth:`~.Breakpoints.__iter__`
+
+        Parameters
+        ----------
+        blocks : dict[str, tuple[list[HapBlock], list[HapBlock]]]
+            A dictionary mapping each chromosome (as a string) to lists of HapBlock
+            objects. Each list in the tuple corresponds to a single chromosome.
+
+        Returns
+        -------
+        SampleBlocks
+            The same data structure, except that list[tuple[str, int, float]] will be
+            converted to npt.NDArray[HapBlock]
+        """
+        return {
+            chrom: tuple(np.array(b, dtype=HapBlock) for b in block)
+            for chrom, block in blocks.items()
+        }
+
     def __iter__(self, samples: set[str] = None) -> Iterable[str, SampleBlocks]:
         """
         Read breakpoints from a TSV line by line without storing more than a single
@@ -142,20 +168,20 @@ class Breakpoints(Data):
                 else:
                     if samp is not None and (samples is None or samp in samples):
                         # output the previous sample
-                        yield samp, blocks
+                        yield samp, self._tuplelist2arr(blocks)
                     samp = line[:-2]
                     blocks = {}
             elif len(line) == 4:
                 pop, chrom, pos, cm = line
                 block = blocks.setdefault(chrom, ([], []))[strand_num]
-                block.append(HapBlock(pop, int(pos), float(cm)))
+                block.append((pop, int(pos), float(cm)))
             else:
                 self.log.warning(
                     f"Ignoring improperly formatted line in bp file: '{line}'"
                 )
         if samp is not None and (samples is None or samp in samples):
             # output the previous sample
-            yield samp, blocks
+            yield samp, self._tuplelist2arr(blocks)
         bps.close()
 
     def population_array(
