@@ -511,7 +511,7 @@ def transform(
     "--output",
     type=click.Path(path_type=Path),
     default= None,
-    show_default="stdout",
+    show_default="input file",
     help="A .hap file containing sorted and indexed haplotypes and variants",
 )
 @click.option(
