@@ -11,20 +11,16 @@ def append_suffix(
     path: Path,
     suffix: str,
 ):
-
     """
-
-    Used as a helper method for index_haps.
-    If an output path is not provided, the resulting file will have the same name as the input with .gz and .tbi appended to the appropriate files.
+    Used as a helper method for index_haps. Appends a given suffix to a Path instance.
 
     Parameters
     ----------
 
     path : Path
-        The path to the haplotypes in a .hap file
+        The path to a file
     suffix : str
-        The location to which to write output.  If an output location is not specified, the output will write to the same location as the input file.
-
+        A string to append to the end of the given Path. For example, ".gz" or ".gz.tbi"
     """
     return path.with_suffix(path.suffix + suffix)
 
@@ -36,7 +32,6 @@ def index_haps(
     log: Logger = None,
 ):
     """
-
     Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
 
     Parameters
@@ -45,12 +40,11 @@ def index_haps(
     haplotypes : Path
         The path to the haplotypes in a .hap file
     output : Path, optional
-        The location to which to write output.  If an output location is not specified, the output will have the same name as the input file.
+        The location to which to write output. If an output location is not specified,
+        the output will have the same name as the input file.
     log : Logger, optional
         A logging module to which to write messages about progress and any errors
-
     """
-
     if log is None:
         log = logging.getLogger("run")
         logging.basicConfig(

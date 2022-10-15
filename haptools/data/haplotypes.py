@@ -1,6 +1,6 @@
 from __future__ import annotations
-from functools import total_ordering
 from pathlib import Path
+from functools import total_ordering
 from logging import getLogger, Logger
 from fileinput import hook_compressed
 from dataclasses import dataclass, field, fields
