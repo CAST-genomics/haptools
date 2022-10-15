@@ -618,11 +618,20 @@ class TestHaplotypes:
         haps.read(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
+        # check that haplotypes that overlap but don't fit perfectly are excluded!
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26928473-26941960", haplotypes={"chr21.q.3365*1"})
+        assert {} == haps.data
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26928472-26941959", haplotypes={"chr21.q.3365*1"})
+        assert {} == haps.data
+
         expected = self._basic_haps()
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941960")
         assert expected == haps.data
+
 
     def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?
