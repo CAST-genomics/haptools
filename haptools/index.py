@@ -1,10 +1,14 @@
 from __future__ import annotations
+import shutil
 import logging
-from pathlib import Path
-from haptools.data.haplotypes import Haplotypes
-from pysam import tabix_index
-from haptools import data
 import tempfile
+from pathlib import Path
+from fileinput import hook_compressed
+
+from pysam import tabix_index
+
+from haptools import data
+from haptools.data.haplotypes import Haplotypes
 
 
 def append_suffix(
@@ -46,7 +50,7 @@ def index_haps(
         A logging module to which to write messages about progress and any errors
     """
     if log is None:
-        log = logging.getLogger("run")
+        log = logging.getLogger("haptools index")
         logging.basicConfig(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",
@@ -58,11 +62,17 @@ def index_haps(
     if sort:
         hp.read()
         hp.sort()
-
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             hp.fname = Path(tmp.name)
             log.debug(f"writing haplotypes to {hp.fname}")
             hp.write()
+    else:
+        # copy the file to a tmp location in case the input is /dev/stdin
+        # or a file that might otherwise be deleted by tabix_index afterward
+        with tempfile.NamedTemporaryFile(delete=False, mode="wt") as tmp:
+            with hook_compressed(str(hp.fname), mode="rt") as haps:
+                hp.fname = Path(tmp.name)
+                tmp.write(haps.read())
 
     try:
         tabix_index(str(hp.fname), seq_col=1, start_col=2, end_col=3)
@@ -81,6 +91,9 @@ def index_haps(
             output = haplotypes
         else:
             output = append_suffix(haplotypes, ".gz")
-    hp.fname.rename(output)
-
-    append_suffix(hp.fname, ".tbi").rename(append_suffix(output, ".tbi"))
+    # use shutil instead of reanme b/c it won't error out if /tmp is mounted elsewhere
+    shutil.copy(str(hp.fname), str(output))
+    hp.fname.unlink()
+    tbi_file = append_suffix(hp.fname, ".tbi")
+    shutil.copy(str(tbi_file), str(append_suffix(output, ".tbi")))
+    tbi_file.unlink()
