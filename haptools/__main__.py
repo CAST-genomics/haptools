@@ -498,17 +498,14 @@ def transform(
     )
 
 
-if __name__ == "__main__":
-    # run the CLI if someone tries 'python -m haptools' on the command line
-    main(prog_name="haptools")
-
-
-
-
-############ Haptools index ###############
-
 @main.command(short_help="Sort and index .hap files")
 @click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--sort/--no-sort",
+    is_flag=True,
+    default=True,
+    help="Sorting of the file will not be performed",
+)
 @click.option(
     "-o",
     "--output",
@@ -525,16 +522,6 @@ if __name__ == "__main__":
     show_default="only errors",
     help="The level of verbosity desired",
 )
-
-@click.option(
-    "--sort/--no-sort",
-    is_flag=True,
-    default=True,
-    help="Sorting of the file will not be performed",
-)
-
-
-
 def index(
     haplotypes: Path,
     sort: bool= False,
@@ -549,11 +536,15 @@ def index(
     import logging
     from .index import index_haps
 
-    log = logging.getLogger("index")
+    log = logging.getLogger("haptools index")
     logging.basicConfig(
         format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
         level=verbosity,
     )
 
-
     index_haps(haplotypes, sort, output, log)
+
+
+if __name__ == "__main__":
+    # run the CLI if someone tries 'python -m haptools' on the command line
+    main(prog_name="haptools")
