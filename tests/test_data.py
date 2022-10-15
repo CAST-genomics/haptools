@@ -904,59 +904,38 @@ class TestBreakpoints:
         bps = Breakpoints(fname=None)
         create_arr = lambda *arr_list: np.array(list(arr_list), dtype=HapBlock)
         bps.data = {
-            "Sample_1": {
-                "1": (
-                    create_arr(
-                        ("YRI", 59423086, 85.107755),
-                        ("CEU", 239403765, 266.495714),
-                    ),
-                    create_arr(
-                        ("YRI", 59423086, 85.107755),
-                        ("YRI", 239403765, 266.495714),
-                    ),
+            "Sample_1": (
+                create_arr(
+                    ("YRI", "1", 59423086, 85.107755),
+                    ("CEU", "1", 239403765, 266.495714),
+                    ("YRI", "2", 229668157, 244.341689),
                 ),
-                "2": (
-                    create_arr(
-                        ("YRI", 229668157, 244.341689),
-                    ),
-                    create_arr(
-                        ("CEU", 229668157, 244.341689),
-                    ),
+                create_arr(
+                    ("YRI", "1", 59423086, 85.107755),
+                    ("YRI", "1", 239403765, 266.495714),
+                    ("CEU", "2", 229668157, 244.341689),
                 ),
-            },
-            "Sample_2": {
-                "1": (
-                    create_arr(
-                        ("CEU", 59423086, 85.107755),
-                        ("YRI", 239403765, 266.495714),
-                    ),
-                    create_arr(
-                        ("CEU", 59423086, 85.107755),
-                        ("CEU", 239403765, 266.495714),
-                    ),
+            ),
+            "Sample_2": (
+                create_arr(
+                    ("CEU", "1", 59423086, 85.107755),
+                    ("YRI", "1", 239403765, 266.495714),
+                    ("CEU", "2", 229668157, 244.341689),
                 ),
-                "2": (
-                    create_arr(
-                        ("CEU", 229668157, 244.341689),
-                    ),
-                    create_arr(
-                        ("YRI", 229668157, 244.341689),
-                    ),
+                create_arr(
+                    ("CEU", "1", 59423086, 85.107755),
+                    ("CEU", "1", 239403765, 266.495714),
+                    ("YRI", "2", 229668157, 244.341689),
                 ),
-            },
+            ),
         }
         return bps
 
     def _compare_bkpt_data(self, obs, exp):
         count = 0
         for samp, blocks in obs:
-            chrom_count = 0
-            for chrom, block in blocks.items():
-                assert len(block) == len(exp[samp][chrom])
-                for obs_block, exp_block in zip(block, exp[samp][chrom]):
-                    assert obs_block.tolist() == exp_block.tolist()
-                chrom_count += 1
-            assert chrom_count == len(exp[samp])
+            for obs_block, exp_block in zip(blocks, exp[samp]):
+                assert obs_block.tolist() == exp_block.tolist()
             count += 1
         assert count == len(exp)
 
