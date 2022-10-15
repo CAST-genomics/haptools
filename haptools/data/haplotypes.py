@@ -844,6 +844,7 @@ class Haplotypes(Data):
             types = self._get_field_types(extras, metas.get("order"))
             if region:
                 region_positions = region.split(":", maxsplit=1)[1]
+                region_start, region_end = tuple(map(int, region_positions.split("-")))
                 # fetch region
                 # we already know that each line will start with an H, so we don't
                 # need to check that
@@ -852,7 +853,9 @@ class Haplotypes(Data):
                     if haplotypes is not None:
                         if hap.id not in haplotypes:
                             continue
-                        haplotypes.remove(hap.id)
+                    # also exclude haplotypes that overlap but don't fit perfectly
+                    if hap.start < region_start or hap.end > region_end:
+                        continue
                     yield hap
             else:
                 for line in haps_file.fetch():
@@ -862,7 +865,6 @@ class Haplotypes(Data):
                         hap = self.types["H"].from_hap_spec(line, types=types["H"])
                         if hap.id in haplotypes:
                             yield hap
-                            haplotypes.remove(hap.id)
                     elif line_type > "H":
                         # if we've already passed all of the H's, we can just exit
                         # We assume the file has been sorted so that all of the H lines
