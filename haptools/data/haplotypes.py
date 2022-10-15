@@ -875,7 +875,7 @@ class Haplotypes(Data):
                 # exclude variants outside the desired region
                 hap_region = hap_id
                 if region:
-                    hap_region = hap_id + ":" + region_positions
+                    hap_region = hap_id
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
