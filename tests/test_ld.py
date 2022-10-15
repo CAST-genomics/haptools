@@ -25,6 +25,7 @@ V\tchr21.q.3365*11\t26938989\t26938989\t21_26938989_G_A\tA
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "))
     captured = capfd.readouterr()
+    assert captured.out == expected
     assert result.exit_code == 0
 
 

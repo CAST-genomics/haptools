@@ -84,7 +84,7 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     required=True,
     type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
     help=(
-        "Directory containing files with chr\{1-22,X\} and ending in .map in the file "
+        "Directory containing files with chr{1-22,X} and ending in .map in the file "
         "name with genetic map coords."
     ),
 )
