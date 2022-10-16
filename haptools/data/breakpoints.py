@@ -9,6 +9,7 @@ from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
+import numpy.lib.recfunctions as rcf
 
 from .data import Data
 
@@ -23,7 +24,7 @@ HapBlock = [("pop", "U6"), ("chrom", "U10"), ("bp", np.uint32), ("cm", np.float6
 # This tuple lists the haplotype blocks in a sample, one set for each chromosome
 # Let's define a type alias, "SampleBlocks", for future use...
 SampleBlocks = NewType(
-    "SampleBlocks", "tuple[npt.NDArray[HapBlock], npt.NDArray[HapBlock]]]"
+    "SampleBlocks", "list[npt.NDArray[HapBlock], npt.NDArray[HapBlock]]]"
 )
 
 
@@ -49,6 +50,7 @@ class Breakpoints(Data):
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
         self._ext = "bp"
+        self.labels = None
 
     @classmethod
     def load(
@@ -142,9 +144,9 @@ class Breakpoints(Data):
                 else:
                     if samp is not None and (samples is None or samp in samples):
                         # output the previous sample
-                        yield samp, tuple(np.array(b, dtype=HapBlock) for b in blocks)
+                        yield samp, [np.array(b, dtype=HapBlock) for b in blocks]
                     samp = line[:-2]
-                    blocks = ([], [])
+                    blocks = [[], []]
             elif len(line) == 4:
                 blocks[strand_num].append(tuple(line))
             else:
@@ -153,8 +155,65 @@ class Breakpoints(Data):
                 )
         if samp is not None and (samples is None or samp in samples):
             # output the previous sample
-            yield samp, tuple(np.array(b, dtype=HapBlock) for b in blocks)
+            yield samp, [np.array(b, dtype=HapBlock) for b in blocks]
         bps.close()
+
+    def encode(self) -> dict[int, str]:
+        """
+        Replace each ancestral label in :py:attr:`~.Breakpoints.data` with an
+        equivalent integer. Store a dictionary mapping these integers back to their
+        respective labels.
+
+        This method modifies :py:attr:`~.Breakpoints.data` in place.
+
+        Returns
+        -------
+        dict[int, str]
+            A dictionary mapping each integer back to its ancestral label
+        """
+        if not (self.labels is None):
+            raise ValueError("The data has already been encoded.")
+        # save the order of the fields for later reordering
+        names = [f[0] for f in HapBlock]
+        # initialize labels dict and label counter
+        labels = {}
+        pop_count = 0
+        for sample, blocks in self.data.items():
+            for strand_num in range(len(blocks)):
+                # initialize and fill the array of integers
+                ints = np.zeros(len(blocks[strand_num]), dtype=[("pop", np.uint8)])
+                for i, pop in enumerate(blocks[strand_num]["pop"]):
+                    if pop not in labels:
+                        labels[pop] = pop_count
+                        pop_count += 1
+                    ints[i] = labels[pop]
+                # replace the "pop" labels
+                arr = rcf.drop_fields(blocks[strand_num], ["pop"])
+                blocks[strand_num] = rcf.merge_arrays((arr, ints), flatten=True)[names]
+        self.labels = labels
+
+    def recode(self):
+        """
+        Replace each integer in :py:attr:`~.Breakpoints.data` with an
+        equivalent ancestral label. Use the dictionary mapping these integers back to
+        their respective ancestral labels stored in :py:attr:`~.Breakpoints.labels`.
+
+        This method modifies :py:attr:`~.Breakpoints.data` in place.
+        """
+        if self.labels is None:
+            raise ValueError("The data has already been recoded.")
+        dtype = dict(HapBlock)
+        names = list(dtype.keys())
+        dtype = dtype["pop"]
+        map_func = np.vectorize({v: k for k, v in self.labels.items()}.get)
+        for sample, blocks in self.data.items():
+            for strand_num in range(len(blocks)):
+                # initialize and fill the array of pop labels
+                pops = map_func(blocks[strand_num]["pop"]).astype([("pop", dtype)])
+                # replace the "pop" labels
+                arr = rcf.drop_fields(blocks[strand_num], ["pop"])
+                blocks[strand_num] = rcf.merge_arrays((arr, pops), flatten=True)[names]
+        self.labels = None
 
     @staticmethod
     def _find_blocks(

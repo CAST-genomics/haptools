@@ -904,7 +904,7 @@ class TestBreakpoints:
         bps = Breakpoints(fname=None)
         create_arr = lambda *arr_list: np.array(list(arr_list), dtype=HapBlock)
         bps.data = {
-            "Sample_1": (
+            "Sample_1": [
                 create_arr(
                     ("YRI", "1", 59423086, 85.107755),
                     ("CEU", "1", 239403765, 266.495714),
@@ -915,8 +915,8 @@ class TestBreakpoints:
                     ("YRI", "1", 239403765, 266.495714),
                     ("CEU", "2", 229668157, 244.341689),
                 ),
-            ),
-            "Sample_2": (
+            ],
+            "Sample_2": [
                 create_arr(
                     ("CEU", "1", 59423086, 85.107755),
                     ("YRI", "1", 239403765, 266.495714),
@@ -927,7 +927,7 @@ class TestBreakpoints:
                     ("CEU", "1", 239403765, 266.495714),
                     ("YRI", "2", 229668157, 244.341689),
                 ),
-            ),
+            ],
         }
         return bps
 
@@ -957,6 +957,32 @@ class TestBreakpoints:
         assert tuple(bps.data.keys()) == tuple(expected.data.keys())
         # now, check that each sample is the same
         self._compare_bkpt_data(bps.data.items(), expected.data)
+
+    def test_encode(self):
+        expected = self._get_expected_breakpoints()
+        expected.labels = {"YRI": 0, "CEU": 1}
+
+        observed = self._get_expected_breakpoints()
+        observed.encode()
+
+        assert observed.labels == expected.labels
+        assert len(expected.data) == len(observed.data)
+        for sample in expected.data:
+            for strand in range(len(expected.data[sample])):
+                exp_strand = expected.data[sample][strand]
+                obs_strand = observed.data[sample][strand]
+                assert len(exp_strand) == len(observed.data[sample][strand])
+                for obs, exp in zip(obs_strand["pop"], exp_strand["pop"]):
+                    assert expected.labels[exp] == obs
+
+    def test_recode(self):
+        expected = self._get_expected_breakpoints()
+
+        observed = self._get_expected_breakpoints()
+        observed.encode()
+        observed.recode()
+
+        self._compare_bkpt_data(observed.data.items(), expected.data)
 
     def test_breakpoints_to_pop_array(self):
         variants = np.array(
