@@ -156,6 +156,41 @@ class Breakpoints(Data):
             yield samp, tuple(np.array(b, dtype=HapBlock) for b in blocks)
         bps.close()
 
+    @staticmethod
+    def _find_blocks(
+        blocks: npt.NDArray[np.uint32],
+        positions: npt.NDArray[np.uint32]
+    ) -> npt.NDArray[np.uint32]:
+        """
+        For each position in the list of positions on a chromosome, locate the index of
+        its ancestral block within the numpy array of blocks
+
+        Uses binary search to make things fast
+
+        Parameters
+        ----------
+        blocks: npt.NDArray[np.uint32]
+            The end positions of each ancestral block, sorted in ascending order
+        positions: npt.NDArray[np.uint32]
+            The position of each variant on a chromosome. These are the positions at
+            which we'd like to query a sample's ancestry.
+
+        Returns
+        -------
+        npt.NDArray[np.uint16]
+            For each position in positions, return the index of its block in blocks
+        """
+        # use binary search to get the positions
+        indices = np.searchsorted(blocks, positions, side="left")
+        # if any indices exceed the length of the blocks, raise an error
+        if np.any(indices >= len(blocks)):
+            problem_position = positions[indices >= len(blocks)][0]
+            raise ValueError(
+                f"Position {problem_position} exceeds the range of the provided "
+                "haplotype blocks."
+            )
+        return indices
+
     def population_array(
         self,
         variants: np.array,
@@ -189,19 +224,22 @@ class Breakpoints(Data):
         else:
             data = {samp: self.data[samp] for samp in samples}
         arr = np.empty((len(data), len(variants), 2), dtype=np.uint8)
-        # Note: Despite the fact that this code has four nested for-loops, it is still
+        # Note: Despite the fact that this code has three nested for-loops, it is still
         # 1-2 orders of magnitude faster than trying to load this array from a VCF
-        for samp_idx, blocks in enumerate(data.values()):
-            for var_idx, variant in enumerate(variants):
-                chrom, pos = variant
-                for strand_num in range(2):
-                    # try to figure out the right pop label by iterating through them
-                    # all in order from smallest bp to largest bp
-                    pop = blocks[chrom][strand_num][0].pop
-                    for block in blocks[chrom][strand_num]:
-                        if block.bp > pos:
-                            break
-                        pop = block.pop
+        for samp_idx, samp_blocks in enumerate(data.values()):
+            for strand_num in range(len(samp_blocks)):
+                blocks = samp_blocks[strand_num]
+                old_chrom = None
+                for var_idx, variant in enumerate(variants):
+                    chrom, pos = variant
+                    pos = np.array([pos])
+                    # update the chrom_block if the chrom changed
+                    if chrom != old_chrom:
+                        chrom_block = blocks[blocks["chrom"] == chrom]
+                        old_chrom = chrom
+                    # try to figure out the right pop label using binary search
+                    pop_idx = self._find_blocks(chrom_block["bp"], pos)[0]
+                    pop = chrom_block["pop"][pop_idx]
                     # obtain the proper pop label number
                     if pop not in labels:
                         labels[pop] = label_ct

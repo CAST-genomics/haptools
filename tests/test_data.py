@@ -960,20 +960,20 @@ class TestBreakpoints:
 
     def test_breakpoints_to_pop_array(self):
         variants = np.array(
-            [("1", 59423080), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
+            [("1", 59423086), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
             dtype=[("chrom", "U10"), ("pos", np.uint32)],
         )
         expected_pop_arr = np.array(
             [
                 [
                     [0, 0],
-                    [0, 0],
+                    [1, 0],
                     [1, 0],
                     [0, 1],
                 ],
                 [
                     [1, 1],
-                    [1, 1],
+                    [0, 1],
                     [0, 1],
                     [1, 0],
                 ],
@@ -982,7 +982,10 @@ class TestBreakpoints:
         )
 
         expected = self._get_expected_breakpoints()
-        labels, pop_arr = expected.population_array(variants)
+        labels, pop_arr = expected.population_array(variants[[0, 1, 3]])
 
         assert labels == {"YRI": 0, "CEU": 1}
-        np.testing.assert_allclose(pop_arr, expected_pop_arr)
+        np.testing.assert_allclose(pop_arr, expected_pop_arr[:, [0, 1, 3]])
+
+        with pytest.raises(ValueError) as info:
+            labels, pop_arr = expected.population_array(variants)
