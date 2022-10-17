@@ -1006,11 +1006,18 @@ class TestBreakpoints:
             ],
             dtype=np.uint8,
         )
+        labels = {"YRI": 0, "CEU": 1}
+        labels_map = np.vectorize({v: k for k, v in labels.items()}.get)
 
         expected = self._get_expected_breakpoints()
-        labels, pop_arr = expected.population_array(variants[[0, 1, 3]])
 
-        assert labels == {"YRI": 0, "CEU": 1}
+        pop_arr = expected.population_array(variants[[0, 1, 3]])
+        exp_arr_with_labels = labels_map(expected_pop_arr[:, [0, 1, 3]])
+        np.testing.assert_array_equal(pop_arr, exp_arr_with_labels)
+
+        expected.encode()
+        pop_arr = expected.population_array(variants[[0, 1, 3]])
+        assert expected.labels == labels
         np.testing.assert_allclose(pop_arr, expected_pop_arr[:, [0, 1, 3]])
 
         with pytest.raises(ValueError) as info:

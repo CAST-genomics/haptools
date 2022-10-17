@@ -254,7 +254,7 @@ class Breakpoints(Data):
         self,
         variants: np.array,
         samples: tuple[str] = None,
-    ) -> tuple[dict[str, int], npt.NDArray[np.uint8]]:
+    ) -> npt.NDArray:
         """
         Output an array denoting the population labels of each variant for each sample
 
@@ -268,21 +268,19 @@ class Breakpoints(Data):
 
         Returns
         ------
-        dict[str, int]
-            A dict mapping population label strings to unique integers
-        npt.NDArray[np.uint8]
+        npt.NDArray
             An array of shape: samples x variants x 2
 
-            The array is composed of unique integers, where each integer encodes a
-            population label in the returned dict
+            The array will have the same dtype as the population labels in the "pop"
+            field of :py:attr:`~.Breakpoints.data`. Use :py:meth:`~.Breakpoints.encode`
+            or :py:meth:`~.Breakpoints.recode` to change this.
         """
-        labels = {}
-        label_ct = 0
         if samples is None:
             data = self.data
         else:
             data = {samp: self.data[samp] for samp in samples}
-        arr = np.empty((len(data), len(variants), 2), dtype=np.uint8)
+        dtype = (HapBlock[0][1] if self.labels is None else np.uint8)
+        arr = np.empty((len(data), len(variants), 2), dtype=dtype)
         # Note: Despite the fact that this code has three nested for-loops, it is still
         # 1-2 orders of magnitude faster than trying to load this array from a VCF
         for samp_idx, samp_blocks in enumerate(data.values()):
@@ -296,15 +294,10 @@ class Breakpoints(Data):
                     if chrom != old_chrom:
                         chrom_block = blocks[blocks["chrom"] == chrom]
                         old_chrom = chrom
-                    # try to figure out the right pop label using binary search
+                    # try to figure out the right pop using binary search
                     pop_idx = self._find_blocks(chrom_block["bp"], pos)[0]
-                    pop = chrom_block["pop"][pop_idx]
-                    # obtain the proper pop label number
-                    if pop not in labels:
-                        labels[pop] = label_ct
-                        label_ct += 1
-                    arr[samp_idx, var_idx, strand_num] = labels[pop]
-        return labels, arr
+                    arr[samp_idx, var_idx, strand_num] = chrom_block["pop"][pop_idx]
+        return arr
 
     def write(self):
         raise ValueError("Not Implemented")
