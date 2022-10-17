@@ -958,6 +958,19 @@ class TestBreakpoints:
         # now, check that each sample is the same
         self._compare_bkpt_data(bps.data.items(), expected.data)
 
+    def test_write(self):
+        expected = self._get_expected_breakpoints()
+        expected.fname = Path("test.bp")
+        expected.write()
+        observed = Breakpoints(expected.fname)
+        observed.read()
+
+        # first, check that the samples appear in the proper order
+        assert tuple(observed.data.keys()) == tuple(expected.data.keys())
+        # now, check that each sample is the same
+        self._compare_bkpt_data(observed.data.items(), expected.data)
+        expected.fname.unlink()
+
     def test_encode(self):
         expected = self._get_expected_breakpoints()
         expected.labels = {"YRI": 0, "CEU": 1}

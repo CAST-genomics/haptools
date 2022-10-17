@@ -1,5 +1,5 @@
 from __future__ import annotations
-from csv import reader
+import csv
 from pathlib import Path
 from typing import NewType
 from collections import namedtuple
@@ -116,7 +116,7 @@ class Breakpoints(Data):
         """
         # TODO: add a region parameter
         bps = hook_compressed(self.fname, mode="rt")
-        bp_text = reader(bps, delimiter="\t")
+        bp_text = csv.reader(bps, delimiter="\t")
         samp = None
         blocks = {}
         for line in bp_text:
@@ -291,11 +291,42 @@ class Breakpoints(Data):
                 for strand_num in range(len(samp_blocks)):
                     blocks = samp_blocks[strand_num]
                     chrom_block = blocks[blocks["chrom"] == chrom]
-                    # try to figure out the right pops using binary search
+                    # TODO: raise an exception if the end positions in chrom_block
+                    # aren't sorted
+                    # Now try to figure out the right population labels using binary
+                    # search and then store them in the result matrix
                     arr[samp_idx, var_idxs, strand_num] = chrom_block["pop"][
                         self._find_blocks(chrom_block["bp"], positions)
                     ]
         return arr
 
     def write(self):
-        raise ValueError("Not Implemented")
+        """
+        Write the breakpoints in this class to a file at :py:attr:`~.Breakpoints.fname`
+
+        Examples
+        --------
+        To write to a file, you must first initialize a Breakpoints object and then
+        fill out the names, data, and samples properties:
+        >>> from haptools.data import Breakpoints, HapBlock
+        >>> breakpoints = Breakpoints('simple.bp')
+        >>> breakpoints.data = {
+        >>>     'HG00096': [
+        >>>         np.array([('YRI','chr1',10114,4.3),('CEU','chr1',10116,5.2)], dtype=HapBlock)
+        >>>         np.array([('CEU','chr1',10114,4.3),('YRI','chr1',10116,5.2)], dtype=HapBlock)
+        >>>     ], 'HG00097': [
+        >>>         np.array([('YRI','chr1',10114,4.3),('CEU','chr2',10116,5.2)], dtype=HapBlock)
+        >>>         np.array([('CEU','chr1',10114,4.3),('YRI','chr2',10116,5.2)], dtype=HapBlock)
+        >>>     ]
+        >>> }
+        >>> breakpoints.write()
+        """
+        with hook_compressed(self.fname, mode="wt") as bkpts:
+            csv_writer = csv.writer(
+                bkpts, delimiter="\t", dialect="unix", quoting=csv.QUOTE_NONE
+            )
+            for samp, blocks in self.data.items():
+                for strand_num in range(len(blocks)):
+                    bkpts.write(f"{samp}_{strand_num+1}\n")
+                    for block in blocks[strand_num]:
+                        csv_writer.writerow(block)
