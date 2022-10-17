@@ -279,24 +279,22 @@ class Breakpoints(Data):
             data = self.data
         else:
             data = {samp: self.data[samp] for samp in samples}
+        # initialize the return matrix
         dtype = (HapBlock[0][1] if self.labels is None else np.uint8)
         arr = np.empty((len(data), len(variants), 2), dtype=dtype)
-        # Note: Despite the fact that this code has three nested for-loops, it is still
-        # 1-2 orders of magnitude faster than trying to load this array from a VCF
-        for samp_idx, samp_blocks in enumerate(data.values()):
-            for strand_num in range(len(samp_blocks)):
-                blocks = samp_blocks[strand_num]
-                old_chrom = None
-                for var_idx, variant in enumerate(variants):
-                    chrom, pos = variant
-                    pos = np.array([pos])
-                    # update the chrom_block if the chrom changed
-                    if chrom != old_chrom:
-                        chrom_block = blocks[blocks["chrom"] == chrom]
-                        old_chrom = chrom
-                    # try to figure out the right pop using binary search
-                    pop_idx = self._find_blocks(chrom_block["bp"], pos)[0]
-                    arr[samp_idx, var_idx, strand_num] = chrom_block["pop"][pop_idx]
+        # iterate through the variants belonging to each chromosome
+        for chrom in set(variants["chrom"]):
+            var_idxs = variants["chrom"] == chrom
+            positions = variants["pos"][var_idxs]
+            # obtain the population labels of each sample
+            for samp_idx, samp_blocks in enumerate(data.values()):
+                for strand_num in range(len(samp_blocks)):
+                    blocks = samp_blocks[strand_num]
+                    chrom_block = blocks[blocks["chrom"] == chrom]
+                    # try to figure out the right pops using binary search
+                    arr[samp_idx, var_idxs, strand_num] = chrom_block["pop"][
+                        self._find_blocks(chrom_block["bp"], positions)
+                    ]
         return arr
 
     def write(self):
