@@ -46,8 +46,8 @@ class TestSimPhenotype:
 
     def _get_fake_haps(self):
         return [
-            Haplotype("1", 10114, 10115, "1:10114:T:C", "CEU", 0.25),
-            Haplotype("1", 10116, 10117, "1:10116:A:G", "YRI", 0.75),
+            Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25),
+            Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75),
         ]
 
     def _get_expected_phens(self):
@@ -83,6 +83,31 @@ class TestSimPhenotype:
         assert phens.data[2, 0] == phens.data[4, 0]
         assert phens.data[3, 0] > phens.data[0, 0]
         assert phens.data[2, 0] < phens.data[0, 0]
+        assert phens.samples == expected.samples
+        assert phens.names[0] == expected.names[0]
+
+    def test_one_hap_zero_noise_all_same(self):
+        gts = self._get_fake_gens()
+        hps = self._get_fake_haps()
+        expected = self._get_expected_phens()
+
+        gts_shape = list(gts.data.shape)
+        gts_shape[1] = 1
+        # set the genotypes
+        gts.variants = gts.variants[:1]
+        gts.data = np.zeros(tuple(gts_shape), dtype=gts.data.dtype) + 1
+        # set the expected phenotypes
+        expected.names = expected.names[:1]
+        expected.data = np.zeros((gts_shape[0], 1), dtype=expected.data.dtype)
+
+        pt_sim = PhenoSimulator(gts, seed=42)
+        data = pt_sim.run([hps[0]], heritability=1)
+        data = data[:, np.newaxis]
+        phens = pt_sim.phens
+
+        # check the data and the generated phenotype object
+        assert phens.data.shape == (5, 1)
+        np.testing.assert_allclose(phens.data, expected.data)
         assert phens.samples == expected.samples
         assert phens.names[0] == expected.names[0]
 

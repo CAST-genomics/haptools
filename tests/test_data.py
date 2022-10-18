@@ -10,11 +10,13 @@ from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.data import (
     Extra,
     Variant,
+    HapBlock,
     Haplotype,
     Genotypes,
     Phenotypes,
     Covariates,
     Haplotypes,
+    Breakpoints,
     GenotypesRefAlt,
     GenotypesPLINK,
 )
@@ -170,11 +172,7 @@ class TestGenotypes:
         assert gts.samples == samples
 
     def test_load_genotypes_discard_multiallelic(self):
-        expected = self._get_expected_genotypes()
-
-        # can we load the data from the VCF?
-        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
-        gts.read()
+        gts = self._get_fake_genotypes()
 
         # make a copy for later
         data_copy = gts.data.copy().astype(np.bool_)
@@ -324,7 +322,7 @@ class TestGenotypesPLINK:
     def test_write_genotypes(self):
         gts = self._get_fake_genotypes_plink()
 
-        fname = DATADIR.joinpath("test.pgen")
+        fname = DATADIR.joinpath("test_write.pgen")
         gts.fname = fname
         gts.write()
 
@@ -350,7 +348,7 @@ class TestGenotypesPLINK:
         gts.data = np.dstack((gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8)))
         gts.data[:2, 1, 2] = 0
 
-        fname = DATADIR.joinpath("test.pgen")
+        fname = DATADIR.joinpath("test_unphased.pgen")
         gts.fname = fname
         gts.write()
 
@@ -404,10 +402,6 @@ class TestPhenotypes:
         phens.read()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
-        expected = (expected - np.mean(expected, axis=0)) / np.std(expected, axis=0)
-        phens.standardize()
-        np.testing.assert_allclose(phens.data, expected)
-
     def test_load_phenotypes_iterate(self):
         expected_phen = self._get_fake_phenotypes()
         expected = expected_phen.data
@@ -432,6 +426,26 @@ class TestPhenotypes:
         phens.read(samples=samples)
         np.testing.assert_allclose(phens.data, expected)
         assert phens.samples == tuple(samples)
+
+    def test_standardize(self):
+        expected_phen = self._get_fake_phenotypes()
+        exp_data = expected_phen.data
+
+        exp_data = (exp_data - np.mean(exp_data, axis=0)) / np.std(exp_data, axis=0)
+        expected_phen.standardize()
+        np.testing.assert_allclose(expected_phen.data, exp_data)
+
+        # also test case where the stdev is 0
+        zero_phen = np.zeros((exp_data.shape[0], 1), dtype=exp_data.dtype)
+        exp_data = np.concatenate((exp_data, zero_phen), axis=1)
+        expected_phen.data = np.concatenate(
+            (expected_phen.data, zero_phen + 5),
+            dtype=exp_data.dtype,
+            axis=1,
+        )
+
+        expected_phen.standardize()
+        np.testing.assert_allclose(expected_phen.data, exp_data)
 
     def test_write_phenotypes(self):
         expected_phen = self._get_fake_phenotypes()
@@ -604,23 +618,32 @@ class TestHaplotypes:
         haps.read(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
+        # check that haplotypes that overlap but don't fit perfectly are excluded!
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26928473-26941960", haplotypes={"chr21.q.3365*1"})
+        assert {} == haps.data
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26928472-26941959", haplotypes={"chr21.q.3365*1"})
+        assert {} == haps.data
+
         expected = self._basic_haps()
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941960")
         assert expected == haps.data
 
+
     def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73
             ),
             "chr21.q.3365*10": HaptoolsHaplotype(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30
             ),
             "chr21.q.3365*11": HaptoolsHaplotype(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -654,13 +677,13 @@ class TestHaplotypes:
     def _get_writable_haplotypes(self):
         expected = {
             "chr21.q.3365*1": HaptoolsHaplotype(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73
             ),
             "chr21.q.3365*10": HaptoolsHaplotype(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30
             ),
             "chr21.q.3365*11": HaptoolsHaplotype(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -696,7 +719,6 @@ class TestHaplotypes:
                 repr=False,
                 init=False,
                 default=(
-                    Extra("ancestry", "s", "Local ancestry"),
                     Extra("score", ".2f", "Score for a thing"),
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
@@ -705,13 +727,13 @@ class TestHaplotypes:
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
-                "21", 26928472, 26941960, "chr21.q.3365*1", "ASW", 0.73, 0.40
+                "21", 26928472, 26941960, "chr21.q.3365*1", 0.73, 0.40
             ),
             "chr21.q.3365*10": HaplotypePlusExtra(
-                "21", 26938989, 26941960, "chr21.q.3365*10", "CEU", 0.30, 0.28
+                "21", 26938989, 26941960, "chr21.q.3365*10", 0.30, 0.28
             ),
             "chr21.q.3365*11": HaplotypePlusExtra(
-                "21", 26938353, 26938989, "chr21.q.3365*11", "MXL", 0.49, 0.84
+                "21", 26938353, 26938989, "chr21.q.3365*11", 0.49, 0.84
             ),
         }
         for hap_id, hap in self._basic_haps().items():
@@ -841,11 +863,17 @@ class TestHaplotypes:
 
 
 class TestGenotypesRefAlt:
-    def _get_fake_genotypes_refalt(self):
+    def _get_fake_genotypes_refalt(self, with_phase=False):
         base_gts = TestGenotypes()._get_fake_genotypes()
         # copy all of the fields
         gts = GenotypesRefAlt(fname=None)
         gts.data = base_gts.data
+        if with_phase:
+            data_shape = (gts.data.shape[0], gts.data.shape[1], 1)
+            # add phase info back
+            gts.data = np.concatenate(
+                (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
+            )
         gts.samples = base_gts.samples
         # add additional ref and alt alleles
         ref_alt = np.array(
@@ -932,3 +960,105 @@ class TestGenotypesRefAlt:
                 assert gts_ref_alt_write.variants[col][i] == x[col]
 
         os.remove(str(fname))
+
+
+class TestBreakpoints:
+    def _get_expected_breakpoints(self):
+        bps = Breakpoints(fname=None)
+        bps.data = {
+            "Sample_1": {
+                "1": (
+                    [
+                        HapBlock("YRI", 59423086, 85.107755),
+                        HapBlock("CEU", 239403765, 266.495714),
+                    ],
+                    [
+                        HapBlock("YRI", 59423086, 85.107755),
+                        HapBlock("YRI", 239403765, 266.495714),
+                    ],
+                ),
+                "2": (
+                    [
+                        HapBlock("YRI", 229668157, 244.341689),
+                    ],
+                    [
+                        HapBlock("CEU", 229668157, 244.341689),
+                    ],
+                ),
+            },
+            "Sample_2": {
+                "1": (
+                    [
+                        HapBlock("CEU", 59423086, 85.107755),
+                        HapBlock("YRI", 239403765, 266.495714),
+                    ],
+                    [
+                        HapBlock("CEU", 59423086, 85.107755),
+                        HapBlock("CEU", 239403765, 266.495714),
+                    ],
+                ),
+                "2": (
+                    [
+                        HapBlock("CEU", 229668157, 244.341689),
+                    ],
+                    [
+                        HapBlock("YRI", 229668157, 244.341689),
+                    ],
+                ),
+            },
+        }
+        return bps
+
+    def test_load_breakpoints_iterate(self):
+        expected = self._get_expected_breakpoints()
+
+        # can we load the data from the VCF?
+        bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
+        count = 0
+        for samp, blocks in bps:
+            assert blocks == expected.data[samp]
+            count += 1
+        assert count == len(expected.data)
+
+    def test_load_breakpoints(self):
+        expected = self._get_expected_breakpoints()
+
+        # can we load the data from the VCF?
+        bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
+        bps.read()
+
+        # first, check that the samples appear in the proper order
+        assert tuple(bps.data.keys()) == tuple(expected.data.keys())
+
+        # now, check that each sample is the same
+        for samp in bps.data:
+            assert bps.data[samp] == expected.data[samp]
+
+    def test_breakpoints_to_pop_array(self):
+        variants = np.array(
+            [("1", 59423080), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
+            dtype=[("chrom", "U10"), ("pos", np.uint32)],
+        )
+        expected_pop_arr = np.array(
+            [
+                [
+                    [0, 0],
+                    [0, 0],
+                    [1, 0],
+                    [0, 1],
+                ],
+                [
+                    [1, 1],
+                    [1, 1],
+                    [0, 1],
+                    [1, 0],
+                ],
+            ],
+            dtype=np.uint8,
+        )
+
+        expected = self._get_expected_breakpoints()
+        labels, pop_arr = expected.population_array(variants)
+
+        assert labels == {"YRI": 0, "CEU": 1}
+        np.testing.assert_allclose(pop_arr, expected_pop_arr)

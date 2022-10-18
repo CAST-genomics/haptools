@@ -3,9 +3,9 @@ import re
 from csv import reader
 from pathlib import Path
 from typing import Iterator
-from collections import namedtuple
 from logging import getLogger, Logger
 from fileinput import hook_compressed
+from collections import namedtuple, Counter
 
 import numpy as np
 import numpy.typing as npt
@@ -94,7 +94,7 @@ class Genotypes(Data):
 
         Returns
         -------
-        genotypes
+        Genotypes
             A Genotypes object with the data loaded into its properties
         """
         genotypes = cls(fname)
@@ -257,7 +257,7 @@ class Genotypes(Data):
                 continue
             # save meta information about each variant
             variant_arr = self._variant_arr(variant)
-            # extract the genotypes to a matrix of size p x 3
+            # extract the genotypes to a matrix of size n x 3
             # the last dimension has three items:
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
@@ -308,11 +308,26 @@ class Genotypes(Data):
             Whether to index the samples for fast loop-up. Adds complexity O(n).
         variants: bool, optional
             Whether to index the variants for fast look-up. Adds complexity O(m).
+
+        Raises
+        ------
+        ValueError
+            If any samples or variants appear more than once
         """
         if samples and self._samp_idx is None:
             self._samp_idx = dict(zip(self.samples, range(len(self.samples))))
+            if len(self._samp_idx) < len(self.samples):
+                duplicates = Counter(self.samples).items()
+                duplicates = [samp_id for samp_id, count in duplicates if count > 1]
+                a_few = 5 if len(duplicates) > 5 else len(duplicates)
+                raise ValueError(f"Found duplicate sample IDs: {duplicates[:a_few]}")
         if variants and self._var_idx is None:
             self._var_idx = dict(zip(self.variants["id"], range(len(self.variants))))
+            if len(self._var_idx) < len(self.variants):
+                duplicates = Counter(self.variants["id"]).items()
+                duplicates = [var_id for var_id, count in duplicates if count > 1]
+                a_few = 5 if len(duplicates) > 5 else len(duplicates)
+                raise ValueError(f"Found duplicate variant IDs: {duplicates[:a_few]}")
 
     def subset(
         self,
@@ -664,11 +679,11 @@ class GenotypesPLINK(GenotypesRefAlt):
             global pgenlib
             import pgenlib
         except ImportError:
+            url = "https://github.com/cast-genomics/haptools.git##egg=haptools[files]"
             raise ImportError(
                 "We cannot read PGEN files without the pgenlib library. Please "
                 "reinstall haptools with the 'files' extra requirements via\n"
-                "pip install git+https://github.com/gymrek-lab/haptools.git##egg=hapto"
-                "ols[files]"
+                f"pip install 'git+{url}'"
             )
 
     def read_samples(self, samples: list[str] = None):
@@ -943,6 +958,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         super(Genotypes, self).read()
         import pgenlib
+
         sample_idxs = self.read_samples(samples)
         with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
@@ -984,11 +1000,11 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # ...each column is a different chromosomal strand
                     try:
                         data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
-                    except np.core._exceptions.MemoryError:
+                    except np.core._exceptions._ArrayMemoryError as e:
                         raise ValueError(
                             "You don't have enough memory to load these genotypes! Try"
-                            " specifying a value to the chunks_size parameter, instead"
-                        )
+                            " specifying a value to the chunk_size parameter, instead"
+                        ) from e
                     phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
@@ -1097,8 +1113,11 @@ class GenotypesPLINK(GenotypesRefAlt):
         """
         super(Genotypes, self).read()
         import pgenlib
+
         sample_idxs = self.read_samples(samples)
-        pgen = pgenlib.PgenReader(bytes(str(self.fname), "utf8"), sample_subset=sample_idxs)
+        pgen = pgenlib.PgenReader(
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+        )
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(pgen, region, variants)
@@ -1150,6 +1169,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         :py:attr:`~.GenotypesPLINK.fname`
         """
         import pgenlib
+
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
@@ -1184,15 +1204,16 @@ class GenotypesPLINK(GenotypesRefAlt):
                 subset_data = data[start:end]
                 try:
                     cast_data = subset_data.astype(np.int32)
-                except np.core._exceptions.MemoryError:
+                except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
                         "You don't have enough memory to write these genotypes! Try"
-                        " specifying a value to the chunks_size parameter, instead"
-                    )
+                        " specifying a value to the chunk_size parameter, instead"
+                    ) from e
                 # convert any missing genotypes to -9
                 cast_data[subset_data == np.iinfo(np.uint8).max] = -9
                 if self._prephased or self.data.shape[2] < 3:
                     pgen.append_alleles_batch(cast_data, all_phased=True)
                 else:
+                    # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
                     pgen.append_partially_phased_batch(cast_data, subset_phase)

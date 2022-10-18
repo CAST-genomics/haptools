@@ -43,7 +43,7 @@ def GetChrom(chrom):
     else:
         return int(chrom)
 
-def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file):
+def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file=None):
     """
     Extract haplotype blocks for the desired sample
     from the bp file
@@ -54,13 +54,13 @@ def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file):
        Path to .bp file with breakpoints
     sample_name : str
        Sample ID to extract
-    centromeres_file : str
+    centromeres_file : str, optional
         If not None then use the chromosome ends listed to extend 
         chromosomes to proper end coordinates
     
     Returns
     -------
-    sample_blocks : list of [hap_blocks]
+    sample_blocks : list[list[hap_blocks]]
        each hap_block is a dictionary with keys
        'pop', 'chrom', 'start', 'end'
     """
@@ -135,9 +135,10 @@ def GetHaplotypeBlocks(bp_file, sample_name, centromeres_file):
 def GetCmRange(sample_blocks):
     """
     Get the min and max cM coordinates from the sample_blocks
+
     Parameters
     ----------
-    sample_blocks : list of [hap_blocks]
+    sample_blocks : list[list[hap_blocks]]
        each hap_block is a dictionary with keys
        'pop', 'chrom', 'start', 'end'
 
@@ -158,14 +159,16 @@ def GetCmRange(sample_blocks):
 def GetPopList(sample_blocks):
     """
     Get a list of populations in the sample_blocks
+
+    Parameters
     ----------
-    sample_blocks : list of [hap_blocks]
+    sample_blocks : list[list[hap_blocks]]
        each hap_block is a dictionary with keys
        'pop', 'chrom', 'start', 'end'
 
     Returns
     -------
-    poplist : list of str
+    poplist : list[str]
        list of populations represented in the blocks
     """
     poplist = set()
@@ -177,15 +180,16 @@ def GetPopList(sample_blocks):
 def GetChromOrder(sample_blocks):
     """
     Get a list of chroms in sorted order
+
     Parameters
     ----------
-    sample_blocks : list of [hap_blocks]
+    sample_blocks : list[list[hap_blocks]]
        each hap_block is a dictionary with keys
        'pop', 'chrom', 'start', 'end'
 
     Returns
     -------
-    chroms : list of int
+    chroms : list[int]
        list of chromsomes in sorted order
     """
     chroms = set()
@@ -215,7 +219,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
        If None, no centromere and telomere locations are shown
     title : str, optional
        Plot title. If None, no title is annotated
-    colors : dict of str:str, optional
+    colors : dict[str, str], optional
        Dictionary of colors to use for each population
        If not set, reasonable defaults are used.
        In addition to strings, you can specify RGB or RGBA tuples.
@@ -240,7 +244,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     ax.set_ylabel('Chromosome')
     if title is not None: ax.set_title(title)
     ax.set_yticks(range(len(chrom_order)))
-    ax.set_yticklabels(chrom_order)    
+    ax.set_yticklabels(chrom_order)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.yaxis.set_ticks_position('left')
@@ -255,6 +259,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
         colors = dict(zip(pop_list, bmap.mpl_colors))
 
     # Optionally, plot centromeres/telomeres
+    clipmask_perchrom = None
     if centromeres_file is not None:
         clipmask_perchrom = GetCentromereClipMask(centromeres_file, chrom_order)
 
@@ -288,12 +293,12 @@ def GetCentromereClipMask(centromeres_file, chrom_order):
        Path to file with centromere coordinates.
        Format: chrom, chromstart_cm, centromere_cm, chromend_cm
        If None, no centromere and telomere locations are shown
-    chrom_order : list of int
+    chrom_order : list[int]
        chromosomes in sorted order
 
     Returns
     -------
-    clipmask_perchrom : dictionary of str->matplotlib.Path
+    clipmask_perchrom : dict[str, matplotlib.Path]
        Clip region for telomeres/centromeres for each chromosome
     """
     clipmask_perchrom = {}
@@ -347,18 +352,19 @@ def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax, clipmask_perchrom
 
     Parameters
     ----------
-    block : dictionary with keys
+    block : dict
+       dictionary with keys
        'pop', 'chrom', 'start', 'end'
     hapnum : int
        0 or 1 for the two haplotypes
-    chrom_order : list of int
+    chrom_order : list[int]
        chromosomes in sorted order
-    colors : dict of str:str, optional
+    colors : dict[str, str], optional
        Dictionary of colors to use for each population
        If not set, reasonable defaults are used.
        In addition to strings, you can specify RGB or RGBA tuples.
     ax : matplotlib axis to use for plotting
-    clipmask_perchrom : dictionary of str->matplotlib.Path, optional
+    clipmask_perchrom : dict[str, matplotlib.Path], optional
        Clip region for telomeres/centromeres for each chromosome
     """
     codes = [
@@ -386,4 +392,4 @@ def PlotHaplotypeBlock(block, hapnum, chrom_order, colors, ax, clipmask_perchrom
     if clipmask_perchrom:
         col.set_clip_path(clipmask_perchrom[block['chrom']], ax.transData)
 
-    ax.add_collection(col) 
+    ax.add_collection(col)

@@ -22,7 +22,7 @@ class Phenotypes(Data):
     data : np.array
         The phenotypes in an n (samples) x m (phenotypes) array
     fname : Path | str
-        The path to the read-only file containing the data
+        The path to the file containing the data
     samples : tuple
         The names of each of the n samples
     names : tuple[str]
@@ -46,7 +46,7 @@ class Phenotypes(Data):
         cls: Phenotypes, fname: Path | str, samples: list[str] = None
     ) -> Phenotypes:
         """
-        Load phenotypes from a TSV file
+        Load phenotypes from a pheno file
 
         Read the file contents and standardize the phenotypes
 
@@ -69,7 +69,7 @@ class Phenotypes(Data):
 
     def read(self, samples: list[str] = None):
         """
-        Read phenotypes from a TSV file into a numpy matrix stored in :py:attr:`~.Penotypes.data`
+        Read phenotypes from a pheno file into a numpy matrix stored in :py:attr:`~.Penotypes.data`
 
         Parameters
         ----------
@@ -95,7 +95,7 @@ class Phenotypes(Data):
         self, phens: TextIOBase, phen_text: Iterable, samples: set[str] = None
     ):
         """
-        A generator over the lines of a TSV
+        A generator over the lines of a pheno
 
         This is a helper function for :py:meth:`~.Phenotypes.__iter__`
 
@@ -131,7 +131,7 @@ class Phenotypes(Data):
 
     def __iter__(self, samples: list[str] = None) -> Iterable[namedtuple]:
         """
-        Read phenotypes from a TSV line by line without storing anything
+        Read phenotypes from a pheno line by line without storing anything
 
         Parameters
         ----------
@@ -192,12 +192,19 @@ class Phenotypes(Data):
             names[idx] = name + suffix
             uniq_names[name] += 1
         # now we can finally write the file
-        with hook_compressed(self.fname, mode="wt") as haps:
-            haps.write("#IID\t" + "\t".join(names) + "\n")
+        with hook_compressed(self.fname, mode="wt") as phens:
+            phens.write("#IID\t" + "\t".join(names) + "\n")
             formatter = {"float_kind": lambda x: "%.2f" % x}
             for samp, phen in zip(self.samples, self.data):
-                line = np.array2string(phen, separator="\t", formatter=formatter)[1:-1]
-                haps.write(f"{samp}\t" + line + "\n")
+                line = np.array2string(
+                    phen,
+                    separator="\t",
+                    formatter=formatter,
+                    max_line_width=np.inf,
+                    threshold=np.inf,
+                    edgeitems=np.inf,
+                )[1:-1]
+                phens.write(f"{samp}\t" + line + "\n")
 
     # TODO: check_missing() (they'll be encoded as NA, nan, or -9)
 
@@ -205,9 +212,15 @@ class Phenotypes(Data):
         """
         Standardize phenotypes so they have a mean of 0 and a stdev of 1
 
-        This function modifies :py:attr:`~.Genotypes.data` in-place
+        This function modifies :py:attr:`~.Phenotypes.data` in-place
         """
-        self.data = (self.data - np.mean(self.data, axis=0)) / np.std(self.data, axis=0)
+        std = np.std(self.data, axis=0)
+        self.data = (self.data - np.mean(self.data, axis=0)) / std
+        # for phenotypes where the stdev is 0, just set all values to 0 instead of nan
+        zero_elements = std == 0
+        self.data[:, zero_elements] = np.zeros(
+            (self.data.shape[0], np.sum(zero_elements))
+        )
 
     def append(self, name: str, data: npt.NDArray):
         """

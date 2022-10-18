@@ -1,6 +1,5 @@
 from __future__ import annotations
 from pathlib import Path
-from itertools import combinations
 from dataclasses import dataclass, field
 from logging import getLogger, Logger, DEBUG
 
@@ -26,15 +25,11 @@ class Haplotype(HaplotypeBase):
     Properties and functions are shared with the base Haplotype object, "HaplotypeBase"
     """
 
-    ancestry: str
     beta: float
     _extras: tuple = field(
         repr=False,
         init=False,
-        default=(
-            Extra("ancestry", "s", "Local ancestry"),
-            Extra("beta", ".2f", "Effect size in linear model"),
-        ),
+        default=(Extra("beta", ".2f", "Effect size in linear model"),),
     )
 
 
@@ -133,10 +128,14 @@ class PhenoSimulator:
         self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
         self.log.debug(f"Beta values are {betas}")
         # extract the haplotype "genotypes" and compute the phenotypes
-        gts = self.gens.subset(variants=ids).data.sum(axis=2)
+        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[0]} causal effects")
         # standardize the genotypes
-        gts = (gts - gts.mean(axis=0)) / gts.std(axis=0)
+        std = gts.std(axis=0)
+        gts = (gts - gts.mean(axis=0)) / std
+        # for genotypes where the stdev is 0, just set all values to 0 instead of nan
+        zero_elements = std == 0
+        gts[:, zero_elements] = np.zeros((gts.shape[0], np.sum(zero_elements)))
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
@@ -152,7 +151,7 @@ class PhenoSimulator:
             noise = np.var(pt) * (np.reciprocal(heritability) - 1)
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
-        pt_noise = self.rng.normal(0, noise, size=pt.shape)
+        pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)
         if self.log.getEffectiveLevel() == DEBUG:
             # if we're in debug mode, compute the pearson correlation and report it
             # but don't do this otherwise to keep things fast
@@ -206,6 +205,8 @@ def simulate_pt(
     GENOTYPES must be formatted as a VCF or PGEN file and HAPLOTYPES must be formatted
     according to the .hap format spec
 
+    Note: GENOTYPES must be the output from the the transform subcommand.
+
     \f
     Examples
     --------
@@ -214,7 +215,7 @@ def simulate_pt(
     Parameters
     ----------
     genotypes : Path
-        The path to the genotypes in VCF or PGEN format
+        The path to the transformed genotypes in VCF or PGEN format
     haplotypes : Path
         The path to the haplotypes in a .hap file
     replications : int, optional
@@ -258,7 +259,7 @@ def simulate_pt(
         The logging module for this task
     """
     if log is None:
-        log = logging.getLogger("run")
+        log = logging.getLogger("haptools simphenotype")
         logging.basicConfig(
             format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
             level="ERROR",
@@ -268,39 +269,34 @@ def simulate_pt(
     hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
-    log.info("Extracting variants from haplotypes")
-    variants = {var.id for hap in hp.data.values() for var in hap.variants}
+    if haplotype_ids is None:
+        haplotype_ids = set(hp.data.keys())
 
     if genotypes.suffix == ".pgen":
         log.info("Loading genotypes from PGEN file")
-        gt = GenotypesPLINK(genotypes, log=log, chunk_size=chunk_size)
+        gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = GenotypesRefAlt(genotypes, log=log)
+        gt = Genotypes(fname=genotypes, log=log)
     # gt._prephased = True
-    gt.read(region=region, samples=samples, variants=variants)
+    gt.read(region=region, samples=samples, variants=haplotype_ids)
     log.info("QC-ing genotypes")
     gt.check_missing()
     gt.check_biallelic()
-    gt.check_phase()
 
-    # check that all of the variants were loaded successfully and warn otherwise
-    if len(variants) < len(gt.variants):
-        diff = list(variants.difference(gt.variants["id"]))
+    # check that all of the genotypes were loaded successfully and warn otherwise
+    if len(haplotype_ids) < len(gt.variants):
+        diff = list(haplotype_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
         log.warning(
-            f"{len(diff)} variants could not be found in the genotypes file. Check "
-            "that the IDs in your .hap file correspond with those in the genotypes "
-            f"file. Here are the first few missing variants: {diff[:first_few]}"
+            f"{len(diff)} haplotypes could not be found in the genotypes file. Check "
+            "that the hap IDs in your .hap file correspond with those in the genotypes"
+            f" file. Here are the first few missing variants: {diff[:first_few]}"
         )
-
-    log.info("Transforming genotypes via haplotypes")
-    hp_gt = GenotypesRefAlt(fname=None, log=log)
-    hp.transform(gt, hp_gt)
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
-    pt_sim = PhenoSimulator(hp_gt, output=output, log=log)
+    pt_sim = PhenoSimulator(gt, output=output, log=log)
     for i in range(num_replications):
         pt_sim.run(hp.data.values(), heritability, prevalence)
     log.info("Writing phenotypes")

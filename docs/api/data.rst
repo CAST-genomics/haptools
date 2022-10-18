@@ -161,7 +161,7 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 
 	.. code-block:: bash
 
-		pip install git+https://github.com/gymrek-lab/haptools.git#egg=haptools[files]
+		pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
 
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
@@ -281,7 +281,7 @@ To write to a **.hap** file, you must first initialize a :class:`Haplotypes` obj
 	haplotypes = data.Haplotypes('tests/data/example-write.hap')
 	haplotypes.data = {}
 	haplotypes.data['H1'] = Haplotype(chrom='chr1', start=0, end=10, id='H1')
-	haplotypes.data['H1'].variants = [Variant(start=0, end=1, id='rs123', allele='A')]
+	haplotypes.data['H1'].variants = (Variant(start=0, end=1, id='rs123', allele='A'),)
 	haplotypes.write()
 
 Obtaining haplotype "genotypes"

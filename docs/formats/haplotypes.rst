@@ -97,6 +97,9 @@ Haplotypes contain the following attributes:
      - string
      - Uniquely identifies a haplotype
 
+.. note::
+   It is not currently possible to encode haplotypes that span more than one contig.
+
 ``V`` Variant
 ~~~~~~~~~~~~~
 Each variant line belongs to a particular haplotype. These lines contain the following attributes:
@@ -134,12 +137,12 @@ Each variant line belongs to a particular haplotype. These lines contain the fol
 
 Examples
 ~~~~~~~~
-You can find an example of a ``.hap`` file without any extra fields in `tests/data/basic.hap <https://github.com/gymrek-lab/haptools/blob/main/tests/data/basic.hap>`_:
+You can find an example of a ``.hap`` file without any extra fields in `tests/data/basic.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/basic.hap>`_:
 
 .. include:: ../../tests/data/basic.hap
    :literal:
 
-You can find an example with extra fields added within `tests/data/simphenotype.hap <https://github.com/gymrek-lab/haptools/blob/main/tests/data/simphenotype.hap>`_:
+You can find an example with extra fields added within `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_:
 
 .. include:: ../../tests/data/simphenotype.hap
    :literal:
@@ -167,11 +170,11 @@ simphenotype
 ------------
 The *ancestry* and *beta* extra fields should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
 
-You can download an example header for this file from `tests/data/simphenotype.hap <https://github.com/gymrek-lab/haptools/blob/main/tests/data/simphenotype.hap>`_
+You can download an example header for this file from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
 
 .. code-block:: bash
 
-  curl https://raw.githubusercontent.com/gymrek-lab/haptools/main/tests/data/simphenotype.hap 2>/dev/null | head -n4
+  curl https://raw.githubusercontent.com/cast-genomics/haptools/main/tests/data/simphenotype.hap 2>/dev/null | head -n4
 
 
 ..
@@ -206,7 +209,7 @@ Changelog
 ~~~~~~~~~
 v0.1.0
 ------
-Updates to the header lines in the specification. See `PR #80 <https://github.com/gymrek-lab/haptools/pull/80>`_.
+Updates to the header lines in the specification. See `PR #80 <https://github.com/cast-genomics/haptools/pull/80>`_.
 
 We've created a new type of metadata line for specifying the "order" of the extra fields in each line.
 In the absence of this metadata line, the extra fields will be assumed to appear in the order of the extra-field declarations in the header. Unfortunately, sorting can change that. By specifying the order of the extra fields up-front, you can ensure that the file will be parsed the same regardless of whether it is sorted.
@@ -217,4 +220,4 @@ If your ``.hap`` file does not have any extra fields, you can safely bump the ve
 
 v0.0.1
 ------
-Initialized the spec! See `PR #43 <https://github.com/gymrek-lab/haptools/pull/43>`_.
+Initialized the spec! See `PR #43 <https://github.com/cast-genomics/haptools/pull/43>`_.

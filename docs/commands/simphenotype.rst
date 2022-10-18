@@ -4,12 +4,14 @@
 simphenotype
 ============
 
-Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variables to use within the simulation by specifying them in a ``.hap`` file.
+Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variables to use within the simulation by specifying them in a :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
+
+To encode simple SNPs as causal variants within a ``.hap`` file, use the haptools API like in :ref:`this example <api-examples-snps2hap>`.
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
 
 .. note::
-   Your ``.hap`` files must contain extra fields. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
+   Your ``.hap`` files must contain a "beta" extra field. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
 
 Usage
 ~~~~~
@@ -23,6 +25,7 @@ Usage
    --sample SAMPLE --sample SAMPLE \
    --samples-file FILENAME \
    --id ID --id ID \
+   --ids-file FILENAME \
    --chunk-size INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
@@ -58,29 +61,45 @@ Output
 ~~~~~~
 Phenotypes are output in the PLINK2-style ``.pheno`` file format. If ``--replications`` was set to greater than 1, additional columns are output for each simulated trait.
 
-Note that case/control phenotypes are encoded as 0 (control) + 1 (case) **not** 1 (control) + 2 (case). The latter is used by PLINK2 unless the ``--1`` flag is used (see `the PLIN2 docs <https://www.cog-genomics.org/plink/2.0/input#input_missing_phenotype>`_). Therefore, you must use ``--1`` when providing our ``.pheno`` files to PLINK.
+Note that case/control phenotypes are encoded as 0 (control) + 1 (case) **not** 1 (control) + 2 (case). The latter is used by PLINK2 unless the ``--1`` flag is used (see `the PLINK2 docs <https://www.cog-genomics.org/plink/2.0/input#input_missing_phenotype>`_). Therefore, you must use ``--1`` when providing our ``.pheno`` files to PLINK.
 
 Examples
 ~~~~~~~~
 .. code-block:: bash
 
-   haptools simphenotype -o simulated.pheno tests/data/example.vcf.gz tests/data/simphenotype.hap
+   haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
+   haptools simphenotype -o simulated.pheno /dev/stdin tests/data/simphenotype.hap
+
+By default, all of the haplotypes in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
+
+.. code-block:: bash
+
+   haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
+   haptools simphenotype --id 'chr21.q.3365*1' /dev/stdin tests/data/simphenotype.hap
+
+To simulate ancestry-specific effects from a genotypes file with population labels, use the ``--ancestry`` switch when running ``transform``:
+
+.. code-block:: bash
+
+   haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
+   haptools simphenotype --id H1 /dev/stdin tests/data/simple.hap
 
 Simulate two replicates of a case/control trait that occurs in 60% of your samples with a heritability of 0.8. Encode all of the haplotypes in ``tests/data/example.hap.gz`` as independent causal variables.
 
 .. code-block:: bash
 
+   haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
    haptools simphenotype \
    --replications 2 \
    --heritability 0.8 \
    --prevalence 0.6 \
    --output simulated.pheno \
-   tests/data/example.vcf.gz tests/data/example.hap.gz
+   /dev/stdin tests/data/example.hap.gz
 
 Detailed Usage
 ~~~~~~~~~~~~~~
 
 .. click:: haptools.__main__:main
    :prog: haptools
-   :show-nested:
+   :nested: full
    :commands: simphenotype

@@ -484,7 +484,9 @@ class Haplotype:
                 "absent in the provided genotypes"
             )
         # create a np array denoting the alleles that we want
-        # note: the excessive use of square-brackets gives us shape (1, n, 1)
+        # note: the excessive use of square-brackets gives us shape (1, p, 1)
+        # where p denotes the number of alleles in this haplotype
+        # That shape is broadcastable with gts.data which has shape (n, p, 2)
         allele_arr = np.array(
             [
                 [
@@ -742,7 +744,7 @@ class Haplotypes(Data):
         # if there are any fields left...
         if any(exp_extras.values()):
             names = [n for name in exp_extras.values() for n in name]
-            error_msgr(
+            err_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
                 f"don't seem to be declared in the header: {*names,}"
             )
@@ -906,6 +908,7 @@ class Haplotypes(Data):
             types = self._get_field_types(extras, metas.get("order"))
             if region:
                 region_positions = region.split(":", maxsplit=1)[1]
+                region_start, region_end = tuple(map(int, region_positions.split("-")))
                 # fetch region
                 # we already know that each line will start with an H, so we don't
                 # need to check that
@@ -914,7 +917,9 @@ class Haplotypes(Data):
                     if haplotypes is not None:
                         if hap.id not in haplotypes:
                             continue
-                        haplotypes.remove(hap.id)
+                    # also exclude haplotypes that overlap but don't fit perfectly
+                    if hap.start < region_start or hap.end > region_end:
+                        continue
                     yield hap
             else:
                 for line in haps_file.fetch():
@@ -924,7 +929,6 @@ class Haplotypes(Data):
                         hap = self.types["H"].from_hap_spec(line, types=types["H"])
                         if hap.id in haplotypes:
                             yield hap
-                            haplotypes.remove(hap.id)
                     elif line_type > "H":
                         # if we've already passed all of the H's, we can just exit
                         # We assume the file has been sorted so that all of the H lines
@@ -935,7 +939,7 @@ class Haplotypes(Data):
                 # exclude variants outside the desired region
                 hap_region = hap_id
                 if region:
-                    hap_region = hap_id + ":" + region_positions
+                    hap_region = hap_id
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
@@ -1049,7 +1053,7 @@ class Haplotypes(Data):
 
     def transform(
         self,
-        genotypes: GenotypesRefAlt,
+        gts: GenotypesRefAlt,
         hap_gts: GenotypesRefAlt = None,
     ) -> GenotypesRefAlt:
         """
@@ -1060,7 +1064,7 @@ class Haplotypes(Data):
 
         Parameters
         ----------
-        genotypes : GenotypesRefAlt
+        gts : GenotypesRefAlt
             The genotypes which to transform using the current haplotype
         hap_gts: GenotypesRefAlt
             An empty GenotypesRefAlt object into which the haplotype genotypes should
@@ -1074,18 +1078,48 @@ class Haplotypes(Data):
         # Initialize GenotypesRefAlt return value
         if hap_gts is None:
             hap_gts = GenotypesRefAlt(fname=None, log=self.log)
-        hap_gts.samples = genotypes.samples
+        hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, 0, "A", "T") for hap in self.data.values()],
             dtype=hap_gts.variants.dtype,
         )
-        # Obtain and merge the haplotype genotypes
-        self.log.info(
-            f"Transforming a set of genotypes from {len(genotypes.variants)} total "
-            f"variants with a list of {len(self.data)} haplotypes"
+        # build a fast data structure for querying the alleles in each haplotype:
+        # a dict mapping (variant ID, allele) -> a unique index
+        alleles = {}
+        # and a list of arrays containing the indices of each hap's alleles
+        idxs = [None] * len(self.data)
+        count = 0
+        for i, hap in enumerate(self.data.values()):
+            idxs[i] = np.empty(len(hap.variants), dtype=np.uintc)
+            for j, variant in enumerate(hap.variants):
+                key = (variant.id, variant.allele)
+                if key not in alleles:
+                    alleles[key] = count
+                    count += 1
+                idxs[i][j] = alleles[key]
+        self.log.debug(f"Copying genotypes for {len(alleles)} distinct alleles")
+        gts = gts.subset(variants=tuple(k[0] for k in alleles))
+        self.log.debug(f"Creating array denoting alt allele status")
+        # initialize a np array denoting the allele integer in each haplotype
+        # with shape (1, gts.data.shape[1], 1) for broadcasting later
+        allele_arr = np.array(
+            [
+                int(allele != gts.variants[i]["ref"])
+                for i, (vID, allele) in enumerate(alleles)
+            ],
+            dtype=gts.data.dtype,
+        )[np.newaxis, :, np.newaxis]
+        # finally, obtain and merge the haplotype genotypes
+        self.log.info(f"Transforming genotypes for {len(self.data)} haplotypes")
+        equality_arr = np.equal(allele_arr, gts.data)
+        self.log.debug(
+            f"Allocating array with dtype {gts.data.dtype} and size "
+            f"{(len(gts.samples), len(self.data), 2)}"
         )
-        arrs = tuple(h.transform(genotypes)[:, np.newaxis] for h in self.data.values())
-        hap_gts.data = np.concatenate(arrs, axis=1).astype(genotypes.data.dtype)
+        hap_gts.data = np.empty((gts.data.shape[0], len(self.data), 2), dtype=np.bool_)
+        self.log.debug("Computing haplotype genotypes. This may take a while")
+        for i in range(len(self.data)):
+            hap_gts.data[:, i] = np.all(equality_arr[:, idxs[i]], axis=1)
         return hap_gts
 
     def sort(self):

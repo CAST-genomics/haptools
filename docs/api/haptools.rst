@@ -65,6 +65,16 @@ haptools.data.haplotypes module
    :undoc-members:
    :show-inheritance:
 
+haptools.sim_genotype module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.sim_genotype
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. _api-haptools-sim_phenotype:
+
 haptools.sim_phenotype module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -73,10 +83,26 @@ haptools.sim_phenotype module
    :undoc-members:
    :show-inheritance:
 
-haptools.sim_genotype module
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+haptools.karyogram module
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: haptools.sim_genotype
+.. automodule:: haptools.karyogram
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+haptools.transform module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.transform
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+haptools.ld module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.ld
    :members:
    :undoc-members:
    :show-inheritance:
