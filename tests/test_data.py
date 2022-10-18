@@ -232,6 +232,28 @@ class TestGenotypes:
         np.testing.assert_allclose(gts_sub.data, expected_data)
         assert np.array_equal(gts_sub.variants, expected_variants)
 
+    def test_check_af(self):
+        gts = self._get_fake_genotypes()
+        expected_af = np.array([1, 0.4, 1, 1])
+
+        af = gts.check_af()
+        np.testing.assert_allclose(af, expected_af)
+
+        with pytest.raises(ValueError) as info:
+            gts.check_af(threshold=0.01)
+        assert (
+            str(info.value)
+            == "Variant with ID 1:10114:T:C at POS 1:10114 has REF frequency 1.0"
+        )
+
+        gts.check_af(threshold=0, discard_also=True)
+        assert len(gts.variants) == 4
+        assert gts.data.shape[1] == 4
+
+        gts.check_af(threshold=0.01, discard_also=True)
+        assert len(gts.variants) == 1
+        assert gts.data.shape[1] == 1
+
 
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):

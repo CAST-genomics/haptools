@@ -502,6 +502,51 @@ class Genotypes(Data):
         # remove the last dimension that contains the phase info
         self.data = self.data[:, :, :2]
 
+    def check_af(self, threshold: float = None, discard_also: bool = False):
+        """
+        Return the allele frequency of the REF allele
+
+        If a threshold is specified, raise a ValueError if the frequency exceeds it
+
+        Parameters
+        ----------
+        threshold: float, optional
+            If any variant has an *alternate* allele frequency rarer than the
+            provided threshold, raise a ValueError
+        discard_also : bool, optional
+            If True, discard any variants that would otherwise cause a ValueError
+
+            This parameter will be ignored if a threshold is not specified
+
+        Raises
+        ------
+        ValueError
+            If any variant exceeds the provided threshold allele frequency
+        """
+        num_strands = 2 * self.data.shape[0]
+        ref_af = 1 - self.data[:, :, :2].astype(np.bool_).sum(axis=(0, 2))/num_strands
+        if threshold is None:
+            return ref_af
+        rare_variants = (ref_af > (1 - threshold)) | (ref_af < threshold)
+        if np.any(rare_variants):
+            var_idx = np.nonzero(rare_variants)[0]
+            if discard_also:
+                original_num_variants = len(self.variants)
+                self.data = np.delete(self.data, var_idx, axis=1)
+                self.variants = np.delete(self.variants, var_idx)
+                self.log.info(
+                    "Ignoring missing genotypes from "
+                    f"{original_num_variants - len(self.variants)} samples"
+                )
+                self._var_idx = None
+            else:
+                raise ValueError(
+                    "Variant with ID {} at POS {}:{} has REF frequency {}".format(
+                        *tuple(self.variants[var_idx[0]])[:3], ref_af[var_idx[0]]
+                    )
+                )
+        return ref_af
+
 
 class GenotypesRefAlt(Genotypes):
     """
