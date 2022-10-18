@@ -13,7 +13,7 @@ You may also specify genotypes in PLINK2 PGEN format. Just use the appropriate "
 Ancestry
 ~~~~~~~~
 
-If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field or an accompanying :ref:`.bp file <formats-breakpoints>` (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by ``simgenotype``. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
+If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field or an accompanying :ref:`.bp file <formats-breakpoints>` (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by ``simgenotype``. See :ref:`this section <formats-haplotypes-extrafields-transform>` of the ``.hap`` format spec for more details.
 
 Usage
 ~~~~~
@@ -64,12 +64,6 @@ If your VCF has multi-allelic variants, they must be split into bi-allelic recor
 	bcftools annotate -Ov --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | \
 	haptools transform -o output.vcf.gz /dev/stdin file.hap
 
-..
-	To include ancestral population labels in the transformation, use the ``--ancestry`` flag:
-
-	.. code-block:: bash
-
-		haptools transform --ancestry tests/data/example.vcf.gz tests/data/simphenotype.hap
 
 Detailed Usage
 ~~~~~~~~~~~~~~

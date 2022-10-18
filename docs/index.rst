@@ -8,11 +8,12 @@ Haptools is a collection of tools for simulating and analyzing genotypes and phe
 Installation
 ~~~~~~~~~~~~
 .. note::
-   To reduce the likelihood of errors when installing, we recommend installing ``haptools`` within a new conda environment with a recent version of pip:
+   To reduce the likelihood of errors, we recommend installing ``haptools`` within a new conda environment using a recent version of pip:
 
    .. code-block:: bash
 
-      conda create -n haptools -c conda-forge 'pip>=22.2.2'
+      conda create -y -n haptools -c conda-forge 'pip>=22.2.2'
+      conda activate haptools
 
 We have not officially published ``haptools`` yet, but in the meantime, you can install it directly from our Github repository.
 
@@ -42,7 +43,9 @@ Summary of Commands
 * `haptools ld </commands/ld>`_: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
 
 Outputs produced by these utilities are compatible with each other.
-For example ``haptools simgenotype`` outputs a VCF file with local ancestry information annotated for each variant. The output VCF file can be used as input to ``haptools transform`` and ``haptools simphenotype`` to simulate phenotype information. ``haptools simgenotype`` also outputs a list of local ancestry breakpoints which can be visualized using ``haptools karyogram``.
+For example ``haptools simgenotype`` outputs a VCF file with local ancestry information annotated for each variant.
+The VCF and breakpoints file output by ``haptools simgenotype`` can be used as input to ``haptools transform``, which is then used by ``haptools simphenotype`` to simulate phenotypes for a list of haplotypes.
+The local ancestry breakpoints from ``haptools simgenotype`` can also be visualized using ``haptools karyogram``.
 
 Contributing
 ~~~~~~~~~~~~

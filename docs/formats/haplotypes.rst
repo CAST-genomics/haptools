@@ -160,17 +160,69 @@ We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever 
 
 In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones. In addition, you must sort on the first field (ie the line type symbol) in addition to the latter three.
 
+Querying an indexed file
+~~~~~~~~~~~~~~~~~~~~~~~~
+You can query an indexed ``.hap`` file on both the haplotype and variant levels with the following syntax.
+
+.. code-block:: bash
+
+  tabix file.hap.gz REGION
+
+For example, to extract all haplotypes between positions 100 and 200 on chromosome ``chr19``:
+
+.. code-block:: bash
+
+  tabix file.hap.gz chr19:100-200
+
+Or to get all alleles between positions 100 and 200 on the haplotype with ID ``hap1``:
+
+.. code-block:: bash
+
+  tabix file.hap.gz hap1:100-200
+
 Extra fields
 ~~~~~~~~~~~~
 Additional fields can be appended to the ends of the haplotype and variant lines as long as they are declared in the header.
+
+.. _formats-haplotypes-extrafields-transform:
+
+transform
+---------
+If you would like to simulate an ancestry-based effect, you should run ``transform`` with an *ancestry* extra field declared in your ``.hap`` file.
+
+You can download an example header with an *ancestry* extra field from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
+
+.. code-block:: bash
+
+  curl https://raw.githubusercontent.com/cast-genomics/haptools/main/tests/data/simphenotype.hap 2>/dev/null | head -n4
+
+``H`` Haplotype
++++++++++++++++
+
+.. list-table::
+   :widths: 25 25 25 50
+   :header-rows: 1
+
+   * - Column
+     - Field
+     - Type
+     - Description
+   * - 5
+     - Local Ancestry
+     - string
+     - A population code denoting this haplotype's ancestral origins
+
+``V`` Variant
++++++++++++++
+No extra fields are required here.
 
 .. _formats-haplotypes-extrafields-simphenotype:
 
 simphenotype
 ------------
-The *ancestry* and *beta* extra fields should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
+The *beta* extra field should be declared for your ``.hap`` file to be compatible with the ``simphenotype`` subcommand.
 
-You can download an example header for this file from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
+You can download an example header with a *beta* extra field from `tests/data/simphenotype.hap <https://github.com/cast-genomics/haptools/blob/main/tests/data/simphenotype.hap>`_
 
 .. code-block:: bash
 
@@ -193,10 +245,6 @@ You can download an example header for this file from `tests/data/simphenotype.h
      - Type
      - Description
    * - 5
-     - Local Ancestry
-     - string
-     - A population code denoting this haplotype's ancestral origins
-   * - 6
      - Effect Size
      - float
      - The effect size of this haplotype; for use in ``simphenotype``
