@@ -39,17 +39,12 @@ class TestGenotypes:
         gts.data = self._get_expected_genotypes()
         gts.variants = np.array(
             [
-                ("1:10114:T:C", "1", 10114, 0),
-                ("1:10116:A:G", "1", 10116, 0.6),
-                ("1:10117:C:A", "1", 10117, 0),
-                ("1:10122:A:G", "1", 10122, 0),
+                ("1:10114:T:C", "1", 10114),
+                ("1:10116:A:G", "1", 10116),
+                ("1:10117:C:A", "1", 10117),
+                ("1:10122:A:G", "1", 10122),
             ],
-            dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("pos", np.uint32),
-                ("aaf", np.float64),
-            ],
+            dtype=gts.variants.dtype,
         )
         gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         gts.check_phase()
@@ -115,18 +110,6 @@ class TestGenotypes:
         # try to check phase again - it should warn b/c we've already done it before
         caplog.clear()
         gts.check_phase()
-        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
-
-        # convert the matrix of alt allele counts to a matrix of minor allele counts
-        assert gts.variants["aaf"][1] == 0.6
-        gts.to_MAC()
-        expected[:, 1, :] = ~expected[:, 1, :]
-        np.testing.assert_allclose(gts.data, expected)
-        assert gts.variants["maf"][1] == 0.4
-
-        # try to do the MAC conversion again - it should warn b/c we've already done it
-        caplog.clear()
-        gts.to_MAC()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
     def test_load_genotypes_example(self):
@@ -631,7 +614,6 @@ class TestHaplotypes:
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941960")
         assert expected == haps.data
-
 
     def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?

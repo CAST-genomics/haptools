@@ -59,7 +59,7 @@ Properties
 **********
 The ``data`` property of a :class:`Genotypes` object is a numpy array representing the genotype matrix. Rows of the array are samples and columns are variants. Each entry in the matrix is a tuple of values -- one for each chromosome. Each value is an integer denoting the index of the allele (0 for REF, 1 for the first ALT allele, 2 for the next ALT allele, etc).
 
-There are two additional properties that contain variant and sample metadata. The ``variants`` property is a numpy structured array and the ``samples`` property is a simple tuple of sample IDs. The ``variants`` structured array has four named columns: "id", "chrom", "pos", and "aaf" (alternate allele frequency).
+There are two additional properties that contain variant and sample metadata. The ``variants`` property is a numpy structured array and the ``samples`` property is a simple tuple of sample IDs. The ``variants`` structured array has three named columns: "id" (variant ID), "chrom" (chromosome name), and "pos" (chromosomal position).
 
 Reading a file
 **************
@@ -143,7 +143,7 @@ By default, the ``subset()`` method returns a new :class:`Genotypes` instance. T
 
 GenotypesRefAlt
 +++++++++++++++
-The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesRefAlt` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF to the columns of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "aaf", "ref", and "alt".
+The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesRefAlt` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF to the columns of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "ref", and "alt".
 
 All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesRefAlt` class implements an additional method ``write()`` for dumping the contents of the class to the provided file.
 

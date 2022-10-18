@@ -32,7 +32,6 @@ class Genotypes(Data):
             1. ID
             2. CHROM
             3. POS
-            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
     log: Logger
         A logging instance for recording debug statements
     _prephased : bool
@@ -61,7 +60,6 @@ class Genotypes(Data):
                 ("id", "U50"),
                 ("chrom", "U10"),
                 ("pos", np.uint32),
-                ("aaf", np.float64),
             ],
         )
         self._prephased = False
@@ -219,7 +217,7 @@ class Genotypes(Data):
             A row from the :py:attr:`~.Genotypes.variants` array
         """
         return np.array(
-            (record.ID, record.CHROM, record.POS, record.aaf),
+            (record.ID, record.CHROM, record.POS),
             dtype=self.variants.dtype,
         )
 
@@ -504,38 +502,6 @@ class Genotypes(Data):
         # remove the last dimension that contains the phase info
         self.data = self.data[:, :, :2]
 
-    def to_MAC(self):
-        """
-        Convert the ALT count GT matrix into a matrix of minor allele counts
-
-        This function modifies :py:attr:`~.Genotypes.data` in-place
-
-        It also changes the 'aaf' record in :py:attr:`~.Genotypes.variants` to 'maf'
-
-        Raises
-        ------
-        AssertionError
-            If the matrix has already been converted
-        """
-        if self.variants.dtype.names[3] == "maf":
-            self.log.warning(
-                "The matrix already counts instances of the minor allele rather than "
-                "the ALT allele."
-            )
-            return
-        need_conversion = self.variants["aaf"] > 0.5
-        # flip the count on the variants that have an alternate allele frequency
-        # above 0.5
-        self.data[:, need_conversion, :2] = ~self.data[:, need_conversion, :2]
-        # also encode an MAF instead of an AAF in self.variants
-        self.variants["aaf"][need_conversion] = (
-            1 - self.variants["aaf"][need_conversion]
-        )
-        # replace 'aaf' with 'maf' in the matrix
-        self.variants.dtype.names = [
-            (x, "maf")[x == "aaf"] for x in self.variants.dtype.names
-        ]
-
 
 class GenotypesRefAlt(Genotypes):
     """
@@ -556,9 +522,8 @@ class GenotypesRefAlt(Genotypes):
             1. ID
             2. CHROM
             3. POS
-            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
-            5. REF
-            6. ALT
+            4. REF
+            5. ALT
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
@@ -571,7 +536,6 @@ class GenotypesRefAlt(Genotypes):
                 ("id", "U50"),
                 ("chrom", "U10"),
                 ("pos", np.uint32),
-                ("aaf", np.float64),
                 ("ref", "U100"),
                 ("alt", "U100"),
             ],
@@ -586,7 +550,6 @@ class GenotypesRefAlt(Genotypes):
                 record.ID,
                 record.CHROM,
                 record.POS,
-                record.aaf,
                 record.REF,
                 record.ALT[0],
             ),
@@ -795,7 +758,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                0.5,
                 record[cid["REF"]],
                 record[cid["ALT"]],
             ),
