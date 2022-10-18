@@ -150,7 +150,7 @@ You can find an example with extra fields added within `tests/data/simphenotype.
 
 Compressing and indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~
-We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever possible. This will reduce both disk usage and the time required to parse the file, but it is entirely optional.
+We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever possible. This will reduce both disk usage and the time required to parse the file, but it is entirely optional. You can either use the :doc:`index command </commands/index>` or the ``sort``, ``bgzip``, and ``tabix`` commands.
 
 .. code-block:: bash
 

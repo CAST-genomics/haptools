@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+from functools import total_ordering
 from logging import getLogger, Logger
 from fileinput import hook_compressed
 from dataclasses import dataclass, field, fields
@@ -112,6 +113,7 @@ class classproperty(object):
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
+@total_ordering
 @dataclass
 class Variant:
     """
@@ -263,9 +265,35 @@ class Variant:
         """
         return tuple(extra.name for extra in cls._extras)
 
+    def __lt__(self, other: Variant):
+        """
+        Defines ordering for sort() method when dealing with variants.
+
+        This function will sort first by start followed by end and lastly ID
+
+        Parameters
+        ----------
+        other: Variant
+            A variant line from the .hap file
+
+        Returns
+        -------
+        bool
+            True if other is less than this instance, and False otherwise
+        """
+
+        if self.start == other.start:
+            if self.end == other.end:
+                return self.id < other.id
+            else:
+                return self.end < other.end
+        else:
+            return self.start < other.start
+
 
 # We declare this class to be a dataclass to automatically define __init__ and a few
 # other methods.
+@total_ordering
 @dataclass
 class Haplotype:
     """
@@ -470,6 +498,42 @@ class Haplotype:
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
         return np.all(allele_arr == gts.data, axis=1)
+
+    def __lt__(self, other: Haplotype):
+        """
+        Defines ordering for sort() method when dealing with variants.
+
+        This function will sort first by start followed by end and lastly ID
+
+        Parameters
+        ----------
+        other: Haplotype
+            A haplotype line from the .hap file
+
+        Returns
+        -------
+        bool
+            True if other is less than this instance, and False otherwise
+        """
+
+        if self.chrom == other.chrom:
+            if self.start == other.start:
+                if self.end == other.end:
+                    return self.id < other.id
+                else:
+                    return self.end < other.end
+            else:
+                return self.start < other.start
+        else:
+            return self.chrom < other.chrom
+
+    def sort(self):
+        """
+        Sorts the variants within this Haplotype instance
+
+        """
+
+        self.variants = tuple(sorted(self.variants))
 
 
 class Haplotypes(Data):
@@ -1057,3 +1121,13 @@ class Haplotypes(Data):
         for i in range(len(self.data)):
             hap_gts.data[:, i] = np.all(equality_arr[:, idxs[i]], axis=1)
         return hap_gts
+
+    def sort(self):
+        """
+        Sorts .hap files first by chrom, followed by start, end, and lastly ID
+
+        Also sorts the variants within each haplotype
+        """
+        self.data = dict(sorted(self.data.items(), key=lambda item: item[1]))
+        for hap in self.data.values():
+            hap.sort()

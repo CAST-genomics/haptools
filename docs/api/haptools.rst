@@ -106,3 +106,11 @@ haptools.ld module
    :members:
    :undoc-members:
    :show-inheritance:
+   
+haptools.index module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.index
+   :members:
+   :undoc-members:
+   :show-inheritance:

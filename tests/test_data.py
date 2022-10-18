@@ -807,6 +807,60 @@ class TestHaplotypes:
         # remove the file
         os.remove(str(fname))
 
+    def test_lt_haps(self):
+        hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
+        hap2 = Haplotype(chrom="B", start=2, end=1000, id="test2")
+        assert hap1 < hap2
+
+    def test_gt_haps(self):
+        hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
+        hap2 = Haplotype(chrom="A", start=2, end=1000, id="test2")
+        assert hap1 > hap2
+
+    def test_lt_var(self):
+        var1 = Variant(start=1, end=1000, id="test1", allele="test1")
+        var2 = Variant(start=1, end=1001, id="test2", allele="test2")
+        assert var1 < var2
+
+    def test_gt_var(self):
+        var1 = Variant(start=7, end=1000, id="test1", allele="test1")
+        var2 = Variant(start=1, end=1001, id="test2", allele="test2")
+        assert var1 > var2
+
+    def test_gt_equal_var(self):
+        var1 = Variant(start=1, end=1000, id="test", allele="test")
+        var2 = Variant(start=1, end=1000, id="test", allele="test")
+        assert var1 >= var2
+
+    def test_gt_equal_haps(self):
+        hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
+        hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
+        assert hap1 >= hap2
+
+    def test_lt_equal_var(self):
+        var1 = Variant(start=1, end=1000, id="test1", allele="test1")
+        var2 = Variant(start=1, end=1001, id="test2", allele="test2")
+        assert var1 <= var2
+
+    def test_lt_equal_haps(self):
+        hap1 = Haplotype(chrom="A", start=2, end=1000, id="test")
+        hap2 = Haplotype(chrom="A", start=2, end=1000, id="test")
+        assert hap1 <= hap2
+
+    def test_sort(self):
+        test_hap1 = Haplotypes("tests/data/test_sort_unordered.hap")
+        test_hap2 = Haplotypes("tests/data/test_sort_ordered.hap")
+        test_hap1.read()
+        test_hap1.sort()
+        test_hap1.fname = Path("test_temp_sort.hap")
+        test_hap1.write()
+
+        with open(test_hap2.fname) as f1, open(test_hap1.fname) as f2:
+            for line1, line2 in zip(f1, f2):
+                assert line1 == line2
+
+        test_hap1.fname.unlink()
+
 
 class TestGenotypesRefAlt:
     def _get_fake_genotypes_refalt(self, with_phase=False):

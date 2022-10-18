@@ -76,6 +76,7 @@ Please read our :doc:`contribution guidelines </project_info/contributing>` and 
    commands/simphenotype.rst
    commands/karyogram.rst
    commands/transform.rst
+   commands/index.rst
    commands/ld.rst
 
 .. toctree::

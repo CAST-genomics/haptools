@@ -1,0 +1,10 @@
+#	version	0.1.0
+V	test5	0	1000	test9	test9
+H	A	0	1000	test1
+H	A	7	1000	test2
+H	B	7	1000	test3
+V	test2	2000	2500	test7	test7
+H	B	7	1008	test4
+H	C	0	1000	test5
+V	test1	100	1000	test6	test6
+V	test4	1	1000	test8	test8

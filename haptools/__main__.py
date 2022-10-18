@@ -6,6 +6,9 @@ import sys
 import time
 import click
 from pathlib import Path
+from haptools.data.haplotypes import Haplotypes
+from haptools import data
+import tempfile
 
 # AVOID IMPORTING ANYTHING HERE
 # any imports we put here will make it slower to use the command line client
@@ -736,6 +739,53 @@ def ld(
         output,
         log,
     )
+
+
+@main.command(short_help="Sort and index .hap files")
+@click.argument("haplotypes", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--sort/--no-sort",
+    is_flag=True,
+    default=True,
+    help="Sorting of the file will not be performed",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    default= None,
+    show_default="input file",
+    help="A .hap file containing sorted and indexed haplotypes and variants",
+)
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="ERROR",
+    show_default="only errors",
+    help="The level of verbosity desired",
+)
+def index(
+    haplotypes: Path,
+    sort: bool= False,
+    output: Path = None,
+    verbosity: str = 'CRITICAL',
+):
+
+    """
+    Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
+    """
+
+    import logging
+    from .index import index_haps
+
+    log = logging.getLogger("haptools index")
+    logging.basicConfig(
+        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+    )
+
+    index_haps(haplotypes, sort, output, log)
 
 
 if __name__ == "__main__":
