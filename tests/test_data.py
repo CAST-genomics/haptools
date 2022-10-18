@@ -965,60 +965,49 @@ class TestGenotypesRefAlt:
 class TestBreakpoints:
     def _get_expected_breakpoints(self):
         bps = Breakpoints(fname=None)
+        create_arr = lambda *arr_list: np.array(list(arr_list), dtype=HapBlock)
         bps.data = {
-            "Sample_1": {
-                "1": (
-                    [
-                        HapBlock("YRI", 59423086, 85.107755),
-                        HapBlock("CEU", 239403765, 266.495714),
-                    ],
-                    [
-                        HapBlock("YRI", 59423086, 85.107755),
-                        HapBlock("YRI", 239403765, 266.495714),
-                    ],
+            "Sample_1": [
+                create_arr(
+                    ("YRI", "1", 59423086, 85.107755),
+                    ("CEU", "1", 239403765, 266.495714),
+                    ("YRI", "2", 229668157, 244.341689),
                 ),
-                "2": (
-                    [
-                        HapBlock("YRI", 229668157, 244.341689),
-                    ],
-                    [
-                        HapBlock("CEU", 229668157, 244.341689),
-                    ],
+                create_arr(
+                    ("YRI", "1", 59423086, 85.107755),
+                    ("YRI", "1", 239403765, 266.495714),
+                    ("CEU", "2", 229668157, 244.341689),
                 ),
-            },
-            "Sample_2": {
-                "1": (
-                    [
-                        HapBlock("CEU", 59423086, 85.107755),
-                        HapBlock("YRI", 239403765, 266.495714),
-                    ],
-                    [
-                        HapBlock("CEU", 59423086, 85.107755),
-                        HapBlock("CEU", 239403765, 266.495714),
-                    ],
+            ],
+            "Sample_2": [
+                create_arr(
+                    ("CEU", "1", 59423086, 85.107755),
+                    ("YRI", "1", 239403765, 266.495714),
+                    ("CEU", "2", 229668157, 244.341689),
                 ),
-                "2": (
-                    [
-                        HapBlock("CEU", 229668157, 244.341689),
-                    ],
-                    [
-                        HapBlock("YRI", 229668157, 244.341689),
-                    ],
+                create_arr(
+                    ("CEU", "1", 59423086, 85.107755),
+                    ("CEU", "1", 239403765, 266.495714),
+                    ("YRI", "2", 229668157, 244.341689),
                 ),
-            },
+            ],
         }
         return bps
+
+    def _compare_bkpt_data(self, obs, exp):
+        count = 0
+        for samp, blocks in obs:
+            for obs_block, exp_block in zip(blocks, exp[samp]):
+                assert obs_block.tolist() == exp_block.tolist()
+            count += 1
+        assert count == len(exp)
 
     def test_load_breakpoints_iterate(self):
         expected = self._get_expected_breakpoints()
 
         # can we load the data from the VCF?
         bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
-        count = 0
-        for samp, blocks in bps:
-            assert blocks == expected.data[samp]
-            count += 1
-        assert count == len(expected.data)
+        self._compare_bkpt_data(bps, expected.data)
 
     def test_load_breakpoints(self):
         expected = self._get_expected_breakpoints()
@@ -1029,36 +1018,83 @@ class TestBreakpoints:
 
         # first, check that the samples appear in the proper order
         assert tuple(bps.data.keys()) == tuple(expected.data.keys())
-
         # now, check that each sample is the same
-        for samp in bps.data:
-            assert bps.data[samp] == expected.data[samp]
+        self._compare_bkpt_data(bps.data.items(), expected.data)
+
+    def test_write(self):
+        expected = self._get_expected_breakpoints()
+        expected.fname = Path("test.bp")
+        expected.write()
+        observed = Breakpoints(expected.fname)
+        observed.read()
+
+        # first, check that the samples appear in the proper order
+        assert tuple(observed.data.keys()) == tuple(expected.data.keys())
+        # now, check that each sample is the same
+        self._compare_bkpt_data(observed.data.items(), expected.data)
+        expected.fname.unlink()
+
+    def test_encode(self):
+        expected = self._get_expected_breakpoints()
+        expected.labels = {"YRI": 0, "CEU": 1}
+
+        observed = self._get_expected_breakpoints()
+        observed.encode()
+
+        assert observed.labels == expected.labels
+        assert len(expected.data) == len(observed.data)
+        for sample in expected.data:
+            for strand in range(len(expected.data[sample])):
+                exp_strand = expected.data[sample][strand]
+                obs_strand = observed.data[sample][strand]
+                assert len(exp_strand) == len(observed.data[sample][strand])
+                for obs, exp in zip(obs_strand["pop"], exp_strand["pop"]):
+                    assert expected.labels[exp] == obs
+
+    def test_recode(self):
+        expected = self._get_expected_breakpoints()
+
+        observed = self._get_expected_breakpoints()
+        observed.encode()
+        observed.recode()
+
+        self._compare_bkpt_data(observed.data.items(), expected.data)
 
     def test_breakpoints_to_pop_array(self):
         variants = np.array(
-            [("1", 59423080), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
+            [("1", 59423086), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
             dtype=[("chrom", "U10"), ("pos", np.uint32)],
         )
         expected_pop_arr = np.array(
             [
                 [
                     [0, 0],
-                    [0, 0],
+                    [1, 0],
                     [1, 0],
                     [0, 1],
                 ],
                 [
                     [1, 1],
-                    [1, 1],
+                    [0, 1],
                     [0, 1],
                     [1, 0],
                 ],
             ],
             dtype=np.uint8,
         )
+        labels = {"YRI": 0, "CEU": 1}
+        labels_map = np.vectorize({v: k for k, v in labels.items()}.get)
 
         expected = self._get_expected_breakpoints()
-        labels, pop_arr = expected.population_array(variants)
 
-        assert labels == {"YRI": 0, "CEU": 1}
-        np.testing.assert_allclose(pop_arr, expected_pop_arr)
+        pop_arr = expected.population_array(variants[[0, 1, 3]])
+        exp_arr_with_labels = labels_map(expected_pop_arr[:, [0, 1, 3]])
+        np.testing.assert_array_equal(pop_arr, exp_arr_with_labels)
+
+        expected.encode()
+        pop_arr = expected.population_array(variants[[0, 1, 3]])
+        assert expected.labels == labels
+        np.testing.assert_allclose(pop_arr, expected_pop_arr[:, [0, 1, 3]])
+
+        with pytest.raises(ValueError) as info:
+            labels, pop_arr = expected.population_array(variants)

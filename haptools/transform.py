@@ -600,6 +600,7 @@ def transform_haps(
             raise ValueError("A .bp file is needed when using --ancestry")
         bps = data.Breakpoints(fname=bps_file, log=log)
         bps.read(samples=set(gt.samples))
+        bps.encode()
         # convert the GenotypesRefAlt object to a GenotypesAncestry object
         # TODO: figure out a better solution for this
         # this is just a temp hack to get output from simgenotype to load a bit faster
@@ -607,9 +608,8 @@ def transform_haps(
         gta.data = gt.data
         gta.samples = gt.samples
         gta.variants = gt.variants
-        gta.ancestry_labels, gta.ancestry = bps.population_array(
-            gt.variants[["chrom", "pos"]]
-        )
+        gta.ancestry_labels = bps.labels
+        gta.ancestry = bps.population_array(gt.variants[["chrom", "pos"]])
         gt = gta
 
     # check that all of the variants were loaded successfully and warn otherwise

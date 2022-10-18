@@ -1,5 +1,5 @@
 from __future__ import annotations
-from csv import reader
+import csv
 from pathlib import Path
 from typing import NewType
 from collections import namedtuple
@@ -9,22 +9,22 @@ from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
+import numpy.lib.recfunctions as rcf
 
 from .data import Data
 
 
 # A haplotype block consists of
-# 1) A population label (str), like 'YRI'
-# 2) The end position of the block in bp (int), like 1001038
-# 3) The end position of the block in cM (int), like 43.078
-HapBlock = namedtuple("HapBlock", "pop bp cm")
+# 1) pop   - A population label (str), like 'YRI'
+# 2) chrom - A chromosome name (str), like 'chr19' or simply '19'
+# 3) bp    - The end position of the block in bp (int), like 1001038
+# 4) cm    - The end position of the block in cM (float), like 43.078
+HapBlock = [("pop", "U6"), ("chrom", "U10"), ("bp", np.uint32), ("cm", np.float64)]
 
-# This dict maps chroms (as strings) to a tuple of two lists, one for each chromosome
-# TODO: consider storing this in a np mixed array and then
-# using np.searchsorted() as in https://stackoverflow.com/a/48360950/16815703
+# This tuple lists the haplotype blocks in a sample, one set for each chromosome
 # Let's define a type alias, "SampleBlocks", for future use...
 SampleBlocks = NewType(
-    "SampleBlocks", "dict[str, tuple[list[HapBlock], list[HapBlock]]]"
+    "SampleBlocks", "list[npt.NDArray[HapBlock], npt.NDArray[HapBlock]]]"
 )
 
 
@@ -39,6 +39,9 @@ class Breakpoints(Data):
         This dict maps samples (as strings) to their haplotype blocks (as SampleBlocks)
     fname : Path | str
         The path to the file containing the data
+    labels : dict | None
+        A dictionary containing population labels. It maps each label to the unique
+        integers in the "pop" field of :py:attr:`~.Breakpoints.data`
     log: Logger
         A logging instance for recording debug statements.
 
@@ -50,6 +53,7 @@ class Breakpoints(Data):
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
         self._ext = "bp"
+        self.labels = None
 
     @classmethod
     def load(
@@ -113,8 +117,9 @@ class Breakpoints(Data):
             An iterator over each sample in the file, where the sample if specified
             first as a string, and then followed by its SampleBlocks
         """
+        # TODO: add a region parameter
         bps = hook_compressed(self.fname, mode="rt")
-        bp_text = reader(bps, delimiter="\t")
+        bp_text = csv.reader(bps, delimiter="\t")
         samp = None
         blocks = {}
         for line in bp_text:
@@ -142,27 +147,116 @@ class Breakpoints(Data):
                 else:
                     if samp is not None and (samples is None or samp in samples):
                         # output the previous sample
-                        yield samp, blocks
+                        yield samp, [np.array(b, dtype=HapBlock) for b in blocks]
                     samp = line[:-2]
-                    blocks = {}
+                    blocks = [[], []]
             elif len(line) == 4:
-                pop, chrom, pos, cm = line
-                block = blocks.setdefault(chrom, ([], []))[strand_num]
-                block.append(HapBlock(pop, int(pos), float(cm)))
+                blocks[strand_num].append(tuple(line))
             else:
                 self.log.warning(
                     f"Ignoring improperly formatted line in bp file: '{line}'"
                 )
         if samp is not None and (samples is None or samp in samples):
             # output the previous sample
-            yield samp, blocks
+            yield samp, [np.array(b, dtype=HapBlock) for b in blocks]
         bps.close()
+
+    def encode(self) -> dict[int, str]:
+        """
+        Replace each ancestral label in :py:attr:`~.Breakpoints.data` with an
+        equivalent integer. Store a dictionary mapping these integers back to their
+        respective labels.
+
+        This method modifies :py:attr:`~.Breakpoints.data` in place.
+
+        Returns
+        -------
+        dict[int, str]
+            A dictionary mapping each integer back to its ancestral label
+        """
+        if not (self.labels is None):
+            raise ValueError("The data has already been encoded.")
+        # save the order of the fields for later reordering
+        names = [f[0] for f in HapBlock]
+        # initialize labels dict and label counter
+        labels = {}
+        pop_count = 0
+        for sample, blocks in self.data.items():
+            for strand_num in range(len(blocks)):
+                # initialize and fill the array of integers
+                ints = np.zeros(len(blocks[strand_num]), dtype=[("pop", np.uint8)])
+                for i, pop in enumerate(blocks[strand_num]["pop"]):
+                    if pop not in labels:
+                        labels[pop] = pop_count
+                        pop_count += 1
+                    ints[i] = labels[pop]
+                # replace the "pop" labels
+                arr = rcf.drop_fields(blocks[strand_num], ["pop"])
+                blocks[strand_num] = rcf.merge_arrays((arr, ints), flatten=True)[names]
+        self.labels = labels
+
+    def recode(self):
+        """
+        Replace each integer in :py:attr:`~.Breakpoints.data` with an
+        equivalent ancestral label. Use the dictionary mapping these integers back to
+        their respective ancestral labels stored in :py:attr:`~.Breakpoints.labels`.
+
+        This method modifies :py:attr:`~.Breakpoints.data` in place.
+        """
+        if self.labels is None:
+            raise ValueError("The data has already been recoded.")
+        dtype = dict(HapBlock)
+        names = list(dtype.keys())
+        dtype = dtype["pop"]
+        map_func = np.vectorize({v: k for k, v in self.labels.items()}.get)
+        for sample, blocks in self.data.items():
+            for strand_num in range(len(blocks)):
+                # initialize and fill the array of pop labels
+                pops = map_func(blocks[strand_num]["pop"]).astype([("pop", dtype)])
+                # replace the "pop" labels
+                arr = rcf.drop_fields(blocks[strand_num], ["pop"])
+                blocks[strand_num] = rcf.merge_arrays((arr, pops), flatten=True)[names]
+        self.labels = None
+
+    @staticmethod
+    def _find_blocks(
+        blocks: npt.NDArray[np.uint32], positions: npt.NDArray[np.uint32]
+    ) -> npt.NDArray[np.uint32]:
+        """
+        For each position in the list of positions on a chromosome, locate the index of
+        its ancestral block within the numpy array of blocks
+
+        Uses binary search to make things fast
+
+        Parameters
+        ----------
+        blocks: npt.NDArray[np.uint32]
+            The end positions of each ancestral block, sorted in ascending order
+        positions: npt.NDArray[np.uint32]
+            The position of each variant on a chromosome. These are the positions at
+            which we'd like to query a sample's ancestry.
+
+        Returns
+        -------
+        npt.NDArray[np.uint16]
+            For each position in positions, return the index of its block in blocks
+        """
+        # use binary search to get the positions
+        indices = np.searchsorted(blocks, positions, side="left")
+        # if any indices exceed the length of the blocks, raise an error
+        if np.any(indices >= len(blocks)):
+            problem_position = positions[indices >= len(blocks)][0]
+            raise ValueError(
+                f"Position {problem_position} exceeds the range of the provided "
+                "haplotype blocks."
+            )
+        return indices
 
     def population_array(
         self,
         variants: np.array,
         samples: tuple[str] = None,
-    ) -> tuple[dict[str, int], npt.NDArray[np.uint8]]:
+    ) -> npt.NDArray:
         """
         Output an array denoting the population labels of each variant for each sample
 
@@ -176,40 +270,65 @@ class Breakpoints(Data):
 
         Returns
         ------
-        dict[str, int]
-            A dict mapping population label strings to unique integers
-        npt.NDArray[np.uint8]
+        npt.NDArray
             An array of shape: samples x variants x 2
 
-            The array is composed of unique integers, where each integer encodes a
-            population label in the returned dict
+            The array will have the same dtype as the population labels in the "pop"
+            field of :py:attr:`~.Breakpoints.data`. Use :py:meth:`~.Breakpoints.encode`
+            or :py:meth:`~.Breakpoints.recode` to change this.
         """
-        labels = {}
-        label_ct = 0
         if samples is None:
             data = self.data
         else:
             data = {samp: self.data[samp] for samp in samples}
-        arr = np.empty((len(data), len(variants), 2), dtype=np.uint8)
-        # Note: Despite the fact that this code has four nested for-loops, it is still
-        # 1-2 orders of magnitude faster than trying to load this array from a VCF
-        for samp_idx, blocks in enumerate(data.values()):
-            for var_idx, variant in enumerate(variants):
-                chrom, pos = variant
-                for strand_num in range(2):
-                    # try to figure out the right pop label by iterating through them
-                    # all in order from smallest bp to largest bp
-                    pop = blocks[chrom][strand_num][0].pop
-                    for block in blocks[chrom][strand_num]:
-                        if block.bp > pos:
-                            break
-                        pop = block.pop
-                    # obtain the proper pop label number
-                    if pop not in labels:
-                        labels[pop] = label_ct
-                        label_ct += 1
-                    arr[samp_idx, var_idx, strand_num] = labels[pop]
-        return labels, arr
+        # initialize the return matrix
+        dtype = HapBlock[0][1] if self.labels is None else np.uint8
+        arr = np.empty((len(data), len(variants), 2), dtype=dtype)
+        # iterate through the variants belonging to each chromosome
+        for chrom in set(variants["chrom"]):
+            var_idxs = variants["chrom"] == chrom
+            positions = variants["pos"][var_idxs]
+            # obtain the population labels of each sample
+            for samp_idx, samp_blocks in enumerate(data.values()):
+                for strand_num in range(len(samp_blocks)):
+                    blocks = samp_blocks[strand_num]
+                    chrom_block = blocks[blocks["chrom"] == chrom]
+                    # TODO: raise an exception if the end positions in chrom_block
+                    # aren't sorted
+                    # Now try to figure out the right population labels using binary
+                    # search and then store them in the result matrix
+                    arr[samp_idx, var_idxs, strand_num] = chrom_block["pop"][
+                        self._find_blocks(chrom_block["bp"], positions)
+                    ]
+        return arr
 
     def write(self):
-        raise ValueError("Not Implemented")
+        """
+        Write the breakpoints in this class to a file at :py:attr:`~.Breakpoints.fname`
+
+        Examples
+        --------
+        To write to a file, you must first initialize a Breakpoints object and then
+        fill out the names, data, and samples properties:
+        >>> from haptools.data import Breakpoints, HapBlock
+        >>> breakpoints = Breakpoints('simple.bp')
+        >>> breakpoints.data = {
+        >>>     'HG00096': [
+        >>>         np.array([('YRI','chr1',10114,4.3),('CEU','chr1',10116,5.2)], dtype=HapBlock)
+        >>>         np.array([('CEU','chr1',10114,4.3),('YRI','chr1',10116,5.2)], dtype=HapBlock)
+        >>>     ], 'HG00097': [
+        >>>         np.array([('YRI','chr1',10114,4.3),('CEU','chr2',10116,5.2)], dtype=HapBlock)
+        >>>         np.array([('CEU','chr1',10114,4.3),('YRI','chr2',10116,5.2)], dtype=HapBlock)
+        >>>     ]
+        >>> }
+        >>> breakpoints.write()
+        """
+        with hook_compressed(self.fname, mode="wt") as bkpts:
+            csv_writer = csv.writer(
+                bkpts, delimiter="\t", dialect="unix", quoting=csv.QUOTE_NONE
+            )
+            for samp, blocks in self.data.items():
+                for strand_num in range(len(blocks)):
+                    bkpts.write(f"{samp}_{strand_num+1}\n")
+                    for block in blocks[strand_num]:
+                        csv_writer.writerow(block)
