@@ -87,7 +87,7 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     required=True,
     type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
     help=(
-        "Directory containing files with chr\{1-22,X\} and ending in .map in the file "
+        "Directory containing files with chr{1-22,X} and ending in .map in the file "
         "name with genetic map coords."
     ),
 )
@@ -140,8 +140,8 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     required=False,
     default=None,
     help=(
-        "Subset the simulation to a specific region in a chromosome using the form chrom:start-end. "
-        "Example 2:1000-2000"
+        "Subset the simulation to a specific region in a chromosome using the form"
+        " chrom:start-end. Example 2:1000-2000"
     ),
 )
 @click.option(
@@ -195,21 +195,28 @@ def simgenotype(
     if region:
         region_info = re.split(":|-", region)
         try:
-            region = {'chr':region_info[0], 'start':int(region_info[1]), 
-                      'end':int(region_info[2])}
-            chroms = [region['chr']]
+            region = {
+                "chr": region_info[0],
+                "start": int(region_info[1]),
+                "end": int(region_info[2]),
+            }
+            chroms = [region["chr"]]
         except:
-            raise Exception("Unable to parse region. Please ensure it has the correct format "
-                            "<chr>:<start>-<end> eg. 1:1-2000")
+            raise Exception(
+                "Unable to parse region. Please ensure it has the correct format "
+                "<chr>:<start>-<end> eg. 1:1-2000"
+            )
     else:
         chroms = chroms.split(",")
 
     # Handle if mapdir has a '/' at the end
-    if mapdir[-1] == '/':
+    if mapdir[-1] == "/":
         mapdir = mapdir[:-1]
 
     # simulate breakpoints
-    popsize = validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint)
+    popsize = validate_params(
+        model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint
+    )
     samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed)
     breakpoints = write_breakpoints(samples, breakpoints, out)
     bp_end = time.time()
@@ -217,7 +224,8 @@ def simgenotype(
     # simulate vcfs
     vcf_start = time.time()
     if not only_breakpoint:
-        output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out) #TODO add region functionality
+        # TODO add region functionality
+        output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out)
     end = time.time()
 
     if verbose:
@@ -361,10 +369,11 @@ def simphenotype(
     from .sim_phenotype import simulate_pt
 
     log = logging.getLogger("haptools simphenotype")
-    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
+    db_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity, datefmt='%H:%M:%S',
+        format="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+        datefmt="%H:%M:%S",
     )
     # handle samples
     if samples and samples_file:
@@ -523,10 +532,11 @@ def transform(
     from .transform import transform_haps
 
     log = logging.getLogger("haptools transform")
-    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
+    db_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity, datefmt='%H:%M:%S',
+        format="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+        datefmt="%H:%M:%S",
     )
     # handle samples
     if samples and samples_file:
@@ -699,10 +709,11 @@ def ld(
     from .ld import calc_ld
 
     log = logging.getLogger("haptools ld")
-    debug_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
+    db_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
     logging.basicConfig(
-        format="[%(levelname)8s"+debug_time+"] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity, datefmt='%H:%M:%S',
+        format="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
+        level=verbosity,
+        datefmt="%H:%M:%S",
     )
     # handle samples
     if samples and samples_file:
@@ -720,9 +731,9 @@ def ld(
 
     if ids_file:
         with ids_file as id_file:
-            ids = set(id_file.read().splitlines())
+            ids = tuple(id_file.read().splitlines())
     elif ids:
-        ids = set(ids)
+        ids = tuple(ids)
     else:
         ids = None
 

@@ -46,14 +46,13 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float:
     return np.corrcoef(arrA, arrB)[1, 0]
 
 
-
 def calc_ld(
     target: str,
     genotypes: Path,
     haplotypes: Path,
     region: str = None,
     samples: list[str] = None,
-    ids: set[str] = None,
+    ids: tuple[str] = None,
     chunk_size: int = None,
     discard_missing: bool = False,
     from_gts: bool = False,
@@ -106,6 +105,9 @@ def calc_ld(
             level="ERROR",
         )
 
+    # convert IDs to set but save the tuple
+    ids_tup, ids = ids, (set(ids) if ids is not None else None)
+
     log.info("Loading haplotypes")
     hp = data.Haplotypes(haplotypes, log=log)
     haplotype_ids = None
@@ -116,13 +118,11 @@ def calc_ld(
     hp.read(region=region, haplotypes=haplotype_ids)
 
     if from_gts:
-        variants = ids or set()
-        if target in hp.data:
+        variants = None
+        if target in hp.data and ids:
+            variants = ids.copy()
             log.info("Extracting variants from haplotypes")
-            variants.update(
-                var.id for hap in hp.data.values()
-                for var in hap.variants if hap.id == target
-            )
+            variants.update(var.id for var in hp.data[target].variants)
     else:
         log.info("Extracting variants from haplotypes")
         variants = {var.id for hap in hp.data.values() for var in hap.variants}
@@ -138,7 +138,7 @@ def calc_ld(
             )
 
     # check that all of the haplotypes were loaded successfully and warn otherwise
-    if ids is not None and len(ids) > len(hp.data):
+    if ids is not None and not from_gts and len(ids) > len(hp.data):
         diff = list(ids.difference(hp.data.keys()))
         first_few = 5 if len(diff) > 5 else len(diff)
         log.warning(
@@ -165,7 +165,7 @@ def calc_ld(
     gt.check_phase()
 
     # check that all of the variants were loaded successfully and warn otherwise
-    if len(variants) < len(gt.variants):
+    if variants and len(variants) < len(gt.variants):
         # check to see whether the target got loaded if it wasn't a haplotype
         if not (isinstance(target, data.Haplotype) or (target in gt.variants["id"])):
             raise ValueError(
@@ -191,6 +191,8 @@ def calc_ld(
     log.info("Obtaining target genotypes")
     if isinstance(target, data.Haplotype):
         target_gts = target.transform(gt).sum(axis=1)
+        if from_gts and ids is not None:
+            gt.subset(variants=ids_tup, inplace=True)
     else:
         target_gts = gt.subset(variants=(target,)).data[:, 0, :2].sum(axis=1)
 
