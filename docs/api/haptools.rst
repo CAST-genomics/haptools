@@ -65,6 +65,16 @@ haptools.data.haplotypes module
    :undoc-members:
    :show-inheritance:
 
+.. _api-haptools-data-breakpoints:
+
+haptools.data.breakpoints module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.data.breakpoints
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 haptools.sim_genotype module
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

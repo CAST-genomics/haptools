@@ -39,6 +39,9 @@ class Breakpoints(Data):
         This dict maps samples (as strings) to their haplotype blocks (as SampleBlocks)
     fname : Path | str
         The path to the file containing the data
+    labels : dict | None
+        A dictionary containing population labels. It maps each label to the unique
+        integers in the "pop" field of :py:attr:`~.Breakpoints.data`
     log: Logger
         A logging instance for recording debug statements.
 

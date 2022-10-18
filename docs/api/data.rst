@@ -390,7 +390,7 @@ The ``load()`` method initializes an instance of the :class:`Phenotypes` class a
 	phenotypes.read()
 	phenotypes.data # returns a np array of shape p x k
 
-Both the ``load()`` and ``read()`` methods support the `samples` parameter that allows you to request a specific set of sample IDs to read from the file.
+Both the ``load()`` and ``read()`` methods support the ``samples`` parameter that allows you to request a specific set of sample IDs to read from the file.
 
 .. code-block:: python
 
@@ -446,3 +446,126 @@ Classes
 Covariates
 ++++++++++
 The :class:`Covariates` class is simply a sub-class of the :class:`Phenotypes` class. It has all of the same methods and properties. There are no major differences between the two classes, except between the file extensions that they use.
+
+breakpoints.py
+~~~~~~~~~~~~~~
+Overview
+--------
+This module supports reading and writing files that follow the **.bp** file format specification.
+
+Lines from the file are parsed into an instance of the :class:`Breakpoints` class.
+
+Documentation
+-------------
+
+1. The **.bp** :ref:`format specification <formats-breakpoints>`
+2. The :ref:`breakpoints.py API docs <api-haptools-data-breakpoints>` contain example usage of the :class:`Breakpoints` class
+
+Classes
+-------
+Breakpoints
++++++++++++
+Properties
+**********
+Just like all other classes in the data module, the :class:`Breakpoints` class has a ``data`` property. It is a dictionary, keyed by sample ID, where each value is a two-element list of numpy arrays (one for each chromosome). Each column in the array corresponds with a column in the breakpoints file:
+
+1. ``pop`` - A population label (str), like 'YRI'
+2. ``chrom`` - A chromosome name (str), like 'chr19' or simply '19'
+3. ``bp`` - The end position of the block in base pairs (int), like 1001038
+4. ``cm`` - The end position of the block in centiMorgans (float), like 43.078
+
+The dtype of each numpy array is stored as a variable called ``HapBlock``. It is available globally in the ``breakpoints`` and ``data`` modules.
+
+.. code-block:: python
+
+	from haptools import data
+	data.HapBlock # the dtype of each numpy array in the data property
+
+Reading a file
+**************
+Loading a **.bp** file is easy.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints.load('tests/data/simple.bp')
+	breakpoints.data # returns a dictionary keyed by sample ID, where each value is a list of np arrays
+
+The ``load()`` method initializes an instance of the :class:`Breakpoints` class and calls the ``read()`` method, but you can also call the ``read()`` method manually.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints('tests/data/simple.bp')
+	breakpoints.read()
+	breakpoints.data # returns a dictionary keyed by sample ID, where each value is a list of np arrays
+
+Both the ``load()`` and ``read()`` methods support the ``samples`` parameter that allows you to request a specific set of sample IDs to read from the file.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints('tests/data/simple.bp')
+	breakpoints.read(samples={"HG00097", "HG00099"})
+
+Iterating over a file
+*********************
+If you're worried that the contents of the **.bp** file will be large, you may opt to parse the file sample-by-sample instead of loading it all into memory at once.
+
+In cases like these, you can use the ``__iter__()`` method in a for-loop.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints('tests/data/simple.bp')
+	for sample, blocks in breakpoints:
+	    print(sample, blocks)
+
+You'll have to call ``__iter()__`` manually if you want to specify any function parameters.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints('tests/data/simple.bp')
+	for sample, blocks in breakpoints.__iter__(samples={"HG00097", "HG00099"}):
+	    print(sample, blocks)
+
+Obtaining ancestral labels for a list of positions
+**************************************************
+In the end, we're usually only interested in the ancestral labels of a set of variant positions, as a matrix of values. The ``population_array()`` method generates a numpy array denoting the ancestral label of each sample for each variant you specify.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints.load('tests/data/simple.bp')
+	variants = np.array(
+	    [("1", 10119), ("1", 10121)],
+	    dtype = [("chrom", "U10"), ("pos", np.uint32)],
+	)
+	arr = breakpoints.population_array(variants=variants)
+	arr # returns a np array of shape n x p x 2 (where p = 2 in this example)
+
+You can also select a subset of samples. The samples returned in the matrix will follow the order specified.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints.load('tests/data/simple.bp')
+	variants = np.array(
+	    [("1", 10119), ("1", 10121)],
+	    dtype = [("chrom", "U10"), ("pos", np.uint32)],
+	)
+	samples = (HG00096, HG00100)
+	arr = breakpoints.population_array(variants=variants, samples=samples)
+	arr # returns a np array of shape 2 x p x 2 (where p = 2 in this example)
+
+Writing a file
+**************
+To write to a **.bp** file, you must first initialize a :class:`Breakpoints` object and then fill out the ``data`` property.
+
+.. code-block:: python
+
+	breakpoints = data.Breakpoints('tests/data/example-write.bp')
+	breakpoints.data = {
+	    'HG00096': [
+	        np.array([('YRI','chr1',10114,4.3),('CEU','chr1',10116,5.2)], dtype=data.HapBlock)
+	        np.array([('CEU','chr1',10114,4.3),('YRI','chr1',10116,5.2)], dtype=data.HapBlock)
+	    ], 'HG00097': [
+	        np.array([('YRI','chr1',10114,4.3),('CEU','chr2',10116,5.2)], dtype=data.HapBlock)
+	        np.array([('CEU','chr1',10114,4.3),('YRI','chr2',10116,5.2)], dtype=data.HapBlock)
+	    ]
+	}
+	breakpoints.write()
