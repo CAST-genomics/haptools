@@ -220,8 +220,7 @@ class Breakpoints(Data):
 
     @staticmethod
     def _find_blocks(
-        blocks: npt.NDArray[np.uint32],
-        positions: npt.NDArray[np.uint32]
+        blocks: npt.NDArray[np.uint32], positions: npt.NDArray[np.uint32]
     ) -> npt.NDArray[np.uint32]:
         """
         For each position in the list of positions on a chromosome, locate the index of
@@ -283,7 +282,7 @@ class Breakpoints(Data):
         else:
             data = {samp: self.data[samp] for samp in samples}
         # initialize the return matrix
-        dtype = (HapBlock[0][1] if self.labels is None else np.uint8)
+        dtype = HapBlock[0][1] if self.labels is None else np.uint8
         arr = np.empty((len(data), len(variants), 2), dtype=dtype)
         # iterate through the variants belonging to each chromosome
         for chrom in set(variants["chrom"]):
