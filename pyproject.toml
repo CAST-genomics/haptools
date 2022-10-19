@@ -66,6 +66,7 @@ haptools = 'haptools.__main__:main'
 [tool.black]
 line-length = 88
 preview = true
+extend-exclude = "haptools/(sim_genotype|karyogram).py"
 
 [tool.pytest.ini_options]
 log_cli_level = "DEBUG"
