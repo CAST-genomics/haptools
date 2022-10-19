@@ -502,9 +502,14 @@ class Genotypes(Data):
         # remove the last dimension that contains the phase info
         self.data = self.data[:, :, :2]
 
-    def check_maf(self, threshold: float = None, discard_also: bool = False):
+    def check_maf(
+        self,
+        threshold: float = None,
+        discard_also: bool = False,
+        warn_only: bool = False,
+    ) -> npt.NDArray[np.float64]:
         """
-        Return the minor allele frequency of each variant
+        Check the minor allele frequency of each variant
 
         Raise a ValueError if any variant's MAF doesn't satisfy the threshold, if
         one is provided
@@ -523,11 +528,17 @@ class Genotypes(Data):
             If True, discard any variants that would otherwise cause a ValueError
 
             This parameter will be ignored if a threshold is not specified
+        warn_only: bool, optional
+            Just raise a warning instead of a ValueError
 
         Raises
         ------
         ValueError
             If any variant does not meet the provided threshold minor allele frequency
+
+        Returns
+        -------
+            The minor allele frequency of each variant
         """
         num_strands = 2 * self.data.shape[0]
         # TODO: make this work for multi-allelic variants, too?
@@ -542,6 +553,7 @@ class Genotypes(Data):
                 original_num_variants = len(self.variants)
                 self.data = np.delete(self.data, idx, axis=1)
                 self.variants = np.delete(self.variants, idx)
+                maf = np.delete(maf, idx)
                 self.log.info(
                     "Ignoring missing genotypes from "
                     f"{original_num_variants - len(self.variants)} samples"
@@ -549,12 +561,14 @@ class Genotypes(Data):
                 self._var_idx = None
             else:
                 vals = tuple(self.variants[idx[0]])[:3] + (maf[idx[0]], threshold)
-                # raise error if the minor allele frequency of a variant does not meet
-                # the threshold
-                raise ValueError(
-                    "Variant with ID {} at POS {}:{} has MAF {} < {}".format(*vals)
-                )
-        return ref_af
+                msg = "Variant with ID {} at POS {}:{} has MAF {} < {}".format(*vals)
+                if warn_only:
+                    self.log.warning(msg)
+                else:
+                    # raise error if the minor allele frequency of a variant does not
+                    # meet the threshold
+                    raise ValueError(msg)
+        return maf
 
 
 class GenotypesRefAlt(Genotypes):
