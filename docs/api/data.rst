@@ -129,6 +129,17 @@ There are several quality-control checks performed by default (in the ``load()``
 2. ``check_biallelic()`` - raises an error if any variants have more than one ALT allele
 3. ``check_phase()`` - raises an error if any genotypes are unphased
 
+Additionally, you can use the ``check_maf()`` method after checking for missing genotypes and confirming that all variants are biallelic.
+
+.. code-block:: python
+
+	genotypes = data.Genotypes('tests/data/simple.vcf.gz')
+	genotypes.read()
+	genotypes.check_missing()
+	genotypes.check_biallelic()
+	genotypes.check_maf(threshold=0.05)
+	genotypes.check_phase()
+
 Subsetting
 **********
 You can index into a loaded :class:`Genotypes` instance using the ``subset()`` function. This works similiar to numpy indexing with the added benefit that you can specify a subset of variants and/or samples by their IDs instead of just their indices.
