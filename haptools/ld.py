@@ -57,7 +57,7 @@ def calc_ld(
     discard_missing: bool = False,
     from_gts: bool = False,
     output: Path = Path("/dev/stdout"),
-    log: Logger = None,
+    log: logging.Logger = None,
 ):
     """
     Creates a VCF composed of haplotypes

@@ -297,15 +297,15 @@ class Genotypes(Data):
         Call this function once to improve the amortized time-complexity of look-ups of
         samples and variants by their ID. This is useful if you intend to later subset
         by a set of samples or variant IDs.
-        The time complexity of this function should be roughly O(n+m) if both
-        parameters are True. Otherwise, it will be either O(n) or O(m).
+        The time complexity of this function should be roughly O(n+p) if both
+        parameters are True. Otherwise, it will be either O(n) or O(p).
 
         Parameters
         ----------
         samples: bool, optional
             Whether to index the samples for fast loop-up. Adds complexity O(n).
         variants: bool, optional
-            Whether to index the variants for fast look-up. Adds complexity O(m).
+            Whether to index the variants for fast look-up. Adds complexity O(p).
 
         Raises
         ------

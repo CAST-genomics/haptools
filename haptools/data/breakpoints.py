@@ -269,7 +269,7 @@ class Breakpoints(Data):
             A subset of samples to include in the output, ordered by their given order
 
         Returns
-        ------
+        -------
         npt.NDArray
             An array of shape: samples x variants x 2
 

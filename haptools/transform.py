@@ -510,7 +510,7 @@ def transform_haps(
     discard_missing: bool = False,
     ancestry: bool = False,
     output: Path = Path("-"),
-    log: Logger = None,
+    log: logging.Logger = None,
 ):
     """
     Creates a VCF composed of haplotypes
