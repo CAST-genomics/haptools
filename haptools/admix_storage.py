@@ -11,7 +11,7 @@ class GeneticMarker:
 
     def __str__(self):
         return f"(Chrom {self.chrom}, {self.cm_map_pos} cM, {self.bp_map_pos} bp)"
-    
+
     def get_chrom(self):
         return self.chrom
 
@@ -30,12 +30,18 @@ class HaplotypeSegment:
     def __init__(self, pop_num, chrom, end_coord, end_pos):
         """
         Note the beginning of the segment is inferred based on previous
-        segments stored throughout the simulation process. 
-        Arguments
-            pop_num - population label
-            chrom - chromosome the haplotype segment lies on.
-            end_coord - Ending coordinate in bp of the haplotype segment
-            end_pos - Ending coordinate in centimorgans of the hap segment
+        segments stored throughout the simulation process.
+
+        Parameters
+        ----------
+            pop_num
+                population label
+            chrom
+                chromosome the haplotype segment lies on.
+            end_coord
+                Ending coordinate in bp of the haplotype segment
+            end_pos
+                Ending coordinate in centimorgans of the hap segment
         """
         self.pop_num = pop_num
         self.chrom = chrom
@@ -43,12 +49,16 @@ class HaplotypeSegment:
         self.end_pos = end_pos
 
     def __repr__(self):
-        return f"(Population {self.pop_num}, chrom {self.chrom}, " + \
-               f"end_coord {self.end_coord}, end_pos {self.end_pos})"
+        return (
+            f"(Population {self.pop_num}, chrom {self.chrom}, "
+            + f"end_coord {self.end_coord}, end_pos {self.end_pos})"
+        )
 
     def __str__(self):
-        return f"Population {self.pop_num}, chrom {self.chrom}, " + \
-               f"end_coord {self.end_coord}, end_pos {self.end_pos}"
+        return (
+            f"Population {self.pop_num}, chrom {self.chrom}, "
+            + f"end_coord {self.end_coord}, end_pos {self.end_pos}"
+        )
 
     def get_end_pos(self):
         return self.end_pos
