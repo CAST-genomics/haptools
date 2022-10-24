@@ -88,7 +88,7 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
     gt.read(variants=variants)
     # the advantage of using a PGEN file is that you can use read_variants() to load
     # the variants quickly w/o having to load the genotypes, too
-    gt = data.GenotypesPGEN("tests/data/apoe.pgen")
+    gt = data.GenotypesPLINK("tests/data/apoe.pgen")
     gt.read_variants(variants=variants)
 
     # initialize an empty haplotype file
