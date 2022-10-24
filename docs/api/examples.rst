@@ -25,7 +25,7 @@ As an example, let's say we would like to convert the following ``.blocks.det`` 
     # load the genotypes file
     # you can use either a VCF or PGEN file
     gt = data.GenotypesRefAlt.load("input.vcf.gz")
-    gt = data.GenotypesPGEN.load("input.pgen")
+    gt = data.GenotypesPLINK.load("input.pgen")
 
     # load the haplotypes
     hp = data.Haplotypes("output.hap")
