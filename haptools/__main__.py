@@ -764,7 +764,7 @@ def ld(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
-    default= None,
+    default=None,
     show_default="input file",
     help="A .hap file containing sorted and indexed haplotypes and variants",
 )
@@ -778,11 +778,10 @@ def ld(
 )
 def index(
     haplotypes: Path,
-    sort: bool= False,
+    sort: bool = False,
     output: Path = None,
-    verbosity: str = 'CRITICAL',
+    verbosity: str = "CRITICAL",
 ):
-
     """
     Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
     """

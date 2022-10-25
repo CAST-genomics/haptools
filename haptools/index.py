@@ -33,7 +33,7 @@ def index_haps(
     haplotypes: Path,
     sort: bool = False,
     output: Path = None,
-    log: Logger = None,
+    log: logging.Logger = None,
 ):
     """
     Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file

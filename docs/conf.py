@@ -49,7 +49,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 autosummary_generate = True
 numpydoc_show_class_members = False
 # allow for both rst and md syntax
-source_suffix = ['.rst']
+source_suffix = [".rst"]
 
 # -- Options for HTML output -------------------------------------------------
 

@@ -39,17 +39,12 @@ class TestGenotypes:
         gts.data = self._get_expected_genotypes()
         gts.variants = np.array(
             [
-                ("1:10114:T:C", "1", 10114, 0),
-                ("1:10116:A:G", "1", 10116, 0.6),
-                ("1:10117:C:A", "1", 10117, 0),
-                ("1:10122:A:G", "1", 10122, 0),
+                ("1:10114:T:C", "1", 10114),
+                ("1:10116:A:G", "1", 10116),
+                ("1:10117:C:A", "1", 10117),
+                ("1:10122:A:G", "1", 10122),
             ],
-            dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("pos", np.uint32),
-                ("aaf", np.float64),
-            ],
+            dtype=gts.variants.dtype,
         )
         gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         gts.check_phase()
@@ -115,18 +110,6 @@ class TestGenotypes:
         # try to check phase again - it should warn b/c we've already done it before
         caplog.clear()
         gts.check_phase()
-        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
-
-        # convert the matrix of alt allele counts to a matrix of minor allele counts
-        assert gts.variants["aaf"][1] == 0.6
-        gts.to_MAC()
-        expected[:, 1, :] = ~expected[:, 1, :]
-        np.testing.assert_allclose(gts.data, expected)
-        assert gts.variants["maf"][1] == 0.4
-
-        # try to do the MAC conversion again - it should warn b/c we've already done it
-        caplog.clear()
-        gts.to_MAC()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
     def test_load_genotypes_example(self):
@@ -248,6 +231,38 @@ class TestGenotypes:
         assert gts_sub.samples == samples
         np.testing.assert_allclose(gts_sub.data, expected_data)
         assert np.array_equal(gts_sub.variants, expected_variants)
+
+    def test_check_maf(self, caplog):
+        gts = self._get_fake_genotypes()
+        expected_maf = np.array([0, 0.4, 0, 0])
+
+        maf = gts.check_maf()
+        np.testing.assert_allclose(maf, expected_maf)
+
+        msg = "Variant with ID 1:10114:T:C at POS 1:10114 has MAF 0.0 < 0.01"
+        with pytest.raises(ValueError) as info:
+            gts.check_maf(threshold=0.01)
+        assert str(info.value) == msg
+
+        # test just the warning system
+        caplog.clear()
+        maf = gts.check_maf(threshold=0.01, warn_only=True)
+        assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
+
+        maf = gts.check_maf(threshold=0, discard_also=True)
+        np.testing.assert_allclose(maf, expected_maf)
+        assert len(gts.variants) == 4
+        assert gts.data.shape[1] == 4
+
+        maf = gts.check_maf(threshold=0.01, discard_also=True)
+        np.testing.assert_allclose(maf, expected_maf[1])
+        assert len(gts.variants) == 1
+        assert gts.data.shape[1] == 1
+
+        maf = gts.check_maf(threshold=0.5, discard_also=True)
+        np.testing.assert_allclose(maf, expected_maf[:0])
+        assert len(gts.variants) == 0
+        assert gts.data.shape[1] == 0
 
 
 class TestGenotypesPLINK:
@@ -631,7 +646,6 @@ class TestHaplotypes:
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941960")
         assert expected == haps.data
-
 
     def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?

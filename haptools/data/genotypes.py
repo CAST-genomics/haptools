@@ -32,7 +32,6 @@ class Genotypes(Data):
             1. ID
             2. CHROM
             3. POS
-            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
     log: Logger
         A logging instance for recording debug statements
     _prephased : bool
@@ -61,7 +60,6 @@ class Genotypes(Data):
                 ("id", "U50"),
                 ("chrom", "U10"),
                 ("pos", np.uint32),
-                ("aaf", np.float64),
             ],
         )
         self._prephased = False
@@ -219,7 +217,7 @@ class Genotypes(Data):
             A row from the :py:attr:`~.Genotypes.variants` array
         """
         return np.array(
-            (record.ID, record.CHROM, record.POS, record.aaf),
+            (record.ID, record.CHROM, record.POS),
             dtype=self.variants.dtype,
         )
 
@@ -299,15 +297,15 @@ class Genotypes(Data):
         Call this function once to improve the amortized time-complexity of look-ups of
         samples and variants by their ID. This is useful if you intend to later subset
         by a set of samples or variant IDs.
-        The time complexity of this function should be roughly O(n+m) if both
-        parameters are True. Otherwise, it will be either O(n) or O(m).
+        The time complexity of this function should be roughly O(n+p) if both
+        parameters are True. Otherwise, it will be either O(n) or O(p).
 
         Parameters
         ----------
         samples: bool, optional
             Whether to index the samples for fast loop-up. Adds complexity O(n).
         variants: bool, optional
-            Whether to index the variants for fast look-up. Adds complexity O(m).
+            Whether to index the variants for fast look-up. Adds complexity O(p).
 
         Raises
         ------
@@ -504,37 +502,73 @@ class Genotypes(Data):
         # remove the last dimension that contains the phase info
         self.data = self.data[:, :, :2]
 
-    def to_MAC(self):
+    def check_maf(
+        self,
+        threshold: float = None,
+        discard_also: bool = False,
+        warn_only: bool = False,
+    ) -> npt.NDArray[np.float64]:
         """
-        Convert the ALT count GT matrix into a matrix of minor allele counts
+        Check the minor allele frequency of each variant
 
-        This function modifies :py:attr:`~.Genotypes.data` in-place
+        Raise a ValueError if any variant's MAF doesn't satisfy the threshold, if
+        one is provided
 
-        It also changes the 'aaf' record in :py:attr:`~.Genotypes.variants` to 'maf'
+        .. note::
+            You should call :py:meth:`~.Genotypes.check_missing` and
+            :py:meth:`~.Genotypes.check_biallelic` before executing this method, for
+            best results. Otherwise, the frequencies may be computed incorrectly.
+
+        Parameters
+        ----------
+        threshold: float, optional
+            If a variant has a minor allele frequency (MAF) rarer than this threshold,
+            raise a ValueError
+        discard_also : bool, optional
+            If True, discard any variants that would otherwise cause a ValueError
+
+            This parameter will be ignored if a threshold is not specified
+        warn_only: bool, optional
+            Just raise a warning instead of a ValueError
 
         Raises
         ------
-        AssertionError
-            If the matrix has already been converted
+        ValueError
+            If any variant does not meet the provided threshold minor allele frequency
+
+        Returns
+        -------
+            The minor allele frequency of each variant
         """
-        if self.variants.dtype.names[3] == "maf":
-            self.log.warning(
-                "The matrix already counts instances of the minor allele rather than "
-                "the ALT allele."
-            )
-            return
-        need_conversion = self.variants["aaf"] > 0.5
-        # flip the count on the variants that have an alternate allele frequency
-        # above 0.5
-        self.data[:, need_conversion, :2] = ~self.data[:, need_conversion, :2]
-        # also encode an MAF instead of an AAF in self.variants
-        self.variants["aaf"][need_conversion] = (
-            1 - self.variants["aaf"][need_conversion]
-        )
-        # replace 'aaf' with 'maf' in the matrix
-        self.variants.dtype.names = [
-            (x, "maf")[x == "aaf"] for x in self.variants.dtype.names
-        ]
+        num_strands = 2 * self.data.shape[0]
+        # TODO: make this work for multi-allelic variants, too?
+        ref_af = self.data[:, :, :2].astype(np.bool_).sum(axis=(0, 2)) / num_strands
+        maf = np.array([ref_af, 1 - ref_af]).min(axis=0)
+        if threshold is None:
+            return maf
+        rare_variants = maf < threshold
+        if np.any(rare_variants):
+            idx = np.nonzero(rare_variants)[0]
+            if discard_also:
+                original_num_variants = len(self.variants)
+                self.data = np.delete(self.data, idx, axis=1)
+                self.variants = np.delete(self.variants, idx)
+                maf = np.delete(maf, idx)
+                self.log.info(
+                    "Ignoring missing genotypes from "
+                    f"{original_num_variants - len(self.variants)} samples"
+                )
+                self._var_idx = None
+            else:
+                vals = tuple(self.variants[idx[0]])[:3] + (maf[idx[0]], threshold)
+                msg = "Variant with ID {} at POS {}:{} has MAF {} < {}".format(*vals)
+                if warn_only:
+                    self.log.warning(msg)
+                else:
+                    # raise error if the minor allele frequency of a variant does not
+                    # meet the threshold
+                    raise ValueError(msg)
+        return maf
 
 
 class GenotypesRefAlt(Genotypes):
@@ -556,9 +590,8 @@ class GenotypesRefAlt(Genotypes):
             1. ID
             2. CHROM
             3. POS
-            4. AAF: allele freq of alternate allele (or MAF if to_MAC() is called)
-            5. REF
-            6. ALT
+            4. REF
+            5. ALT
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
@@ -571,7 +604,6 @@ class GenotypesRefAlt(Genotypes):
                 ("id", "U50"),
                 ("chrom", "U10"),
                 ("pos", np.uint32),
-                ("aaf", np.float64),
                 ("ref", "U100"),
                 ("alt", "U100"),
             ],
@@ -586,7 +618,6 @@ class GenotypesRefAlt(Genotypes):
                 record.ID,
                 record.CHROM,
                 record.POS,
-                record.aaf,
                 record.REF,
                 record.ALT[0],
             ),
@@ -795,7 +826,6 @@ class GenotypesPLINK(GenotypesRefAlt):
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                0.5,
                 record[cid["REF"]],
                 record[cid["ALT"]],
             ),
