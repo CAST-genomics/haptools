@@ -27,10 +27,8 @@ Installing ``haptools`` with the "files" extra requirements enables automatic su
 
    pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
 
-Summary of Commands
-~~~~~~~~~~~~~~~~~~~
-
-``haptools`` consists of multiple utilities listed below. Click on a utility to see more detailed usage information.
+Commands
+~~~~~~~~
 
 * `haptools simgenotype </commands/simgenotype>`_: Simulate genotypes for admixed individuals under user-specified demographic histories.
 
@@ -40,7 +38,14 @@ Summary of Commands
 
 * `haptools transform </commands/transform>`_: Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
 
+* `haptools index </commands/index>`_: Sort, compress, and index our custom file format for haplotypes.
+
 * `haptools ld </commands/ld>`_: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
+
+.. figure:: https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_
+  :figwidth: 600
+  :align: center
+  :alt: Overview of haptools commands
 
 Outputs produced by these utilities are compatible with each other.
 For example ``haptools simgenotype`` outputs a VCF file with local ancestry information annotated for each variant.
