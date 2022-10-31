@@ -10,17 +10,17 @@ We support fast simulation of admixed genomes, visualization of admixture tracks
 Commands
 ~~~~~~~~
 
-* `haptools simgenotype </commands/simgenotype>`_: Simulate genotypes for admixed individuals under user-specified demographic histories.
+* :doc:`haptools simgenotype </commands/simgenotype>`: Simulate genotypes for admixed individuals under user-specified demographic histories.
 
-* `haptools simphenotype </commands/simphenotype>`_: Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. ``haptools simphenotype`` takes as input a VCF file (usually from ``haptools transform``) and outputs simulated phenotypes for each sample.
+* :doc:`haptools simphenotype </commands/simphenotype>`: Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. ``haptools simphenotype`` takes as input a VCF file (usually from ``haptools transform``) and outputs simulated phenotypes for each sample.
 
-* `haptools karyogram </commands/karyogram>`_: Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by ``haptools simgenotype``.
+* :doc:`haptools karyogram </commands/karyogram>`: Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by ``haptools simgenotype``.
 
-* `haptools transform </commands/transform>`_: Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
+* :doc:`haptools transform </commands/transform>`: Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
 
-* `haptools index </commands/index>`_: Sort, compress, and index our custom file format for haplotypes.
+* :doc:`haptools index </commands/index>`: Sort, compress, and index our custom file format for haplotypes.
 
-* `haptools ld </commands/ld>`_: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
+* :doc:`haptools ld </commands/ld>`: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
 
 .. figure:: https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_
   :figwidth: 600
