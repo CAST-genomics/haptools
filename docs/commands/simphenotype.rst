@@ -4,14 +4,9 @@
 simphenotype
 ============
 
-Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variables to use within the simulation by specifying them in a :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
-
-To encode simple SNPs as causal variants within a ``.hap`` file, use the haptools API like in :ref:`this example <api-examples-snps2hap>`.
+Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal haplotypes or variants by specifying them in a :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
-
-.. note::
-   Your ``.hap`` files must contain a "beta" extra field. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
 
 Usage
 ~~~~~
@@ -57,11 +52,21 @@ The heritability :math:`h^2` is user-specified, but if it is not provided, then 
 
 If a prevalence for the disease is specified, the final :math:`\vec{y}` value will be thresholded to produce a binary case/control trait with the desired fraction of diseased individuals.
 
+Input
+~~~~~
+Genotypes must be specified in VCF and haplotypes must be specified in the :doc:`.hap file format </formats/haplotypes>`. If you'd like to encode simple SNPs as causal variants within a ``.hap`` file, use the haptools API like in :ref:`this example <api-examples-snps2hap>`.
+
+.. note::
+   Your ``.hap`` files must contain a "beta" extra field. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
+
+Alternatively, you may also specify genotypes in PLINK2 PGEN format. Just use the appropriate ".pgen" file extension in the input. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
+
 Output
 ~~~~~~
 Phenotypes are output in the PLINK2-style ``.pheno`` file format. If ``--replications`` was set to greater than 1, additional columns are output for each simulated trait.
 
-Note that case/control phenotypes are encoded as 0 (control) + 1 (case) **not** 1 (control) + 2 (case). The latter is used by PLINK2 unless the ``--1`` flag is used (see `the PLINK2 docs <https://www.cog-genomics.org/plink/2.0/input#input_missing_phenotype>`_). Therefore, you must use ``--1`` when providing our ``.pheno`` files to PLINK.
+.. note::
+   Case/control phenotypes are encoded as 0 (control) + 1 (case) **not** 1 (control) + 2 (case). The latter is assumed by PLINK2 unless the ``--1`` flag is used (see `the PLINK2 docs <https://www.cog-genomics.org/plink/2.0/input#input_missing_phenotype>`_). Therefore, you must use ``--1`` when providing our ``.pheno`` files to PLINK.
 
 Examples
 ~~~~~~~~
