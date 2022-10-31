@@ -3,29 +3,9 @@
 haptools
 ========
 
-Haptools is a collection of tools for simulating and analyzing genotypes and phenotypes while taking into account haplotype information. It is particularly designed for analysis of individuals with admixed ancestries, although the tools can also be used for non-admixed individuals.
+Haptools is a collection of tools for simulating and analyzing genotypes and phenotypes while taking into account haplotype and ancestry information.
 
-Installation
-~~~~~~~~~~~~
-.. note::
-   To reduce the likelihood of errors, we recommend installing ``haptools`` within a new conda environment using a recent version of pip:
-
-   .. code-block:: bash
-
-      conda create -y -n haptools -c conda-forge 'pip>=22.2.2'
-      conda activate haptools
-
-We have not officially published ``haptools`` yet, but in the meantime, you can install it directly from our Github repository.
-
-.. code-block:: bash
-
-   pip install git+https://github.com/cast-genomics/haptools.git
-
-Installing ``haptools`` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
-
-.. code-block:: bash
-
-   pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
+We support fast simulation of admixed genomes, visualization of admixture tracks, simulating haplotype- and local ancestry-specific phenotype effects, and computing a variety of common file operations and statistics in a haplotype-aware manner.
 
 Commands
 ~~~~~~~~
@@ -59,6 +39,15 @@ We gladly welcome any contributions to ``haptools``!
 
 Please read our :doc:`contribution guidelines </project_info/contributing>` and then submit a `Github issue <https://github.com/cast-genomics/haptools/issues>`_.
 
+
+.. toctree::
+   :caption: Overview
+   :name: overview
+   :hidden:
+   :maxdepth: 1
+
+   project_info/installation
+   project_info/contributing
 
 .. toctree::
    :caption: File Formats
@@ -96,11 +85,3 @@ Please read our :doc:`contribution guidelines </project_info/contributing>` and 
    api/data
    api/modules
    api/examples
-
-.. toctree::
-   :caption: Project Info
-   :name: project-info
-   :hidden:
-   :maxdepth: 1
-
-   project_info/contributing
