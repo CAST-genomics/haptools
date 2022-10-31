@@ -7,6 +7,8 @@ Haptools is a collection of tools for simulating and analyzing genotypes and phe
 
 We support fast simulation of admixed genomes, visualization of admixture tracks, simulating haplotype- and local ancestry-specific phenotype effects, and computing a variety of common file operations and statistics in a haplotype-aware manner.
 
+At the core of haptools lies the :doc:`.hap file </formats/haplotypes>`, our new file format for haplotypes designed for speed, extensibility, and ease-of-use.
+
 Commands
 ~~~~~~~~
 
