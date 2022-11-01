@@ -4,6 +4,8 @@
 Models
 ======
 
+This model file format is based on `admix simu's <https://github.com/williamslab/admix-simu>`_. 
+
 Structure of a model.dat file
 -----------------------------
 
@@ -24,4 +26,17 @@ Example model.dat file
   40   Admixed   CEU    YRI
   6    0         0.2    0.8
 
-Simulating 6 generations in this case implies the first generation has population freqs ``Admixed=0, CEU=0.2, YRI=0.8`` and the remaining 2-6 generations have population frequency ``Admixed=1, CEU=0, YRI=0``
+Simulating 40 samples for 6 generations in this case implies the first generation has population freqs ``Admixed=0, CEU=0.2, YRI=0.8`` and the remaining 2-6 generations have population frequency ``Admixed=1, CEU=0, YRI=0``
+
+Example pulse event model.dat file
+----------------------
+
+.. code-block::
+
+  40   Admixed   CEU    YRI
+  1    0         0.2    0.8
+  2    1         0      0
+  3    0.5       0.5    0
+  4    1         0      0
+
+Simulating 40 samples for 4 generations in this case implies the first generation has population freqs ``Admixed=0, CEU=0.2, YRI=0.8`` the second generation is purely admixed, the third has an event where a pure CEU population is introduced again at freqs ``Admixed=0.5, CEU=0.5, YRI=0`` and finally we end with pure admixture. 
