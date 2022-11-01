@@ -6,7 +6,7 @@ simgenotype
 
 Takes as input a reference set of haplotypes in VCF format and a user-specified admixture model.
 
-Outputs a VCF file with simulated genotype information for admixed genotypes, as well as a breakpoints file that can be used for visualization.
+Outputs a VCF file with simulated genotype information for admixed genotypes, as well as a breakpoints file that can be used for visualization. For example, you could simulate a 50/50 mixture of CEU and YRI for 10 generations. Other more complex models such as involving pulse events of new populations can also be simulated.
 
 Basic Usage
 ~~~~~~~~~~~
@@ -26,7 +26,7 @@ Detailed information about each option, and example commands using publicly avai
 Parameter Descriptions
 ~~~~~~~~~~~~~~~~~~~~~~
 * ``--model`` - Parameters for simulating admixture across generations including sample size, population fractions, and number of generations.
-* ``--mapdir`` - Directory containing all .map files with the `structure <https://www.cog-genomics.org/plink/1.9/formats#map>`_ where the third position is in centiMorgans
+* ``--mapdir`` - Directory containing all .map files with this `structure <https://www.cog-genomics.org/plink/1.9/formats#map>`_ where the third position is in centiMorgans
 * ``--chroms`` - List of chromosomes to be simulated. The map file directory must contain the "chr<CHR>" where <CHR> is the chromosome identifier eg. 1,2,...,X
 * ``--region`` - Limit the simulation to a region within a single chromosome. Overwrites chroms with the chrom listed in this region. eg 1:1-10000 [Optional]
 * ``--invcf`` - Input VCF file used to simulate specifiic haplotypes for resulting samples
