@@ -8,6 +8,11 @@ Transform a set of genotypes via a list of haplotypes. Create a new VCF containi
 
 The ``transform`` command takes as input a set of genotypes and a list of haplotypes and outputs a set of haplotype *pseudo-genotypes*, where each haplotype is encoded as a bi-allelic variant record in the output. In other words, each sample will have a genotype of ``0|0``, ``1|0``, ``0|1``, or ``1|1`` indicating whether each of their two chromosome copies contains the alleles of a haplotype.
 
+.. figure:: https://drive.google.com/uc?id=1GyluoQ3IeGXo9FjWsCC3XwaRuflr68pn
+  :figwidth: 600
+  :align: center
+  :alt: Transforming genotypes via haplotypes
+
 Users may also specify an ancestral population label for each haplotype. See the :ref:`ancestry section <commands-transform-input-ancestry>` for more details.
 
 Usage
@@ -37,9 +42,16 @@ Alternatively, you may specify genotypes in PLINK2 PGEN format. Just use the app
 
 Ancestry
 --------
-If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field (as output by :doc:`simgenotype </commands/simgenotype>`), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by :doc:`simgenotype </commands/simgenotype>`. See :ref:`this section <formats-haplotypes-extrafields-transform>` of the ``.hap`` format spec for more details.
+If your ``.hap`` file contains :ref:`an "ancestry" extra field <formats-haplotypes-extrafields-transform>` and your VCF contains a "POP" format field (as output by :doc:`simgenotype </commands/simgenotype>`), you should specify the ``--ancestry`` flag.
+This will enable us to match the population labels of each haplotype against those in the genotypes output by :doc:`simgenotype </commands/simgenotype>`.
+In other words, a sample is said to contain a haplotype only if all of the alleles of the haplotype are labeled with the haplotype's ancestry.
 
-Alternatively, you may specify a :doc:`breakpoints file </formats/breakpoints>` accompanying the genotypes file. It must have the same name as the genotypes file but with a ``.bp`` file ending. If such a file exists, ``transform`` will ignore any "POP" format fields in the genotypes file and instead obtain the ancestry labels from the breakpoints file.
+.. figure:: https://drive.google.com/uc?id=1uQ08d6X0vdbyLOXDN9evdjPlnqdpI_3k
+  :figwidth: 600
+  :align: center
+  :alt: Transforming via ancestry labels
+
+Alternatively, you may specify a :doc:`breakpoints file </formats/breakpoints>` accompanying the genotypes file. It must have the same name as the genotypes file but with a ``.bp`` file ending. If such a file exists, ``transform`` will ignore any "POP" format fields in the genotypes file and instead obtain the ancestry labels from the breakpoints file. This is primarily a speed enhancement, since it's faster to load ancestral labels from the breakpoints file.
 
 Output
 ~~~~~~
