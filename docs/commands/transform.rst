@@ -6,14 +6,9 @@ transform
 
 Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
 
-The ``transform`` command takes as input a set of genotypes in VCF and a list of haplotypes (specified as a :doc:`.hap file </formats/haplotypes>` without any extra fields) and outputs a set of haplotype "pseudogenotypes" in VCF.
+The ``transform`` command takes as input a set of genotypes and a list of haplotypes and outputs a set of haplotype *pseudo-genotypes*, where each haplotype is encoded as a bi-allelic variant record in the output. In other words, each sample will have a genotype of ``0|0``, ``1|0``, ``0|1``, or ``1|1`` indicating whether each of their two chromosome copies contains the alleles of a haplotype.
 
-You may also specify genotypes in PLINK2 PGEN format. Just use the appropriate ".pgen" file extension in the input and/or output. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
-
-Ancestry
-~~~~~~~~
-
-If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field or an accompanying :ref:`.bp file <formats-breakpoints>` (as output by ``simgenotype``), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by ``simgenotype``. See :ref:`this section <formats-haplotypes-extrafields-transform>` of the ``.hap`` format spec for more details.
+Users may also specify an ancestral population label for each haplotype. See the :ref:`ancestry section <commands-transform-input-ancestry>` for more details.
 
 Usage
 ~~~~~
@@ -31,6 +26,24 @@ Usage
 	--output PATH \
 	--verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
 	GENOTYPES HAPLOTYPES
+
+Input
+~~~~~
+Genotypes must be specified in VCF and haplotypes must be specified in the :doc:`.hap file format </formats/haplotypes>`.
+
+Alternatively, you may specify genotypes in PLINK2 PGEN format. Just use the appropriate ".pgen" file extension in the input. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
+
+.. _commands-transform-input-ancestry:
+
+Ancestry
+--------
+If your ``.hap`` file contains an "ancestry" extra field and your VCF contains a "POP" format field (as output by :doc:`simgenotype </commands/simgenotype>`), you should specify the ``--ancestry`` flag. This will enable us to match the population labels of each haplotype against those in the genotypes output by :doc:`simgenotype </commands/simgenotype>`. See :ref:`this section <formats-haplotypes-extrafields-transform>` of the ``.hap`` format spec for more details.
+
+Alternatively, you may specify a :doc:`breakpoints file </formats/breakpoints>` accompanying the genotypes file. It must have the same name as the genotypes file but with a ``.bp`` file ending. If such a file exists, ``transform`` will ignore any "POP" format fields in the genotypes file and instead obtain the ancestry labels from the breakpoints file.
+
+Output
+~~~~~~
+Transform outputs *psuedo-genotypes* in VCF, but you may request genotypes in PLINK2 PGEN format, instead. Just use the appropriate ".pgen" file extension in the output path. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
 
 Examples
 ~~~~~~~~
