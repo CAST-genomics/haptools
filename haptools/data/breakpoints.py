@@ -285,7 +285,12 @@ class Breakpoints(Data):
         dtype = HapBlock[0][1] if self.labels is None else np.uint8
         arr = np.empty((len(data), len(variants), 2), dtype=dtype)
         # iterate through the variants belonging to each chromosome
-        for chrom in set(variants["chrom"]):
+        gts_chroms = set(variants["chrom"])
+        self.log.info(
+            f"Obtaining ancestry for {len(data)} samples and {len(variants)} "
+            f"variants in {len(gts_chroms)} chromosomes"
+        )
+        for chrom in gts_chroms:
             var_idxs = variants["chrom"] == chrom
             positions = variants["pos"][var_idxs]
             # obtain the population labels of each sample
@@ -297,9 +302,21 @@ class Breakpoints(Data):
                     # aren't sorted
                     # Now try to figure out the right population labels using binary
                     # search and then store them in the result matrix
-                    arr[samp_idx, var_idxs, strand_num] = chrom_block["pop"][
-                        self._find_blocks(chrom_block["bp"], positions)
-                    ]
+                    try:
+                        arr[samp_idx, var_idxs, strand_num] = chrom_block["pop"][
+                            self._find_blocks(chrom_block["bp"], positions)
+                        ]
+                    except ValueError as e:
+                        diff = gts_chroms.difference(blocks["chrom"])
+                        if str(e).startswith("Position ") and len(diff):
+                            samp_id = tuple(data.keys())[samp_idx]
+                            raise ValueError(
+                                f"Chromosomes {diff} in the genotypes are absent in "
+                                f"the breakpoints for sample {samp_id}_{strand_num+1}."
+                                " Check that your 'chr' prefixes match!"
+                            )
+                        else:
+                            raise e
         return arr
 
     def write(self):
