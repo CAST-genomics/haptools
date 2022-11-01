@@ -1048,6 +1048,21 @@ class TestBreakpoints:
         self._compare_bkpt_data(observed.data.items(), expected.data)
         expected.fname.unlink()
 
+    def test_load_underscore(self):
+        """ check if we can load samples with extra underscores in their IDs """
+        expected = self._get_expected_breakpoints()
+        expected.fname = Path("test.bp")
+        expected.data["Sam_ple_2"] = expected.data.pop("Sample_2")
+        expected.write()
+        observed = Breakpoints(expected.fname)
+        observed.read()
+
+        # first, check that the samples appear in the proper order
+        assert tuple(observed.data.keys()) == tuple(expected.data.keys())
+        # now, check that each sample is the same
+        self._compare_bkpt_data(observed.data.items(), expected.data)
+        expected.fname.unlink()
+
     def test_encode(self):
         expected = self._get_expected_breakpoints()
         expected.labels = {"YRI": 0, "CEU": 1}
