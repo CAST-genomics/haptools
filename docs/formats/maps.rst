@@ -3,7 +3,7 @@
 
 Maps
 ====
-`Map format <https://www.cog-genomics.org/plink/1.9/formats#map>`_ from plink. 
+`Map format <https://www.cog-genomics.org/plink/1.9/formats#map>`_ from plink which is space delimited.
 
 Fields
 ------
