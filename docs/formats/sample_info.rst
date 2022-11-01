@@ -15,3 +15,13 @@ well as given the command to how to compute it if you desire another as well.
 
 See ``example-files/1000genomes_sampleinfo.tsv`` for an example of the 1000genomes 
 GRCh38 samples mapped to their subpopulations.
+
+Example sample info format
+--------------------------
+
+.. code-block::
+
+HG00372	FIN
+HG00132	GBR
+HG00237	GBR
+HG00404	CHS
