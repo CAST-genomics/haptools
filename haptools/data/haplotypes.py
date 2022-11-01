@@ -1131,3 +1131,44 @@ class Haplotypes(Data):
         self.data = dict(sorted(self.data.items(), key=lambda item: item[1]))
         for hap in self.data.values():
             hap.sort()
+
+    def subset(self, haplotypes: tuple[str], inplace: bool = False):
+        """
+        Subset these haplotypes to a smaller set of haplotypes
+
+        The order of the haplotypes in the subsetted instance will match the order in
+        the provided tuple parameters.
+
+        Parameters
+        ----------
+        haplotypes: tuple[str]
+            A subset of haplotype IDs to keep
+        inplace: bool, optional
+            If False, return a new Genotypes object; otherwise, alter the current one
+
+        Returns
+        -------
+            A new Haplotypes object if inplace is set to False, else returns None
+        """
+        hps = self
+        if not inplace:
+            hps = self.__class__(self.fname, self.log)
+        hps.data = self.data
+        hps.types = self.types
+        hps.version = self.version
+        # Subset the haplotypes
+        data = {}
+        missing = set()
+        for hap_id in haplotypes:
+            try:
+                data[hap_id] = hps.data[hap_id]
+            except KeyError:
+                missing.add(hap_id)
+        if len(missing):
+            self.log.warning(
+                f"Saw {len(missing)} fewer haplotypes than requested. Proceeding with "
+                f"{len(hps.data)} haplotypes."
+            )
+        hps.data = data
+        if not inplace:
+            return hps

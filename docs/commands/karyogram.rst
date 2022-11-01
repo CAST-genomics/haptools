@@ -4,7 +4,7 @@
 karyogram
 =========
 
-Takes as input a breakpoints file (e.g. as output by ``simgenotype``) and a sample name, and plots a karyogram depicting local ancestry tracks.
+Takes as input a :doc:`breakpoints file </formats/breakpoints>` (e.g. as output by :doc:`simgenotype </commands/simgenotype>`) and a sample name, and plots a karyogram depicting local ancestry tracks.
 
 Basic Usage
 ~~~~~~~~~~~

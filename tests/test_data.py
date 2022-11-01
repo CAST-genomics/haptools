@@ -647,6 +647,17 @@ class TestHaplotypes:
         haps.read(region="21:26928472-26941960")
         assert expected == haps.data
 
+    def test_subset(self):
+        expected = Haplotypes(DATADIR.joinpath("basic.hap"))
+        expected.read(haplotypes={"chr21.q.3365*1"})
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        haps.read()
+        haps = haps.subset(haplotypes=("chr21.q.3365*1",))
+
+        assert len(expected.data) == len(haps.data)
+        assert expected.data == haps.data
+
     def test_read_extras(self):
         # what do we expect to see from the simphenotype.hap file?
         expected = {
@@ -781,7 +792,7 @@ class TestHaplotypes:
         hap_gt = hap.transform(gens)
         np.testing.assert_allclose(hap_gt, expected)
 
-    def test_haps_transform(self):
+    def test_haps_transform(self, return_also=False):
         expected = np.array(
             [
                 [[0, 1], [0, 0], [0, 0]],
@@ -800,12 +811,14 @@ class TestHaplotypes:
         hap_gt = GenotypesRefAlt(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
-        return hap_gt
+
+        if return_also:
+            return hap_gt
 
     def test_hap_gt_write(self):
         fname = DATADIR.joinpath("simple_haps.vcf")
 
-        hap_gt = self.test_haps_transform()
+        hap_gt = self.test_haps_transform(return_also=True)
         hap_gt.fname = fname
         expected_data = hap_gt.data
         expected_samples = hap_gt.samples
@@ -1048,6 +1061,21 @@ class TestBreakpoints:
         self._compare_bkpt_data(observed.data.items(), expected.data)
         expected.fname.unlink()
 
+    def test_load_underscore(self):
+        """check if we can load samples with extra underscores in their IDs"""
+        expected = self._get_expected_breakpoints()
+        expected.fname = Path("test.bp")
+        expected.data["Sam_ple_2"] = expected.data.pop("Sample_2")
+        expected.write()
+        observed = Breakpoints(expected.fname)
+        observed.read()
+
+        # first, check that the samples appear in the proper order
+        assert tuple(observed.data.keys()) == tuple(expected.data.keys())
+        # now, check that each sample is the same
+        self._compare_bkpt_data(observed.data.items(), expected.data)
+        expected.fname.unlink()
+
     def test_encode(self):
         expected = self._get_expected_breakpoints()
         expected.labels = {"YRI": 0, "CEU": 1}
@@ -1112,3 +1140,34 @@ class TestBreakpoints:
 
         with pytest.raises(ValueError) as info:
             labels, pop_arr = expected.population_array(variants)
+
+    def test_breakpoints_to_pop_array_chrom_no_match(self):
+        variants = np.array(
+            [("1", 59423086), ("chr1", 59423090), ("1", 239403770), ("2", 229668150)],
+            dtype=[("chrom", "U10"), ("pos", np.uint32)],
+        )
+        expected_pop_arr = np.array(
+            [
+                [
+                    [0, 0],
+                    [1, 0],
+                    [1, 0],
+                    [0, 1],
+                ],
+                [
+                    [1, 1],
+                    [0, 1],
+                    [0, 1],
+                    [1, 0],
+                ],
+            ],
+            dtype=np.uint8,
+        )
+        labels = {"YRI": 0, "CEU": 1}
+        labels_map = np.vectorize({v: k for k, v in labels.items()}.get)
+
+        expected = self._get_expected_breakpoints()
+
+        with pytest.raises(ValueError) as info:
+            pop_arr = expected.population_array(variants[[0, 1, 3]])
+        assert str(info.value).startswith("Chromosomes ")

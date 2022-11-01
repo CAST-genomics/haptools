@@ -3,44 +3,31 @@
 haptools
 ========
 
-Haptools is a collection of tools for simulating and analyzing genotypes and phenotypes while taking into account haplotype information. It is particularly designed for analysis of individuals with admixed ancestries, although the tools can also be used for non-admixed individuals.
+Haptools is a collection of tools for simulating and analyzing genotypes and phenotypes while taking into account haplotype and ancestry information.
 
-Installation
-~~~~~~~~~~~~
-.. note::
-   To reduce the likelihood of errors, we recommend installing ``haptools`` within a new conda environment using a recent version of pip:
+We support fast simulation of admixed genomes, visualization of admixture tracks, simulating haplotype- and local ancestry-specific phenotype effects, and computing a variety of common file operations and statistics in a haplotype-aware manner.
 
-   .. code-block:: bash
+At the core of haptools lies the :doc:`.hap file </formats/haplotypes>`, our new file format for haplotypes designed for speed, extensibility, and ease-of-use.
 
-      conda create -y -n haptools -c conda-forge 'pip>=22.2.2'
-      conda activate haptools
+Commands
+~~~~~~~~
 
-We have not officially published ``haptools`` yet, but in the meantime, you can install it directly from our Github repository.
+* :doc:`haptools simgenotype </commands/simgenotype>`: Simulate genotypes for admixed individuals under user-specified demographic histories.
 
-.. code-block:: bash
+* :doc:`haptools simphenotype </commands/simphenotype>`: Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. ``haptools simphenotype`` takes as input a VCF file (usually from ``haptools transform``) and outputs simulated phenotypes for each sample.
 
-   pip install git+https://github.com/cast-genomics/haptools.git
+* :doc:`haptools karyogram </commands/karyogram>`: Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by ``haptools simgenotype``.
 
-Installing ``haptools`` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
+* :doc:`haptools transform </commands/transform>`: Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
 
-.. code-block:: bash
+* :doc:`haptools index </commands/index>`: Sort, compress, and index our custom file format for haplotypes.
 
-   pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
+* :doc:`haptools ld </commands/ld>`: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
 
-Summary of Commands
-~~~~~~~~~~~~~~~~~~~
-
-``haptools`` consists of multiple utilities listed below. Click on a utility to see more detailed usage information.
-
-* `haptools simgenotype </commands/simgenotype>`_: Simulate genotypes for admixed individuals under user-specified demographic histories.
-
-* `haptools simphenotype </commands/simphenotype>`_: Simulate a complex trait, taking into account local ancestry- or haplotype- specific effects. ``haptools simphenotype`` takes as input a VCF file (usually from ``haptools transform``) and outputs simulated phenotypes for each sample.
-
-* `haptools karyogram </commands/karyogram>`_: Visualize a "chromosome painting" of local ancestry labels based on breakpoints output by ``haptools simgenotype``.
-
-* `haptools transform </commands/transform>`_: Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
-
-* `haptools ld </commands/ld>`_: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
+.. figure:: https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_
+  :figwidth: 600
+  :align: center
+  :alt: Overview of haptools commands
 
 Outputs produced by these utilities are compatible with each other.
 For example ``haptools simgenotype`` outputs a VCF file with local ancestry information annotated for each variant.
@@ -54,6 +41,15 @@ We gladly welcome any contributions to ``haptools``!
 
 Please read our :doc:`contribution guidelines </project_info/contributing>` and then submit a `Github issue <https://github.com/cast-genomics/haptools/issues>`_.
 
+
+.. toctree::
+   :caption: Overview
+   :name: overview
+   :hidden:
+   :maxdepth: 1
+
+   project_info/installation
+   project_info/contributing
 
 .. toctree::
    :caption: File Formats
@@ -91,11 +87,3 @@ Please read our :doc:`contribution guidelines </project_info/contributing>` and 
    api/data
    api/modules
    api/examples
-
-.. toctree::
-   :caption: Project Info
-   :name: project-info
-   :hidden:
-   :maxdepth: 1
-
-   project_info/contributing

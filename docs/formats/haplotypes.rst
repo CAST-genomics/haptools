@@ -6,6 +6,11 @@ Haplotypes
 
 This document describes our custom file format specification for haplotypes: the ``.hap`` file.
 
+.. figure:: https://drive.google.com/uc?id=16GsMOCihu7qvE27iRz6ydSTtt76ZeaAY
+  :figwidth: 600
+  :align: center
+  :alt: The .hap file format
+
 This is a tab-separated file composed of different types of lines. The first field of each line is a single, uppercase character denoting the type of line. The following line types are supported.
 
 .. list-table::

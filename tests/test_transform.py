@@ -212,8 +212,6 @@ class TestHaplotypesAncestry:
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
 
-        return hap_gt
-
 
 def test_basic(capfd):
     expected = """##fileformat=VCFv4.2
@@ -232,6 +230,31 @@ def test_basic(capfd):
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
+
+
+def test_basic_subset(capfd):
+    expected = """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|1\t0|1\t1|1\t1|1\t0|0
+"""
+
+    # first, remove the last two variants in the genotypes file
+    gts = GenotypesRefAlt.load("tests/data/simple.vcf")
+    gts.fname = Path("simple_minus_two.vcf")
+    gts.subset(variants=tuple(gts.variants["id"][:-2]), inplace=True)
+    gts.write()
+
+    cmd = "transform simple_minus_two.vcf tests/data/simple.hap"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "))
+    captured = capfd.readouterr()
+    assert captured.out == expected
+    assert result.exit_code == 0
+
+    gts.fname.unlink()
 
 
 def test_basic_pgen_input(capfd):

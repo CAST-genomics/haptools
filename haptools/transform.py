@@ -594,6 +594,26 @@ def transform_haps(
     gt.check_biallelic()
     gt.check_phase()
 
+    # check that all of the variants were loaded successfully and warn otherwise
+    if len(variants) > len(gt.variants):
+        diff = list(variants.difference(gt.variants["id"]))
+        first_few = 5 if len(diff) > 5 else len(diff)
+        log.warning(
+            f"{len(diff)} variant(s) could not be found in the genotypes file. Check "
+            "that the IDs in your .hap file correspond with those in the genotypes "
+            f"file. Here are the first few missing variants: {diff[:first_few]}"
+        )
+        # subset the set of haplotypes so that we keep only those that we can transform
+        gt_variants = set(gt.variants["id"])
+        original_num_haps = len(hp.data)
+        haplotype_ids = tuple(
+            hap_id
+            for hap_id, hap in hp.data.items()
+            if gt_variants.issuperset(hap.varIDs)
+        )
+        hp.subset(haplotypes=haplotype_ids, inplace=True)
+        log.info(f"Proceeding with {len(hp.data)} of {original_num_haps} haplotypes")
+
     if ancestry and not isinstance(gt, GenotypesAncestry):
         log.info("Loading ancestry info from .bp file")
         if not bps_file.exists():
@@ -611,16 +631,6 @@ def transform_haps(
         gta.ancestry_labels = bps.labels
         gta.ancestry = bps.population_array(gt.variants[["chrom", "pos"]])
         gt = gta
-
-    # check that all of the variants were loaded successfully and warn otherwise
-    if len(variants) < len(gt.variants):
-        diff = list(variants.difference(gt.variants["id"]))
-        first_few = 5 if len(diff) > 5 else len(diff)
-        log.warning(
-            f"{len(diff)} variants could not be found in the genotypes file. Check "
-            "that the IDs in your .hap file correspond with those in the genotypes "
-            f"file. Here are the first few missing variants: {diff[:first_few]}"
-        )
 
     if output.suffix == ".pgen":
         out_file_type = "PGEN"
