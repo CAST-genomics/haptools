@@ -710,11 +710,10 @@ class GenotypesPLINK(GenotypesRefAlt):
             global pgenlib
             import pgenlib
         except ImportError:
-            url = "https://github.com/cast-genomics/haptools.git##egg=haptools[files]"
             raise ImportError(
                 "We cannot read PGEN files without the pgenlib library. Please "
-                "reinstall haptools with the 'files' extra requirements via\n"
-                f"pip install 'git+{url}'"
+                "reinstall haptools with the 'files' extra requirement via\n"
+                f"pip install haptools[files]"
             )
 
     def read_samples(self, samples: list[str] = None):

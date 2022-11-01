@@ -180,7 +180,7 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 
 	.. code-block:: bash
 
-		pip install git+https://github.com/cast-genomics/haptools.git#egg=haptools[files]
+		pip install haptools[files]
 
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
