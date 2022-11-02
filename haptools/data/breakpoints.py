@@ -248,7 +248,7 @@ class Breakpoints(Data):
             problem_position = positions[indices >= len(blocks)][0]
             raise ValueError(
                 f"Position {problem_position} exceeds the range of the provided "
-                "haplotype blocks."
+                "breakpoint blocks."
             )
         return indices
 
@@ -298,6 +298,13 @@ class Breakpoints(Data):
                 for strand_num in range(len(samp_blocks)):
                     blocks = samp_blocks[strand_num]
                     chrom_block = blocks[blocks["chrom"] == chrom]
+                    if not len(chrom_block):
+                        samp_id = tuple(data.keys())[samp_idx]
+                        raise ValueError(
+                            f"Chromosome {chrom} in the genotypes is absent in the "
+                            f"breakpoints for sample {samp_id}_{strand_num+1}. Check "
+                            "that your 'chr' prefixes match!"
+                        )
                     # TODO: raise an exception if the end positions in chrom_block
                     # aren't sorted
                     # Now try to figure out the right population labels using binary
@@ -307,14 +314,13 @@ class Breakpoints(Data):
                             self._find_blocks(chrom_block["bp"], positions)
                         ]
                     except ValueError as e:
-                        diff = gts_chroms.difference(blocks["chrom"])
-                        if str(e).startswith("Position ") and len(diff):
-                            samp_id = tuple(data.keys())[samp_idx]
+                        samp_id = tuple(data.keys())[samp_idx]
+                        if str(e).startswith("Position "):
                             raise ValueError(
-                                f"Chromosomes {diff} in the genotypes are absent in "
-                                f"the breakpoints for sample {samp_id}_{strand_num+1}."
-                                " Check that your 'chr' prefixes match!"
-                            )
+                                f"The breakpoints for chromosome {chrom} in sample"
+                                f" {samp_id}_{strand_num+1} do not specify an ancestry"
+                                " for one of the requested variants."
+                            ) from e
                         else:
                             raise e
         return arr
