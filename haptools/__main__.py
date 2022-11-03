@@ -6,13 +6,15 @@ from pathlib import Path
 
 import click
 
+from . import __version__
+
 # AVOID IMPORTING ANYTHING ABOVE
 # any imports we put here will make it slower to use the command line client
 # a basic "haptools --help" should be quick and require very few imports, for example
 
 ################### Haptools ##################
 @click.group()
-@click.version_option()
+@click.version_option(__version__)
 def main():
     """
     haptools: A toolkit for simulating and analyzing genotypes and
