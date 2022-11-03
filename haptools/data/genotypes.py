@@ -711,8 +711,8 @@ class GenotypesPLINK(GenotypesRefAlt):
             import pgenlib
         except ImportError:
             raise ImportError(
-                "We cannot read PGEN files without the pgenlib library. Please "
-                "reinstall haptools with the 'files' extra requirement via\n"
+                f"We cannot read PGEN files without the pgenlib library. Please "
+                f"reinstall haptools with the 'files' extra requirement via\n"
                 f"pip install haptools[files]"
             )
 

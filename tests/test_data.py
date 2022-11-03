@@ -1143,7 +1143,7 @@ class TestBreakpoints:
 
     def test_breakpoints_to_pop_array_chrom_no_match(self):
         variants = np.array(
-            [("1", 59423086), ("chr1", 59423090), ("1", 239403770), ("2", 229668150)],
+            [("chr1", 59423086), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
             dtype=[("chrom", "U10"), ("pos", np.uint32)],
         )
         expected_pop_arr = np.array(
@@ -1170,4 +1170,4 @@ class TestBreakpoints:
 
         with pytest.raises(ValueError) as info:
             pop_arr = expected.population_array(variants[[0, 1, 3]])
-        assert str(info.value).startswith("Chromosomes ")
+        assert str(info.value).startswith("Chromosome ")
