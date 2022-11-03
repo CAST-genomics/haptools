@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
-import re
 import sys
-import time
-import click
 from pathlib import Path
-from haptools.data.haplotypes import Haplotypes
-from haptools import data
-import tempfile
 
-# AVOID IMPORTING ANYTHING HERE
+import click
+
+# AVOID IMPORTING ANYTHING ABOVE
 # any imports we put here will make it slower to use the command line client
 # a basic "haptools --help" should be quick and require very few imports, for example
 
@@ -180,6 +176,8 @@ def simgenotype(
     """
     Simulate admixed genomes under a pre-defined model.
     """
+    import re
+    import time
     from .sim_genotype import (
         output_vcf,
         simulate_gt,
