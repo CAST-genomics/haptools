@@ -29,7 +29,7 @@ Example model.dat file
 Simulating 40 samples for 6 generations in this case implies the first generation has population freqs ``Admixed=0, CEU=0.2, YRI=0.8`` and the remaining 2-6 generations have population frequency ``Admixed=1, CEU=0, YRI=0``
 
 Example pulse event model.dat file
-----------------------
+----------------------------------
 
 .. code-block::
 
