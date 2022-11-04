@@ -4,6 +4,9 @@
 Installation
 ============
 
+Using pip
+---------
+
 You can install ``haptools`` from PyPI using ``pip``. We recommend using ``pip >= 22.2.2`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
 
 .. code-block:: bash
@@ -17,7 +20,7 @@ Installing ``haptools`` with the "files" extra requirements enables automatic su
    pip install haptools[files]
 
 .. note::
-   Installing ``haptools`` with the "files" extra requirement requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. See `issue 217 <https://github.com/chrchang/plink-ng/issues/217>`_ for current progress on this problem. To install with conda, for example, please execute the following:
+   Installing ``haptools`` with the "files" extra requirement requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. To install with conda, for example, please execute the following:
 
    .. code-block:: bash
 
@@ -29,7 +32,12 @@ Installing ``haptools`` with the "files" extra requirements enables automatic su
 
       sudo apt install build-essential
 
-We also support installing ``haptools`` from Bioconda.
+   See `issue 217 <https://github.com/chrchang/plink-ng/issues/217>`_ for current progress on this problem.
+
+Using conda
+-----------
+
+We also support installing ``haptools`` from bioconda.
 
 .. code-block:: bash
 
