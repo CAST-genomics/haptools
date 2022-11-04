@@ -34,6 +34,8 @@ For example ``haptools simgenotype`` outputs a VCF file with local ancestry info
 The VCF and breakpoints file output by ``haptools simgenotype`` can be used as input to ``haptools transform``, which is then used by ``haptools simphenotype`` to simulate phenotypes for a list of haplotypes.
 The local ancestry breakpoints from ``haptools simgenotype`` can also be visualized using ``haptools karyogram``.
 
+Detailed information about each command can be found in `the commands section </commands>`_. Examples there utilize files from the `tests directory <https://github.com/CAST-genomics/haptools/tree/main/tests/data>`_.
+
 Contributing
 ~~~~~~~~~~~~
 
