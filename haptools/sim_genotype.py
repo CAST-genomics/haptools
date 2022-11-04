@@ -50,7 +50,7 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
         output prefix
     """
 
-    print(f"Outputting VCF file {vcf_file}")
+    print(f"Outputting VCF file {out}.vcf")
 
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
