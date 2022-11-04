@@ -33,9 +33,9 @@ Use the ``--no-sort`` flag to skip the sorting step if your file is already sort
 
 .. code-block:: bash
 
-	haptools index --no-sort --output tests/data/basic.hap.gz tests/data/basic.hap
+	haptools index --no-sort --output tests/data/basic.hap.gz tests/data/basic.hap.gz
 
-If the ``--no-sort`` flag *isn't* used, the ``index`` command will discard all extra fields when processing your ``.hap`` file. To retain them, just sort the file manually first.
+If the ``--no-sort`` flag *isn't* used, the ``index`` command will ignore all extra fields when processing your ``.hap`` file. To retain them, just sort the file manually first.
 
 .. code-block:: bash
 
