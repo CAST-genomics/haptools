@@ -71,14 +71,6 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
-name = "brewer2mpl"
-version = "1.4.1"
-description = "Connect colorbrewer2.org color maps to Python and matplotlib"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "certifi"
 version = "2022.9.24"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -170,7 +162,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "exceptiongroup"
-version = "1.0.0"
+version = "1.0.1"
 description = "Backport of PEP 654 (exception groups)"
 category = "dev"
 optional = false
@@ -551,7 +543,7 @@ python-versions = "*"
 
 [[package]]
 name = "pysam"
-version = "0.19.1"
+version = "0.20.0"
 description = "pysam"
 category = "main"
 optional = false
@@ -710,7 +702,7 @@ sphinx = ">=2.0"
 
 [[package]]
 name = "sphinx-rtd-theme"
-version = "1.1.0"
+version = "1.1.1"
 description = "Read the Docs theme for Sphinx"
 category = "main"
 optional = false
@@ -871,7 +863,7 @@ test = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "bc8ff0a95cb4a51244e10f83b8c28057a7286d290df4811de8238d4dd14c9cef"
+content-hash = "64aa23c3ce4ed3e5a98d911b753ca01d33fbb01eb76a417d0e25adc5f82918a3"
 
 [metadata.files]
 alabaster = [
@@ -916,11 +908,6 @@ black = [
     {file = "black-22.10.0-cp39-cp39-win_amd64.whl", hash = "sha256:432247333090c8c5366e69627ccb363bc58514ae3e63f7fc75c54b1ea80fa7de"},
     {file = "black-22.10.0-py3-none-any.whl", hash = "sha256:c957b2b4ea88587b46cf49d1dc17681c1e672864fd7af32fc1e9664d572b3458"},
     {file = "black-22.10.0.tar.gz", hash = "sha256:f513588da599943e0cde4e32cc9879e825d58720d6557062d1098c5ad80080e1"},
-]
-brewer2mpl = [
-    {file = "brewer2mpl-1.4.1-py2.py3-none-any.whl", hash = "sha256:f89a795efc810fdbec359902d388980711604cc32907445ba1bc45f699d3fe81"},
-    {file = "brewer2mpl-1.4.1.tar.gz", hash = "sha256:2e094d1bea766885aa77e4ed40cc718af6458a1d5e08cc87a5f453c6095b1b1c"},
-    {file = "brewer2mpl-1.4.1.zip", hash = "sha256:7f013109a2351b91d507c1e79c4fcfb001bdd754f70767baa635f1e80ac16d6d"},
 ]
 certifi = [
     {file = "certifi-2022.9.24-py3-none-any.whl", hash = "sha256:90c1a32f1d68f940488354e36370f6cca89f0f106db09518524c88d6ed83f382"},
@@ -974,8 +961,8 @@ docutils = [
     {file = "docutils-0.17.1.tar.gz", hash = "sha256:686577d2e4c32380bb50cbb22f575ed742d58168cee37e99117a854bcd88f125"},
 ]
 exceptiongroup = [
-    {file = "exceptiongroup-1.0.0-py3-none-any.whl", hash = "sha256:2ac84b496be68464a2da60da518af3785fff8b7ec0d090a581604bc870bdee41"},
-    {file = "exceptiongroup-1.0.0.tar.gz", hash = "sha256:affbabf13fb6e98988c38d9c5650e701569fe3c1de3233cfb61c5f33774690ad"},
+    {file = "exceptiongroup-1.0.1-py3-none-any.whl", hash = "sha256:4d6c0aa6dd825810941c792f53d7b8d71da26f5e5f84f20f9508e8f2d33b140a"},
+    {file = "exceptiongroup-1.0.1.tar.gz", hash = "sha256:73866f7f842ede6cb1daa42c4af078e2035e5f7607f0e2c762cc51bb31bbe7b2"},
 ]
 fonttools = [
     {file = "fonttools-4.38.0-py3-none-any.whl", hash = "sha256:820466f43c8be8c3009aef8b87e785014133508f0de64ec469e4efb643ae54fb"},
@@ -1324,7 +1311,28 @@ pyreadline3 = [
     {file = "pyreadline3-3.4.1-py3-none-any.whl", hash = "sha256:b0efb6516fd4fb07b45949053826a62fa4cb353db5be2bbb4a7aa1fdd1e345fb"},
     {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
 ]
-pysam = []
+pysam = [
+    {file = "pysam-0.20.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d919f40db3027f092bb39177aecbb49a02e2fd746bb5adfbe48eb839b2225e51"},
+    {file = "pysam-0.20.0-cp310-cp310-manylinux_2_24_aarch64.whl", hash = "sha256:7145694675a0cfe0c04abb5582c70b3f6a19d6b30e6835931016afd57d423719"},
+    {file = "pysam-0.20.0-cp310-cp310-manylinux_2_24_i686.whl", hash = "sha256:fa98bd2e6bf1252dac7c275fe7c34bbc125644b781a6196bfe25cc078c6cb341"},
+    {file = "pysam-0.20.0-cp310-cp310-manylinux_2_24_x86_64.whl", hash = "sha256:12c56353739f2b76266407502e06127235197030a8e11188cb80693ca46321d1"},
+    {file = "pysam-0.20.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d4744e162476a62fab9458aa3d1e2e51614e0f919e4578c14e986c7e7cab377e"},
+    {file = "pysam-0.20.0-cp36-cp36m-manylinux_2_24_aarch64.whl", hash = "sha256:e61c3a68fb254ffd2c34ce956277615663c5ecab7a30e6308744873984794330"},
+    {file = "pysam-0.20.0-cp36-cp36m-manylinux_2_24_i686.whl", hash = "sha256:ff15d6a6ac29541d5dee30ea8233356c43a5f3a99886451fd0188b80daa0422d"},
+    {file = "pysam-0.20.0-cp36-cp36m-manylinux_2_24_x86_64.whl", hash = "sha256:29d1a2c60944f1bc46b9324f9e78dd343fd6a8de039badff71df43df960e223c"},
+    {file = "pysam-0.20.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:7e017a3b8baeee7c0df7f666138e8bf5a73f9805c2ab6287a2a4d5351f6822d5"},
+    {file = "pysam-0.20.0-cp37-cp37m-manylinux_2_24_aarch64.whl", hash = "sha256:7c57867c80af3b5c3a4ae391ec86b914bb6361bb5cd41d985cbe06a75163188c"},
+    {file = "pysam-0.20.0-cp37-cp37m-manylinux_2_24_i686.whl", hash = "sha256:38f292478f32cbf6f2981021f7c2a961956e9b49141493557ace79810221c4e4"},
+    {file = "pysam-0.20.0-cp37-cp37m-manylinux_2_24_x86_64.whl", hash = "sha256:3d8c86ae4413c25d047aa4e9529b2adc366ecfeb1eb3f0098c525705314a0332"},
+    {file = "pysam-0.20.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:3b8a07732549ff10dfad8b0db7663076b39727a558e1f6d06ab5c6819f3cae9f"},
+    {file = "pysam-0.20.0-cp38-cp38-manylinux_2_24_aarch64.whl", hash = "sha256:d958ce70865869f2aa8c8c0880ad451bafd4d5a8c94fb78a269ab913a57d9303"},
+    {file = "pysam-0.20.0-cp38-cp38-manylinux_2_24_i686.whl", hash = "sha256:93f0ea6b2050ad470b5b1cdd19fae0b88afd5ae48ee6e66a0dcd054b61e9fba4"},
+    {file = "pysam-0.20.0-cp38-cp38-manylinux_2_24_x86_64.whl", hash = "sha256:e14e33703bdb8ed812ab16b5c816ce68ffee2ae2a19906efdc5732c3e446791e"},
+    {file = "pysam-0.20.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:f5aefffd4ac1fad35b720cb7a1663be9bdb18376d0d361d33a744254a0da8e96"},
+    {file = "pysam-0.20.0-cp39-cp39-manylinux_2_24_aarch64.whl", hash = "sha256:3ed4dbf8613007daf8b127c32743206126badc35822730de767d86f9ead445ad"},
+    {file = "pysam-0.20.0-cp39-cp39-manylinux_2_24_i686.whl", hash = "sha256:7ca81b7e5af5f3cdac460e0ce59a0eab11fdbe1a216ddee6f3172aa16445ae54"},
+    {file = "pysam-0.20.0-cp39-cp39-manylinux_2_24_x86_64.whl", hash = "sha256:a2d8f2e15934100ce6b380659af884066d5ebffa69e36025b4029f8c9e8b3adc"},
+]
 pytest = [
     {file = "pytest-7.2.0-py3-none-any.whl", hash = "sha256:892f933d339f068883b6fd5a459f03d85bfcb355e4981e146d2c7616c21fef71"},
     {file = "pytest-7.2.0.tar.gz", hash = "sha256:c4014eb40e10f11f355ad4e3c2fb2c6c6d1919c73f3b5a433de4708202cade59"},
@@ -1366,8 +1374,8 @@ sphinx-click = [
     {file = "sphinx_click-4.3.0-py3-none-any.whl", hash = "sha256:23e85a3cb0b728a421ea773699f6acadefae171d1a764a51dd8ec5981503ccbe"},
 ]
 sphinx-rtd-theme = [
-    {file = "sphinx_rtd_theme-1.1.0-py2.py3-none-any.whl", hash = "sha256:36da4267c804b98197419df8aa415d245449b8945301fce8c961038e0ba79ec5"},
-    {file = "sphinx_rtd_theme-1.1.0.tar.gz", hash = "sha256:6e20f00f62b2c05434a33c5116bc3348a41ca94af03d3d7d1714c63457073bb3"},
+    {file = "sphinx_rtd_theme-1.1.1-py2.py3-none-any.whl", hash = "sha256:31faa07d3e97c8955637fc3f1423a5ab2c44b74b8cc558a51498c202ce5cbda7"},
+    {file = "sphinx_rtd_theme-1.1.1.tar.gz", hash = "sha256:6146c845f1e1947b3c3dd4432c28998a1693ccc742b4f9ad7c63129f0757c103"},
 ]
 sphinxcontrib-applehelp = [
     {file = "sphinxcontrib-applehelp-1.0.2.tar.gz", hash = "sha256:a072735ec80e7675e3f432fcae8610ecf509c5f1869d17e2eecff44389cdbc58"},
