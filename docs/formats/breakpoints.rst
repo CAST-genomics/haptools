@@ -36,9 +36,9 @@ Examples
 See `tests/data/outvcf_test.bp <https://github.com/cast-genomics/haptools/blob/main/tests/data/outvcf_test.bp>`_ for an example of a short breakpoint file:
 
 .. include:: ../../tests/data/outvcf_test.bp
-   :literal:
+  :literal:
 
 See `tests/data/simple.bp <https://github.com/cast-genomics/haptools/blob/main/tests/data/simple.bp>`_ for a longer example:
 
 .. include:: ../../tests/data/simple.bp
-   :literal:
+  :literal:
