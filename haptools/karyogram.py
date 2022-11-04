@@ -5,7 +5,6 @@ https://github.com/armartin/ancestry_pipeline/blob/master/plot_karyogram.py
 """
 
 import os
-import brewer2mpl
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -252,11 +251,9 @@ def PlotKaryogram(bp_file, sample_name, out_file,
 
     # Set up colors
     if colors is None:
-        num_colors = len(pop_list)
-        if num_colors < 3: num_colors = 3
-        if num_colors > 9: num_colors = 9
-        bmap = brewer2mpl.get_map('Set1', 'qualitative', num_colors)
-        colors = dict(zip(pop_list, bmap.mpl_colors))
+        num_pops = len(pop_list)
+        cmap = plt.cm.get_cmap('rainbow', num_pops)
+        colors = dict(zip(pop_list, cmap(list(range(num_pops)))))
 
     # Optionally, plot centromeres/telomeres
     clipmask_perchrom = None
