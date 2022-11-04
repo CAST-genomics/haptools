@@ -4,43 +4,46 @@
 index
 =====
 
-Index a list of haplotypes.
+Index a set of haplotypes specified as a :doc:`.hap file </formats/haplotypes>`.
 
-The ``index`` command takes as input a list of haplotypes (specified as a :doc:`.hap file </formats/haplotypes>`) and outputs the list as a .gz and a .tbi file. It also sorts the file in the process.
+The ``index`` command creates a sorted ``.hap.gz`` and a ``.hap.gz.tbi`` index file from a ``.hap`` (or ``.hap.gz``) file.
+
+By default, the ``index`` command will also sort your haplotypes, since this is a prerequisite for indexing.
 
 Usage
 ~~~~~
 .. code-block:: bash
 
-	haptools index \
-	--output PATH \
-	--verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
-	HAPLOTYPES
+  haptools index \
+  --output PATH \
+  --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
+  HAPLOTYPES
 
-Example
+Examples
 ~~~~~~~~
 .. code-block:: bash
 
-	haptools index tests/data/basic.hap
+  haptools index tests/data/basic.hap
 
 You may also specify a custom output path for the compressed file to be written to.
 
 .. code-block:: bash
 
-	haptools index --output tests/data/sorted.basic.hap.gz tests/data/basic.hap
+  haptools index --output tests/data/sorted.basic.hap.gz tests/data/basic.hap
 
-Use the ``--no-sort`` flag to skip the sorting step if your file is already sorted.
-
-.. code-block:: bash
-
-	haptools index --no-sort --output tests/data/basic.hap.gz tests/data/basic.hap.gz
-
-If the ``--no-sort`` flag *isn't* used, the ``index`` command will ignore all extra fields when processing your ``.hap`` file. To retain them, just sort the file manually first.
+You can use the ``--no-sort`` flag to skip the sorting step if your file is already sorted.
 
 .. code-block:: bash
 
-	LC_ALL=C sort -k1,4 tests/data/basic.hap | \
-	haptools index --no-sort --output tests/data/basic.hap.gz /dev/stdin
+  haptools index --no-sort --output tests/data/basic.hap.gz tests/data/basic.hap.gz
+
+.. warning::
+  If the ``--no-sort`` flag *isn't* used, the ``index`` command will ignore all extra fields when processing your ``.hap`` file. To retain them, just sort the file manually first.
+
+  .. code-block:: bash
+
+    LC_ALL=C sort -k1,4 tests/data/simphenotype.hap | \
+    haptools index --no-sort --output tests/data/simphenotype.hap.gz /dev/stdin
 
 
 Detailed Usage

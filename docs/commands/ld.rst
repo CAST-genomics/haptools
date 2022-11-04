@@ -2,7 +2,7 @@
 
 
 ld
-=========
+===
 
 Compute the pair-wise LD (`Pearson's correlation coefficient <https://numpy.org/doc/stable/reference/generated/numpy.corrcoef.html>`_) between haplotypes (or genotypes) and a single *TARGET* haplotype (or variant).
 
