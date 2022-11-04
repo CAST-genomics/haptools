@@ -99,7 +99,7 @@ Simulate two replicates of a case/control trait that occurs in 60% of your sampl
    --heritability 0.8 \
    --prevalence 0.6 \
    --output simulated.pheno \
-   /dev/stdin tests/data/example.hap.gz
+   /dev/stdin tests/data/simphenotype.hap
 
 Detailed Usage
 ~~~~~~~~~~~~~~
