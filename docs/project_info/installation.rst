@@ -17,7 +17,7 @@ Installing ``haptools`` with the "files" extra requirements enables automatic su
 
 .. code-block:: bash
 
-   pip install haptools[files]
+   pip install 'haptools[files]'
 
 .. note::
    Installing ``haptools`` with the "files" extra requirement requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. To install with conda, for example, please execute the following:
@@ -37,7 +37,7 @@ Installing ``haptools`` with the "files" extra requirements enables automatic su
 Using conda
 -----------
 
-We also support installing ``haptools`` from bioconda.
+We also support installing ``haptools`` from bioconda using ``conda``.
 
 .. code-block:: bash
 
