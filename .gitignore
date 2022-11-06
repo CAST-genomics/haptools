@@ -8,6 +8,7 @@ docs/_build/
 __pycache__
 # pytest cache
 .pytest_cache
+.coverage
 # poetry
 dist/
 
