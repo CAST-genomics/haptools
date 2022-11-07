@@ -3,7 +3,6 @@ import shutil
 import logging
 import tempfile
 from pathlib import Path
-from fileinput import hook_compressed
 
 from pysam import tabix_index
 
@@ -70,7 +69,7 @@ def index_haps(
         # copy the file to a tmp location in case the input is /dev/stdin
         # or a file that might otherwise be deleted by tabix_index afterward
         with tempfile.NamedTemporaryFile(delete=False, mode="wt") as tmp:
-            with hook_compressed(str(hp.fname), mode="rt") as haps:
+            with data.Data.hook_compressed(str(hp.fname), mode="r") as haps:
                 hp.fname = Path(tmp.name)
                 tmp.write(haps.read())
 

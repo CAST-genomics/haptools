@@ -5,7 +5,6 @@ from typing import NewType
 from collections import namedtuple
 from collections.abc import Iterable
 from logging import getLogger, Logger
-from fileinput import hook_compressed
 
 import numpy as np
 import numpy.typing as npt
@@ -118,7 +117,7 @@ class Breakpoints(Data):
             first as a string, and then followed by its SampleBlocks
         """
         # TODO: add a region parameter
-        bps = hook_compressed(self.fname, mode="rt")
+        bps = self.hook_compressed(self.fname, mode="r")
         bp_text = csv.reader(bps, delimiter="\t")
         samp = None
         blocks = {}
@@ -346,7 +345,7 @@ class Breakpoints(Data):
         >>> }
         >>> breakpoints.write()
         """
-        with hook_compressed(self.fname, mode="wt") as bkpts:
+        with self.hook_compressed(self.fname, mode="w") as bkpts:
             csv_writer = csv.writer(
                 bkpts, delimiter="\t", dialect="unix", quoting=csv.QUOTE_NONE
             )

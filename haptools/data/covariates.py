@@ -1,13 +1,7 @@
 from __future__ import annotations
-from csv import reader
 from pathlib import Path
-from collections import namedtuple
 from logging import getLogger, Logger
-from fileinput import hook_compressed
 
-import numpy as np
-
-from .data import Data
 from .phenotypes import Phenotypes
 
 

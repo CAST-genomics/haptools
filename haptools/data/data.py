@@ -1,7 +1,9 @@
 from __future__ import annotations
+import os
+import gzip
 from csv import reader
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, IO
 from collections import namedtuple
 from abc import ABC, abstractmethod
 from logging import getLogger, Logger
@@ -78,3 +80,31 @@ class Data(ABC):
             namedtuple containing each of the class properties
         """
         pass
+
+    @staticmethod
+    def hook_compressed(filename: str, mode: str) -> IO:
+        """
+        A utility to help open files regardless of their compression
+
+        Based off of python's fileinput.hook_compressed and copied from
+        https://stackoverflow.com/a/64106815/16815703
+
+        Parameters
+        ----------
+        filename : str
+            The path to the file
+        mode : str
+            Either 'r' for read or 'w' for write
+
+        Returns
+        -------
+        IO
+            The resolved file object
+        """
+        if "b" not in mode:
+            mode += "t"
+        ext = os.path.splitext(filename)[1]
+        if ext == ".gz":
+            return gzip.open(filename, mode)
+        else:
+            return open(filename, mode)

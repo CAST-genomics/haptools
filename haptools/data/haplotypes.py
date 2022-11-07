@@ -1,8 +1,8 @@
 from __future__ import annotations
+import os
 from pathlib import Path
 from functools import total_ordering
 from logging import getLogger, Logger
-from fileinput import hook_compressed
 from dataclasses import dataclass, field, fields
 from typing import Iterator, get_type_hints, Generator, Callable
 
@@ -959,7 +959,7 @@ class Haplotypes(Data):
         else:
             # the file is not indexed, so we can't assume it's sorted, either
             # use hook_compressed to automatically handle gz files
-            with hook_compressed(self.fname, mode="rt") as haps:
+            with self.hook_compressed(self.fname, mode="r") as haps:
                 self.log.info("Not taking advantage of indexing.")
                 header_lines = []
                 for line in haps:
@@ -1047,7 +1047,7 @@ class Haplotypes(Data):
         >>> haplotypes.data = {'H1': Haplotype('chr1', 0, 10, 'H1')}
         >>> haplotypes.write()
         """
-        with hook_compressed(self.fname, mode="wt") as haps:
+        with self.hook_compressed(self.fname, mode="w") as haps:
             for line in self.to_str():
                 haps.write(line + "\n")
 
