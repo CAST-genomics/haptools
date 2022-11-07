@@ -4,7 +4,6 @@ from pathlib import Path
 from io import TextIOBase
 from collections.abc import Iterable
 from logging import getLogger, Logger
-from fileinput import hook_compressed
 from collections import namedtuple, Counter
 
 import numpy as np
@@ -145,7 +144,7 @@ class Phenotypes(Data):
         Iterable[namedtuple]
             See documentation for :py:meth:`~.Phenotypes._iterate`
         """
-        phens = hook_compressed(self.fname, mode="rt")
+        phens = self.hook_compressed(self.fname, mode="r")
         phen_text = reader(phens, delimiter="\t")
         # ignore all of the comment lines
         while True:
@@ -192,7 +191,7 @@ class Phenotypes(Data):
             names[idx] = name + suffix
             uniq_names[name] += 1
         # now we can finally write the file
-        with hook_compressed(self.fname, mode="wt") as phens:
+        with self.hook_compressed(self.fname, mode="w") as phens:
             phens.write("#IID\t" + "\t".join(names) + "\n")
             formatter = {"float_kind": lambda x: "%.2f" % x}
             for samp, phen in zip(self.samples, self.data):

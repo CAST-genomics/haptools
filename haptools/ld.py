@@ -1,7 +1,6 @@
 from __future__ import annotations
 import logging
 from pathlib import Path
-from fileinput import hook_compressed
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -198,7 +197,7 @@ def calc_ld(
 
     if from_gts:
         log.info("Computing LD between genotypes and the target")
-        with hook_compressed(output, mode="wt") as ld_file:
+        with data.Data.hook_compressed(output, mode="w") as ld_file:
             log.info("Outputting .ld file with LD values")
             ld_file.write("CHR\tBP\tSNP\tR\n")
             for idx, variant in enumerate(gt.variants[["chrom", "pos", "id"]]):

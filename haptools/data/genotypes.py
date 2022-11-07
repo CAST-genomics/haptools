@@ -4,7 +4,6 @@ from csv import reader
 from pathlib import Path
 from typing import Iterator
 from logging import getLogger, Logger
-from fileinput import hook_compressed
 from collections import namedtuple, Counter
 
 import numpy as np
@@ -737,7 +736,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             self.log.warning("Sample data has already been loaded. Overriding.")
         if samples is not None and not isinstance(samples, set):
             samples = set(samples)
-        with hook_compressed(self.fname.with_suffix(".psam"), mode="rt") as psam:
+        with self.hook_compressed(self.fname.with_suffix(".psam"), mode="r") as psam:
             psamples = reader(psam, delimiter="\t")
             # find the line that declares the header
             for header in psamples:
@@ -862,7 +861,7 @@ class GenotypesPLINK(GenotypesRefAlt):
             region = re.split(":|-", region)
             if len(region) > 1:
                 region[1:] = [int(pos) for pos in region[1:] if pos]
-        with hook_compressed(self.fname.with_suffix(".pvar"), mode="rt") as pvar:
+        with self.hook_compressed(self.fname.with_suffix(".pvar"), mode="r") as pvar:
             pvariants = reader(pvar, delimiter="\t")
             # find the line that declares the header
             for header in pvariants:
@@ -1158,7 +1157,7 @@ class GenotypesPLINK(GenotypesRefAlt):
 
         This method is called automatically by :py:meth:`~.GenotypesPLINK.write`
         """
-        with hook_compressed(self.fname.with_suffix(".psam"), mode="wt") as psam:
+        with self.hook_compressed(self.fname.with_suffix(".psam"), mode="w") as psam:
             psam.write("#IID\n")
             psam.write("\n".join(self.samples))
             psam.write("\n")

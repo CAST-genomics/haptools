@@ -6,8 +6,10 @@ snakemake/out
 docs/_build/
 # python cache
 __pycache__
-# pytest cache
+# pytest and testing-related caches
 .pytest_cache
+.coverage
+.nox
 # poetry
 dist/
 
