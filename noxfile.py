@@ -18,11 +18,18 @@ nox.options.sessions = (
 )
 
 
-@session(python=python_versions)
+# detect whether mamba is installed
+conda_cmd = "conda"
+if (Path(os.getenv("CONDA_EXE")).parent / "mamba").exists():
+    conda_cmd = "mamba"
+conda_args = ["-c", "conda-forge"]
+
+
+@session(venv_backend=conda_cmd, venv_params=conda_args, python=python_versions)
 def tests(session: Session) -> None:
     """Run the test suite."""
-    session.install(".[tests]")
-    session.install("coverage[toml]")
+    session.conda_install("coverage[toml]", "pytest", channel="conda-forge")
+    session.install(".[files]")
 
     try:
         session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
@@ -31,12 +38,10 @@ def tests(session: Session) -> None:
             session.notify("coverage", posargs=[])
 
 
-@session(python=python_versions[-1])
+@session(python=False)
 def coverage(session: Session) -> None:
     """Produce the coverage report."""
     args = session.posargs or ["report"]
-
-    session.install("coverage[toml]")
 
     if not session.posargs and any(Path().glob(".coverage.*")):
         session.run("coverage", "combine")
@@ -44,14 +49,12 @@ def coverage(session: Session) -> None:
     session.run("coverage", *args)
 
 
-@session(name="docs", python=python_versions[-1])
+@session(python=False)
 def docs(session: Session) -> None:
     """Build the documentation."""
     args = session.posargs or ["docs", "docs/_build"]
     if not session.posargs and "FORCE_COLOR" in os.environ:
         args.insert(0, "--color")
-
-    session.install(".[docs]")
 
     build_dir = Path("docs", "_build")
     if build_dir.exists():
