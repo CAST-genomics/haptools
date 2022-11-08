@@ -11,8 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  title:
-    name: Title
+  title-format:
     permissions:
       pull-requests: read  # for amannn/action-semantic-pull-request to analyze PRs
       statuses: write  # for amannn/action-semantic-pull-request to mark status of analyzed PR
