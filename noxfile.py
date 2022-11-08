@@ -19,13 +19,6 @@ nox.options.sessions = (
 )
 
 
-# detect whether mamba is installed
-conda_cmd = "conda"
-if (Path(os.getenv("CONDA_EXE")).parent / "mamba").exists():
-    conda_cmd = "mamba"
-conda_args = ["-c", "conda-forge"]
-
-
 @session(python=False)
 def docs(session: Session) -> None:
     """Build the documentation."""
@@ -46,21 +39,42 @@ def lint(session: Session) -> None:
     session.run("black", "--check", ".")
 
 
-@session(venv_backend=conda_cmd, venv_params=conda_args, python=python_versions)
-def tests(session: Session) -> None:
-    """Run the test suite."""
-    session.conda_install(
-        "coverage[toml]", "pytest", "numpy>=1.20.0", channel="conda-forge"
-    )
-    # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-    # https://github.com/chrchang/plink-ng/releases
-    session.install(".")
+# detect whether conda/mamba is installed
+if os.getenv("CONDA_EXE"):
+    conda_cmd = "conda"
+    if (Path(os.getenv("CONDA_EXE")).parent / "mamba").exists():
+        conda_cmd = "mamba"
+    conda_args = ["-c", "conda-forge"]
 
-    try:
-        session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
-    finally:
-        if session.interactive:
-            session.notify("coverage", posargs=[])
+    @session(venv_backend=conda_cmd, venv_params=conda_args, python=python_versions)
+    def tests(session: Session) -> None:
+        """Run the test suite."""
+        session.conda_install(
+            "coverage[toml]", "pytest", "numpy>=1.20.0", channel="conda-forge"
+        )
+        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
+        # https://github.com/chrchang/plink-ng/releases
+        session.install(".")
+
+        try:
+            session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
+        finally:
+            if session.interactive:
+                session.notify("coverage", posargs=[])
+else:
+    @session(python=python_versions)
+    def tests(session: Session) -> None:
+        """Run the test suite."""
+        session.install("coverage[toml]", "pytest")
+        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
+        # https://github.com/chrchang/plink-ng/releases
+        session.install(".")
+
+        try:
+            session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
+        finally:
+            if session.interactive:
+                session.notify("coverage", posargs=[])
 
 
 @session(python=False)
