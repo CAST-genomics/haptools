@@ -36,6 +36,7 @@ def docs(session: Session) -> None:
 @session(python=python_versions[0])
 def lint(session: Session) -> None:
     """Lint our code."""
+    session.install("black")
     session.run("black", "--check", ".")
 
 
