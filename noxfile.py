@@ -19,7 +19,7 @@ nox.options.sessions = (
 )
 
 
-@session(python=False)
+@session(python=False if session.interactive else python_versions[0])
 def docs(session: Session) -> None:
     """Build the documentation."""
     args = session.posargs or ["docs", "docs/_build"]
@@ -33,7 +33,7 @@ def docs(session: Session) -> None:
     session.run("sphinx-build", *args)
 
 
-@session(python=False)
+@session(python=False if session.interactive else python_versions[0])
 def lint(session: Session) -> None:
     """Lint our code."""
     session.run("black", "--check", ".")
@@ -57,11 +57,15 @@ if os.getenv("CONDA_EXE"):
         session.install(".")
 
         try:
-            session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
+            session.run(
+                "coverage", "run", "--parallel", "-m", "pytest", *session.posargs
+            )
         finally:
             if session.interactive:
                 session.notify("coverage", posargs=[])
+
 else:
+
     @session(python=python_versions)
     def tests(session: Session) -> None:
         """Run the test suite."""
@@ -71,13 +75,15 @@ else:
         session.install(".")
 
         try:
-            session.run("coverage", "run", "--parallel", "-m", "pytest", *session.posargs)
+            session.run(
+                "coverage", "run", "--parallel", "-m", "pytest", *session.posargs
+            )
         finally:
             if session.interactive:
                 session.notify("coverage", posargs=[])
 
 
-@session(python=False)
+@session(python=False if session.interactive else python_versions[0])
 def coverage(session: Session) -> None:
     """Produce the coverage report."""
     args = session.posargs or ["report"]
