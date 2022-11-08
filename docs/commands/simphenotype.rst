@@ -82,14 +82,21 @@ By default, all of the haplotypes in the ``.hap`` file will be encoded as causal
    haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
    haptools simphenotype --id 'chr21.q.3365*1' /dev/stdin tests/data/simphenotype.hap
 
-To simulate ancestry-specific effects from a genotypes file with population labels, use the ``--ancestry`` switch when running ``transform``:
+To simulate ancestry-specific effects from a genotypes file with population labels, use the ``--ancestry`` switch when running ``transform``.
 
 .. code-block:: bash
 
    haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
    haptools simphenotype --id H1 /dev/stdin tests/data/simple.hap
 
-Simulate two replicates of a case/control trait that occurs in 60% of your samples with a heritability of 0.8. Encode all of the haplotypes in ``tests/data/example.hap.gz`` as independent causal variables.
+If speed is important, it's generally faster to use PGEN files than VCFs.
+
+.. code-block:: bash
+
+   haptools transform --output simple-haps.pgen tests/data/simple.pgen tests/data/simple.hap
+   haptools simphenotype --id H1 simple-haps.pgen tests/data/simple.hap
+
+Let's simulate two replicates of a case/control trait that occurs in 60% of samples with a heritability of 0.8. We'll encode only two of the haplotypes in ``tests/data/simphenotype.hap`` as independent causal variables.
 
 .. code-block:: bash
 
@@ -98,6 +105,8 @@ Simulate two replicates of a case/control trait that occurs in 60% of your sampl
    --replications 2 \
    --heritability 0.8 \
    --prevalence 0.6 \
+   --id 'chr21.q.3365*10' \
+   --id 'chr21.q.3365*11' \
    --output simulated.pheno \
    /dev/stdin tests/data/simphenotype.hap
 
