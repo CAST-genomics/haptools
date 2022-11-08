@@ -129,13 +129,23 @@ class PhenoSimulator:
         self.log.debug(f"Beta values are {betas}")
         # extract the haplotype "genotypes" and compute the phenotypes
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
-        self.log.info(f"Computing genetic component w/ {gts.shape[0]} causal effects")
+        self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
         # standardize the genotypes
         std = gts.std(axis=0)
         gts = (gts - gts.mean(axis=0)) / std
         # for genotypes where the stdev is 0, just set all values to 0 instead of nan
         zero_elements = std == 0
-        gts[:, zero_elements] = np.zeros((gts.shape[0], np.sum(zero_elements)))
+        num_zero_elements = np.sum(zero_elements)
+        if num_zero_elements:
+            # get the first five causal variables with variances == 0
+            zero_elements_ids = np.array(ids)[zero_elements]
+            if len(zero_elements_ids) > 5:
+                zero_elements_ids = zero_elements_ids[:5]
+            self.log.warning(
+                "Some of your causal variables have genotypes with variance 0. Here "
+                f"are the first few few: {zero_elements_ids}"
+            )
+        gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
