@@ -96,28 +96,28 @@ For example, to add a pypi dependency to our list and install it, just run
 -----------
 Code Checks
 -----------
-Before creating your pull request, please run our code checks through ``nox``.
-
-.. code-block:: bash
-
-    nox
-
-You can also execute each of our code checks individually.
+Before creating your pull request, please run each of our code checks.
 
 1. Format the code correctly
 
     .. code-block:: bash
 
-        nox --session=lint
+        black .
 
 2. If you made changes to the docs, check that they appear correctly.
 
     .. code-block:: bash
 
-        nox --session=docs
-        open docs/_build/index.html
+        sphinx-build docs docs/_build
+        open docs/_build/html/index.html
 
 3. Run all of the tests
+
+    .. code-block:: bash
+
+        pytest tests/
+
+    You can also build the package and run the tests from the built version using ``nox``. This will fully simulate installing the package from PyPI.
 
     .. code-block:: bash
 
