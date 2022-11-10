@@ -472,7 +472,8 @@ def write_breakpoints(samples, breakpoints, out):
 
     # randomly sample breakpoints to get the correct amount of samples to output
     breakpoints = np.array(breakpoints, dtype=object)
-    breakpoints = np.random.choice(breakpoints, size=2*samples, replace=False)
+    breakpoints_ind = np.random.choice(range(breakpoints.shape[0]), size=2*samples, replace=False)
+    breakpoints = breakpoints[breakpoints_ind, :]
 
     with open(breakpt_file, 'w') as output:
         for ind, sample in enumerate(breakpoints):
@@ -852,7 +853,7 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region=N
 
     # Complete check if we're only outputting a breakpoint
     if only_bp:
-        return
+        return popsize
 
     # Collect samples from vcf
     try:
