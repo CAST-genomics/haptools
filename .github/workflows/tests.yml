@@ -70,7 +70,7 @@ jobs:
         uses: actionsdesk/lfs-warning@v3.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }} # Optional
-          filesizelimit: 0.5mb
+          filesizelimit: 500000b
           labelName: large-files
 
   # coverage:
