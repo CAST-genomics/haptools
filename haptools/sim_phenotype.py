@@ -158,7 +158,14 @@ class PhenoSimulator:
             noise = 1 - heritability
         else:
             # compute the environmental effect
-            noise = np.var(pt) * (np.reciprocal(heritability) - 1)
+            noise = np.var(pt)
+            if noise == 0:
+                self.log.warning(
+                    "Your genotypes have a variance of 0. Creating artificial noise..."
+                )
+                noise = 1
+            # TODO: handle a heritability of 0 somehow
+            noise *= (np.reciprocal(heritability) - 1)
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)
