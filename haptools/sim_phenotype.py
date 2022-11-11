@@ -165,7 +165,7 @@ class PhenoSimulator:
                 )
                 noise = 1
             # TODO: handle a heritability of 0 somehow
-            noise *= (np.reciprocal(heritability) - 1)
+            noise *= np.reciprocal(heritability) - 1
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)
