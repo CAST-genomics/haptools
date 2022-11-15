@@ -66,6 +66,8 @@ jobs:
     name: File sizes
     runs-on: ubuntu-latest
     steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
       - name: Check for large files
         uses: actionsdesk/lfs-warning@v3.2
         with:

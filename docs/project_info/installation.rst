@@ -7,7 +7,7 @@ Installation
 Using pip
 ---------
 
-You can install ``haptools`` from PyPI using ``pip``. We recommend using ``pip >= 22.2.2`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
+You can install ``haptools`` from PyPI using ``pip``.
 
 .. code-block:: bash
 
@@ -45,3 +45,11 @@ We also support installing ``haptools`` from bioconda using ``conda``.
 
 .. note::
    Installing ``haptools`` from bioconda with PGEN support is not yet possible. See `issue 228 <https://github.com/chrchang/plink-ng/issues/228>`_ for current progress on this challenge.
+
+Installing the latest, unreleased version
+-----------------------------------------
+Can't wait for us to tag and release our most recent updates? You can install ``haptools`` directly from the ``main`` branch of our Github repository using ``pip``.
+
+.. code-block:: bash
+
+   pip install --upgrade --force-reinstall git+https://github.com/cast-genomics/haptools.git
