@@ -61,7 +61,7 @@ def test_alt_chrom_name():
     )
 
     # read in vcf file
-    vcf = VCF(str(out_prefix) + ".vcf")
+    vcf = VCF(str(out_prefix) + ".vcf.gz")
     for var in vcf:
         if var.CHROM == "chr1" and var.POS == 10114:
             assert var.genotypes[0] == [0, 0, True]
@@ -91,7 +91,7 @@ def test_alt_chrom_name():
             assert False
 
     # Remove output file from output_vcf located at out_prefix + '.vcf'
-    os.remove(str(out_prefix) + ".vcf")
+    os.remove(str(out_prefix) + ".vcf.gz")
     return
 
 
@@ -112,7 +112,7 @@ def test_vcf_output():
     # 1	59423090 GT:POP  0|1:CEU,YRI  1|0:YRI,CEU
     # 2	10122    GT:POP  1|0:YRI,CEU  0|1:CEU,YRI
     # read in vcf file
-    vcf = VCF(str(out_prefix) + ".vcf")
+    vcf = VCF(str(out_prefix) + ".vcf.gz")
     for var in vcf:
         if var.CHROM == "1" and var.POS == 10114:
             assert var.genotypes[0] == [0, 0, True]
@@ -136,7 +136,7 @@ def test_vcf_output():
             assert False
 
     # Remove output file from output_vcf located at out_prefix + '.vcf'
-    os.remove(str(out_prefix) + ".vcf")
+    os.remove(str(out_prefix) + ".vcf.gz")
     return
 
 
@@ -167,7 +167,7 @@ def test_region_vcf():
         bkps, chroms, model_file, vcf_file, sampleinfo_file, region, str(out_prefix)
     )
 
-    vcf = VCF(str(out_prefix) + ".vcf")
+    vcf = VCF(str(out_prefix) + ".vcf.gz")
     for var in vcf:
         assert var.POS == 10122 and var.CHROM == "2"
         assert var.genotypes[0] == [1, 0, True]
@@ -175,7 +175,7 @@ def test_region_vcf():
         assert var.genotypes[1] == [0, 1, True]
         assert var.format("POP")[1] == "CEU,YRI"
 
-    os.remove(str(out_prefix) + ".vcf")
+    os.remove(str(out_prefix) + ".vcf.gz")
     return
 
 
