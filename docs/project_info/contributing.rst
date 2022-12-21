@@ -45,14 +45,14 @@ To create a pull request you need to do these steps:
         - Or, if you had already forked the repository a while ago, `sync your fork <https://docs.github.com/en/github/collaborating-with-pull-requests/working-with-forks/syncing-a-fork>`_ to make sure you're working with the latest version of haptools
     3. `Clone your fork locally <https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository>`_
     4. :code:`cd haptools` into the new directory
-    5. Create a new branch off of master with :code:`git checkout -b <descriptive_branch_name>`. Please follow best practices when naming your branch
+    5. Create a new branch off of the :code:`main` branch with :code:`git checkout -b <descriptive_branch_name>`. Please follow `best practices <https://www.conventionalcommits.org/>`_ when naming your branch
     6. Setup our development environment by following the instructions in :ref:`dev-setup-instructions` below
     7. Make your changes to the code
     8. Add additional tests to the :code:`tests/` directory and add comments to the documentation to explain how to use your new code. We use pytest for testing and sphinx/numpydoc for documentation
     9. Run the automated code-checking steps detailed in :ref:`code-check-instructions` below
     10. Commit your changes. Please use informative commit messages and do your best to ensure the commit history is clean and easy to interpret
     11. Now you can push your changes to your Github copy of haptools by running :code:`git push origin <descriptive_branch_name>`
-    12. Go to your Github copy of haptools in your browser and create a pull request. Be sure to change the pull request target branch to :code:`main` on this original repository!
+    12. Go to your Github copy of haptools in your browser and create a pull request titled according to the `conventional commits spec <https://www.conventionalcommits.org/>`_. Be sure to change the pull request target branch to :code:`main` on this original repository.
     13. Please write an informative pull request detailing the changes you have made and why you made them. Tag any related issues by referring to them by a hashtag followed by their ID
 
 
@@ -78,7 +78,9 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        poetry install -E docs -E test -E files
+        poetry install -E docs -E tests -E files
+
+Now, try importing ``haptools`` or running it on the command line.
 
 ---------------------
 Managing Dependencies
@@ -90,6 +92,12 @@ For example, to add a pypi dependency to our list and install it, just run
     .. code-block:: bash
 
         poetry add <dependency>
+
+You should specify a `version constraint <https://python-poetry.org/docs/master/dependency-specification>`_ when adding a dependency. Use the oldest version compatible with your code. Don't worry if you're not sure at first -- you can (and should!) always update it later. For example, to specify a version of ``click`` >= 8.0.4:
+
+    .. code-block:: bash
+
+        poetry add 'click>=8.0.4'
 
 .. _code-check-instructions:
 
@@ -132,7 +140,8 @@ Code
 
     1. Please type-hint all function parameters
     2. Please adhere to PEP8 whenever possible. :code:`black` will help you with this.
-    3. For readability, please separate imports into three paragraph blocks:
+    3. Please use relative imports whenever importing modules from the code base
+    4. For readability, please separate imports into three paragraph blocks:
         i. from the python standard library
         ii. from external, third party packages
         iii. from our own internal code

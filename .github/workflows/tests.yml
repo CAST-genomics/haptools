@@ -62,6 +62,18 @@ jobs:
         with:
           name: coverage-data
           path: ".coverage.*"
+  large-files:
+    name: File sizes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+      - name: Check for large files
+        uses: actionsdesk/lfs-warning@v3.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # Optional
+          filesizelimit: 500000b
+          labelName: large-files
 
   # coverage:
   #   runs-on: ubuntu-latest
