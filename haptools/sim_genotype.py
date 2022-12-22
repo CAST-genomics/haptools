@@ -104,7 +104,7 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # Note: comment out the code below to enable (very experimental!) PGEN support
     # curr_bkps = current_bkps.copy()
     # _write_pgen(breakpoints, chroms, region, hapblock_samples, curr_bkps, output_samples, vcf_file, out+".pgen")
-    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf")
+    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf.gz")
     return
 
 def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
