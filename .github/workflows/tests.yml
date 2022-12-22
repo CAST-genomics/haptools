@@ -46,7 +46,7 @@ jobs:
               print(f"VIRTUALENV_PIP={pip.__version__}", file=io)
       - name: Install Poetry
         run: |
-          pipx install --pip-args=--constraint=.github/workflows/constraints.txt poetry
+          pipx install --python ${{ matrix.python }} --pip-args=--constraint=.github/workflows/constraints.txt poetry
           poetry --version
       - name: Install Nox
         run: |
