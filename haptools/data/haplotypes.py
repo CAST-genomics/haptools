@@ -1017,7 +1017,7 @@ class Haplotypes(Data):
         for symbol, line_instance in self.types.items():
             extras_order = line_instance.extras_order()
             if extras_order:
-                yield f"#\torder{symbol}\t" + "\t".join(line_instance.extras_order())
+                yield f"#\torder{symbol}\t" + "\t".join(extras_order)
         yield "#\tversion\t" + self.version
         for line_instance in self.types.values():
             yield from sorted(line_instance.extras_head())
