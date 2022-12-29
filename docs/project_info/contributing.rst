@@ -146,6 +146,27 @@ Code
         ii. from external, third party packages
         iii. from our own internal code
 
+~~~~~~
+Errors
+~~~~~~
+We use the `Python logging module <https://coralogix.com/blog/python-logging-best-practices-tips/>`_ for all messages, including warnings, debugging info, and otherwise. For example, all classes in the ``data`` module have a ``log`` property that stores a logger object. If you are creating a new command, you can use our custom logging module to retrieve a suitable object.
+
+.. code-block:: python
+
+    from .logging import getLogger
+
+    # the level of verbosity desired by the user
+    # can be: CRITICAL, ERROR, WARNING, INFO, DEBUG, or NOTSET
+    verbosity = "DEBUG"
+
+    # create a new logger object for the transform command
+    log = getLogger(name="transform", level=verbosity)
+
+    # log a warning message to the logger
+    log.warning("This is a warning")
+
+This way, the user can choose their level of verbosity among *CRITICAL*, *ERROR*, *WARNING*, *INFO*, *DEBUG*, and *NOTSET*. However, for critical errors (especially for those in the ``data`` module), our convention is to raise exceptions, usually with a custom ``ValueError``.
+
 ~~~~~~~~~~~~~~~~~~~
 Git commit messages
 ~~~~~~~~~~~~~~~~~~~
