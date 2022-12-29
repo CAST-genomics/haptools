@@ -1,11 +1,12 @@
 from __future__ import annotations
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from logging import getLogger, Logger, DEBUG
 
 import numpy as np
 import numpy.typing as npt
 
+from .logging import getLogger
 from .data import Haplotype as HaplotypeBase
 from .data import (
     Extra,
@@ -45,7 +46,7 @@ class PhenoSimulator:
         Simulated phenotypes; filled by :py:meth:`~.PhenoSimular.run`
     rng: np.random.Generator, optional
         A numpy random number generator
-    log: Logger
+    log: logging.Logger
         A logging instance for recording debug statements
 
     Examples
@@ -63,7 +64,7 @@ class PhenoSimulator:
         genotypes: Genotypes,
         output: Path = Path("/dev/stdout"),
         seed: int = None,
-        log: Logger = None,
+        log: logging.Logger = None,
     ):
         """
         Initialize a PhenoSimulator object
@@ -81,7 +82,7 @@ class PhenoSimulator:
 
             This is useful if you want the generated phenotypes to be the same across
             multiple PhenoSimulator instances. If not provided, it will be random.
-        log: Logger, optional
+        log: logging.Logger, optional
             A logging instance for recording debug statements
         """
         self.gens = genotypes
@@ -89,7 +90,7 @@ class PhenoSimulator:
         self.phens.data = None
         self.phens.samples = self.gens.samples
         self.rng = np.random.default_rng(seed)
-        self.log = log or getLogger(self.__class__.__name__)
+        self.log = log or logging.getLogger(self.__class__.__name__)
 
     def run(
         self,
@@ -169,7 +170,7 @@ class PhenoSimulator:
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)
-        if self.log.getEffectiveLevel() == DEBUG:
+        if self.log.getEffectiveLevel() == logging.DEBUG:
             # if we're in debug mode, compute the pearson correlation and report it
             # but don't do this otherwise to keep things fast
             corr = np.corrcoef(pt, pt + pt_noise)[1, 0]
@@ -213,7 +214,7 @@ def simulate_pt(
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
     output: Path = Path("-"),
-    log: Logger = None,
+    log: logging.Logger = None,
 ):
     """
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
@@ -272,15 +273,11 @@ def simulate_pt(
         not in PGEN format.
     output : Path, optional
         The location to which to write the simulated phenotypes
-    log : Logger, optional
+    log : logging.Logger, optional
         The logging module for this task
     """
     if log is None:
-        log = logging.getLogger("haptools simphenotype")
-        logging.basicConfig(
-            format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-            level="ERROR",
-        )
+        log = getLogger(name="simphenotype", level="ERROR")
 
     log.info("Loading haplotypes")
     hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)

@@ -10,6 +10,7 @@ from cyvcf2 import VCF, Variant
 from pysam import VariantFile
 
 from haptools import data
+from .logging import getLogger
 
 
 @dataclass
@@ -549,11 +550,7 @@ def transform_haps(
         A logging module to which to write messages about progress and any errors
     """
     if log is None:
-        log = logging.getLogger("haptools transform")
-        logging.basicConfig(
-            format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-            level="ERROR",
-        )
+        log = getLogger(name="transform", level="ERROR")
 
     haps_class = HaplotypesAncestry if ancestry else data.Haplotypes
     log.info("Loading haplotypes")
