@@ -111,6 +111,7 @@ class TestSimPhenotype:
         assert phens.samples == expected.samples
         assert phens.names[0] == expected.names[0]
 
+    @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     def test_one_hap_zero_noise_all_same_nonzero_heritability(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
