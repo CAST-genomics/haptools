@@ -131,6 +131,17 @@ Before creating your pull request, please run each of our code checks.
 
         nox --session=tests
 
+---------------------
+Publish a new version
+---------------------
+To publish a new version of haptools:
+
+1. First, merge `the most recent haptools PR <https://github.com/CAST-genomics/haptools/pulls>`_ prefixed "chore(main)" created by our Github actions bot
+2. The bot will automatically create a new version on PyPI and tag a release on Github
+3. A few hours later, bioconda will automatically detect the new release on PyPI and create a PR in `their repository <https://github.com/bioconda/bioconda-recipes/pulls>`_
+4. Check that all of the dependencies in the recipe have been updated properly. If they are, you should comment on the bioconda PR with "@BiocondaBot please add label"
+5. After 1-2 days, someone from the bioconda team will merge our PR and the version will get updated on bioconda. Otherwise, ping them a reminder on `Gitter <https://gitter.im/bioconda/Lobby>`_
+
 -----
 Style
 -----
@@ -145,6 +156,27 @@ Code
         i. from the python standard library
         ii. from external, third party packages
         iii. from our own internal code
+
+~~~~~~
+Errors
+~~~~~~
+We use the `Python logging module <https://coralogix.com/blog/python-logging-best-practices-tips/>`_ for all messages, including warnings, debugging info, and otherwise. For example, all classes in the ``data`` module have a ``log`` property that stores a logger object. If you are creating a new command, you can use our custom logging module to retrieve a suitable object.
+
+.. code-block:: python
+
+    from .logging import getLogger
+
+    # the level of verbosity desired by the user
+    # can be: CRITICAL, ERROR, WARNING, INFO, DEBUG, or NOTSET
+    verbosity = "DEBUG"
+
+    # create a new logger object for the transform command
+    log = getLogger(name="transform", level=verbosity)
+
+    # log a warning message to the logger
+    log.warning("This is a warning")
+
+This way, the user can choose their level of verbosity among *CRITICAL*, *ERROR*, *WARNING*, *INFO*, *DEBUG*, and *NOTSET*. However, for critical errors (especially for those in the ``data`` module), our convention is to raise exceptions, usually with a custom ``ValueError``.
 
 ~~~~~~~~~~~~~~~~~~~
 Git commit messages

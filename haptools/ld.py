@@ -1,5 +1,4 @@
 from __future__ import annotations
-import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -7,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from haptools import data
+from .logging import getLogger
 from .data import Haplotype as HaplotypeBase
 
 
@@ -98,11 +98,7 @@ def calc_ld(
         A logging module to which to write messages about progress and any errors
     """
     if log is None:
-        log = logging.getLogger("haptools ld")
-        logging.basicConfig(
-            format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-            level="ERROR",
-        )
+        log = getLogger(name="ld", level="ERROR")
 
     # convert IDs to set but save the tuple
     ids_tup, ids = ids, (set(ids) if ids is not None else None)
