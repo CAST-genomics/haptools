@@ -289,6 +289,20 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "ref", "alt"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
+    def test_load_genotypes_prephased(self):
+        expected = self._get_fake_genotypes_plink()
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts._prephased = True
+        gts.read()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, expected.data)
+        assert gts.samples == expected.samples
+        for i, x in enumerate(expected.variants):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == expected.variants[col][i]
+
     def test_load_genotypes_iterate(self):
         expected = self._get_fake_genotypes_plink()
 
@@ -344,6 +358,30 @@ class TestGenotypesPLINK:
         new_gts = GenotypesPLINK(fname)
         new_gts.read()
         new_gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        # clean up afterwards: delete the files we created
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+    def test_write_genotypes_prephased(self):
+        gts = self._get_fake_genotypes_plink()
+
+        fname = DATADIR.joinpath("test_write.pgen")
+        gts.fname = fname
+        gts._prephased = True
+        gts.write()
+
+        new_gts = GenotypesPLINK(fname)
+        new_gts._prephased = True
+        new_gts.read()
 
         # check that everything matches what we expected
         np.testing.assert_allclose(gts.data, new_gts.data)
