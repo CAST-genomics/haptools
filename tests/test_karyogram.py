@@ -32,18 +32,21 @@ def test_GetHaplotypeBlocks():
     assert sample_blocks[1][0]["start"] == 0.0001
     assert sample_blocks[1][0]["end"] == 85.107755
 
+
 def test_basic(capfd):
     tmp_file = Path("test_karyogram.png")
 
-    cmd = " ".join([
-        "karyogram",
-        "--bp tests/data/5gen.bp",
-        "--sample Sample_1",
-        f"--out {tmp_file}",
-        "--centromeres tests/data/centromeres_hg19.txt",
-        "--title 5_Generation_Karyogram",
-        "--colors CEU:blue,YRI:red",
-    ])
+    cmd = " ".join(
+        [
+            "karyogram",
+            "--bp tests/data/5gen.bp",
+            "--sample Sample_1",
+            f"--out {tmp_file}",
+            "--centromeres tests/data/centromeres_hg19.txt",
+            "--title 5_Generation_Karyogram",
+            "--colors CEU:blue,YRI:red",
+        ]
+    )
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "))
     captured = capfd.readouterr()
