@@ -97,6 +97,7 @@ class PhenoSimulator:
         effects: list[Haplotype],
         heritability: float = None,
         prevalence: float = None,
+        normalize: bool = True,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
@@ -117,6 +118,9 @@ class PhenoSimulator:
 
             If this value is specified, case/control phenotypes will be generated
             instead of quantitative traits.
+        normalize: bool, optional
+            If True, normalize the genotypes before using them to simulate the
+            phenotypes. Otherwise, use the raw values.
 
         Returns
         -------
@@ -132,21 +136,22 @@ class PhenoSimulator:
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
         # standardize the genotypes
-        std = gts.std(axis=0)
-        gts = (gts - gts.mean(axis=0)) / std
-        # for genotypes where the stdev is 0, just set all values to 0 instead of nan
-        zero_elements = std == 0
-        num_zero_elements = np.sum(zero_elements)
-        if num_zero_elements:
-            # get the first five causal variables with variances == 0
-            zero_elements_ids = np.array(ids)[zero_elements]
-            if len(zero_elements_ids) > 5:
-                zero_elements_ids = zero_elements_ids[:5]
-            self.log.warning(
-                "Some of your causal variables have genotypes with variance 0. Here "
-                f"are the first few few: {zero_elements_ids}"
-            )
-        gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
+        if normalize:
+            std = gts.std(axis=0)
+            gts = (gts - gts.mean(axis=0)) / std
+            # when the stdev is 0, just set all values to 0 instead of nan
+            zero_elements = std == 0
+            num_zero_elements = np.sum(zero_elements)
+            if num_zero_elements:
+                # get the first five causal variables with variances == 0
+                zero_elements_ids = np.array(ids)[zero_elements]
+                if len(zero_elements_ids) > 5:
+                    zero_elements_ids = zero_elements_ids[:5]
+                self.log.warning(
+                    "Some of your causal variables have genotypes with variance 0. "
+                    f"Here are the first few few: {zero_elements_ids}"
+                )
+            gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
@@ -209,6 +214,7 @@ def simulate_pt(
     num_replications: int = 1,
     heritability: float = None,
     prevalence: float = None,
+    normalize: bool = True,
     region: str = None,
     samples: list[str] = None,
     haplotype_ids: set[str] = None,
@@ -247,6 +253,9 @@ def simulate_pt(
         must be a float between 0 and 1
 
         If not provided, a quantitative trait will be simulated, instead
+    normalize: bool, optional
+        If True, normalize the genotypes before using them to simulate the phenotypes.
+        Otherwise, use the raw values.
     region : str, optional
         The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
 
@@ -312,6 +321,6 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp.data.values(), heritability, prevalence)
+        pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
     log.info("Writing phenotypes")
     pt_sim.write()
