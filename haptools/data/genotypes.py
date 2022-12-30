@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import gc
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -1061,6 +1062,8 @@ class GenotypesPLINK(GenotypesRefAlt):
                     data[data == -9] = -1
                     data = np.dstack((data[::2, :], data[1::2, :])).astype(np.uint8)
                 self.data[:, start:end] = data
+                del data
+                gc.collect()
 
     def _iterate(
         self,
