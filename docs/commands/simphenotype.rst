@@ -72,29 +72,29 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-   haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
-   haptools simphenotype -o simulated.pheno /dev/stdin tests/data/simphenotype.hap
+   haptools transform tests/data/simple.vcf tests/data/simple.hap | \
+   haptools simphenotype -o simulated.pheno /dev/stdin tests/data/simple.hap
 
 By default, all of the haplotypes in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
 
 .. code-block:: bash
 
-   haptools transform tests/data/example.vcf.gz tests/data/simphenotype.hap | \
-   haptools simphenotype --id 'chr21.q.3365*1' /dev/stdin tests/data/simphenotype.hap
+   haptools transform tests/data/simple.vcf tests/data/simple.hap | \
+   haptools simphenotype --id 'H1' /dev/stdin tests/data/simple.hap
 
 To simulate ancestry-specific effects from a genotypes file with population labels, use the ``--ancestry`` switch when running ``transform``.
 
 .. code-block:: bash
 
    haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
-   haptools simphenotype --id H1 /dev/stdin tests/data/simple.hap
+   haptools simphenotype --id 'H1' /dev/stdin tests/data/simple.hap
 
 If speed is important, it's generally faster to use PGEN files than VCFs.
 
 .. code-block:: bash
 
-   haptools transform --output simple-haps.pgen tests/data/simple.pgen tests/data/simple.hap
-   haptools simphenotype --id H1 simple-haps.pgen tests/data/simple.hap
+   haptools transform -o simple-haps.pgen tests/data/simple.pgen tests/data/simple.hap
+   haptools simphenotype --id 'H1' simple-haps.pgen tests/data/simple.hap
 
 Let's simulate two replicates of a case/control trait that occurs in 60% of samples with a heritability of 0.8. We'll encode only two of the haplotypes in ``tests/data/simphenotype.hap`` as independent causal variables.
 
