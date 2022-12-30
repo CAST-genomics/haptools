@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from click.testing import CliRunner
 
+from haptools.data import Data
 from haptools.__main__ import main
 
 DATADIR = Path(__file__).parent.joinpath("data")
@@ -23,7 +24,7 @@ V\tchr21.q.3365*11\t26938989\t26938989\t21_26938989_G_A\tA
 
     cmd = "ld chr21.q.3365*1 tests/data/example.vcf.gz tests/data/basic.hap.gz"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
@@ -37,13 +38,19 @@ H\t19\t45411941\t45412079\tAPOe4\t0.999
 V\tAPOe4\t45411941\t45411941\trs429358\tC
 V\tAPOe4\t45412079\t45412079\trs7412\tC
 """
+    tmp_file = Path("apoe4_ld.hap")
 
-    cmd = "ld rs429358 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
+    cmd = f"ld -o {tmp_file} rs429358 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
-    assert captured.out == expected
+    assert captured.out == ""
     assert result.exit_code == 0
+
+    with Data.hook_compressed(tmp_file, mode="r") as haps:
+        assert haps.read() == expected
+
+    tmp_file.unlink()
 
 
 def test_from_gts(capfd):
@@ -57,13 +64,19 @@ def test_from_gts(capfd):
 19\t45412040\trs769455\t0.006
 19\t45412079\trs7412\t-0.098
 """
+    tmp_file = Path("apoe4.ld")
 
-    cmd = "ld --from-gts APOe4 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
+    cmd = "ld --from-gts -o apoe4.ld APOe4 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
-    assert captured.out == expected
+    assert captured.out == ""
     assert result.exit_code == 0
+
+    with Data.hook_compressed(tmp_file, mode="r") as snps:
+        assert snps.read() == expected
+
+    tmp_file.unlink()
 
 
 def test_from_gts_ids(capfd):
@@ -77,7 +90,7 @@ def test_from_gts_ids(capfd):
         " tests/data/apoe4.hap"
     )
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
