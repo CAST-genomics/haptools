@@ -289,6 +289,20 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "ref", "alt"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
+    def test_load_genotypes_chunked(self):
+        expected = self._get_fake_genotypes_plink()
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"), chunk_size=1)
+        gts.read()
+        gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, expected.data)
+        assert gts.samples == expected.samples
+        for i, x in enumerate(expected.variants):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == expected.variants[col][i]
+
     def test_load_genotypes_prephased(self):
         expected = self._get_fake_genotypes_plink()
 
