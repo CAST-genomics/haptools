@@ -253,6 +253,23 @@ class TestSimPhenotype:
         diff1 = (phens.data[:, 3] == phens.data[:, 0]).sum()
         assert diff1 > 0
 
+    def test_one_hap_zero_noise_no_normalize(self):
+        gts = self._get_fake_gens()
+        hps = self._get_fake_haps()
+        expected = self._get_expected_phens()
+
+        pt_sim = PhenoSimulator(gts, seed=42)
+        data = pt_sim.run([hps[0]], heritability=1, normalize=False)
+        data = data[:, np.newaxis]
+        phens = pt_sim.phens
+
+        # check the data and the generated phenotype object
+        assert phens.data.shape == (5, 1)
+        np.testing.assert_allclose(phens.data, data)
+        np.testing.assert_allclose(data, np.array([0.25, 0.25, 0, 0.5, 0])[:, None])
+        assert phens.samples == expected.samples
+        assert phens.names[0] == expected.names[0]
+
 
 class TestSimPhenotypeCLI:
     def _get_transform_stdin(self):
@@ -436,3 +453,18 @@ class TestSimPhenotypeCLI:
 
         tmp_file.unlink()
         tmp_tsfm.unlink()
+
+    def test_no_normalize(self, capfd):
+        # first, create a temporary file containing the output of transform
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_transform_stdin())
+
+        cmd = f"simphenotype --no-normalize {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
