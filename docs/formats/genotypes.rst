@@ -28,3 +28,10 @@ If you run out memory when using PGEN files, consider reading/writing variants f
 	.. code-block:: bash
 
 		pip install haptools[files]
+
+.. warning::
+	At the moment, only biallelic SNPs can be encoded in PGEN files because of limitations in the ``Pgenlib`` python library. It doesn't properly support multiallelic variants yet (`source <https://github.com/chrchang/plink-ng/blob/c4b8d4361de74c58f0cc11361062eca4f34210d3/2.0/Python/python_api.txt#L88-L89>`_). To ensure your PGEN files only contain SNPs, we recommend use the following command to convert from VCF to PGEN.
+
+	.. code-block:: bash
+
+		plink2 --snps-only 'just-acgt' --vcf tests/data/simple.vcf --make-pgen --out simple
