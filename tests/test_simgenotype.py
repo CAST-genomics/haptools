@@ -25,9 +25,11 @@ def test_basic(capfd):
         ]
     )
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert result.exit_code == 0
+    assert prefix.with_suffix(".bp").exists()
+    assert prefix.with_suffix(".vcf.gz").exists()
 
     # delete the files and directory we just created
     prefix.with_suffix(".bp").unlink()

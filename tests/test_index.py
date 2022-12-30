@@ -19,7 +19,7 @@ def test_basic(capfd):
 
     cmd = f"index {tmp_file}"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     # check that the output .hap.gz file is the same as the file in tests/data/
@@ -52,7 +52,7 @@ def test_basic_w_output(capfd):
 
     cmd = f"index --output {tmp_file_out} {tmp_file}"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     # check that the output .hap.gz file is the same as the file in tests/data/
@@ -78,7 +78,7 @@ def test_basic_w_output(capfd):
 def test_no_sort(capfd):
     cmd = f"index --no-sort --output test.hap.gz tests/data/basic.hap.gz"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     # check that the output .hap.gz file is the same as the file in tests/data/

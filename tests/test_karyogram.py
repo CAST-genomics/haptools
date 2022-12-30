@@ -48,7 +48,7 @@ def test_basic(capfd):
         ]
     )
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert result.exit_code == 0
 

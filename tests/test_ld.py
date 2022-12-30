@@ -24,7 +24,7 @@ V\tchr21.q.3365*11\t26938989\t26938989\t21_26938989_G_A\tA
 
     cmd = "ld chr21.q.3365*1 tests/data/example.vcf.gz tests/data/basic.hap.gz"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
@@ -42,7 +42,7 @@ V\tAPOe4\t45412079\t45412079\trs7412\tC
 
     cmd = f"ld -o {tmp_file} rs429358 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     assert result.exit_code == 0
@@ -68,7 +68,7 @@ def test_from_gts(capfd):
 
     cmd = "ld --from-gts -o apoe4.ld APOe4 tests/data/apoe.vcf.gz tests/data/apoe4.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     assert result.exit_code == 0
@@ -90,7 +90,7 @@ def test_from_gts_ids(capfd):
         " tests/data/apoe4.hap"
     )
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
