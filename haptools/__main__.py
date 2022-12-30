@@ -259,6 +259,13 @@ def simgenotype(
     help="Disease prevalence if simulating a case-control trait",
 )
 @click.option(
+    "--normalize/--no-normalize",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Whether to normalize the genotypes before using them for simulation",
+)
+@click.option(
     "--region",
     type=str,
     default=None,
@@ -344,6 +351,7 @@ def simphenotype(
     replications: int = 1,
     heritability: float = None,
     prevalence: float = None,
+    normalize: bool = True,
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
@@ -396,6 +404,7 @@ def simphenotype(
         replications,
         heritability,
         prevalence,
+        normalize,
         region,
         samples,
         ids,
@@ -738,6 +747,7 @@ def ld(
     "--sort/--no-sort",
     is_flag=True,
     default=True,
+    show_default=True,
     help="Sorting of the file will not be performed",
 )
 @click.option(
