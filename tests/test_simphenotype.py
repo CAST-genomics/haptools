@@ -3,13 +3,16 @@ from pathlib import Path
 
 import pytest
 import numpy as np
+from click.testing import CliRunner
 import numpy.lib.recfunctions as rfn
 
+from haptools.__main__ import main
 from haptools.sim_phenotype import Haplotype, PhenoSimulator
 from haptools.data import (
     Genotypes,
     Phenotypes,
     Haplotypes,
+    GenotypesPLINK,
 )
 
 
@@ -249,3 +252,187 @@ class TestSimPhenotype:
         np.testing.assert_allclose(phens.data[:, 2], all_false[:, 1])
         diff1 = (phens.data[:, 3] == phens.data[:, 0]).sum()
         assert diff1 > 0
+
+
+class TestSimPhenotypeCLI:
+    def _get_transform_stdin(self):
+        expected = """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|1\t0|1\t1|1\t1|1\t0|0
+1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+        return expected
+
+    def _get_transform_ancestry_stdin(self):
+        expected = """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t1|1\t0|0\t0|0
+1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+        return expected
+
+    def test_transform_stdin(self, capfd):
+        expected = self._get_transform_stdin()
+
+        cmd = "transform tests/data/simple.vcf tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == expected
+        assert result.exit_code == 0
+
+    def test_transform_ancestry_stdin(self, capfd):
+        expected = self._get_transform_ancestry_stdin()
+
+        cmd = (
+            "transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap"
+        )
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == expected
+        assert result.exit_code == 0
+
+    def test_basic(self, capfd):
+        # first, create a temporary file containing the output of transform
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_transform_stdin())
+
+        cmd = f"simphenotype {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
+
+    def test_basic_w_output(self, capfd):
+        tmp_file = Path("simulated.pheno")
+
+        # first, create a temporary file containing the output of transform
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_transform_stdin())
+
+        cmd = f"simphenotype -o {tmp_file} {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == ""
+        assert result.exit_code == 0
+
+        assert tmp_file.exists()
+
+        tmp_transform.unlink()
+        tmp_file.unlink()
+
+    def test_basic_subset(self, capfd):
+        # first, create a temporary file containing the output of transform
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_transform_stdin())
+
+        cmd = f"simphenotype --id H1 {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
+
+    def test_ancestry(self, capfd):
+        # first, create a temporary file containing the output of transform
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_transform_ancestry_stdin())
+
+        cmd = f"simphenotype --id H1 {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
+
+    def test_pgen(self, capfd):
+        pytest.importorskip("pgenlib")
+        # first, create a temporary file containing the output of transform
+        tmp_tsfm = Path("simple-haps.pgen")
+        cmd = f"transform -o {tmp_tsfm} tests/data/simple.pgen tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == ""
+        assert result.exit_code == 0
+
+        transform_data = np.array(
+            [
+                [False, True],
+                [False, True],
+                [True, True],
+                [True, True],
+                [False, False],
+            ]
+        )
+        gts = GenotypesPLINK.load(tmp_tsfm)
+        np.testing.assert_allclose(gts.data[:, 0], transform_data)
+
+        cmd = f"simphenotype --id H1 {tmp_tsfm} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        tmp_tsfm.unlink()
+        tmp_tsfm.with_suffix(".pvar").unlink()
+        tmp_tsfm.with_suffix(".psam").unlink()
+
+    def test_complex(self, capfd):
+        tmp_file = Path("simulated.pheno")
+
+        # first, create a temporary file containing the output of transform
+        tmp_tsfm = Path("temp-transform.vcf")
+        cmd = (
+            f"transform -o {tmp_tsfm} tests/data/example.vcf.gz"
+            " tests/data/simphenotype.hap"
+        )
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == ""
+        assert result.exit_code == 0
+
+        cmd = " ".join(
+            [
+                "simphenotype",
+                "--replications 2",
+                "--heritability 0.8",
+                "--prevalence 0.6",
+                "--id chr21.q.3365*10",
+                "--id chr21.q.3365*11",
+                f"--output {tmp_file}",
+                f"{tmp_tsfm} tests/data/simphenotype.hap",
+            ]
+        )
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == ""
+        assert result.exit_code == 0
+        assert tmp_file.exists()
+
+        tmp_file.unlink()
+        tmp_tsfm.unlink()
