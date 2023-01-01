@@ -414,7 +414,7 @@ class Genotypes(Data):
                 original_num_samples = len(self.samples)
                 self.data = np.delete(self.data, samp_idx, axis=0)
                 self.samples = tuple(np.delete(self.samples, samp_idx))
-                self.log.info(
+                self.log.warning(
                     "Ignoring missing genotypes from "
                     f"{original_num_samples - len(self.samples)} samples"
                 )
