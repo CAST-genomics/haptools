@@ -340,8 +340,8 @@ def simgenotype(
 @click.option(
     "-v",
     "--verbosity",
-    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -359,7 +359,7 @@ def simphenotype(
     ids_file: Path = None,
     chunk_size: int = None,
     output: Path = Path("-"),
-    verbosity: str = "ERROR",
+    verbosity: str = "INFO",
 ):
     """
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
@@ -504,7 +504,7 @@ def simphenotype(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -667,7 +667,7 @@ def transform(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -762,7 +762,7 @@ def ld(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
