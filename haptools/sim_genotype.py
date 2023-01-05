@@ -4,7 +4,6 @@ import os
 import re
 import sys
 import glob
-import time
 import numpy as np
 from cyvcf2 import VCF
 from pysam import VariantFile
