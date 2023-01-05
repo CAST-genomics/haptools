@@ -42,7 +42,7 @@ class Phenotypes(Data):
 
     @classmethod
     def load(
-        cls: Phenotypes, fname: Path | str, samples: list[str] = None
+        cls: Phenotypes, fname: Path | str, samples: set[str] = None
     ) -> Phenotypes:
         """
         Load phenotypes from a pheno file
@@ -53,7 +53,7 @@ class Phenotypes(Data):
         ----------
         fname
             See documentation for :py:attr:`~.Data.fname`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:meth:`~.Data.Phenotypes.read`
 
         Returns
@@ -66,13 +66,13 @@ class Phenotypes(Data):
         phenotypes.standardize()
         return phenotypes
 
-    def read(self, samples: list[str] = None):
+    def read(self, samples: set[str] = None):
         """
         Read phenotypes from a pheno file into a numpy matrix stored in :py:attr:`~.Penotypes.data`
 
         Parameters
         ----------
-        samples : list[str], optional
+        samples : set[str], optional
             A subset of the samples from which to extract phenotypes
 
             Defaults to loading phenotypes from all samples
@@ -128,13 +128,13 @@ class Phenotypes(Data):
                     )
         phens.close()
 
-    def __iter__(self, samples: list[str] = None) -> Iterable[namedtuple]:
+    def __iter__(self, samples: set[str] = None) -> Iterable[namedtuple]:
         """
         Read phenotypes from a pheno line by line without storing anything
 
         Parameters
         ----------
-        samples : list[str], optional
+        samples : set[str], optional
             A subset of the samples from which to extract phenotypes
 
             Defaults to loading phenotypes from all samples
@@ -162,7 +162,6 @@ class Phenotypes(Data):
                 " and should be named '#IID' in the header line"
             )
         self.names = tuple(header[1:])
-        samples = set(samples) if samples else None
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
         return self._iterate(phens, phen_text, samples)

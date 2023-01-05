@@ -472,7 +472,7 @@ def write_breakpoints(samples, breakpoints, out):
     # randomly sample breakpoints to get the correct amount of samples to output
     breakpoints = np.array(breakpoints, dtype=object)
     breakpoints_ind = np.random.choice(range(breakpoints.shape[0]), size=2*samples, replace=False)
-    breakpoints = breakpoints[breakpoints_ind, :]
+    breakpoints = breakpoints[breakpoints_ind]
 
     with open(breakpt_file, 'w') as output:
         for ind, sample in enumerate(breakpoints):

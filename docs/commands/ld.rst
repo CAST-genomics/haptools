@@ -50,7 +50,7 @@ Or, let's compute LD with the variant 'rs429358'.
 
 	haptools ld -o apoe4_ld.hap rs429358 tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
-Alternatively, we can compute LD between the APOe4 haplotype and all genotypes in the VCF by using the ``--from-gts`` switch.
+Alternatively, we can compute LD between the APOe4 haplotype and all genotypes in the VCF by using the ``--from-gts`` switch. Note that we should use a different extension for the output file now.
 
 .. code-block:: bash
 

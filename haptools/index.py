@@ -7,6 +7,7 @@ from pathlib import Path
 from pysam import tabix_index
 
 from haptools import data
+from .logging import getLogger
 from haptools.data.haplotypes import Haplotypes
 
 
@@ -49,13 +50,9 @@ def index_haps(
         A logging module to which to write messages about progress and any errors
     """
     if log is None:
-        log = logging.getLogger("haptools index")
-        logging.basicConfig(
-            format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-            level="ERROR",
-        )
-    log.info("Loading haplotypes")
+        log = getLogger(name="index", level="ERROR")
 
+    log.info("Loading haplotypes")
     hp = data.Haplotypes(haplotypes, log=log)
 
     if sort:

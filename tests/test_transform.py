@@ -226,7 +226,7 @@ def test_basic(capfd):
 
     cmd = "transform tests/data/simple.vcf.gz tests/data/simple.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
@@ -249,7 +249,7 @@ def test_basic_subset(capfd):
 
     cmd = "transform simple_minus_two.vcf tests/data/simple.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
@@ -271,7 +271,7 @@ def test_basic_pgen_input(capfd):
 
     cmd = "transform tests/data/simple.pgen tests/data/simple.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
@@ -292,7 +292,7 @@ def test_pgen_two_samples(capfd):
         " tests/data/apoe4.hap"
     )
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     output = Path("output.pgen")
@@ -321,7 +321,7 @@ ancestry_results = """##fileformat=VCFv4.2
 def test_ancestry_from_vcf(capfd):
     cmd = "transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ancestry_results
     assert result.exit_code == 0
@@ -330,7 +330,7 @@ def test_ancestry_from_vcf(capfd):
 def test_ancestry_from_bp(capfd):
     cmd = "transform --ancestry tests/data/simple.vcf tests/data/simple.hap"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "))
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ancestry_results
     assert result.exit_code == 0

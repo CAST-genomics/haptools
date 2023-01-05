@@ -414,7 +414,7 @@ Both the ``load()`` and ``read()`` methods support the ``samples`` parameter tha
 .. code-block:: python
 
 	phenotypes = data.Phenotypes('tests/data/simple.pheno')
-	phenotypes.read(samples=["HG00097", "HG00099"])
+	phenotypes.read(samples={"HG00097", "HG00099"})
 
 Iterating over a file
 *********************
@@ -433,7 +433,7 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 .. code-block:: python
 
 	phenotypes = data.Phenotypes('tests/data/simple.pheno')
-	for line in phenotypes.__iter__(samples=["HG00097", "HG00099"]):
+	for line in phenotypes.__iter__(samples={"HG00097", "HG00099"}):
 	    print(line)
 
 Writing a file

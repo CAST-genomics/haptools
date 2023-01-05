@@ -1,11 +1,12 @@
 from __future__ import annotations
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from logging import getLogger, Logger, DEBUG
 
 import numpy as np
 import numpy.typing as npt
 
+from .logging import getLogger
 from .data import Haplotype as HaplotypeBase
 from .data import (
     Extra,
@@ -45,7 +46,7 @@ class PhenoSimulator:
         Simulated phenotypes; filled by :py:meth:`~.PhenoSimular.run`
     rng: np.random.Generator, optional
         A numpy random number generator
-    log: Logger
+    log: logging.Logger
         A logging instance for recording debug statements
 
     Examples
@@ -63,7 +64,7 @@ class PhenoSimulator:
         genotypes: Genotypes,
         output: Path = Path("/dev/stdout"),
         seed: int = None,
-        log: Logger = None,
+        log: logging.Logger = None,
     ):
         """
         Initialize a PhenoSimulator object
@@ -81,7 +82,7 @@ class PhenoSimulator:
 
             This is useful if you want the generated phenotypes to be the same across
             multiple PhenoSimulator instances. If not provided, it will be random.
-        log: Logger, optional
+        log: logging.Logger, optional
             A logging instance for recording debug statements
         """
         self.gens = genotypes
@@ -89,13 +90,14 @@ class PhenoSimulator:
         self.phens.data = None
         self.phens.samples = self.gens.samples
         self.rng = np.random.default_rng(seed)
-        self.log = log or getLogger(self.__class__.__name__)
+        self.log = log or logging.getLogger(self.__class__.__name__)
 
     def run(
         self,
         effects: list[Haplotype],
         heritability: float = None,
         prevalence: float = None,
+        normalize: bool = True,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
@@ -116,6 +118,9 @@ class PhenoSimulator:
 
             If this value is specified, case/control phenotypes will be generated
             instead of quantitative traits.
+        normalize: bool, optional
+            If True, normalize the genotypes before using them to simulate the
+            phenotypes. Otherwise, use the raw values.
 
         Returns
         -------
@@ -131,21 +136,22 @@ class PhenoSimulator:
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
         # standardize the genotypes
-        std = gts.std(axis=0)
-        gts = (gts - gts.mean(axis=0)) / std
-        # for genotypes where the stdev is 0, just set all values to 0 instead of nan
-        zero_elements = std == 0
-        num_zero_elements = np.sum(zero_elements)
-        if num_zero_elements:
-            # get the first five causal variables with variances == 0
-            zero_elements_ids = np.array(ids)[zero_elements]
-            if len(zero_elements_ids) > 5:
-                zero_elements_ids = zero_elements_ids[:5]
-            self.log.warning(
-                "Some of your causal variables have genotypes with variance 0. Here "
-                f"are the first few few: {zero_elements_ids}"
-            )
-        gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
+        if normalize:
+            std = gts.std(axis=0)
+            gts = (gts - gts.mean(axis=0)) / std
+            # when the stdev is 0, just set all values to 0 instead of nan
+            zero_elements = std == 0
+            num_zero_elements = np.sum(zero_elements)
+            if num_zero_elements:
+                # get the first five causal variables with variances == 0
+                zero_elements_ids = np.array(ids)[zero_elements]
+                if len(zero_elements_ids) > 5:
+                    zero_elements_ids = zero_elements_ids[:5]
+                self.log.warning(
+                    "Some of your causal variables have genotypes with variance 0. "
+                    f"Here are the first few few: {zero_elements_ids}"
+                )
+            gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
@@ -169,7 +175,7 @@ class PhenoSimulator:
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)
-        if self.log.getEffectiveLevel() == DEBUG:
+        if self.log.getEffectiveLevel() == logging.DEBUG:
             # if we're in debug mode, compute the pearson correlation and report it
             # but don't do this otherwise to keep things fast
             corr = np.corrcoef(pt, pt + pt_noise)[1, 0]
@@ -208,12 +214,13 @@ def simulate_pt(
     num_replications: int = 1,
     heritability: float = None,
     prevalence: float = None,
+    normalize: bool = True,
     region: str = None,
     samples: list[str] = None,
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
     output: Path = Path("-"),
-    log: Logger = None,
+    log: logging.Logger = None,
 ):
     """
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
@@ -246,6 +253,9 @@ def simulate_pt(
         must be a float between 0 and 1
 
         If not provided, a quantitative trait will be simulated, instead
+    normalize: bool, optional
+        If True, normalize the genotypes before using them to simulate the phenotypes.
+        Otherwise, use the raw values.
     region : str, optional
         The region from which to extract haplotypes; ex: 'chr1:1234-34566' or 'chr7'
 
@@ -272,15 +282,11 @@ def simulate_pt(
         not in PGEN format.
     output : Path, optional
         The location to which to write the simulated phenotypes
-    log : Logger, optional
+    log : logging.Logger, optional
         The logging module for this task
     """
     if log is None:
-        log = logging.getLogger("haptools simphenotype")
-        logging.basicConfig(
-            format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-            level="ERROR",
-        )
+        log = getLogger(name="simphenotype", level="ERROR")
 
     log.info("Loading haplotypes")
     hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
@@ -315,6 +321,6 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp.data.values(), heritability, prevalence)
+        pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
     log.info("Writing phenotypes")
     pt_sim.write()

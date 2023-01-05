@@ -259,6 +259,13 @@ def simgenotype(
     help="Disease prevalence if simulating a case-control trait",
 )
 @click.option(
+    "--normalize/--no-normalize",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Whether to normalize the genotypes before using them for simulation",
+)
+@click.option(
     "--region",
     type=str,
     default=None,
@@ -333,8 +340,8 @@ def simgenotype(
 @click.option(
     "-v",
     "--verbosity",
-    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -344,6 +351,7 @@ def simphenotype(
     replications: int = 1,
     heritability: float = None,
     prevalence: float = None,
+    normalize: bool = True,
     region: str = None,
     samples: tuple[str] = tuple(),
     samples_file: Path = None,
@@ -351,7 +359,7 @@ def simphenotype(
     ids_file: Path = None,
     chunk_size: int = None,
     output: Path = Path("-"),
-    verbosity: str = "ERROR",
+    verbosity: str = "INFO",
 ):
     """
     Haplotype-aware phenotype simulation. Create a set of simulated phenotypes from a
@@ -362,17 +370,11 @@ def simphenotype(
 
     Note: GENOTYPES must be the output from the transform subcommand.
     """
-    import logging
-
+    from .logging import getLogger
     from .sim_phenotype import simulate_pt
 
-    log = logging.getLogger("haptools simphenotype")
-    db_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
-    logging.basicConfig(
-        format="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
-        datefmt="%H:%M:%S",
-    )
+    log = getLogger(name="simphenotype", level=verbosity)
+
     # handle samples
     if samples and samples_file:
         raise click.UsageError(
@@ -402,6 +404,7 @@ def simphenotype(
         replications,
         heritability,
         prevalence,
+        normalize,
         region,
         samples,
         ids,
@@ -501,7 +504,7 @@ def simphenotype(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -525,17 +528,11 @@ def transform(
     GENOTYPES must be formatted as a VCF or PGEN and HAPLOTYPES must be formatted
     according to the .hap format spec
     """
-    import logging
-
+    from .logging import getLogger
     from .transform import transform_haps
 
-    log = logging.getLogger("haptools transform")
-    db_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
-    logging.basicConfig(
-        format="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
-        datefmt="%H:%M:%S",
-    )
+    log = getLogger(name="transform", level=verbosity)
+
     # handle samples
     if samples and samples_file:
         raise click.UsageError(
@@ -670,7 +667,7 @@ def transform(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -702,17 +699,11 @@ def ld(
     If TARGET is a variant ID, the ID must appear in GENOTYPES. Otherwise, it must
     be present in the .hap file
     """
-    import logging
-
     from .ld import calc_ld
+    from .logging import getLogger
 
-    log = logging.getLogger("haptools ld")
-    db_time = "|%(asctime)s" if verbosity == "DEBUG" else ""
-    logging.basicConfig(
-        format="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
-        datefmt="%H:%M:%S",
-    )
+    log = getLogger(name="ld", level=verbosity)
+
     # handle samples
     if samples and samples_file:
         raise click.UsageError(
@@ -756,6 +747,7 @@ def ld(
     "--sort/--no-sort",
     is_flag=True,
     default=True,
+    show_default=True,
     help="Sorting of the file will not be performed",
 )
 @click.option(
@@ -770,7 +762,7 @@ def ld(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
-    default="ERROR",
+    default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
 )
@@ -784,14 +776,10 @@ def index(
     Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file
     """
 
-    import logging
     from .index import index_haps
+    from .logging import getLogger
 
-    log = logging.getLogger("haptools index")
-    logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level=verbosity,
-    )
+    log = getLogger(name="index", level=verbosity)
 
     index_haps(haplotypes, sort, output, log)
 

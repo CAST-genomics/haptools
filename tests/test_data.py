@@ -289,6 +289,20 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "ref", "alt"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
+    def test_load_genotypes_prephased(self):
+        expected = self._get_fake_genotypes_plink()
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts._prephased = True
+        gts.read()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, expected.data)
+        assert gts.samples == expected.samples
+        for i, x in enumerate(expected.variants):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == expected.variants[col][i]
+
     def test_load_genotypes_iterate(self):
         expected = self._get_fake_genotypes_plink()
 
@@ -344,6 +358,30 @@ class TestGenotypesPLINK:
         new_gts = GenotypesPLINK(fname)
         new_gts.read()
         new_gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "ref", "alt"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        # clean up afterwards: delete the files we created
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+    def test_write_genotypes_prephased(self):
+        gts = self._get_fake_genotypes_plink()
+
+        fname = DATADIR.joinpath("test_write.pgen")
+        gts.fname = fname
+        gts._prephased = True
+        gts.write()
+
+        new_gts = GenotypesPLINK(fname)
+        new_gts._prephased = True
+        new_gts.read()
 
         # check that everything matches what we expected
         np.testing.assert_allclose(gts.data, new_gts.data)
@@ -438,7 +476,7 @@ class TestPhenotypes:
 
         # can we load the data from the phenotype file?
         phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
-        phens.read(samples=samples)
+        phens.read(samples=set(samples))
         np.testing.assert_allclose(phens.data, expected)
         assert phens.samples == tuple(samples)
 
@@ -503,7 +541,7 @@ class TestCovariates:
         return expected
 
     def _get_fake_covariates(self):
-        gts = Phenotypes(fname=None)
+        gts = Covariates(fname=None)
         gts.data = self._get_expected_covariates()
         gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         gts.names = ("sex", "age")
@@ -551,7 +589,7 @@ class TestCovariates:
 
         # can we load the data from the covariate file?
         covars = Covariates(DATADIR.joinpath("simple.covar"))
-        covars.read(samples=samples)
+        covars.read(samples=set(samples))
         np.testing.assert_allclose(covars.data, expected)
         assert covars.samples == tuple(samples)
 
