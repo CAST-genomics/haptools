@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 from cyvcf2 import VCF
 from pathlib import Path
+from haptools.logging import getLogger
 from haptools.sim_genotype import output_vcf, validate_params, simulate_gt
 from haptools.admix_storage import HaplotypeSegment
 
@@ -10,12 +11,13 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 
 def _get_files():
+    log = getLogger(name="test", level="INFO")
     bkp_file = DATADIR.joinpath("outvcf_test.bp")
     model_file = DATADIR.joinpath("outvcf_gen.dat")
     vcf_file = DATADIR.joinpath("outvcf_test.vcf")
     sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
     out_prefix = DATADIR.joinpath("outvcf_out")
-    return bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix
+    return bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix, log
 
 
 def _get_breakpoints(bkp_file):
@@ -49,7 +51,7 @@ def _get_breakpoints(bkp_file):
 def test_alt_chrom_name():
     # Test when the ref VCF has chr{X|\d+} form
     # read in all files and breakpoints
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix, log = _get_files()
     bkp_file = DATADIR.joinpath("outvcf_test_chr.bp")
     vcf_file = DATADIR.joinpath("outvcf_test_chr.vcf")
     chroms = ["1", "2", "X"]
@@ -57,7 +59,7 @@ def test_alt_chrom_name():
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, str(out_prefix)
+        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, str(out_prefix), log
     )
 
     # read in vcf file
@@ -97,13 +99,13 @@ def test_alt_chrom_name():
 
 def test_vcf_output():
     # read in all files and breakpoints
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix, log = _get_files()
     chroms = ["1", "2"]
     bkps = _get_breakpoints(bkp_file)
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, str(out_prefix)
+        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, str(out_prefix), log
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -147,8 +149,9 @@ def test_region_bkp():
     coords_dir = DATADIR.joinpath("map")
     chroms = ["22"]
     seed = 100
+    log = getLogger(name="test", level="INFO")
     num_samples, all_samples = simulate_gt(
-        modelfile, coords_dir, chroms, region, popsize, seed
+        modelfile, coords_dir, chroms, region, popsize, log, seed
     )
 
     # Make sure lowest bkp listed is 16111 and greatest is 18674
@@ -160,11 +163,11 @@ def test_region_bkp():
 
 def test_region_vcf():
     region = {"chr": "2", "start": 1, "end": 10122}
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix = _get_files()
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_prefix, log = _get_files()
     bkps = _get_breakpoints(bkp_file)
     chroms = ["2"]
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, region, str(out_prefix)
+        bkps, chroms, model_file, vcf_file, sampleinfo_file, region, str(out_prefix), log
     )
 
     vcf = VCF(str(out_prefix) + ".vcf.gz")

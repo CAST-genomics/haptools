@@ -12,7 +12,7 @@ from .admix_storage import GeneticMarker, HaplotypeSegment
 from .data import GenotypesRefAlt, GenotypesPLINK
 
 
-def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, region, out):
+def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, region, out, log):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
@@ -47,9 +47,11 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
         within that region.
     out: str
         output prefix
+    log: log object
+        Outputs messages to the appropriate channel.
     """
 
-    print(f"Outputting VCF file {out}.vcf")
+    log.info(f"Outputting VCF file {out}.vcf.gz")
 
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
@@ -103,10 +105,10 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # Note: comment out the code below to enable (very experimental!) PGEN support
     # curr_bkps = current_bkps.copy()
     # _write_pgen(breakpoints, chroms, region, hapblock_samples, curr_bkps, output_samples, vcf_file, out+".pgen")
-    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf.gz")
+    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf.gz", log)
     return
 
-def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf):
+def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf, log):
     """
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
@@ -126,7 +128,7 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
     try:
         write_vcf.header.add_samples(out_samples)
     except AttributeError:
-        print(
+        log.warning(
             "Upgrade to pysam >=0.19.1 to reduce the time required to create "
             "VCFs. See https://github.com/pysam-developers/pysam/issues/1104",
             file = sys.stderr,
@@ -281,7 +283,7 @@ def _write_pgen(breakpoints, chroms, region, hapblock_samples, current_bkps, out
 
     gts.write()
 
-def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
+def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None):
     """
     Simulate admixed genotypes based on the parameters of model_file.
 
@@ -312,6 +314,8 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
         within that region.
     popsize: int
         Size of population created for each generation. 
+    log: log object
+        Outputs messages to the appropriate channel.
     seed: int
         Seed used for randomization.
 
@@ -327,7 +331,7 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     # initialize seed used for breakpoints
     if seed:
         np.random.seed(seed)
-        print(f"Using seed {seed}")
+        log.info(f"Using seed {seed}")
 
     # load population samples and labels to be simulated 
     mfile = open(model_file, 'r')
@@ -425,13 +429,13 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
         sim_gens = cur_gen - prev_gen
         
         # sim generation
-        print(f"Simulating generation {prev_gen+1}")
+        log.info(f"Simulating generation {prev_gen+1}")
         next_gen_samples = _simulate(popsize, pops, pop_fracs, prev_gen, chroms,
                                      coords, end_coords, recomb_probs, next_gen_samples)
 
         # simulate remaining generations
         for i in range(1, sim_gens):
-            print(f"Simulating generation {prev_gen+i+1}")
+            log.info(f"Simulating generation {prev_gen+i+1}")
 
             # update pop_fracs to have 100% admixture since this generation has not been specified in model file
             pop_fracs = [0]*len(pops)
@@ -446,7 +450,7 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, seed=None):
     mfile.close()
     return num_samples, next_gen_samples
 
-def write_breakpoints(samples, breakpoints, out):
+def write_breakpoints(samples, breakpoints, out, log):
     """
     Write out a subsample of breakpoints to out determined by samples.
 
@@ -460,6 +464,8 @@ def write_breakpoints(samples, breakpoints, out):
         of ancestors for this person.
     out: str
         output prefix used to output the breakpoint file
+    log: log object
+        Outputs messages to the appropriate channel.
 
     Returns
     -------
@@ -467,7 +473,7 @@ def write_breakpoints(samples, breakpoints, out):
         subsampled breakpoints only containing number of samples
     """
     breakpt_file = out + '.bp'
-    print(f"Outputting breakpoint file {breakpt_file}")
+    log.info(f"Outputting breakpoint file {breakpt_file}")
 
     # randomly sample breakpoints to get the correct amount of samples to output
     breakpoints = np.array(breakpoints, dtype=object)
