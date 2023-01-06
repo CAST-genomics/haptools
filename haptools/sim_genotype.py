@@ -130,8 +130,7 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
     except AttributeError:
         log.warning(
             "Upgrade to pysam >=0.19.1 to reduce the time required to create "
-            "VCFs. See https://github.com/pysam-developers/pysam/issues/1104",
-            file = sys.stderr,
+            "VCFs. See https://github.com/pysam-developers/pysam/issues/1104"
         )
         for sample in out_samples:
             write_vcf.header.add_sample(sample)
