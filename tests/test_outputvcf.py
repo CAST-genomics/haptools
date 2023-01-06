@@ -167,7 +167,14 @@ def test_region_vcf():
     bkps = _get_breakpoints(bkp_file)
     chroms = ["2"]
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, region, str(out_prefix), log
+        bkps,
+        chroms,
+        model_file,
+        vcf_file,
+        sampleinfo_file,
+        region,
+        str(out_prefix),
+        log,
     )
 
     vcf = VCF(str(out_prefix) + ".vcf.gz")

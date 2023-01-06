@@ -227,7 +227,9 @@ def simgenotype(
     popsize = validate_params(
         model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint
     )
-    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, log, seed)
+    samples, breakpoints = simulate_gt(
+        model, mapdir, chroms, region, popsize, log, seed
+    )
     breakpoints = write_breakpoints(samples, breakpoints, out, log)
     bp_end = time.time()
 
