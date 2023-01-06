@@ -199,7 +199,7 @@ def GetChromOrder(sample_blocks):
     chroms.sort()
     return chroms
 
-def PlotKaryogram(bp_file, sample_name, out_file,
+def PlotKaryogram(bp_file, sample_name, out_file, log,
         centromeres_file=None, title=None, colors=None):
     """
     Plot a karyogram based on breakpoints output by haptools simgenotypes
@@ -212,6 +212,8 @@ def PlotKaryogram(bp_file, sample_name, out_file,
        Sample ID to plot
     out_file : str
        Name of output file
+    log: log object
+        Outputs messages to the appropriate channel.
     centromeres_file : str, optional
        Path to file with centromere coordinates.
        Format: chrom, chromstart_cm, centromere_cm, chromend_cm
@@ -225,6 +227,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     """
     # Parse haplotype blocks from the bp file for the 
     # specified sample
+    log.info("Collecting Haplotype Blocks...")
     sample_blocks = GetHaplotypeBlocks(bp_file, sample_name, centromeres_file)
     if len(sample_blocks) == 0:
         sys.stderr.write("ERROR: no haplotype blocks identified for %s. "%sample_name)
@@ -251,6 +254,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
 
     # Set up colors
     if colors is None:
+        log.info("Colors not given. Setting up colors...")
         num_pops = len(pop_list)
         cmap = plt.cm.get_cmap('rainbow', num_pops)
         colors = dict(zip(pop_list, cmap(list(range(num_pops)))))
@@ -258,6 +262,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     # Optionally, plot centromeres/telomeres
     clipmask_perchrom = None
     if centromeres_file is not None:
+        log.info("Centromeres present, adding into figure...")
         clipmask_perchrom = GetCentromereClipMask(centromeres_file, chrom_order)
 
     # Plot the actual haplotype blocks
@@ -279,6 +284,7 @@ def PlotKaryogram(bp_file, sample_name, out_file,
     ax.set_ylim(len(chrom_order)+3, -3)
 
     fig.savefig(out_file)
+    log.info(f"Karyogram Complete! Saved to {out_file}")
 
 def GetCentromereClipMask(centromeres_file, chrom_order):
     """

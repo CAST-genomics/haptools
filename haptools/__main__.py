@@ -58,16 +58,28 @@ def main():
     required=False,
     help="Optional color dictionary. Format is e.g. 'YRI:blue,CEU:green'",
 )
-def karyogram(bp, sample, out, title, centromeres, colors):
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="INFO",
+    show_default="only errors",
+    help="The level of verbosity desired",
+)
+def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     """
     Visualize a karyogram of local ancestry tracks
     """
     from .karyogram import PlotKaryogram
+    from .logging import getLogger
+
+    log = getLogger(name="karyogram", level=verbosity)
 
     if colors is not None:
         colors = dict([item.split(":") for item in colors.split(",")])
+    log.info("Generating Karyogram...")
     PlotKaryogram(
-        bp, sample, out, centromeres_file=centromeres, title=title, colors=colors
+        bp, sample, out, log, centromeres_file=centromeres, title=title, colors=colors
     )
 
 
@@ -151,14 +163,12 @@ def karyogram(bp, sample, out, title, centromeres, colors):
     ),
 )
 @click.option(
-    "--verbose",
-    hidden=True,
-    is_flag=True,
-    required=False,
-    help=(
-        "Output time metrics for each section, breakpoint simulation, vcf creation, "
-        "and total exection."
-    ),
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="INFO",
+    show_default="only errors",
+    help="The level of verbosity desired",
 )
 def simgenotype(
     invcf,
@@ -171,7 +181,7 @@ def simgenotype(
     chroms,
     region,
     only_breakpoint,
-    verbose,
+    verbosity,
 ):
     """
     Simulate admixed genomes under a pre-defined model.
@@ -184,7 +194,9 @@ def simgenotype(
         validate_params,
         write_breakpoints,
     )
+    from .logging import getLogger
 
+    log = getLogger(name="simgenotype", level=verbosity)
     start = time.time()
 
     # parse region and chroms parameters
@@ -215,21 +227,21 @@ def simgenotype(
     popsize = validate_params(
         model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint
     )
-    samples, breakpoints = simulate_gt(model, mapdir, chroms, region, popsize, seed)
-    breakpoints = write_breakpoints(samples, breakpoints, out)
+    samples, breakpoints = simulate_gt(
+        model, mapdir, chroms, region, popsize, log, seed
+    )
+    breakpoints = write_breakpoints(samples, breakpoints, out, log)
     bp_end = time.time()
 
     # simulate vcfs
     vcf_start = time.time()
     if not only_breakpoint:
-        # TODO add region functionality
-        output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out)
+        output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out, log)
     end = time.time()
 
-    if verbose:
-        print(f"Time elapsed for breakpoint simulation: {bp_end - start}")
-        print(f"Time elapse for creating vcf: {end - vcf_start}")
-        print(f"Time elapsed for simgenotype execution: {end - start}")
+    log.debug(f"Time elapsed for breakpoint simulation: {bp_end - start}")
+    log.debug(f"Time elapse for creating vcf: {end - vcf_start}")
+    log.debug(f"Time elapsed for simgenotype execution: {end - start}")
 
 
 @main.command()
