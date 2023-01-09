@@ -12,7 +12,18 @@ from .admix_storage import GeneticMarker, HaplotypeSegment
 from .data import GenotypesRefAlt, GenotypesPLINK
 
 
-def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, region, out, log):
+def output_vcf(
+        breakpoints, 
+        chroms, 
+        model_file, 
+        variant_file, 
+        sampleinfo_file, 
+        region, 
+        pop_field, 
+        sample_field, 
+        out, 
+        log
+    ):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
     to create simulated variants output in file: out + .vcf
@@ -37,14 +48,19 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
                 1       0        0.05  0.95
                 2       0.20     0.05  0.75
                 
-    vcf_file: str
-        file path that contains samples and respective variants
+    variant_file: str
+        file path that contains samples and respective variants. Can be in
+        VCF or PGEN format.
     sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
     region: dict()
         Dictionary with the keys "chr", "start", and "end" holding chromosome,
         start position adn end position allowing the simulation process to only 
         within that region.
+    pop_field: boolean
+        Flag to determine whether to have the population field in the VCF file output
+    sample_field: boolean
+        Flag to determine whether to have the sample field in the VCF file output
     out: str
         output prefix
     log: log object
@@ -75,7 +91,7 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # read VCF to get sample names and their order so we can easily call GTs via their index from their sample. 
     #      IE sample HG00097 is index 1 in a list of samples [HG00096 HG00097 HG00098]
     # create sample dictionary that holds sample name to the index in the vcf file for quick access 
-    vcf = VCF(vcf_file)
+    vcf = VCF(variant_file)
     sample_dict = {}
     for ind, sample in enumerate(vcf.samples):
         sample_dict[sample] = ind
@@ -96,6 +112,9 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # output vcf header to new vcf file we create
     output_samples = [f"Sample_{hap+1}" for hap in range(int(len(hapblock_samples)/2))]
 
+    # TODO if pop_field add populations to matrix in GenotypeAncestry Class
+    # TODO if sample_field add data to matrix in Genotype Ancestry Class
+
     # Process
     # Choose starting samples (random choice) in VCF from respective population for each haplotype segment
     #     Also precalculate (random choice) all samples that will be switched too once the current local ancestry block ends.
@@ -105,7 +124,7 @@ def output_vcf(breakpoints, chroms, model_file, vcf_file, sampleinfo_file, regio
     # Note: comment out the code below to enable (very experimental!) PGEN support
     # curr_bkps = current_bkps.copy()
     # _write_pgen(breakpoints, chroms, region, hapblock_samples, curr_bkps, output_samples, vcf_file, out+".pgen")
-    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out+".vcf.gz", log)
+    _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out, log)
     return
 
 def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf, log):
@@ -113,6 +132,12 @@ def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, curre
     in_vcf = cyvcf2 variants we are reading in
     out_vcf = output vcf file we output too
     """
+    # QC checks on vcf file todo see if cyvcf2 has similar or just load with genotypesrefalt
+    #in_vcf.check_missing(discard_also=True)
+    #in_vcf.check_biallelic(discard_also=True)
+    #in_vcf.check_phase()
+    # TODO add check to see if variants are sorted
+
     # output vcf file
     write_vcf = VariantFile(out_vcf, mode="w")
 
@@ -238,11 +263,16 @@ def _write_pgen(breakpoints, chroms, region, hapblock_samples, current_bkps, out
         in_vcf = GenotypesPLINK(in_vcf)
     else:
         in_vcf = GenotypesRefAlt(in_vcf)
-    in_vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
-    # TODO: check with someone, do we need to do this QC?
+    
+    if not region:
+        in_vcf.read()
+    else:
+        in_vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
+
     in_vcf.check_missing(discard_also=True)
     in_vcf.check_biallelic(discard_also=True)
     in_vcf.check_phase()
+    in_vcf.check_sorted()
 
     # initialize output writer
     gts = GenotypesPLINK(out)

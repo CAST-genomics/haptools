@@ -439,27 +439,29 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                 ("Description", "Genotype"),
             ],
         )
-        vcf.header.add_meta(
-            "FORMAT",
-            items=[
-                ("ID", "POP"),
-                ("Number", 2),
-                ("Type", "String"),
-                ("Description", "Origin Population of each respective allele in GT"),
-            ],
-        )
-        vcf.header.add_meta(
-            "FORMAT",
-            items=[
-                ("ID", "SAMPLE"),
-                ("Number", 2),
-                ("Type", "String"),
-                (
-                    "Description",
-                    "Origin sample and haplotype of each respective allele in GT",
-                ),
-            ],
-        )
+        if not self.ancestry is None:
+            vcf.header.add_meta(
+                "FORMAT",
+                items=[
+                    ("ID", "POP"),
+                    ("Number", 2),
+                    ("Type", "String"),
+                    ("Description", "Origin Population of each respective allele in GT"),
+                ],
+            )
+        if not self.valid_labels is None:
+            vcf.header.add_meta(
+                "FORMAT",
+                items=[
+                    ("ID", "SAMPLE"),
+                    ("Number", 2),
+                    ("Type", "String"),
+                    (
+                        "Description",
+                        "Origin sample and haplotype of each respective allele in GT",
+                    ),
+                ],
+            )
         try:
             vcf.header.add_samples(self.samples)
         except AttributeError:
@@ -487,12 +489,14 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             for samp_idx, sample in enumerate(self.samples):
                 # TODO: make this work when there are missing values
                 record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
-                record.samples[sample]["POP"] = tuple(
-                    self.ancestry[samp_idx, var_idx, :]
-                )
-                record.samples[sample]["SAMPLE"] = tuple(
-                    self.valid_labels[samp_idx, var_idx, :]
-                )
+                if not self.ancestry is None:
+                    record.samples[sample]["POP"] = tuple(
+                        self.ancestry[samp_idx, var_idx, :]
+                    )
+                if not self.valid_labels is None:
+                    record.samples[sample]["SAMPLE"] = tuple(
+                        self.valid_labels[samp_idx, var_idx, :]
+                    )
                 # TODO: add proper phase info
                 record.samples[sample].phased = True
             # write the record to a file

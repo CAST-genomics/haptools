@@ -103,7 +103,11 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     "--out",
     type=str,
     required=True,
-    help="Prefix to name output files.",
+    help=(
+        "Path to desired output file. E.g. /path/to/output.vcf.gz "
+        "Possible outputs are vcf|bcf|vcf.gz|pgen and there will be an "
+        "additional output that will replace vcf|bcf|vcf.gz|pgen with bp."
+    ), 
 )
 @click.option(
     "--chroms",
@@ -128,10 +132,10 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     help="Number of samples to simulate each generation",
 )
 @click.option(
-    "--invcf",
+    "--ref_data",
     required=True,
     help=(
-        "VCF file used as reference for creation of simulated samples respective "
+        "VCF or PGEN file used as reference for creation of simulated samples respective "
         "genotypes."
     ),
 )
@@ -153,6 +157,26 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     ),
 )
 @click.option(
+    "--pop_field",
+    required=False,
+    is_flag=True,
+    default=False,
+    help=(
+        "Flag for outputting the population field in your VCF output. NOTE this flag "
+        "does not work when your output file is in PGEN format."
+    ),
+)
+@click.option(
+    "--sample_field",
+    required=False,
+    is_flag=True,
+    default=False,
+    help=(
+        "Flag for outputting the sample field in your VCF output. NOTE this flag "
+        "does not work when your output file is in PGEN format."
+    ),
+)
+@click.option(
     "--only_breakpoint",
     hidden=True,
     is_flag=True,
@@ -171,7 +195,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     help="The level of verbosity desired",
 )
 def simgenotype(
-    invcf,
+    ref_data,
     sample_info,
     model,
     mapdir,
@@ -180,6 +204,8 @@ def simgenotype(
     seed,
     chroms,
     region,
+    pop_field,
+    sample_field,
     only_breakpoint,
     verbosity,
 ):
@@ -223,20 +249,34 @@ def simgenotype(
     if mapdir[-1] == "/":
         mapdir = mapdir[:-1]
 
+    # grab prefix from --out for outputting breakpoint
+    out_prefix = re.split(r"(\.vcf|\.bcf|\.vcf\.gz|\.pgen)$", out)[0]
+
     # simulate breakpoints
     popsize = validate_params(
-        model, mapdir, chroms, popsize, invcf, sample_info, region, only_breakpoint
+        model, mapdir, chroms, popsize, ref_data, sample_info, region, only_breakpoint
     )
     samples, breakpoints = simulate_gt(
         model, mapdir, chroms, region, popsize, log, seed
     )
-    breakpoints = write_breakpoints(samples, breakpoints, out, log)
+    breakpoints = write_breakpoints(samples, breakpoints, out_prefix, log)
     bp_end = time.time()
 
     # simulate vcfs
     vcf_start = time.time()
     if not only_breakpoint:
-        output_vcf(breakpoints, chroms, model, invcf, sample_info, region, out, log)
+        output_vcf(
+            breakpoints, 
+            chroms,
+            model, 
+            ref_data, 
+            sample_info, 
+            region, 
+            pop_field, 
+            sample_field, 
+            out, 
+            log,
+            )
     end = time.time()
 
     log.debug(f"Time elapsed for breakpoint simulation: {bp_end - start}")
