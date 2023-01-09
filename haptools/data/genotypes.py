@@ -569,6 +569,26 @@ class Genotypes(Data):
                     raise ValueError(msg)
         return maf
 
+    def check_sorted(self):
+        """
+        Check that the variant coordinates are sorted
+
+        Raise a ValueError if any of variants in any of the chromosomes are unsorted
+
+        Raises
+        ------
+        ValueError
+            If any variant position is less than a position that comes before it within
+            the same chromosome
+        """
+        chroms = set(self.variants["chrom"])
+        for chrom in chroms:
+            positions = variants["pos"][variants["chrom"] == chrom]
+            if not np.all(positions[:-1] <= positions[1:]):
+                raise ValueError(
+                    f"The variants in chromosome '{chrom}' are not sorted by position"
+                )
+
 
 class GenotypesRefAlt(Genotypes):
     """
