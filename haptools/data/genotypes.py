@@ -583,7 +583,7 @@ class Genotypes(Data):
         """
         chroms = set(self.variants["chrom"])
         for chrom in chroms:
-            positions = variants["pos"][variants["chrom"] == chrom]
+            positions = self.variants["pos"][self.variants["chrom"] == chrom]
             if not np.all(positions[:-1] <= positions[1:]):
                 raise ValueError(
                     f"The variants in chromosome '{chrom}' are not sorted by position"
