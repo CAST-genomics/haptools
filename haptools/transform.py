@@ -177,7 +177,10 @@ class GenotypesAncestry(data.GenotypesRefAlt):
         super().__init__(fname, log)
         self.ancestry = None
         self.valid_labels = None
+        # goes from population code to encoding number
         self.ancestry_labels = {}
+        # goes from encoding number to population code
+        self.popnum_ancestry = {}
 
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
@@ -211,6 +214,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                 for pop in pops:
                     if pop not in self.ancestry_labels:
                         self.ancestry_labels[pop] = pop_count
+                        self.popnum_ancestry[pop_count] = pop
                         pop_count += 1
                 ancestry[i] = tuple(map(self.ancestry_labels.get, pops))
             # finally, output everything
@@ -491,7 +495,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                 record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
                 if not self.ancestry is None:
                     record.samples[sample]["POP"] = tuple(
-                        self.ancestry[samp_idx, var_idx, :]
+                        map(self.popnum_ancestry.get, self.ancestry[samp_idx, var_idx, :])
                     )
                 if not self.valid_labels is None:
                     record.samples[sample]["SAMPLE"] = tuple(
@@ -502,7 +506,6 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             # write the record to a file
             vcf.write(record)
         vcf.close()
-        raise ValueError("Not implemented")
 
 
 def transform_haps(

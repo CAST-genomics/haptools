@@ -106,7 +106,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     help=(
         "Path to desired output file. E.g. /path/to/output.vcf.gz "
         "Possible outputs are vcf|bcf|vcf.gz|pgen and there will be an "
-        "additional output that will replace vcf|bcf|vcf.gz|pgen with bp."
+        "additional breakpoints output with extension bp e.g. /path/to/output.bp."
     ), 
 )
 @click.option(
@@ -225,6 +225,11 @@ def simgenotype(
     log = getLogger(name="simgenotype", level=verbosity)
     start = time.time()
 
+    # immediately set pop_filed and sample_field flags to false if pgen file
+    if out.endswith(".pgen"):
+        pop_field = False
+        sample_field = False
+
     # parse region and chroms parameters
     if not (chroms or region):
         raise Exception("Either chroms or region must be specified.")
@@ -256,10 +261,10 @@ def simgenotype(
     popsize = validate_params(
         model, mapdir, chroms, popsize, ref_data, sample_info, region, only_breakpoint
     )
-    samples, breakpoints = simulate_gt(
+    samples, pop_dict, breakpoints = simulate_gt(
         model, mapdir, chroms, region, popsize, log, seed
     )
-    breakpoints = write_breakpoints(samples, breakpoints, out_prefix, log)
+    breakpoints = write_breakpoints(samples, pop_dict, breakpoints, out_prefix, log)
     bp_end = time.time()
 
     # simulate vcfs
@@ -280,8 +285,8 @@ def simgenotype(
     end = time.time()
 
     log.debug(f"Time elapsed for breakpoint simulation: {bp_end - start}")
-    log.debug(f"Time elapse for creating vcf: {end - vcf_start}")
-    log.debug(f"Time elapsed for simgenotype execution: {end - start}")
+    log.debug(f"Time elapsed for creating vcf: {end - vcf_start}")
+    log.debug(f"Total time elapsed for simgenotype execution: {end - start}")
 
 
 @main.command()

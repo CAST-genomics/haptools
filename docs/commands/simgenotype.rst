@@ -17,9 +17,10 @@ Basic Usage
   --mapdir GENETICMAPDIR \
   --chroms LIST,OF,CHROMS \
   --region CHR:START-END \
-  --invcf REFVCF \
+  --ref_data REFVCF \
   --sample_info SAMPLEINFOFILE \
-  --out OUTPREFIX
+  --pop_field \
+  --out /PATH/TO/OUTPUT.VCF.GZ
   
 Detailed information about each option, and example commands using publicly available files, are shown below.
 
@@ -27,11 +28,16 @@ Parameter Descriptions
 ~~~~~~~~~~~~~~~~~~~~~~
 * ``--model`` - Parameters for simulating admixture across generations including sample size, population fractions, and number of generations.
 * ``--mapdir`` - Directory containing all .map files with this `structure <https://www.cog-genomics.org/plink/1.9/formats#map>`_ where the third position is in centiMorgans
+* ``--out`` - Full output path to file of the structure ``/path/to/output.(vcf|bcf|vcf.gz|pgen)`` which if ``vcf.gz`` is chosen outputs ``/path/to/output.vcf.gz`` and breakpoints file ``/path/to/output.bp``
 * ``--chroms`` - List of chromosomes to be simulated. The map file directory must contain the "chr<CHR>" where <CHR> is the chromosome identifier eg. 1,2,...,X
-* ``--region`` - Limit the simulation to a region within a single chromosome. Overwrites chroms with the chrom listed in this region. eg 1:1-10000 [Optional]
-* ``--invcf`` - Input VCF file used to simulate specifiic haplotypes for resulting samples
+* ``--seed`` - Seed for randomized calculations during simulation of breakpoints. [Optional]
+* ``--popsize`` - Population size for each generaetion that is sampled from to create our simulated samples. Default = max(10000, 10*samples) [Optional]
+* ``--ref_data`` - Input VCF or PGEN file used to simulate specifiic haplotypes for resulting samples
 * ``--sample_info`` - File used to map samples in ``REFVCF`` to populations found in ``MODELFILE``
-* ``--out`` - Output prefix of the structure ``/path/to/output`` which results in the vcf file ``output.vcf.gz`` and breakpoints file ``output.bp``
+* ``--region`` - Limit the simulation to a region within a single chromosome. Overwrites chroms with the chrom listed in this region. eg 1:1-10000 [Optional]
+* ``--pop_field`` - Flag for ouputting population field in VCF output. Note this flag does not work when your output is in PGEN format. [Optional]
+* ``--sample_field`` - Flag for ouputting sample field in VCF output. Note this flag does not work when your output is in PGEN format. Should only be used for debugging. [Optional]
+* ``--verbosity`` - What level of output the logger should print to stdout. Please see `logging levels <https://docs.python.org/3/library/logging.html>`_ for output levels. Default = INFO [Optional]
 
 File Formats
 ~~~~~~~~~~~~
@@ -49,9 +55,10 @@ Examples
   --model tests/data/outvcf_gen.dat \
   --mapdir tests/data/map/ \
   --chroms 1,2 \
-  --invcf tests/data/outvcf_test.vcf \
+  --ref_data tests/data/outvcf_test.vcf \
   --sample_info tests/data/outvcf_info.tab \
-  --out tests/data/example_simgenotype
+  --pop_field \
+  --out tests/data/example_simgenotype.vcf
 
 
 Detailed Usage
