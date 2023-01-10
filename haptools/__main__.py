@@ -132,7 +132,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     help="Number of samples to simulate each generation",
 )
 @click.option(
-    "--ref_data",
+    "--ref_vcf",
     required=True,
     help=(
         "VCF or PGEN file used as reference for creation of simulated samples respective "
@@ -195,7 +195,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     help="The level of verbosity desired",
 )
 def simgenotype(
-    ref_data,
+    ref_vcf,
     sample_info,
     model,
     mapdir,
@@ -259,7 +259,7 @@ def simgenotype(
 
     # simulate breakpoints
     popsize = validate_params(
-        model, mapdir, chroms, popsize, ref_data, sample_info, region, only_breakpoint
+        model, mapdir, chroms, popsize, ref_vcf, sample_info, region, only_breakpoint
     )
     samples, pop_dict, breakpoints = simulate_gt(
         model, mapdir, chroms, region, popsize, log, seed
@@ -274,7 +274,7 @@ def simgenotype(
             breakpoints, 
             chroms,
             model, 
-            ref_data, 
+            ref_vcf, 
             sample_info, 
             region, 
             pop_field, 

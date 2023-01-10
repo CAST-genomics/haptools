@@ -17,7 +17,7 @@ Basic Usage
   --mapdir GENETICMAPDIR \
   --chroms LIST,OF,CHROMS \
   --region CHR:START-END \
-  --ref_data REFVCF \
+  --ref_vcf REFVCF \
   --sample_info SAMPLEINFOFILE \
   --pop_field \
   --out /PATH/TO/OUTPUT.VCF.GZ
@@ -32,7 +32,7 @@ Parameter Descriptions
 * ``--chroms`` - List of chromosomes to be simulated. The map file directory must contain the "chr<CHR>" where <CHR> is the chromosome identifier eg. 1,2,...,X
 * ``--seed`` - Seed for randomized calculations during simulation of breakpoints. [Optional]
 * ``--popsize`` - Population size for each generaetion that is sampled from to create our simulated samples. Default = max(10000, 10*samples) [Optional]
-* ``--ref_data`` - Input VCF or PGEN file used to simulate specifiic haplotypes for resulting samples
+* ``--ref_vcf`` - Input VCF or PGEN file used to simulate specifiic haplotypes for resulting samples
 * ``--sample_info`` - File used to map samples in ``REFVCF`` to populations found in ``MODELFILE``
 * ``--region`` - Limit the simulation to a region within a single chromosome. Overwrites chroms with the chrom listed in this region. eg 1:1-10000 [Optional]
 * ``--pop_field`` - Flag for ouputting population field in VCF output. Note this flag does not work when your output is in PGEN format. [Optional]
@@ -55,7 +55,7 @@ Examples
   --model tests/data/outvcf_gen.dat \
   --mapdir tests/data/map/ \
   --chroms 1,2 \
-  --ref_data tests/data/outvcf_test.vcf \
+  --ref_vcf tests/data/outvcf_test.vcf \
   --sample_info tests/data/outvcf_info.tab \
   --pop_field \
   --out tests/data/example_simgenotype.vcf
