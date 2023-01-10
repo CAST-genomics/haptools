@@ -219,6 +219,7 @@ def simulate_pt(
     samples: list[str] = None,
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
+    seed: int = None,
     output: Path = Path("-"),
     log: logging.Logger = None,
 ):
@@ -319,7 +320,7 @@ def simulate_pt(
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
-    pt_sim = PhenoSimulator(gt, output=output, log=log)
+    pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
         pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
     log.info("Writing phenotypes")
