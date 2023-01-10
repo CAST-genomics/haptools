@@ -468,3 +468,27 @@ class TestSimPhenotypeCLI:
         assert result.exit_code == 0
 
         tmp_transform.unlink()
+
+    def test_seed(self, capfd):
+        # first, create a temporary file containing the output of transform
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_transform_stdin())
+
+        cmd = f"simphenotype --seed 42 {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        captured1 = captured.out
+
+        cmd = f"simphenotype --seed 42 {tmp_transform} tests/data/simple.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out == captured1
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
