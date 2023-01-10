@@ -580,11 +580,11 @@ To write to a **.bp** file, you must first initialize a :class:`Breakpoints` obj
 	breakpoints = data.Breakpoints('tests/data/example-write.bp')
 	breakpoints.data = {
 	    'HG00096': [
-	        np.array([('YRI','chr1',10114,4.3),('CEU','chr1',10116,5.2)], dtype=data.HapBlock)
-	        np.array([('CEU','chr1',10114,4.3),('YRI','chr1',10116,5.2)], dtype=data.HapBlock)
+	        np.array([('YRI','chr1',10114,4.3),('CEU','chr1',10116,5.2)], dtype=data.HapBlock),
+	        np.array([('CEU','chr1',10114,4.3),('YRI','chr1',10116,5.2)], dtype=data.HapBlock),
 	    ], 'HG00097': [
-	        np.array([('YRI','chr1',10114,4.3),('CEU','chr2',10116,5.2)], dtype=data.HapBlock)
-	        np.array([('CEU','chr1',10114,4.3),('YRI','chr2',10116,5.2)], dtype=data.HapBlock)
+	        np.array([('YRI','chr1',10114,4.3),('CEU','chr2',10116,5.2)], dtype=data.HapBlock),
+	        np.array([('CEU','chr1',10114,4.3),('YRI','chr2',10116,5.2)], dtype=data.HapBlock),
 	    ]
 	}
 	breakpoints.write()
