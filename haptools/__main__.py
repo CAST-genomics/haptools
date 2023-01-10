@@ -342,6 +342,13 @@ def simgenotype(
     help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
 )
 @click.option(
+    "--seed",
+    type=int,
+    default=None,
+    show_default="chosen randomly",
+    help="Use this option across executions to make the output reproducible",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -370,6 +377,7 @@ def simphenotype(
     ids: tuple[str] = tuple(),
     ids_file: Path = None,
     chunk_size: int = None,
+    seed: int = None,
     output: Path = Path("-"),
     verbosity: str = "INFO",
 ):
@@ -421,6 +429,7 @@ def simphenotype(
         samples,
         ids,
         chunk_size,
+        seed,
         output,
         log,
     )
