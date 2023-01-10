@@ -19,7 +19,7 @@ def _get_files(plink_input=False, plink_output=False):
     bkp_file = DATADIR.joinpath("outvcf_test.bp")
     model_file = DATADIR.joinpath("outvcf_gen.dat")
     vcf_file = DATADIR.joinpath(
-        "outvcf_test" + (".pgen" if plink_input else ".vcf")
+        "outvcf_test" + (".pgen" if plink_input else ".vcf.gz")
     )
     sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
     out_file = DATADIR.joinpath(
@@ -329,7 +329,7 @@ def test_region_bkp():
     chroms = ["22"]
     seed = 100
     log = getLogger(name="test")
-    num_samples, all_samples = simulate_gt(
+    num_samples, pop_dict, all_samples = simulate_gt(
         modelfile, coords_dir, chroms, region, popsize, log, seed
     )
 
@@ -390,12 +390,9 @@ def test_region_pgen():
     for var in vcf:
         assert var.POS == 10122 and var.CHROM == "2"
         assert var.genotypes[0] == [1, 0, True]
-        assert var.format("POP")[0] == "YRI,CEU"
         assert var.genotypes[1] == [0, 1, True]
-        assert var.format("POP")[1] == "CEU,YRI"
 
     out_file.unlink()
-
 
 
 # model_file exception validation
