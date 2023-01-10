@@ -19,7 +19,7 @@ def test_basic(capfd):
             "--model tests/data/outvcf_gen.dat",
             "--mapdir tests/data/map/",
             "--chroms 1,2",
-            "--ref_data tests/data/outvcf_test.vcf",
+            "--ref_vcf tests/data/outvcf_test.vcf",
             "--sample_info tests/data/outvcf_info.tab",
             "--pop_field",
             "--verbosity DEBUG",

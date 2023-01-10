@@ -187,7 +187,7 @@ def _write_output(
     if pop_field:
         gts.ancestry = np.empty((len(out_samples), len(gts.variants), 2), dtype=np.uint8)
     if sample_field:
-        gts.valid_labels = np.empty((len(out_samples), len(gts.variants), 2), dtype=np.string_)
+        gts.valid_labels = np.empty((len(out_samples), len(gts.variants), 2), dtype=object)
 
     # Now we just fill out gts.data
     # TODO: figure out if there's a way to optimize the following lines of code so that
@@ -232,127 +232,6 @@ def _write_output(
             gts.valid_labels[sample_num, var_idx] = tuple(samples)
 
     gts.write()
-
-# TODO REMOVE FUNCTION AFTER PGEN FUNCTION IS FINISHED
-def _write_vcf(breakpoints, chroms, region, hapblock_samples, vcf_samples, current_bkps, out_samples, in_vcf, out_vcf, log):
-    """
-    in_vcf = cyvcf2 variants we are reading in
-    out_vcf = output vcf file we output too
-    """
-    # output vcf file
-    write_vcf = VariantFile(out_vcf, mode="w")
-
-    # make sure the header is properly structured with contig names from ref VCF
-    for contig in in_vcf.seqnames:
-        # remove chr in front of seqname if present and compare
-        if contig.startswith('chr'):
-            if contig[3:] in chroms:
-                write_vcf.header.contigs.add(contig)
-        if contig in chroms:
-            write_vcf.header.contigs.add(contig)
-
-    try:
-        write_vcf.header.add_samples(out_samples)
-    except AttributeError:
-        log.warning(
-            "Upgrade to pysam >=0.19.1 to reduce the time required to create "
-            "VCFs. See https://github.com/pysam-developers/pysam/issues/1104"
-        )
-        for sample in out_samples:
-            write_vcf.header.add_sample(sample)
-
-    write_vcf.header.add_meta(
-        "FORMAT",
-        items=[
-            ("ID", "GT"),
-            ("Number", 1),
-            ("Type", "String"),
-            ("Description", "Genotype"),
-        ],
-    )
-    write_vcf.header.add_meta(
-        "FORMAT",
-        items=[
-            ("ID", "POP"),
-            ("Number", 2),
-            ("Type", "String"),
-            ("Description", "Origin Population of each respective allele in GT"),
-        ],
-    )
-    write_vcf.header.add_meta(
-        "FORMAT",
-        items=[
-            ("ID", "SAMPLE"),
-            ("Number", 2),
-            ("Type", "String"),
-            ("Description", "Origin sample and haplotype of each respective allele in GT"),
-        ],
-    )
-    for var in in_vcf:
-        # parse chromosome
-        chrom = re.search(r'X|\d+', var.CHROM).group()
-        if chrom not in chroms: continue
-
-        # limit output to region
-        if region:
-            if var.start < region["start"]: continue
-            if var.end > region["end"]: break
-        
-        rec = {
-            "contig": var.CHROM,
-            "start": var.start,
-            "stop": var.start + len(var.REF),
-            "qual": None,
-            "alleles": (var.REF, *var.ALT),
-            "id": var.ID,
-            "filter": None,
-        }
-        
-        # parse the record into a pysam.VariantRecord
-        record = write_vcf.new_record(**rec)
-
-        for hap in range(len(hapblock_samples)):
-            sample_num = hap // 2
-
-            # If breakpoint end coord is < current variant update breakpoint
-            bkp = breakpoints[hap][current_bkps[hap]]
-            if chrom == 'X': 
-                chrom = 23
-            while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var.start)):
-                current_bkps[hap] += 1
-                bkp = breakpoints[hap][current_bkps[hap]]
-            
-            var_sample = hapblock_samples[hap][current_bkps[hap]]
-            if hap % 2 == 0:
-                # store variant
-                if hap > 0:
-                    record.samples[f"Sample_{sample_num}"]["GT"] = tuple(gt)
-                    record.samples[f"Sample_{sample_num}"]["POP"] = tuple(pops)
-                    record.samples[f"Sample_{sample_num}"]["SAMPLE"] = tuple(samples)
-                    record.samples[f"Sample_{sample_num}"].phased = True
-                gt = []
-                pops = []
-                samples = []
-                hap_var = var.genotypes[var_sample][hap % 2]
-                gt.append(hap_var)
-                pops.append(bkp.get_pop())
-                samples.append(vcf_samples[var_sample] + f"-{hap_var}")
-            else:
-                hap_var = var.genotypes[var_sample][hap % 2]
-                gt.append(hap_var)
-                pops.append(bkp.get_pop())
-                samples.append(vcf_samples[var_sample] + f"-{hap_var}")
-
-        sample_num = hap // 2
-        record.samples[f"Sample_{sample_num+1}"]["GT"] = tuple(gt)
-        record.samples[f"Sample_{sample_num+1}"]["POP"] = tuple(pops)
-        record.samples[f"Sample_{sample_num+1}"]["SAMPLE"] = tuple(samples)
-        record.samples[f"Sample_{sample_num+1}"].phased = True
-
-        # write the record to a file
-        write_vcf.write(record)
-    write_vcf.close()
-    return
 
 def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None):
     """

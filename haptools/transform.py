@@ -269,7 +269,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             )
             self.valid_labels = np.empty(
                 (max_variants, len(self.samples), 2),
-                dtype=np.string_,
+                dtype=object,
             )
             num_seen = 0
             for rec in records:

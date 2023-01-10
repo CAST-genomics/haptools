@@ -28,9 +28,16 @@ def _get_files(plink_input=False, plink_output=False):
     return bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log
 
 
-def _get_breakpoints(bkp_file):
+def _get_breakpoints(bkp_file, model_file):
     # Collect breakpoints to proper format used in output_vcf function
     breakpoints = []
+    # create pop_dict 
+    mfile = open(model_file, 'r')
+    num_samples, *pops = mfile.readline().strip().split()
+    num_samples = int(num_samples)
+    pop_dict = {}
+    for pop_ind, pop in enumerate(pops):
+        pop_dict[pop] = pop_ind
 
     with open(bkp_file, "r") as bkp:
         sample = []
@@ -40,7 +47,7 @@ def _get_breakpoints(bkp_file):
             if len(info) > 1:
                 # gather segments
                 segment = HaplotypeSegment(
-                    info[0], int(info[1]), int(info[2]), float(info[3])
+                    pop_dict[info[0]], int(info[1]), int(info[2]), float(info[3])
                 )
                 sample.append(segment)
             else:
@@ -86,11 +93,11 @@ def test_alt_chrom_name():
     bkp_file = DATADIR.joinpath("outvcf_test_chr.bp")
     vcf_file = DATADIR.joinpath("outvcf_test_chr.vcf")
     chroms = ["1", "2", "X"]
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, True, True, str(out_file), log
+        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, True, True, str(out_file), log
     )
 
     # read in vcf file
@@ -131,11 +138,11 @@ def test_vcf_output():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
     chroms = ["1", "2"]
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, True, True, str(out_file), log
+        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, True, True, str(out_file), log
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -175,11 +182,11 @@ def test_someflags_vcf():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
     chroms = ["1", "2"]
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, True, False, str(out_file), log
+        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, True, False, str(out_file), log
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -190,29 +197,30 @@ def test_someflags_vcf():
     # read in vcf file
     vcf = VCF(str(out_file))
     for var in vcf:
+        print(var.FORMAT)
         if var.CHROM == "1" and var.POS == 10114:
             assert var.genotypes[0] == [0, 0, True]
-            assert "SAMPLE" in var.FORMAT
-            assert "POP" not in var.FORMAT
+            assert "SAMPLE" not in var.FORMAT
+            assert "POP" in var.FORMAT
             assert var.genotypes[1] == [1, 1, True]
-            assert "SAMPLE" in var.FORMAT
-            assert "POP" not in var.FORMAT
+            assert "SAMPLE" not in var.FORMAT
+            assert "POP" in var.FORMAT
 
         elif var.CHROM == "1" and var.POS == 59423090:
             assert var.genotypes[0] == [0, 1, True]
-            assert "SAMPLE" in var.FORMAT
-            assert "POP" not in var.FORMAT
+            assert "SAMPLE" not in var.FORMAT
+            assert "POP" in var.FORMAT
             assert var.genotypes[1] == [1, 0, True]
-            assert "SAMPLE" in var.FORMAT
-            assert "POP" not in var.FORMAT
+            assert "SAMPLE" not in var.FORMAT
+            assert "POP" in var.FORMAT
 
         elif var.CHROM == "2" and var.POS == 10122:
             assert var.genotypes[0] == [1, 0, True]
-            assert "SAMPLE" in var.FORMAT
-            assert "POP" not in var.FORMAT
+            assert "SAMPLE" not in var.FORMAT
+            assert "POP" in var.FORMAT
             assert var.genotypes[1] == [0, 1, True]
-            assert "SAMPLE" in var.FORMAT
-            assert "POP" not in var.FORMAT
+            assert "SAMPLE" not in var.FORMAT
+            assert "POP" in var.FORMAT
 
         else:
             assert False
@@ -225,11 +233,11 @@ def test_noflags_vcf():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
     chroms = ["1", "2"]
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, False, False, str(out_file), log
+        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, False, False, str(out_file), log
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -275,11 +283,11 @@ def test_pgen_output():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(plink_output=True)
     chroms = ["1", "2"]
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output pgen file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, False, False, str(out_file), log
+        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, False, False, str(out_file), log
     )
 
     expected = _get_expected_output()
@@ -296,11 +304,11 @@ def test_pgen_input():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(plink_input=True, plink_output=True)
     chroms = ["1", "2"]
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output pgen file
     output_vcf(
-        bkps, chroms, model_file, vcf_file, sampleinfo_file, None, False, False, str(out_file), log
+        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, False, False, str(out_file), log
     )
 
     expected = _get_expected_output()
@@ -334,13 +342,13 @@ def test_region_bkp():
 def test_region_vcf():
     region = {"chr": "2", "start": 1, "end": 10122}
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
     chroms = ["2"]
     output_vcf(
         bkps,
         chroms,
         model_file,
-        vcf_file,
+        str(vcf_file),
         sampleinfo_file,
         region,
         True,
@@ -363,13 +371,13 @@ def test_region_vcf():
 def test_region_pgen():
     region = {"chr": "2", "start": 1, "end": 10122}
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(plink_input=True)
-    bkps = _get_breakpoints(bkp_file)
+    bkps = _get_breakpoints(bkp_file, model_file)
     chroms = ["2"]
     output_vcf(
         bkps,
         chroms,
         model_file,
-        vcf_file,
+        str(vcf_file),
         sampleinfo_file,
         region,
         False,
@@ -396,7 +404,7 @@ def test_model_files():
     chroms = ["50"]
 
     popsize = 1000
-    vcf_file = DATADIR.joinpath("outvcf_test.vcf")
+    vcf_file = str(DATADIR.joinpath("outvcf_test.vcf"))
     sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_number_to_int.dat")
