@@ -20,21 +20,17 @@ def _get_files(plink_input=False, plink_output=False):
         pytest.importorskip("pgenlib")
     bkp_file = DATADIR.joinpath("outvcf_test.bp")
     model_file = DATADIR.joinpath("outvcf_gen.dat")
-    vcf_file = DATADIR.joinpath(
-        "outvcf_test" + (".pgen" if plink_input else ".vcf.gz")
-    )
+    vcf_file = DATADIR.joinpath("outvcf_test" + (".pgen" if plink_input else ".vcf.gz"))
     sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
-    out_file = DATADIR.joinpath(
-        "outvcf_out" + (".pgen" if plink_output else ".vcf.gz")
-    )
+    out_file = DATADIR.joinpath("outvcf_out" + (".pgen" if plink_output else ".vcf.gz"))
     return bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log
 
 
 def _get_breakpoints(bkp_file, model_file):
     # Collect breakpoints to proper format used in output_vcf function
     breakpoints = []
-    # create pop_dict 
-    mfile = open(model_file, 'r')
+    # create pop_dict
+    mfile = open(model_file, "r")
     num_samples, *pops = mfile.readline().strip().split()
     num_samples = int(num_samples)
     pop_dict = {}
@@ -99,7 +95,16 @@ def test_alt_chrom_name():
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, True, True, str(out_file), log
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        True,
+        True,
+        str(out_file),
+        log,
     )
 
     # read in vcf file
@@ -144,7 +149,16 @@ def test_vcf_output():
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, True, True, str(out_file), log
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        True,
+        True,
+        str(out_file),
+        log,
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -188,7 +202,16 @@ def test_someflags_vcf():
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, True, False, str(out_file), log
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        True,
+        False,
+        str(out_file),
+        log,
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -238,7 +261,16 @@ def test_noflags_vcf():
 
     # generate output vcf file
     output_vcf(
-        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, False, False, str(out_file), log
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        False,
+        False,
+        str(out_file),
+        log,
     )
 
     # Expected output for each variant (note these are phased so order matters)
@@ -282,13 +314,24 @@ def test_noflags_vcf():
 
 def test_pgen_output():
     # read in all files and breakpoints
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(plink_output=True)
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(
+        plink_output=True
+    )
     chroms = ["1", "2"]
     bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output pgen file
     output_vcf(
-        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, False, False, str(out_file), log
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        False,
+        False,
+        str(out_file),
+        log,
     )
 
     expected = _get_expected_output()
@@ -307,13 +350,24 @@ def test_pgen_output():
 
 def test_pgen_input():
     # read in all files and breakpoints
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(plink_input=True, plink_output=True)
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(
+        plink_input=True, plink_output=True
+    )
     chroms = ["1", "2"]
     bkps = _get_breakpoints(bkp_file, model_file)
 
     # generate output pgen file
     output_vcf(
-        bkps, chroms, model_file, str(vcf_file), sampleinfo_file, None, False, False, str(out_file), log
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        False,
+        False,
+        str(out_file),
+        log,
     )
 
     expected = _get_expected_output()
@@ -379,7 +433,9 @@ def test_region_vcf():
 
 def test_region_pgen():
     region = {"chr": "2", "start": 1, "end": 10122}
-    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(plink_input=True)
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files(
+        plink_input=True
+    )
     bkps = _get_breakpoints(bkp_file, model_file)
     chroms = ["2"]
     output_vcf(
