@@ -264,6 +264,16 @@ class TestGenotypes:
         assert len(gts.variants) == 0
         assert gts.data.shape[1] == 0
 
+    def test_check_sorted(self, caplog):
+        gts = self._get_fake_genotypes()
+        gts.check_sorted()
+
+        # swap two of the rows
+        gts.variants[[0, 2]] = gts.variants[[2, 0]]
+
+        with pytest.raises(ValueError) as info:
+            gts.check_sorted()
+
 
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
