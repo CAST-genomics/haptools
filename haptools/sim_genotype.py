@@ -80,6 +80,7 @@ def output_vcf(
     pop_dict = {}
     for pop_ind, pop in enumerate(pops):
         pop_dict[pop_ind] = pop
+    log.debug(f"Created pop_dict {pop_dict}.")
 
     # filter sampleinfo so only populations from model file are there
     samplefile = open(sampleinfo_file, 'r')
@@ -88,6 +89,7 @@ def output_vcf(
         sample, pop = line.strip().split()
         if pop in pops:
             pop_sample[pop].append(sample)
+    log.debug(f"Filtered sample info to limit populations within model file. Populations: {pops}.")
 
     # check if pops without admixed is same as grabbed populations
     assert len(pops)-1 == len(list(set(pop_sample.keys())))
@@ -105,11 +107,13 @@ def output_vcf(
     else:
         vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
 
+    log.debug(f"Read in variants from {variant_file}")
+
     # run checks on input reference vcf file
-    vcf.check_missing(discard_also=True)
-    vcf.check_biallelic(discard_also=True)
-    vcf.check_phase()
-    vcf.check_sorted()
+    #vcf.check_missing(discard_also=True)
+    #vcf.check_biallelic(discard_also=True)
+    #vcf.check_phase()
+    #vcf.check_sorted()
 
     sample_dict = {}
     for ind, sample in enumerate(vcf.samples):
@@ -118,6 +122,7 @@ def output_vcf(
     # create index array to store for every sample which haplotype 
     # block we are currently processing and choose what samples 
     # will be used for each haplotype block
+    """
     current_bkps = np.zeros(len(breakpoints), dtype=np.int64)
     hapblock_samples = []
     for haplotype in breakpoints:
@@ -127,9 +132,69 @@ def output_vcf(
             sample_ind = sample_dict[sample_name]
             hap_samples.append(sample_ind)
         hapblock_samples.append(hap_samples)
+    """
+
+    log.debug(f"Created index array storing per sample which segment is being processed.")
+
+    # TODO Load populations and samples from sample info and breakpoints as 2 matrices with size variants x samples x 2
+    # Use search_sorted() numpy function to find indices in populations/samples in order to determine population and sample info
+    ref_vars = vcf.variants
+    output_gts = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=vcf.data.dtype)
+    output_pops = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=np.uint8)
+    output_labels = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=object)
+
+    # cover "chr" prefix cases
+    if ref_vars["chrom"][0].startswith("chr"):
+        cur_chrom = "chr"
+    else:
+        cur_chrom = ""
+
+    # create samples x variants x 2 matrix of populations
+    for hap_ind, haplotype in enumerate(breakpoints):
+        cur_var = 0
+        ref_gts = np.empty((len(ref_vars), ), dtype=np.uint8)
+        if pop_field:
+            ref_pops = np.empty((len(ref_vars), ), dtype=np.uint8)
+        if sample_field:
+            ref_labels = np.empty((len(ref_vars), ), dtype=object)
+        # convert vcf variant chroms to ints 
+        for chrom in chroms:
+            # limit reference vcf variants to current chrom
+            ref_vars_chrom = ref_vars["pos"][ref_vars["chrom"] == f"{cur_chrom}{chrom}"]
+            # Convert haplotype to numpy array of segment position, populations, and samples
+            hap_positions, hap_pops, hap_samples_name, hap_samples_ind = _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict)
+
+            # if the variant position is = breakpoint end then we consider it part of that bkp
+            bkp_pos = np.searchsorted(ref_vars_chrom, hap_positions, side='right')
+
+            # Interval lengths to repeat each population and sample
+            sub_array = np.insert(bkp_pos, 0, 0)
+            inter_len = np.diff(sub_array)
+
+            # create ref_gts from mapping hap_samples to their respective genotypes 
+            ref_sample_inds_chrom = np.repeat(hap_samples_ind, inter_len)
+
+            end_var = cur_var+ref_sample_inds_chrom.shape[0]
+            gt_vars = np.arange(cur_var, end_var, 1)
+            ref_gts_chrom = vcf.data[ref_sample_inds_chrom, gt_vars, hap_ind % 2]
+            ref_gts[cur_var:end_var] = ref_gts_chrom
+
+            if pop_field:
+                ref_pops_chrom = np.repeat(hap_pops, inter_len)
+                ref_pops[cur_var:end_var] = ref_pops_chrom
+            if sample_field:
+                ref_labels_chrom = np.repeat(hap_samples_name, inter_len)
+                ref_labels[cur_var:end_var] = ref_labels_chrom
+            cur_var = end_var
+
+        output_gts[int(hap_ind//2), : , hap_ind % 2] = ref_gts
+        if pop_field:
+            output_pops[int(hap_ind//2), : , hap_ind % 2] = ref_pops
+        if sample_field:
+            output_labels[int(hap_ind//2), : , hap_ind % 2] = ref_labels
 
     # output vcf header to new vcf file we create
-    output_samples = [f"Sample_{hap+1}" for hap in range(int(len(hapblock_samples)/2))]
+    output_samples = [f"Sample_{hap+1}" for hap in range(int(len(breakpoints)/2))]
 
     # If PGEN use genotypesPLINK class otherwise use GenotypesAncestry to hold genotypes 
     gts = None
@@ -139,99 +204,52 @@ def output_vcf(
             # Initialize Ancestry pops matrix 
             gts = GenotypesAncestry(out, log=log)
             gts.popnum_ancestry = pop_dict
+            gts.ancestry = output_pops
 
         # Setup Genotypes class to hold our genotype data
         if sample_field:
             if gts is None:
                 gts = GenotypesAncestry(out, log=log)
+                gts.valid_labels = output_labels
 
         if not pop_field and not sample_field:
             gts = GenotypesRefAlt(out, log=log)
+
     else:
         gts = GenotypesPLINK(out, log=log)
-
-    # Process
-    # Choose starting samples (random choice) in VCF from respective population for each haplotype segment
-    #     Also precalculate (random choice) all samples that will be switched too once the current local ancestry block ends.
-    # Iterate over VCF and output variants to file(in the beginning write out the header as well) until end of haplotype block for a sample (have to iterate over all samples each time to check)
-    # Once VCF is complete we've output everything we wanted
-    # VCF output have a FORMAT field where under format is GT:POP and our sample output is GT:POP ie 1|1:YRI|CEU
-    # Note: comment out the code below to enable (very experimental!) PGEN support
-    # curr_bkps = current_bkps.copy()
-    _write_output(
-        breakpoints, chroms, hapblock_samples, current_bkps, output_samples, vcf, gts, pop_field, sample_field, log,
-        )
-    #_write_vcf(breakpoints, chroms, region, hapblock_samples, vcf.samples, current_bkps, output_samples, vcf, out, log)
+    
+    gts.samples = output_samples
+    gts.variants = vcf.variants
+    gts.data = output_gts
+    gts.write()
+    log.debug("Writing Complete!")
+    
     return
 
-def _write_output(
-        breakpoints, 
-        chroms, 
-        hapblock_samples, 
-        current_bkps, 
-        out_samples, 
-        in_vcf, 
-        gts,
-        pop_field,
-        sample_field,
-        log
-    ):
-    """
-    in_vcf = GenotypesRefAlt object we are reading in
-    out = pgen file we output to
-    """
-    # initialize output writer
-    gts.samples = out_samples
-    gts.variants = in_vcf.variants
-    gts.data = np.empty((len(out_samples), len(gts.variants), 2), dtype=in_vcf.data.dtype)
-    if pop_field:
-        gts.ancestry = np.empty((len(out_samples), len(gts.variants), 2), dtype=np.uint8)
-    if sample_field:
-        gts.valid_labels = np.empty((len(out_samples), len(gts.variants), 2), dtype=object)
+def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
+    if chrom == 'X': chrom = 23
+    # Do binary search to find beginning of chr in haplotype segments
+    hap_start_ind = start_segment(0, int(chrom), haplotype)
+    hap_subset = haplotype[hap_start_ind:]
+    hap_pos = []
+    hap_pops = []
+    hap_samples = []
+    hap_samples_ind = []
 
-    # Now we just fill out gts.data
-    # TODO: figure out if there's a way to optimize the following lines of code so that
-    # this for loop is performed in numpy rather than in python? This is especially
-    # relevant for situations in which the input is PGEN b/c it's probably just as fast
-    # to stream the VCF like this otherwise
-    for var_idx, var in enumerate(gts.variants):
-        # parse chromosome
-        chrom = re.search(r'X|\d+', var["chrom"]).group()
-        if chrom not in chroms: continue
-        if chrom == 'X':
-            chrom = 23
-        for hap in range(len(hapblock_samples)):
-            sample_num = hap // 2
-            # If breakpoint end coord is < current variant update breakpoint
-            bkp = breakpoints[hap][current_bkps[hap]]
-            # Note: for some reason, var.start in _write_vcf() is always equal to var["pos"]-1 in _write_pgen()
-            # We should probably investigate at some point
-            while bkp.get_chrom() < int(chrom) or (bkp.get_chrom() == int(chrom) and bkp.get_end_coord() < int(var["pos"])-1):
-                current_bkps[hap] += 1
-                bkp = breakpoints[hap][current_bkps[hap]]
-            var_sample = hapblock_samples[hap][current_bkps[hap]]
-            if hap % 2 == 0:
-                # store variant
-                if hap > 0:
-                    gts.data[sample_num-1, var_idx] = tuple(gt)
-                    if pop_field:
-                        gts.ancestry[sample_num-1, var_idx] = tuple(pops)
-                    if sample_field:
-                        gts.valid_labels[sample_num-1, var_idx] = tuple(samples)
-                gt = []
-                pops = []
-                samples = []
-            gt.append(int(in_vcf.data[var_sample, var_idx, hap % 2]))
-            pops.append(bkp.get_pop())
-            samples.append(in_vcf.samples[var_sample] + f"-{gt[-1]}")
-        sample_num = hap // 2
-        gts.data[sample_num, var_idx] = tuple(gt)
-        if pop_field:
-            gts.ancestry[sample_num, var_idx] = tuple(pops)
-        if sample_field:
-            gts.valid_labels[sample_num, var_idx] = tuple(samples)
+    # collect all segments within chromosome
+    for segment in hap_subset:
+        if not segment.get_chrom() == int(chrom):
+            break
+        sample_name = np.random.choice(pop_sample[pop_dict[segment.get_pop()]])
+        hap_pos.append(segment.get_end_coord())
+        hap_pops.append(segment.get_pop())
+        hap_samples.append(sample_name)
+        hap_samples_ind.append(sample_dict[sample_name])
 
-    gts.write()
+    return np.asarray(hap_pos, dtype=np.int64), \
+           np.asarray(hap_pops, dtype=np.uint8), \
+           np.asarray(hap_samples, dtype=object), \
+           np.asarray(hap_samples_ind, dtype=np.int32)
 
 def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None):
     """
@@ -815,12 +833,15 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region=N
 
     # Collect samples from vcf
     try:
+        vcf_samples = None
         if invcf.endswith(".pgen"):
-            vcf = GenotypesPLINK(invcf)
+            vcf = GenotypesPLINK(str(invcf))
+            vcf.read_samples()
+            vcf_samples = vcf.samples
         else:
-            vcf = GenotypesRefAlt(invcf)
-        vcf.read() # TODO see how its possible to just load in samples
-        vcf_samples = vcf.samples
+            vcf = VCF(str(invcf), lazy=True)
+            vcf_samples = tuple(vcf.samples)
+
     except:
         raise Exception("Unable to collect vcf samples.")
 
