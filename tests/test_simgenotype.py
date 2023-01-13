@@ -36,6 +36,7 @@ def test_basic(capfd):
 
 
 def test_pgen_output(capfd):
+    pytest.importorskip("pgenlib")
     prefix = Path("tests/data/example_simgenotype.pgen")
 
     cmd = " ".join(
