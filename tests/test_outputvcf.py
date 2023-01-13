@@ -16,6 +16,8 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 def _get_files(plink_input=False, plink_output=False):
     log = getLogger(name="test")
+    if plink_input or plink_output:
+        pytest.importorskip("pgenlib")
     bkp_file = DATADIR.joinpath("outvcf_test.bp")
     model_file = DATADIR.joinpath("outvcf_gen.dat")
     vcf_file = DATADIR.joinpath(
@@ -197,7 +199,6 @@ def test_someflags_vcf():
     # read in vcf file
     vcf = VCF(str(out_file))
     for var in vcf:
-        print(var.FORMAT)
         if var.CHROM == "1" and var.POS == 10114:
             assert var.genotypes[0] == [0, 0, True]
             assert "SAMPLE" not in var.FORMAT
@@ -299,6 +300,10 @@ def test_pgen_output():
     assert gts.samples == expected.samples
     assert np.array_equal(gts.variants, expected.variants)
 
+    out_file.unlink()
+    out_file.with_suffix(".pvar").unlink()
+    out_file.with_suffix(".psam").unlink()
+
 
 def test_pgen_input():
     # read in all files and breakpoints
@@ -319,6 +324,10 @@ def test_pgen_input():
     np.testing.assert_allclose(gts.data, expected.data)
     assert gts.samples == expected.samples
     assert np.array_equal(gts.variants, expected.variants)
+
+    out_file.unlink()
+    out_file.with_suffix(".pvar").unlink()
+    out_file.with_suffix(".psam").unlink()
 
 
 def test_region_bkp():
