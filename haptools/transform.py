@@ -450,7 +450,10 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                     ("ID", "POP"),
                     ("Number", 2),
                     ("Type", "String"),
-                    ("Description", "Origin Population of each respective allele in GT"),
+                    (
+                        "Description",
+                        "Origin Population of each respective allele in GT",
+                    ),
                 ],
             )
         if not self.valid_labels is None:
@@ -495,7 +498,10 @@ class GenotypesAncestry(data.GenotypesRefAlt):
                 record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
                 if not self.ancestry is None:
                     record.samples[sample]["POP"] = tuple(
-                        map(self.popnum_ancestry.get, self.ancestry[samp_idx, var_idx, :])
+                        map(
+                            self.popnum_ancestry.get,
+                            self.ancestry[samp_idx, var_idx, :],
+                        )
                     )
                 if not self.valid_labels is None:
                     record.samples[sample]["SAMPLE"] = tuple(

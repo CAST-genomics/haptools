@@ -107,7 +107,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
         "Path to desired output file. E.g. /path/to/output.vcf.gz "
         "Possible outputs are vcf|bcf|vcf.gz|pgen and there will be an "
         "additional breakpoints output with extension bp e.g. /path/to/output.bp."
-    ), 
+    ),
 )
 @click.option(
     "--chroms",
@@ -135,16 +135,16 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     "--ref_vcf",
     required=True,
     help=(
-        "VCF or PGEN file used as reference for creation of simulated samples respective "
-        "genotypes."
+        "VCF or PGEN file used as reference for creation of simulated samples"
+        " respective genotypes."
     ),
 )
 @click.option(
     "--sample_info",
     required=True,
     help=(
-        "File that maps samples from the reference VCF (--invcf) to population codes "
-        "describing the populations in the header of the model file."
+        "File that maps samples from the reference VCF (--invcf) to population"
+        " codes describing the populations in the header of the model file."
     ),
 )
 @click.option(
@@ -152,8 +152,8 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     required=False,
     default=None,
     help=(
-        "Subset the simulation to a specific region in a chromosome using the form"
-        " chrom:start-end. Example 2:1000-2000"
+        "Subset the simulation to a specific region in a chromosome using the"
+        " form chrom:start-end. Example 2:1000-2000"
     ),
 )
 @click.option(
@@ -162,8 +162,8 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     is_flag=True,
     default=False,
     help=(
-        "Flag for outputting the population field in your VCF output. NOTE this flag "
-        "does not work when your output file is in PGEN format."
+        "Flag for outputting the population field in your VCF output. NOTE this"
+        " flag does not work when your output file is in PGEN format."
     ),
 )
 @click.option(
@@ -172,8 +172,8 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     is_flag=True,
     default=False,
     help=(
-        "Flag for outputting the sample field in your VCF output. NOTE this flag "
-        "does not work when your output file is in PGEN format."
+        "Flag for outputting the sample field in your VCF output. NOTE this"
+        " flag does not work when your output file is in PGEN format."
     ),
 )
 @click.option(
@@ -182,8 +182,8 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     is_flag=True,
     required=False,
     help=(
-        "Flag used to determine whether to only output breakpoints or continue to "
-        "simulate a vcf file."
+        "Flag used to determine whether to only output breakpoints or"
+        " continue to simulate a vcf file."
     ),
 )
 @click.option(
@@ -271,17 +271,17 @@ def simgenotype(
     vcf_start = time.time()
     if not only_breakpoint:
         output_vcf(
-            breakpoints, 
+            breakpoints,
             chroms,
-            model, 
-            ref_vcf, 
-            sample_info, 
-            region, 
-            pop_field, 
-            sample_field, 
-            out, 
+            model,
+            ref_vcf,
+            sample_info,
+            region,
+            pop_field,
+            sample_field,
+            out,
             log,
-            )
+        )
     end = time.time()
 
     log.debug(f"Time elapsed for breakpoint simulation: {bp_end - start}")
