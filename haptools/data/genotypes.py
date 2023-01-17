@@ -1204,11 +1204,10 @@ class GenotypesPLINK(GenotypesRefAlt):
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
+        self.log.debug(f"Transposing genotype matrix of size {self.data.shape}.")
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
-        data = self.data.transpose((1, 0, 2))
-        # concatenate and interleave columns so that every pair of columns is a sample
-        data = np.dstack((data[:, :, 0], data[:, :, 1])).reshape((data.shape[0], -1))
+        data = self.data.transpose((1, 0, 2))[:, :, :2]
         # how many variants should we write at once?
         chunks = self.chunk_size
         if chunks is None or chunks > len(self.variants):
@@ -1232,8 +1231,10 @@ class GenotypesPLINK(GenotypesRefAlt):
                 if end > len(self.variants):
                     end = len(self.variants)
                 size = end - start
-                subset_data = data[start:end]
                 try:
+                    subset_data = data[start:end].reshape(
+                        (len(self.variants), len(self.samples)*2)
+                    )
                     cast_data = subset_data.astype(np.int32)
                 except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
