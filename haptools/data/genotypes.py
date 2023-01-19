@@ -1029,12 +1029,12 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # ...each column is a different chromosomal strand
                     try:
                         data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
+                        phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     except np.core._exceptions._ArrayMemoryError as e:
                         raise ValueError(
                             "You don't have enough memory to load these genotypes! Try"
                             " specifying a value to the chunk_size parameter, instead"
                         ) from e
-                    phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
                     # in sample-major mode and then transpose them
