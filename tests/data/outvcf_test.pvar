@@ -1,0 +1,7 @@
+##filedate=20180225
+##contig=<ID=1>
+##contig=<ID=2>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER
+1	10114	1:10114:T:C	T	C	.	.
+1	59423090	1:59423090:A:G	A	G	.	.
+2	10122	2:10122:A:G	A	G	.	.

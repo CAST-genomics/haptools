@@ -82,6 +82,10 @@ Follow these steps to set up a development environment.
 
 Now, try importing ``haptools`` or running it on the command line.
 
+.. note::
+   If you run into an attribute error ``module 'distutils' has no attribute 'util'`` see `this workaround <https://github.com/python-poetry/poetry/issues/3336#issuecomment-831789763>`_.
+
+
 ---------------------
 Managing Dependencies
 ---------------------
