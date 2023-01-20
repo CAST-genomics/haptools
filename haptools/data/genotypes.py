@@ -1259,8 +1259,8 @@ class GenotypesPLINK(GenotypesRefAlt):
                         "You don't have enough memory to write these genotypes! Try"
                         " specifying a value to the chunk_size parameter, instead"
                     ) from e
-                subset_data.resize((len(self.variants), len(self.samples)*2))
-                missing.resize((len(self.variants), len(self.samples)*2))
+                subset_data.resize((len(self.variants), len(self.samples) * 2))
+                missing.resize((len(self.variants), len(self.samples) * 2))
                 # convert any missing genotypes to -9
                 subset_data[missing] = -9
                 if self._prephased or self.data.shape[2] < 3:
