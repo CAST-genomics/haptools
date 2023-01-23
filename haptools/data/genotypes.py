@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import gc
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -413,7 +414,7 @@ class Genotypes(Data):
                 original_num_samples = len(self.samples)
                 self.data = np.delete(self.data, samp_idx, axis=0)
                 self.samples = tuple(np.delete(self.samples, samp_idx))
-                self.log.info(
+                self.log.warning(
                     "Ignoring missing genotypes from "
                     f"{original_num_samples - len(self.samples)} samples"
                 )
@@ -1048,12 +1049,12 @@ class GenotypesPLINK(GenotypesRefAlt):
                     # ...each column is a different chromosomal strand
                     try:
                         data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
+                        phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     except np.core._exceptions._ArrayMemoryError as e:
                         raise ValueError(
                             "You don't have enough memory to load these genotypes! Try"
                             " specifying a value to the chunk_size parameter, instead"
                         ) from e
-                    phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
                     # The haplotype-major mode of read_alleles_and_phasepresent_list
                     # has not been implemented yet, so we need to read the genotypes
                     # in sample-major mode and then transpose them
@@ -1065,22 +1066,22 @@ class GenotypesPLINK(GenotypesRefAlt):
                     data[data == -9] = -1
                     # add phase info, then transpose the GT matrix so that samples are
                     # rows and variants are columns
-                    data = np.concatenate(
-                        (
-                            np.dstack((data[:, ::2], data[:, 1::2])).astype(np.uint8),
-                            phasing[:, :, np.newaxis],
-                        ),
-                        axis=2,
+                    self.data[:, start:end, :2] = data.reshape(
+                        (chunks, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
+                    self.data[:, start:end, 2] = phasing.transpose()
                 else:
                     # ...each row is a different chromosomal strand
-                    data = np.empty((len(sample_idxs) * 2, size), dtype=np.int32)
-                    pgen.read_alleles_list(indices[start:end], data, hap_maj=True)
+                    data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
+                    pgen.read_alleles_list(indices[start:end], data)
                     # missing alleles will have a value of -9
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
-                    data = np.dstack((data[::2, :], data[1::2, :])).astype(np.uint8)
-                self.data[:, start:end] = data
+                    self.data[:, start:end] = data.reshape(
+                        (chunks, mat_shape[0], 2)
+                    ).transpose((1, 0, 2))
+                del data
+                gc.collect()
 
     def _iterate(
         self,
@@ -1221,11 +1222,10 @@ class GenotypesPLINK(GenotypesRefAlt):
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
+        self.log.debug(f"Transposing genotype matrix of size {self.data.shape}.")
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
-        data = self.data.transpose((1, 0, 2))
-        # concatenate and interleave columns so that every pair of columns is a sample
-        data = np.dstack((data[:, :, 0], data[:, :, 1])).reshape((data.shape[0], -1))
+        data = self.data.transpose((1, 0, 2))[:, :, :2]
         # how many variants should we write at once?
         chunks = self.chunk_size
         if chunks is None or chunks > len(self.variants):
@@ -1249,19 +1249,27 @@ class GenotypesPLINK(GenotypesRefAlt):
                 if end > len(self.variants):
                     end = len(self.variants)
                 size = end - start
-                subset_data = data[start:end]
                 try:
-                    cast_data = subset_data.astype(np.int32)
+                    missing = np.ascontiguousarray(
+                        data[start:end] == np.iinfo(np.uint8).max
+                    )
+                    subset_data = np.ascontiguousarray(data[start:end], dtype=np.int32)
                 except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
                         "You don't have enough memory to write these genotypes! Try"
                         " specifying a value to the chunk_size parameter, instead"
                     ) from e
+                subset_data.resize((len(self.variants), len(self.samples) * 2))
+                missing.resize((len(self.variants), len(self.samples) * 2))
                 # convert any missing genotypes to -9
-                cast_data[subset_data == np.iinfo(np.uint8).max] = -9
+                subset_data[missing] = -9
                 if self._prephased or self.data.shape[2] < 3:
-                    pgen.append_alleles_batch(cast_data, all_phased=True)
+                    pgen.append_alleles_batch(subset_data, all_phased=True)
                 else:
                     # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
-                    pgen.append_partially_phased_batch(cast_data, subset_phase)
+                    pgen.append_partially_phased_batch(subset_data, subset_phase)
+                    del subset_phase
+            del subset_data
+            del missing
+            gc.collect()

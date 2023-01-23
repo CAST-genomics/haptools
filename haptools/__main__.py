@@ -61,7 +61,7 @@ def main():
 @click.option(
     "-v",
     "--verbosity",
-    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
@@ -189,7 +189,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
 @click.option(
     "-v",
     "--verbosity",
-    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
@@ -404,7 +404,7 @@ def simgenotype(
 @click.option(
     "-v",
     "--verbosity",
-    type=click.Choice(["CRITICAL", "INFO", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
     show_default="only errors",
     help="The level of verbosity desired",
