@@ -88,7 +88,10 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     "--model",
     type=str,
     required=True,
-    help="Admixture model in .dat format. See docs for info.",
+    help=(
+        "Admixture model in .dat format. See File Formats under simgenotype in the "
+        "docs for complete info."
+    ),
 )
 @click.option(
     "--mapdir",

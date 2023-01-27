@@ -73,6 +73,11 @@ If speed is important, it's generally faster to use PGEN files than VCFs.
   --pop_field \
   --out tests/data/example_simgenotype.pgen
 
+Example model files found in `haptools/example-files/models/ <https://github.com/CAST-genomics/haptools/tree/main/example-files/models>`_ and `haptools/tests/data/ <https://github.com/CAST-genomics/haptools/tree/main/tests/data>`_.
+Example map files found in `haptools/tests/data/map/ <https://github.com/CAST-genomics/haptools/tree/main/tests/data/map>`_.
+Example ref_vcf file can be found `haptools/tests/data/outvcf_test.vcf <https://github.com/CAST-genomics/haptools/blob/main/tests/data/outvcf_test.vcf>`_.
+Example sample_info files found in `haptools/example-files/ <https://github.com/CAST-genomics/haptools/tree/main/example-files>`_ and `haptools/tests/data/outvcf_info.tab <https://github.com/CAST-genomics/haptools/blob/main/tests/data/outvcf_info.tab>`_.
+
 
 Detailed Usage
 ~~~~~~~~~~~~~~
