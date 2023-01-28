@@ -38,6 +38,7 @@ Parameter Descriptions
 * ``--pop_field`` - Flag for ouputting population field in VCF output. Note this flag does not work when your output is in PGEN format. [Optional]
 * ``--sample_field`` - Flag for ouputting sample field in VCF output. Note this flag does not work when your output is in PGEN format. Should only be used for debugging. [Optional]
 * ``--verbosity`` - What level of output the logger should print to stdout. Please see `logging levels <https://docs.python.org/3/library/logging.html>`_ for output levels. Default = INFO [Optional]
+* ``--only_breakpoint`` - Flag which when provided only outputs the breakpoint file. Note you will not need to provide a ``--ref_vcf`` or ``--sample_info`` file and can instead put NA. eg.  ``--ref_vcf NA`` and ``--sample_info NA`` [Optional]
 
 File Formats
 ~~~~~~~~~~~~

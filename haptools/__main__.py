@@ -181,7 +181,6 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
 )
 @click.option(
     "--only_breakpoint",
-    hidden=True,
     is_flag=True,
     required=False,
     help=(
