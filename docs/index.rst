@@ -52,6 +52,7 @@ Please read our :doc:`contribution guidelines </project_info/contributing>` and 
 
    project_info/installation
    project_info/contributing
+   project_info/example_files
 
 .. toctree::
    :caption: File Formats
