@@ -90,6 +90,8 @@ To match haplotypes as well as their ancestral population labels, use the ``--an
 		bcftools annotate -Ov --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | \
 		haptools transform -o output.vcf.gz /dev/stdin file.hap
 
+All files used in these examples are described :doc:`here </project_info/example_files>`.
+
 
 Detailed Usage
 ~~~~~~~~~~~~~~

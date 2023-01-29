@@ -44,6 +44,8 @@ This will output a file ``test_karyogram.png``. The example is shown below.
 .. image:: ../images/test_karyogram.png
   :alt: Example karyogram
 
+All files used in this example are described :doc:`here </project_info/example_files>`.
+
 
 Detailed Usage
 ~~~~~~~~~~~~~~

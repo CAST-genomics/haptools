@@ -110,6 +110,8 @@ Let's simulate two replicates of a case/control trait that occurs in 60% of samp
    --output simulated.pheno \
    /dev/stdin tests/data/simphenotype.hap
 
+All files used in these examples are described :doc:`here </project_info/example_files>`.
+
 Detailed Usage
 ~~~~~~~~~~~~~~
 
