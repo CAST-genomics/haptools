@@ -34,7 +34,12 @@ For example ``haptools simgenotype`` outputs a VCF file with local ancestry info
 The VCF and breakpoints file output by ``haptools simgenotype`` can be used as input to ``haptools transform``, which is then used by ``haptools simphenotype`` to simulate phenotypes for a list of haplotypes.
 The local ancestry breakpoints from ``haptools simgenotype`` can also be visualized using ``haptools karyogram``.
 
-Detailed information about each command can be found in `the commands section </commands>`_. Examples there utilize files from the `tests directory <https://github.com/CAST-genomics/haptools/tree/main/tests/data>`_.
+Detailed information about each command can be found in the *Commands* section of our documentation. Examples there utilize a set of example files described :doc:`here </project_info/example_files>`.
+
+Logging
+~~~~~~~
+
+All commands output log messages to standard error. The universal ``--verbosity`` flag controls the level of detail in our logging messages. By default, this is set to ``INFO``, which will yield errors, warnings, and info messages. To get more detailed messages, set it to ``DEBUG``. To get only error messages, set it to ``ERROR``. To get errors *and* warnings, set it to ``WARNING``. Refer to `the Python documentation on logging levels <https://docs.python.org/3/library/logging.html#levels>`_ for more information.
 
 Contributing
 ~~~~~~~~~~~~
@@ -51,8 +56,8 @@ Please read our :doc:`contribution guidelines </project_info/contributing>` and 
    :maxdepth: 1
 
    project_info/installation
-   project_info/contributing
    project_info/example_files
+   project_info/contributing
 
 .. toctree::
    :caption: File Formats

@@ -63,7 +63,7 @@ def main():
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
@@ -193,7 +193,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def simgenotype(
@@ -408,7 +408,7 @@ def simgenotype(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def simphenotype(
@@ -573,7 +573,7 @@ def simphenotype(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def transform(
@@ -736,7 +736,7 @@ def transform(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def ld(
@@ -831,7 +831,7 @@ def ld(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def index(
