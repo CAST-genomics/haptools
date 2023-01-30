@@ -48,7 +48,7 @@ To create a pull request you need to do these steps:
     5. Create a new branch off of the :code:`main` branch with :code:`git checkout -b <descriptive_branch_name>`. Please follow `best practices <https://www.conventionalcommits.org/>`_ when naming your branch
     6. Setup our development environment by following the instructions in :ref:`dev-setup-instructions` below
     7. Make your changes to the code
-    8. Add additional tests to the :code:`tests/` directory and add comments to the documentation to explain how to use your new code. We use pytest for testing and sphinx/numpydoc for documentation. If you add an example code or command to the documentation, you should make sure to create an automated test that executes it, as well.
+    8. Add additional tests to the :code:`tests/` directory and add comments to the documentation to explain how to use your new code. We use pytest for testing and sphinx/numpydoc for documentation. If you add example code or an example command to the documentation, you should make sure to create an automated test that executes it, as well.
     9. Run the automated code-checking steps detailed in :ref:`code-check-instructions` below
     10. Commit your changes. Please use informative commit messages and do your best to ensure the commit history is clean and easy to interpret
     11. Now you can push your changes to your Github copy of haptools by running :code:`git push origin <descriptive_branch_name>`
