@@ -16,4 +16,4 @@ Fields
 
   chr var pos_cM pos_bp
 
-Beagle Genetic Maps used in ``simgenotype`` (GRCh38): http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
+Beagle Genetic Maps used in ``simgenotype`` (GRCh38): https://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/
