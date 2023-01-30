@@ -58,7 +58,7 @@ def main():
     required=False,
     help=(
         "Optional color dictionary. Input can be from the matplotlib list of colors "
-        "or in hexcode.Format is e.g. 'YRI:blue,CEU:green'"
+        "or in hexcode. Format is e.g. 'YRI:blue,CEU:green'"
     ),
 )
 @click.option(
