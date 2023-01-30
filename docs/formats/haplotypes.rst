@@ -11,7 +11,24 @@ This document describes our custom file format specification for haplotypes: the
   :align: center
   :alt: The .hap file format
 
-This is a tab-separated file composed of different types of lines. The first field of each line is a single, uppercase character denoting the type of line. The following line types are supported.
+Motivation
+~~~~~~~~~~
+``.hap`` files are optimized to store information about haplotypes and the collections of alleles that they are composed of. Notably, they are not designed to store any kind of per-sample information. Instead, :doc:`the transform command </commands/transform/>` can be used to encode each haplotype as a biallelic variant in a VCF, BCF, or PGEN file. Our intent is for the ``.hap`` file format to play a supporting role to these per-sample formats.
+
+Our file format addresses unique challenges. As far as we know, the only file format to store equivalent kinds of information as our custom format is `PLINK 1.9 .blocks.det file <https://www.cog-genomics.org/plink/1.9/formats#blocks>`_ file. However, it may also be possible to store the columns of a ``.hap`` file within the INFO fields of a VCF. Compared to both of these formats, our file format has a few key advantages:
+
+1. Unlike ``.blocks.det`` files, our format is designed to be indexed and queried efficiently via tabix. Our design offers an additional level of querying that is not possible for haplotypes encoded within a VCF.
+2. Our format is more flexible than a ``.blocks.det`` or VCF file. In addition to storing SNP alleles within a ``.hap`` file, our format allows for the storage of either haplotype-level metadata (e.g. local ancestry labels, effect sizes) or allele-level metadata (e.g. custom scores or other information).
+3. Our format is easier to generate or parse using simple unix commands or ad-hoc scripts because it uses a single field delimiter and guarantees a consistent number of fields for each line in the file.
+
+Please refer to the supplement of our manuscript for a thorough justification of our file format.
+
+.. TODO: add link to the manuscript here
+
+Overview
+~~~~~~~~
+
+The ``.hap`` format describes a tab-separated file composed of different types of lines. The first field of each line is a single, uppercase character denoting the type of line. The following line types are supported.
 
 .. list-table::
    :widths: 25 25

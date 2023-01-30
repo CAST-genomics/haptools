@@ -62,6 +62,8 @@ You can select a subset of variants (or haplotypes) using the ``--id`` parameter
 
 	haptools ld --from-gts -i rs543363163 -i rs7412 APOe4 tests/data/apoe.vcf.gz tests/data/apoe4.hap
 
+All files used in these examples are described :doc:`here </project_info/example_files>`.
+
 Detailed Usage
 ~~~~~~~~~~~~~~
 

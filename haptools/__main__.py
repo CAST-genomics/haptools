@@ -56,14 +56,17 @@ def main():
     "--colors",
     type=str,
     required=False,
-    help="Optional color dictionary. Format is e.g. 'YRI:blue,CEU:green'",
+    help=(
+        "Optional color dictionary. Input can be from the matplotlib list of colors "
+        "or in hexcode. Format is e.g. 'YRI:blue,CEU:green'"
+    ),
 )
 @click.option(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
@@ -193,7 +196,7 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def simgenotype(
@@ -408,7 +411,7 @@ def simgenotype(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def simphenotype(
@@ -573,7 +576,7 @@ def simphenotype(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def transform(
@@ -736,7 +739,7 @@ def transform(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def ld(
@@ -831,7 +834,7 @@ def ld(
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
     default="INFO",
-    show_default="only errors",
+    show_default=True,
     help="The level of verbosity desired",
 )
 def index(

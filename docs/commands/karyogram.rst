@@ -22,7 +22,7 @@ Additional Options
 You may also specify the following options:
 
 * ``--centromeres <FILE>`` - Path to a file describing the locations of chromosome ends and centromeres. An example file is given here: ``tests/data/centromeres_hg19.txt``. The columns are: chromosome, chrom_start, centromere, chrom_end. For acrocentric chromosomes, the centromere field is ommitted. This file format was taken from `here <https://github.com/armartin/ancestry_pipeline>`_.
-* ``--colors "pop1:color1,pop2:color2..."`` - You can optionally specify which colors should be used for each population. If colors are not given, the script chooses reasonable defaults.
+* ``--colors "pop1:color1,pop2:color2..."`` - You can optionally specify which colors should be used for each population. These colors entered can be the matplotlib `colors <https://matplotlib.org/stable/gallery/color/named_colors.html>`_ or inputted as hexcode. If colors are not given, the script chooses reasonable defaults. 
 * ``--title <TITLE>`` - Title for the resulting karyogram.
 * ``--verbosity <LEVEL>`` - What level of output the logger should print to stdout. Please see `logging levels <https://docs.python.org/3/library/logging.html>`_ for output levels. Default = INFO [Optional]
 
@@ -43,6 +43,8 @@ This will output a file ``test_karyogram.png``. The example is shown below.
 
 .. image:: ../images/test_karyogram.png
   :alt: Example karyogram
+
+All files used in this example are described :doc:`here </project_info/example_files>`.
 
 
 Detailed Usage

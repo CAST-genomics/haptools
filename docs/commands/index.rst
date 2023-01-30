@@ -45,6 +45,8 @@ You can use the ``--no-sort`` flag to skip the sorting step if your file is alre
     LC_ALL=C sort -k1,4 tests/data/simphenotype.hap | \
     haptools index --no-sort --output tests/data/simphenotype.hap.gz /dev/stdin
 
+All files used in these examples are described :doc:`here </project_info/example_files>`.
+
 
 Detailed Usage
 ~~~~~~~~~~~~~~
