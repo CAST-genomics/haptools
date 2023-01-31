@@ -220,7 +220,7 @@ def PlotKaryogram(bp_file, sample_name, out_file, log,
        If None, no centromere and telomere locations are shown
     title : str, optional
        Plot title. If None, no title is annotated
-    colors : dict[str, str], optional
+    colors : dict(str->str), optional
        Dictionary of colors to use for each population
        If not set, reasonable defaults are used.
        In addition to strings, you can specify RGB or RGBA tuples.
