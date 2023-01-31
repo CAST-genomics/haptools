@@ -54,10 +54,10 @@ def output_vcf(
         VCF, BCF, VCF.GZ, or PGEN format.
     sampleinfo_file: str
         file path that contains mapping from sample name in vcf to population
-    region: dict()
-        Dictionary with the keys "chr", "start", and "end" holding chromosome,
-        start position adn end position allowing the simulation process to only 
-        within that region.
+    region: dict(str->str/int/int)
+        Dictionary with the keys "chr", "start", and "end" holding chromosome (str),
+        start position (int) and end position (int) allowing the simulation process to 
+        only allow variants within that region.
     pop_field: boolean
         Flag to determine whether to have the population field in the VCF file output
     sample_field: boolean
@@ -109,34 +109,13 @@ def output_vcf(
 
     log.debug(f"Read in variants from {variant_file}")
 
-    # run checks on input reference vcf file
-    #vcf.check_missing(discard_also=True)
-    #vcf.check_biallelic(discard_also=True)
-    #vcf.check_phase()
-    #vcf.check_sorted()
-
     sample_dict = {}
     for ind, sample in enumerate(vcf.samples):
         sample_dict[sample] = ind
 
-    # create index array to store for every sample which haplotype 
-    # block we are currently processing and choose what samples 
-    # will be used for each haplotype block
-    """
-    current_bkps = np.zeros(len(breakpoints), dtype=np.int64)
-    hapblock_samples = []
-    for haplotype in breakpoints:
-        hap_samples = []
-        for block in haplotype:
-            sample_name = np.random.choice(pop_sample[pop_dict[block.get_pop()]])
-            sample_ind = sample_dict[sample_name]
-            hap_samples.append(sample_ind)
-        hapblock_samples.append(hap_samples)
-    """
-
     log.debug(f"Created index array storing per sample which segment is being processed.")
 
-    # TODO Load populations and samples from sample info and breakpoints as 2 matrices with size variants x samples x 2
+    # Load populations and samples from sample info and breakpoints as 2 matrices with size variants x samples x 2
     # Use search_sorted() numpy function to find indices in populations/samples in order to determine population and sample info
     ref_vars = vcf.variants
     output_gts = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=vcf.data.dtype)
@@ -174,9 +153,12 @@ def output_vcf(
             # create ref_gts from mapping hap_samples to their respective genotypes 
             ref_sample_inds_chrom = np.repeat(hap_samples_ind, inter_len)
 
+            # grab random haplotype from samples and use as gts for our simulated samples
             end_var = cur_var+ref_sample_inds_chrom.shape[0]
             gt_vars = np.arange(cur_var, end_var, 1)
-            ref_gts_chrom = vcf.data[ref_sample_inds_chrom, gt_vars, hap_ind % 2]
+            ref_gts_chrom = vcf.data[ref_sample_inds_chrom,
+                                     gt_vars,
+                                     np.random.randint(2, size=len(gt_vars))]
             ref_gts[cur_var:end_var] = ref_gts_chrom
 
             if pop_field:
@@ -257,7 +239,7 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
 
     Parameters
     ----------
-    model: str
+    model_file: str
         File with the following structure. (Must be tab delimited)
 
         * Header: number of samples, Admixed, {all pop labels}
@@ -291,6 +273,9 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
     -------
     num_samples: int
         Total number of samples to output 
+    pop_dict: dict(int->str)
+        Dictionary that maps populations from their encoded version as integers
+        to their population name as a string. ex: {1:CEU, 2:YRI}
     next_gen_samples: list[list[HaplotypeSegment]]
         Each list is a person containing a variable number of Haplotype Segments
         based on how many recombination events occurred throughout the generations
@@ -361,7 +346,7 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
             if marker.get_bp_pos() >= region['start'] and start_ind < 0:
                 start_ind = ind
 
-            if marker.get_bp_pos() >= region['end'] and coords[0][ind-1].get_bp_pos() < region['end']:
+            if marker.get_bp_pos() >= region['end']:
                 end_ind = ind+1
                 break
         coords = [coords[0][start_ind:end_ind]]
@@ -430,7 +415,7 @@ def write_breakpoints(samples, pop_dict, breakpoints, out, log):
     samples: int
         Number of samples to output
     pop_dict: dict(int->str)
-        Maps population codes in integers to their names.
+        Maps population codes in integers to their names. ex: {1:CEU, 2:YRI}
     breakpoints: list[list[HaplotypeSegment]]
         Each list is a person containing a variable number of Haplotype Segments
         based on how many recombination events occurred throughout the generations
@@ -540,7 +525,7 @@ def _simulate(samples, pops, pop_fracs, pop_gen, chroms, coords, end_coords, rec
         haps = haplotypes[2*sample:2*sample+2]
 
         # store all probabilities to compare for recombination
-        prob_vals = np.random.rand(recomb_probs.shape[0], 
+        prob_vals = np.random.rand(recomb_probs.shape[0],
                                    recomb_probs.shape[1])
         recomb_events = prob_vals < recomb_probs
         true_coords = coords[recomb_events]
@@ -639,27 +624,27 @@ def get_segment(pop, haplotype, chrom, start_coord, end_coord, end_pos, prev_gen
 
     Parameters
     ----------
-    pop
+    pop: int
         index of population. Can recover population name from pop_dict
-    haplotype
+    haplotype: int
         index of range [0, len(prev_gen_samples)] to identify the parent haplotype
         to copy segments from
-    chrom
+    chrom: int
         chromosome the haplotype segment lies on
-    start_coord
+    start_coord: int
         starting coordinate from where to begin taking segments from previous
         generation samples
-    end_coord
+    end_coord: int
         ending coordinate of haplotype segment
-    end_pos
+    end_pos: float
         ending coordinate in centimorgans
-    prev_gen_samples
+    prev_gen_samples: list[list[HaplotypeSegment]]
         the previous generation simulated used as the parents for the current
         generation
 
     Returns
     -------
-    list
+    segments: list[HaplotypeSegment]
         A list of HaplotypeSegments storing the population type and end coordinate
     """
     # Take from population data not admixed data
@@ -701,7 +686,7 @@ def start_segment(start, chrom, segments):
         Coordinate in bp for the start of the segment to output
     chrom: int
         Chromosome that the segments lie on. 
-    segments: list[HaplotypeSegments]
+    segments: list[HaplotypeSegment]
         List of the hapltoype segments to search from for a starting point.
 
     Returns
