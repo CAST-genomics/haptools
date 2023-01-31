@@ -8,7 +8,12 @@ from cyvcf2 import VCF
 from haptools.logging import getLogger
 from haptools.data import GenotypesPLINK
 from haptools.admix_storage import HaplotypeSegment
-from haptools.sim_genotype import output_vcf, validate_params, simulate_gt, write_breakpoints
+from haptools.sim_genotype import (
+    output_vcf,
+    validate_params,
+    simulate_gt,
+    write_breakpoints,
+)
 
 
 DATADIR = Path(__file__).parent.joinpath("data")
@@ -25,6 +30,7 @@ def _get_files(plink_input=False, plink_output=False):
     out_file = DATADIR.joinpath("outvcf_out" + (".pgen" if plink_output else ".vcf.gz"))
     return bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log
 
+
 def _get_random_files():
     log = getLogger(name="test")
     model_file = DATADIR.joinpath("outvcf_gen_random.dat")
@@ -34,6 +40,7 @@ def _get_random_files():
     out_prefix = DATADIR.joinpath("outvcf_out_random")
     coords_dir = DATADIR.joinpath("map")
     return model_file, vcf_file, sampleinfo_file, coords_dir, out_prefix, out_file, log
+
 
 def _get_breakpoints(bkp_file, model_file):
     # Collect breakpoints to proper format used in output_vcf function
@@ -202,6 +209,7 @@ def test_vcf_output():
     # Clean up by removing the output file from output_vcf
     out_file.unlink()
 
+
 def test_vcf_randomness():
     chroms = ["1"]
     region = {
@@ -209,17 +217,25 @@ def test_vcf_randomness():
         "start": int("1"),
         "end": int("10115"),
     }
-    model_file, vcf_file, sampleinfo_file, coords_dir, out_prefix, out_file, log = _get_random_files()
+    (
+        model_file,
+        vcf_file,
+        sampleinfo_file,
+        coords_dir,
+        out_prefix,
+        out_file,
+        log,
+    ) = _get_random_files()
 
     # create random breakpoints file with around 1000 output samples to ensure we get all genotypes output
     num_samples, pop_dict, breakpoints = simulate_gt(
-                                                model_file,
-                                                coords_dir,
-                                                chroms,
-                                                region,
-                                                10000,
-                                                log,
-                                         )
+        model_file,
+        coords_dir,
+        chroms,
+        region,
+        10000,
+        log,
+    )
     bkps = write_breakpoints(num_samples, pop_dict, breakpoints, str(out_prefix), log)
     output_vcf(
         bkps,
@@ -234,20 +250,21 @@ def test_vcf_randomness():
         log,
     )
 
-    # If random haplotypes arent chosen per person we would only have an output gt of 0|1 
+    # If random haplotypes arent chosen per person we would only have an output gt of 0|1
     #     for same population simulated individuals
     vcf = VCF(str(out_file))
     for var in vcf:
         all_gts = set()
         for gt, sample_pops in zip(var.genotypes, var.format("POP")):
-            sample_pops = sample_pops.split(',')
+            sample_pops = sample_pops.split(",")
             if sample_pops[0] == sample_pops[1]:
                 all_gts.add(np.sum(gt[:2]))
     assert sorted(list(all_gts)) == [0, 1, 2]
-    
+
     # Clean up by removing the output file from output_vcf
     out_prefix.with_suffix(".bp").unlink()
     out_file.unlink()
+
 
 def test_someflags_vcf():
     # read in all files and breakpoints
