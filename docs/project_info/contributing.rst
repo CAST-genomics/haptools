@@ -68,7 +68,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        conda create -n haptools-dev -c conda-forge 'poetry>=1.1.14' 'python=3.7'
+        conda create -n haptools-dev -c conda-forge 'poetry>=1.3.2' 'python=3.8' gxx_linux-64
 2. Activate the environment
 
     .. code-block:: bash
@@ -78,12 +78,9 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        poetry install -E docs -E tests -E files
+        poetry install --all-extras
 
 Now, try importing ``haptools`` or running it on the command line.
-
-.. note::
-   If you run into an attribute error ``module 'distutils' has no attribute 'util'`` see `this workaround <https://github.com/python-poetry/poetry/issues/3336#issuecomment-831789763>`_.
 
 
 ---------------------
