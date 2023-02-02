@@ -1,4 +1,4 @@
-name: Comment Bot
+name: Comment_Bot
 on:
   issue_comment:                                     
     types: [created, edited, deleted]
