@@ -6,6 +6,7 @@ on:
       - reopened
       - edited
       - synchronize
+  workflow_call:
 
 permissions:
   contents: read
