@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.2](https://github.com/CAST-genomics/haptools/compare/v0.1.1...v0.1.2) (2023-02-02)
+
+
+### Bug Fixes
+
+* add poetry readme to fix long_description when publishing to pypi ([#177](https://github.com/CAST-genomics/haptools/issues/177)) ([4050251](https://github.com/CAST-genomics/haptools/commit/405025161ef99b7c18c6adddb58d74bbcff93570))
+* checkout in comment bot workflow for CD pipeline ([#181](https://github.com/CAST-genomics/haptools/issues/181)) ([9782d3d](https://github.com/CAST-genomics/haptools/commit/9782d3d5826a7029a74fb845dbfff29a7a0e8f2d))
+* checkout ref in comment bot from CD pipeline ([#182](https://github.com/CAST-genomics/haptools/issues/182)) ([e3b92f6](https://github.com/CAST-genomics/haptools/commit/e3b92f6ba2764819d9936c7e37418bcd68469dfb))
+* comment bot in CD pipeline ([#180](https://github.com/CAST-genomics/haptools/issues/180)) ([a2f66bd](https://github.com/CAST-genomics/haptools/commit/a2f66bd74dfb1fae8a81614912cba35366fe003b))
+* indentation in checkout build ([#183](https://github.com/CAST-genomics/haptools/issues/183)) ([de431ab](https://github.com/CAST-genomics/haptools/commit/de431ab65a15f4dda2e7b6319608331b73ee5771))
+
 ## [0.1.1](https://github.com/CAST-genomics/haptools/compare/v0.1.0...v0.1.1) (2023-02-02)
 
 
