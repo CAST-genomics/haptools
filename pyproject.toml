@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "haptools"
-version = "0.1.0"
+version = "0.1.1"
 description = "Ancestry and haplotype aware simulation of genotypes and phenotypes for complex trait analysis"
 authors = ["Arya Massarat", "Michael Lamkin"]
 license = "MIT"
