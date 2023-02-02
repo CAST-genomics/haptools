@@ -8,12 +8,10 @@ jobs:
   run_tests:
     name: Run tests
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/check' }}
-    runs-on: [ubuntu-latest]
     uses: ./.github/workflows/tests.yml
     secrets: inherit
   check_title:
     name: Check PR Title
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '/check' }}
-    runs-on: [ubuntu-latest]
     uses: ./.github/workflows/conventional-prs.yml
     secrets: inherit
