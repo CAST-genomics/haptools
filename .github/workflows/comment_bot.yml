@@ -1,0 +1,20 @@
+name: Comment Bot
+
+on:
+  issue_comment:
+    types: [created, edited, deleted]
+
+jobs:
+  run_actions:
+    if: ${{ github.event.issue.pull_request }}    # check if the comments come from a pull request and exclude comments from issues
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Run Tests
+        if: startsWith(github.event.comment.body, '/check')   # check that the comment startsWith the "/check" keyword
+        uses: ./.github/workflows/tests.yml
+        secrets: inherit
+
+      - name: Run PR Title Check
+        if: startsWith(github.event.comment.body, '/check')   # check that the comment startsWith the "/check" keyword
+        uses: ./.github/workflows/conventional-prs.yml
+        secrets: inherit
