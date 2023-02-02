@@ -6,16 +6,30 @@ on:
 
 jobs:
   run_actions:
-    if: ${{ github.event.issue.pull_request }}    # check if the comments come from a pull request and exclude comments from issues
+    if: ${{ github.event.issue.pull_request && github.event.comment.body == '/check' }}
     runs-on: [ubuntu-latest]
     steps:
+    - name: Get PR SHA
+      id: sha
+      uses: actions/github-script@v4
+      with:
+        result-encoding: string
+        script: |
+          const { owner, repo, number } = context.issue;
+          const pr = await github.pulls.get({
+            owner,
+            repo,
+            pull_number: number,
+          });
+          return pr.data.head.sha  
+
       - name: Check out the repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.sha.outputs.result }}
 
       - name: Run Tests
-        if: startsWith(github.event.comment.body, '/check')   # check that the comment startsWith the "/check" keyword
         uses: ./.github/workflows/tests.yml
 
       - name: Run PR Title Check
-        if: startsWith(github.event.comment.body, '/check')   # check that the comment startsWith the "/check" keyword
         uses: ./.github/workflows/conventional-prs.yml
