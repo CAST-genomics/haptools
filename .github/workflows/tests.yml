@@ -1,8 +1,9 @@
 name: Tests
 
 on:
-  - pull_request
-  - workflow_call:
+  pull_request:
+    branches: main
+  workflow_call:
     secrets: inherit
 
 jobs:
