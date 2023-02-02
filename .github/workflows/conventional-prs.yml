@@ -6,8 +6,7 @@ on:
       - reopened
       - edited
       - synchronize
-  workflow_call:
-    secrets: inherit
+  workflow_call
 
 permissions:
   contents: read

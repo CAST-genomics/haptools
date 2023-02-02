@@ -18,9 +18,11 @@ jobs:
 
       - name: Run tests
         uses: ./.github/workflows/tests.yml
+        secrets: inherit
 
       - name: Check PR Title
         uses: ./.github/workflows/conventional-prs.yml
+        secrets: inherit
 
       - uses: actions/checkout@v3
         if: ${{ steps.release.outputs.release_created }}
