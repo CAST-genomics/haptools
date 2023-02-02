@@ -7,7 +7,7 @@ on:
       - edited
       - synchronize
   workflow_call:
-      secrets: inherit
+    secrets: inherit
 
 permissions:
   contents: read
