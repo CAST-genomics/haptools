@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/CAST-genomics/haptools/compare/v0.1.0...v0.1.1) (2023-02-02)
+
+
+### Documentation
+
+* add dependency to conda env build ([#175](https://github.com/CAST-genomics/haptools/issues/175)) ([6626049](https://github.com/CAST-genomics/haptools/commit/66260498cbaf7fb652ababd6241cdfbc8a865dfd))
+
 ## [0.1.0](https://github.com/CAST-genomics/haptools/compare/v0.0.3...v0.1.0) (2023-01-31)
 
 
