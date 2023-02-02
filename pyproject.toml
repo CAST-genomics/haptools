@@ -7,6 +7,7 @@ license = "MIT"
 repository = "https://github.com/cast-genomics/haptools"
 homepage = "https://github.com/cast-genomics/haptools"
 documentation = "https://haptools.readthedocs.io"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.11"
