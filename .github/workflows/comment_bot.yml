@@ -1,7 +1,9 @@
 name: Comment_Bot
+
 on:
   issue_comment:                                     
     types: [created, edited, deleted]
+
 jobs:
   run_actions:
     if: ${{ github.event.issue.pull_request }}    # check if the comments come from a pull request and exclude comments from issues
