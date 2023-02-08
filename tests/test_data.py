@@ -65,7 +65,10 @@ class TestGenotypes:
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
         # force one of the samples to have a missing GT and check that we get an error
+        # we convert to an int8 and then convert back
+        gts.data = gts.data.astype(np.int8)
         gts.data[1, 1, 1] = -1
+        gts.data = gts.data.astype(np.uint8)
         with pytest.raises(ValueError) as info:
             gts.check_missing()
         assert (
