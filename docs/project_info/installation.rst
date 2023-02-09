@@ -13,6 +13,9 @@ You can install ``haptools`` from PyPI using ``pip``.
 
    pip install haptools
 
+.. warning::
+   We recommend using ``pip >= 22.2.2`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
+
 Installing ``haptools`` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
 
 .. code-block:: bash
