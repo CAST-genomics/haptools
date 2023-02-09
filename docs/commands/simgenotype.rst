@@ -56,7 +56,7 @@ Examples
   --model tests/data/outvcf_gen.dat \
   --mapdir tests/data/map/ \
   --region 1:1-83000 \
-  --ref_vcf tests/data/outvcf_test.vcf \
+  --ref_vcf tests/data/outvcf_test.vcf.gz \
   --sample_info tests/data/outvcf_info.tab \
   --pop_field \
   --out tests/data/example_simgenotype.vcf
