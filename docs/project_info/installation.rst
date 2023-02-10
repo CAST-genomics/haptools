@@ -7,14 +7,18 @@ Installation
 Using pip
 ---------
 
+.. warning::
+   We recommend using ``pip >= 20.3`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
+
+   .. code-block:: bash
+
+      pip install 'pip>=20.3'
+
 You can install ``haptools`` from PyPI using ``pip``.
 
 .. code-block:: bash
 
    pip install haptools
-
-.. warning::
-   We recommend using ``pip >= 20.3`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
 
 Installing ``haptools`` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
 
