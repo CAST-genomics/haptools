@@ -526,7 +526,7 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "pgenlib"
-version = "0.81.2"
+version = "0.81.3"
 description = "Python wrapper for pgenlib's basic reader and writer."
 category = "main"
 optional = true
@@ -992,7 +992,7 @@ tests = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "ad5dc7136de9ac18fac62fc8ca17f526a31d992dc5afd52bfd1aacac826a1797"
+content-hash = "c06b769c137c78eec0fa14f907979cf92c1f4c7d2473e9f2a12f2a5d8eb31225"
 
 [metadata.files]
 alabaster = [
@@ -1417,7 +1417,7 @@ pexpect = [
     {file = "pexpect-4.8.0.tar.gz", hash = "sha256:fc65a43959d153d0114afe13997d439c22823a27cefceb5ff35c2178c6784c0c"},
 ]
 pgenlib = [
-    {file = "Pgenlib-0.81.2.tar.gz", hash = "sha256:c8dac92add708197b3ffe41f9fa7612bc48765483295d360b9820a2636094467"},
+    {file = "Pgenlib-0.81.3.tar.gz", hash = "sha256:d7ab19e6b5c8befdfdf417834986c625abe6fcb86eb6d88190706271b93c465f"},
 ]
 pickleshare = [
     {file = "pickleshare-0.7.5-py2.py3-none-any.whl", hash = "sha256:9649af414d74d4df115d5d718f82acb59c9d418196b7b4290ed47a12ce62df56"},
