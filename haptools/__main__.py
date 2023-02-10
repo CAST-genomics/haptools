@@ -12,7 +12,7 @@ import click
 
 ################### Haptools ##################
 @click.group()
-@click.version_option()
+@click.version_option(message="%(version)s")
 def main():
     """
     haptools: A toolkit for simulating and analyzing genotypes and

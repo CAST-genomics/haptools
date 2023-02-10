@@ -9,21 +9,21 @@ Using pip
 
 You can install ``haptools`` from PyPI using ``pip``.
 
+.. warning::
+   We recommend using ``pip >= 20.3`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
+
+   .. code-block:: bash
+
+      pip install 'pip>=20.3'
+
 .. code-block:: bash
 
    pip install haptools
 
-.. warning::
-   We recommend using ``pip >= 20.3`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
-
 Installing ``haptools`` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
 
-.. code-block:: bash
-
-   pip install 'haptools[files]'
-
 .. note::
-   Installing ``haptools`` with the "files" extra requirement requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. To install with conda, for example, please execute the following:
+   The "files" extra requirement requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. To install with conda, for example, please execute the following:
 
    .. code-block:: bash
 
@@ -36,6 +36,10 @@ Installing ``haptools`` with the "files" extra requirements enables automatic su
       sudo apt install build-essential
 
    See `issue 217 <https://github.com/chrchang/plink-ng/issues/217>`_ for current progress on this problem.
+
+.. code-block:: bash
+
+   pip install 'haptools[files]'
 
 Using conda
 -----------
