@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.3](https://github.com/CAST-genomics/haptools/compare/v0.1.2...v0.1.3) (2023-02-10)
+
+
+### Bug Fixes
+
+* build workflow for comment bot ([#186](https://github.com/CAST-genomics/haptools/issues/186)) ([ebcf6cd](https://github.com/CAST-genomics/haptools/commit/ebcf6cd508701951ce2f1785eb3bcfee6aa69041))
+* comment bot in build pipeline ([#184](https://github.com/CAST-genomics/haptools/issues/184)) ([b3fb839](https://github.com/CAST-genomics/haptools/commit/b3fb83939c6ec9141dc9c0d9b89836cfe0fee394))
+
+
+### Documentation
+
+* warn about pysam pip issue ([#187](https://github.com/CAST-genomics/haptools/issues/187)) ([bda0157](https://github.com/CAST-genomics/haptools/commit/bda015751dc5e5aa5d3672e77737d837cd116782))
+
 ## [0.1.2](https://github.com/CAST-genomics/haptools/compare/v0.1.1...v0.1.2) (2023-02-02)
 
 
