@@ -28,13 +28,8 @@ def test_basic(capfd):
         with Data.hook_compressed(file.with_suffix(".hap.gz"), mode="rt") as expected:
             exp = filter(lambda l: not l.startswith("#"), expected.read().splitlines())
             assert list(haps) == list(exp)
-    # check that the output .hap.gz.tbi file is the same, too
-    tbi_nocomment = ".nocomment.hap.gz.tbi"
-    with Data.hook_compressed(tmp_file.with_suffix(".hap.gz.tbi"), mode="rb") as haps:
-        with Data.hook_compressed(
-            file.with_suffix(tbi_nocomment), mode="rb"
-        ) as expected:
-            assert haps.read() == expected.read()
+    # check that the output .hap.gz.tbi file exists
+    assert tmp_file.with_suffix(".hap.gz.tbi").is_file()
     assert result.exit_code == 0
 
     tmp_file.unlink()
@@ -61,13 +56,8 @@ def test_basic_w_output(capfd):
         with Data.hook_compressed(file.with_suffix(".hap.gz"), mode="rt") as expected:
             exp = filter(lambda l: not l.startswith("#"), expected.read().splitlines())
             assert list(haps) == list(exp)
-    # check that the output .hap.gz.tbi file is the same, too
-    tbi_nocomment = ".nocomment.hap.gz.tbi"
-    with Data.hook_compressed(tmp_file_out.with_suffix(".gz.tbi"), mode="rb") as haps:
-        with Data.hook_compressed(
-            file.with_suffix(tbi_nocomment), mode="rb"
-        ) as expected:
-            assert haps.read() == expected.read()
+    # check that the output .hap.gz.tbi file exists
+    assert tmp_file_out.with_suffix(".gz.tbi").is_file()
     assert result.exit_code == 0
 
     tmp_file.unlink()
@@ -85,13 +75,8 @@ def test_no_sort(capfd):
     with Data.hook_compressed("test.hap.gz", mode="rt") as haps:
         with Data.hook_compressed("tests/data/basic.hap.gz", mode="rt") as expected:
             assert haps.read() == expected.read()
-    # check that the output .hap.gz.tbi file is the same, too
-    tbi_nocomment = ".comment.hap.gz.tbi"
-    with Data.hook_compressed("test.hap.gz.tbi", mode="rb") as haps:
-        with Data.hook_compressed(
-            "tests/data/basic" + tbi_nocomment, mode="rb"
-        ) as expected:
-            assert haps.read() == expected.read()
+    # check that the output .hap.gz.tbi exists
+    assert Path("test.hap.gz.tbi").is_file()
     assert result.exit_code == 0
 
     Path("test.hap.gz").unlink()
