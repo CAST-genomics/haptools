@@ -5,6 +5,7 @@ import re
 import sys
 import glob
 import numpy as np
+import pandas as pd
 from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
@@ -23,7 +24,8 @@ def output_vcf(
         pop_field, 
         sample_field, 
         out, 
-        log
+        log,
+        replace_data=True, # TODO: command line option
     ):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
@@ -128,6 +130,18 @@ def output_vcf(
     else:
         cur_chrom = ""
 
+    available_segments = None
+    if not replace_data:
+        all_segs = []
+        for chrom in chroms:
+            if chrom == 'X': chrom = 23
+            # available haplotype segments: if we sample without replacement, we track
+            # which regions are available for sampling:
+            chr_end = 500_000_000  # TODO: placeholder; should we get the coords data structure to this function?
+            chr_segs = [[chrom, 0, chr_end, pop, sample, homolog] for pop in pop_dict for sample in pop_sample[pop_dict[pop]] for homolog in range(2)]
+            all_segs.extend(chr_segs)
+        available_segments = pd.DataFrame(all_segs, columns=["chrom", "start", "end", "pop", "sample", "homolog"])
+
     # create samples x variants x 2 matrix of populations
     for hap_ind, haplotype in enumerate(breakpoints):
         cur_var = 0
@@ -141,7 +155,8 @@ def output_vcf(
             # limit reference vcf variants to current chrom
             ref_vars_chrom = ref_vars["pos"][ref_vars["chrom"] == f"{cur_chrom}{chrom}"]
             # Convert haplotype to numpy array of segment position, populations, and samples
-            hap_positions, hap_pops, hap_samples_name, hap_samples_ind = _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict)
+            hap_positions, hap_pops, hap_samples_name, hap_samples_ind, hap_samples_homolog = \
+                    _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict, replace_data, available_segments)
 
             # if the variant position is = breakpoint end then we consider it part of that bkp
             bkp_pos = np.searchsorted(ref_vars_chrom, hap_positions, side='right')
@@ -152,6 +167,7 @@ def output_vcf(
 
             # create ref_gts from mapping hap_samples to their respective genotypes 
             ref_sample_inds_chrom = np.repeat(hap_samples_ind, inter_len)
+            ref_sample_homolog = np.repeat(hap_samples_homolog, inter_len)
 
             # grab random haplotype from samples and use as gts for our simulated samples
             end_var = cur_var+ref_sample_inds_chrom.shape[0]
@@ -208,7 +224,7 @@ def output_vcf(
     
     return
 
-def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
+def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict, replace_data, available_segments):
     if chrom == 'X': chrom = 23
     # Do binary search to find beginning of chr in haplotype segments
     hap_start_ind = start_segment(0, int(chrom), haplotype)
@@ -217,21 +233,109 @@ def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
     hap_pops = []
     hap_samples = []
     hap_samples_ind = []
+    hap_samples_homolog = []
+
+    start_coord = 0
+    prev_seg_sample_name = None
+    prev_seg_homolog = None
 
     # collect all segments within chromosome
     for segment in hap_subset:
         if not segment.get_chrom() == int(chrom):
             break
-        sample_name = np.random.choice(pop_sample[pop_dict[segment.get_pop()]])
+        if replace_data:
+            sample_name = np.random.choice(pop_sample[pop_dict[segment.get_pop()]])
+            homolog = np.random.randint(2)
+        else:
+            sample_name, homolog = _find_random_sample(chrom, start_coord, segment, available_segments, prev_seg_sample_name, prev_seg_homolog)
+            if sample_name is None:
+                raise RuntimeError(f"No more samples in population {pop_dict[segment.get_pop()]}; need either more data, fewer samples to simulate, or try rerunning (if the available data is close to the number of samples used to simulate, different recombination breakpoints could fix this)")
         hap_pos.append(segment.get_end_coord())
         hap_pops.append(segment.get_pop())
         hap_samples.append(sample_name)
         hap_samples_ind.append(sample_dict[sample_name])
+        hap_samples_homolog.append(homolog)
+
+        start_coord = segment.get_end_coord()+1
+        prev_seg_sample_name = sample_name
+        prev_seg_homolog = homolog
 
     return np.asarray(hap_pos, dtype=np.int64), \
            np.asarray(hap_pops, dtype=np.uint8), \
            np.asarray(hap_samples, dtype=object), \
-           np.asarray(hap_samples_ind, dtype=np.int32)
+           np.asarray(hap_samples_ind, dtype=np.int32), \
+           np.asarray(hap_samples_homolog, dtype=np.uint8)
+
+def _find_random_sample(chrom, start_coord, segment, available_segments, prev_seg_sample_name, prev_seg_homolog):
+    """
+    Given the available_segments data structure, finds a haplotype segment that's not being
+    used for any other output sample from position chrom:start_corrd-segment.get_end_coord()
+
+    Note: we ensure that the new sample this function returns differs from the previous
+    segment for this individual. This is to ensure that we change haplotypes at every
+    recombination breakpoint.
+
+    Parameters
+    ----------
+    chrom: str
+        the chromosome the of the segment needed
+    start_coord: int
+        the starting physical position of the segment
+    segment: HaplotypeSegment
+        the segment we need haplotype data for
+    available_segments: pandas.DataFrame
+        a data frame storing the haplotype positions that haven't (yet) been selected for
+        copying from (two haplotype on each chromosome for all samples in the input VCF)
+    prev_seg_sample_name:
+        the sample name of the previous copied segment; this is needed to ensure that the
+        haplotype being copied from changes at each recombination breakpoint
+    prev_seg_homolog:
+        the homolog (0 or 1) of the previous copied segment; this is needed to ensure that
+        the haplotype being copied from changes at each recombination breakpoint
+    """
+
+    possible_indexes = available_segments[
+            (available_segments["pop"] == segment.get_pop()) &
+            (available_segments["chrom"] == chrom) &
+            (available_segments["start"] <= start_coord) &
+            (available_segments["end"] >= segment.get_end_coord()) &
+            ((available_segments["sample"] != prev_seg_sample_name) |
+             (available_segments["homolog"] != prev_seg_homolog))
+        ].index
+
+    if len(possible_indexes) == 0:
+        return None, None
+
+    selected_index = np.random.choice(possible_indexes)
+
+    sample_name = available_segments.iloc[selected_index]["sample"]
+    homolog = available_segments.iloc[selected_index]["homolog"]
+
+    original_end = available_segments.iloc[selected_index].end
+    if available_segments.iloc[selected_index].start < start_coord:
+        # update end position of existing entry to delete the segment the
+        # current sample is going to use
+        available_segments.iat[selected_index, 2] = start_coord-1
+        if original_end > segment.get_end_coord():
+            # add new entry for side that starts where this segment ends
+            available_segments.loc[len(available_segments)] = [
+                    chrom,
+                    segment.get_end_coord()+1, # new start
+                    original_end,
+                    segment.get_pop(),
+                    sample_name,
+                    homolog,
+                ]
+    else:  # no segment upstream of start to keep, so
+        if original_end > segment.get_end_coord():
+            # update start position of existing entry:
+            available_segments.iat[selected_index, 1] = segment.get_end_coord()+1
+        else:
+            # we've used _all_ of the segment at selected_index: drop the row from
+            # the dataframe
+            available_segments.drop(selected_index, inplace=True)
+
+    return sample_name, homolog
 
 def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None):
     """

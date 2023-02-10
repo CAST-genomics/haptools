@@ -157,6 +157,85 @@ def test_alt_chrom_name():
     out_file.unlink()
 
 
+def test_no_replace():
+    # Test too few samples to generate a VCF when sampling without replacement
+    # read in all files and breakpoints
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
+    bkp_file = DATADIR.joinpath("outvcf_test_no_replace.bp")
+    vcf_file = DATADIR.joinpath("outvcf_test_no_replace.vcf")
+    chroms = ["1", "2", "X"]
+    bkps = _get_breakpoints(bkp_file, model_file)
+
+    # test when we have enough CEU/YRI samples to simulate
+    output_vcf(
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        True,
+        True,
+        str(out_file),
+        log,
+        replace_data=False,
+    )
+
+    # read in vcf file
+    vcf = VCF(str(out_file))
+    for var in vcf:
+        if var.CHROM == "chr1" and var.POS == 10114:
+            assert var.genotypes[0] == [0, 0, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "CEU,CEU"
+
+        elif var.CHROM == "chr1" and var.POS == 59423090:
+            assert var.genotypes[0] == [0, 1, True]
+            assert var.format("POP")[0] == "CEU,YRI"
+            assert var.genotypes[1] == [1, 0, True]
+            assert var.format("POP")[1] == "YRI,CEU"
+
+        elif var.CHROM == "chr2" and var.POS == 10122:
+            assert var.genotypes[0] == [1, 0, True]
+            assert var.format("POP")[0] == "YRI,CEU"
+            assert var.genotypes[1] == [0, 1, True]
+            assert var.format("POP")[1] == "CEU,YRI"
+
+        elif var.CHROM == "chrX" and var.POS == 10122:
+            assert var.genotypes[0] == [1, 1, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "YRI,YRI"
+
+        else:
+            assert False
+
+
+    # generate output vcf file should fail due to lack of CEU samples
+    # this info file has only one CEU individual
+    with pytest.raises(RuntimeError, match="CEU"):
+        one_ceu_sampleinfo_file = DATADIR.joinpath("outvcf_info-one_CEU.tab")
+        bkp_file = DATADIR.joinpath("outvcf_test_no_replace2.bp")
+        bkps = _get_breakpoints(bkp_file, model_file)
+        output_vcf(
+            bkps,
+            chroms,
+            model_file,
+            str(vcf_file),
+            one_ceu_sampleinfo_file,
+            None,
+            True,
+            True,
+            str(out_file),
+            log,
+            replace_data=False,
+        )
+
+    # Clean up by removing the output file from output_vcf
+    out_file.unlink()
+
+
 def test_vcf_output():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
