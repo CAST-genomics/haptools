@@ -436,6 +436,14 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 	for line in phenotypes.__iter__(samples={"HG00097", "HG00099"}):
 	    print(line)
 
+Quality control
+***************
+PLINK2 recognizes the following missing values: '-9', '0', 'NA', and 'na'. We are not as flexible. All values in your **.pheno** file must be numeric.
+
+This means that any samples with 'NA' or 'na' are immediately ignored when we read the file. We do not recognize '0' as a missing value.
+
+As a numeric value, '-9' will be loaded properly. Use the ``check_missing()`` method to raise an error for any samples that have this missing value or to discard any samples that have it.
+
 Writing a file
 **************
 To write to a **.pheno** file, you must first initialize a :class:`Phenotypes` object and then fill out the necessary properties:
