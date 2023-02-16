@@ -141,6 +141,7 @@ def output_vcf(
             # limit reference vcf variants to current chrom
             ref_vars_chrom = ref_vars["pos"][ref_vars["chrom"] == f"{cur_chrom}{chrom}"]
             # Convert haplotype to numpy array of segment position, populations, and samples
+            # TODO add option for this to give 
             hap_positions, hap_pops, hap_samples_name, hap_samples_ind = _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict)
 
             # if the variant position is = breakpoint end then we consider it part of that bkp
@@ -153,12 +154,17 @@ def output_vcf(
             # create ref_gts from mapping hap_samples to their respective genotypes 
             ref_sample_inds_chrom = np.repeat(hap_samples_ind, inter_len)
 
+            # selected haplotypes for each segment assuming sampling with no replacement for haplotypes
+            if no_replace:
+                # TODO only repeat if no replacement otherwise if replacement choose randomly for all variants np.random.randint(2, size=len(gt_vars))
+                ref_sample_haps_chrom = np.repeat(TODO_FILL_THIS, inter_len)
+
             # grab random haplotype from samples and use as gts for our simulated samples
             end_var = cur_var+ref_sample_inds_chrom.shape[0]
             gt_vars = np.arange(cur_var, end_var, 1)
             ref_gts_chrom = vcf.data[ref_sample_inds_chrom,
                                      gt_vars,
-                                     np.random.randint(2, size=len(gt_vars))]
+                                     np.random.randint(2, size=len(gt_vars))] # TODO replace this to account for keeping track of total haplotypes 
             ref_gts[cur_var:end_var] = ref_gts_chrom
 
             if pop_field:
@@ -222,11 +228,15 @@ def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
     for segment in hap_subset:
         if not segment.get_chrom() == int(chrom):
             break
+        # TODO update this segment to utilize sampling without replacement as an option
+        # need to update pop_sample to remove 
         sample_name = np.random.choice(pop_sample[pop_dict[segment.get_pop()]])
         hap_pos.append(segment.get_end_coord())
         hap_pops.append(segment.get_pop())
         hap_samples.append(sample_name)
         hap_samples_ind.append(sample_dict[sample_name])
+
+    # TODO add a haplotype chooser here which when replacement is active is a random haplotype and not active is a list of predetermined haplotypes
 
     return np.asarray(hap_pos, dtype=np.int64), \
            np.asarray(hap_pops, dtype=np.uint8), \
