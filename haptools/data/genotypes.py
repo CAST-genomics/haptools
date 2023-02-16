@@ -12,6 +12,12 @@ import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
 
+# TODO make sure trtools is installed and see if this works otherwise just use the files in aryas feat/GenotypesTR branch
+try:
+    import trtools.utils.tr_harmonizer as trh
+except ModuleNotFoundError:
+    from . import tr_harmonizer as trh
+
 from .data import Data
 
 
@@ -693,6 +699,62 @@ class GenotypesRefAlt(Genotypes):
             # write the record to a file
             vcf.write(record)
         vcf.close()
+
+class GenotypesTR(Genotypes):
+    """
+    A class for processing TR genotypes from a file
+    Unlike the base Genotypes class, this class genotypes will be repeat number
+    in the variants array
+
+    Attributes
+    ----------
+    data : np.array
+        See documentation for :py:attr:`~.Genotypes.data`
+    fname : Path | str
+        See documentation for :py:attr:`~.Genotypes.fname`
+    samples : tuple[str]
+        See documentation for :py:attr:`~.Genotypes.samples`
+    variants : np.array
+        Variant-level meta information:
+            1. ID
+            2. CHROM
+            3. POS
+            4. REF
+            5. ALT
+    log: Logger
+        See documentation for :py:attr:`~.Genotypes.log`
+    """
+
+    def __init__(self, fname: Path | str, log: Logger = None):
+        super().__init__(fname, log)
+        # TODO see if this is correct for reading in STR datatypes
+        self.variants = np.array(
+            [],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+                ("ref", "U100"),
+                ("alt", "U100"),
+            ],
+        )
+
+    def _variant_arr(self, record: Variant):
+        """
+        See documentation for :py:meth:`~.Genotypes._variant_arr`
+        """
+
+        # TODO see if this is correct since ref alt doesn't really exist
+        return np.array(
+            (
+                record.ID,
+                record.CHROM,
+                record.POS,
+                record.REF,
+                record.ALT[0],
+            ),
+            dtype=self.variants.dtype,
+        )
 
 
 class GenotypesPLINK(GenotypesRefAlt):

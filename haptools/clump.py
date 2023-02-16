@@ -5,6 +5,9 @@ import scipy.stats
 import logging
 import sys
 
+from haptools.data.genotypes import GenotypesRefAlt
+from haptools.data.genotypes import GenotypesTR # TODO for GenotypesTR import trtools first then if not use the code
+
 class Variant:
     def __init__(self, varid, chrom, pos, pval, vartype):
         self.varid = varid
@@ -127,18 +130,18 @@ def LoadVariant(var, snpgts, strgts, samples):
     """
     Extract vector of genotypes for this variant
     """
+    # if it's a SNP we should take from data matrix in GenotypesRefAlt
+    # if it's a STR we should take from data matrix in GenotypesTR
+    # TODO determine whether the variant is a snp or str
     return [] # TODO
 
-def ComputeLD(var1, var2, snpgts, strgts, samples):
+def ComputeLD(candidate_gt, index_gt, snpgts, strgts, samples):
     """
     Compute the LD between two variants
     """
-    # Load genotypes
-    gts1 = LoadVariant(var1, snpgts, strgts, samples)
-    gts2 = LoadVariant(var2, snpgts, strgts, samples)
-    # TODO - possibly check for NAs and remove them
+    # TODO - possibly check for NAs in gts and remove them
     # Compute and return Pearson r2
-    return scipy.stats.pearsonr(gts1, gts2)[0]**2
+    return scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
 
 def WriteClump(indexvar, clumped_vars, outf):
     """
@@ -156,7 +159,11 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     ###### User checks ##########
     # TODO - need one of summstats_snps or summstats_strs
     # TODO - if summstats_snps, also need gts_snps
+    if summstats_snps:
+        assert gts_snps is not None # todo check to ensure this check works properly
     # TODO - if summstats_strs, also need gts_strs
+    if summstats_strs:
+        assert gts_strs is not None #TODO check to ensure this check works properly
 
     ###### Load summary stats ##########
     summstats = SummaryStats()
@@ -173,10 +180,11 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     snpgts = None
     strgts = None
     if gts_snps is not None:
-        pass # TODO - load with haptools data
+        snpgts = GenotypesRefAlt.load(gts_snps)
     if gts_strs is not None:
-        pass # TODO - load with haptools? TRTools?
-    samples = GetOverlappingSamples(snpgts, strgts)
+        pass # TODO remove once GenotypesTR is implemented
+        #strgts = GenotypesTR.load(gts_strs)
+    #samples = GetOverlappingSamples(snpgts, strgts)
 
     ###### Setup output file ##########
     outf = open(out, "w")
@@ -185,10 +193,17 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     ###### Perform clumping ##########
     indexvar = summstats.GetNextIndexVariant(clump_p1)
     while indexvar is not None:
+        # Load indexvar gts
+        indexvar_gt = LoadVariant(indexvar, snpgts, strgts, samples)
+        # Collect candidate variants within range of index variant
         candidates = summstats.QueryWindow(indexvar, clump_kb)
+
+        # calculate LD between candidate vars and index var
         clumpvars = []
         for c in candidates:
-            r2 = ComputeLD(c, indexvar, snpgts, strgts, samples)
+            # load candidate variant c genotypes 
+            candidate_gt = LoadVariant(c, snpgts, strgts, samplels)
+            r2 = ComputeLD(candidate_gt, indexvar_gt, snpgts, strgts, samples)
             if r2 > clump_r2:
                 clumpvars.append(c)
         WriteClump(indexvar, clumpvars, outf)
