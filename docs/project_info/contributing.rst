@@ -103,6 +103,62 @@ You should specify a `version constraint <https://python-poetry.org/docs/master/
 
         poetry add 'click>=8.0.4'
 
+
+------------------------------------------
+Modifying our command line interface (CLI)
+------------------------------------------
+We use the `click library <https://click.palletsprojects.com/>`_ to define ``haptools``'s command line interface as `nested commands <https://click.palletsprojects.com/quickstart/#nesting-commands>`_. All of the CLI logic is defined in `__main__.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/__main__.py>`_.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Add or modify a command-line option
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+First, locate the definition of the command in `__main__.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/__main__.py>`_
+
+You can add a ``@click.option`` or ``@click.argument`` line if you want to add a new option or argument. Please follow `click's convention <https://click.palletsprojects.com/parameters/#parameters>`_ and only use ``@click.argument`` for required arguments and ``@click.option`` for optional ones. See `the click documentation <https://click.palletsprojects.com/#documentation>`_ for directions on modifying or adding parameters like options/arguments.
+
+~~~~~~~~~~~~~~~~~
+Add a new command
+~~~~~~~~~~~~~~~~~
+To add a new command, you only have to define a new function in `__main__.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/__main__.py>`_. Within that function, you can import and call the rest of your code. For example, to add a command called ``mycommand`` which takes a single required file called ``arg1``, you might do the following.
+
+.. code-block:: python
+
+    @main.command(short_help="A short description of my command")
+    @click.argument("arg1", type=click.Path(exists=True, path_type=Path))
+    @click.option(
+        "-o",
+        "--output",
+        type=click.Path(path_type=Path),
+        default=Path("/dev/stdout"),
+        show_default="stdout",
+        help="The output of my command",
+    )
+    @click.option(
+        "-v",
+        "--verbosity",
+        type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+        default="INFO",
+        show_default=True,
+        help="The level of verbosity desired",
+    )
+    def mycommand(
+        arg1: Path,
+        output: Path = None,
+        verbosity: str = "INFO",
+    ):
+        """
+        A longer description of mycommand
+        """
+
+        from .mycommand import run_things
+        from .logging import getLogger
+
+        log = getLogger(name="mycommand", level=verbosity)
+
+        run_things(arg1, output, log)
+
+Notice that we usually define a logging object here to use throughout our code. For more information about logging, see the :ref:`section about it below <code-check-instructions>`.
+
 .. _code-check-instructions:
 
 -----------
@@ -161,6 +217,8 @@ Code
         i. from the python standard library
         ii. from external, third party packages
         iii. from our own internal code
+
+.. _contributing-style-errors:
 
 ~~~~~~
 Errors
