@@ -275,7 +275,15 @@ def simgenotype(
 
     # simulate breakpoints
     popsize = validate_params(
-        model, mapdir, chroms, popsize, ref_vcf, sample_info, no_replacement, region, only_breakpoint,
+        model,
+        mapdir,
+        chroms,
+        popsize,
+        ref_vcf,
+        sample_info,
+        no_replacement,
+        region,
+        only_breakpoint,
     )
     samples, pop_dict, breakpoints = simulate_gt(
         model, mapdir, chroms, region, popsize, log, seed

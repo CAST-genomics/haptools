@@ -157,6 +157,7 @@ def test_alt_chrom_name():
     # Clean up by removing the output file from output_vcf
     out_file.unlink()
 
+
 # TODO TEST THIS TO MAKE SURE IT PERFORMS HOW WE EXPECT ALTHOUGH THE ERROR MESSAGE OUTPUT SHOULD BE CHANGED SLIGHTLY SINCE WE CHECK PRIOR
 def test_no_replace():
     # Test too few samples to generate a VCF when sampling without replacement
@@ -211,7 +212,6 @@ def test_no_replace():
 
         else:
             assert False
-
 
     # generate output vcf file should fail due to lack of CEU samples
     # this info file has only one CEU individual
@@ -707,7 +707,9 @@ def test_model_files():
     assert (str(e.value)) == "Map directory given is not a valid path."
 
     with pytest.raises(Exception) as e:
-        validate_params(model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False)
+        validate_params(
+            model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
+        )
     assert (str(e.value)) == f"Chromosome {chroms[0]} in the list given is not valid."
 
     chroms = ["1"]
