@@ -157,7 +157,7 @@ To add a new command, you only have to define a new function in `__main__.py <ht
 
         run_things(arg1, output, log)
 
-Notice that we usually define a logging object here to use throughout our code. For more information about logging, see the :ref:`section about it below <code-check-instructions>`.
+Notice that we usually define a logging object here to use throughout our code. For more information about logging, see the :ref:`section about it below <contributing-style-errors>`.
 
 .. _code-check-instructions:
 
