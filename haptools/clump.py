@@ -160,7 +160,7 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     # TODO - need one of summstats_snps or summstats_strs
     # TODO - if summstats_snps, also need gts_snps
     if summstats_snps:
-        assert gts_snps is not None # todo check to ensure this check works properly
+        assert gts_snps is not None # TODO check to ensure this check works properly
     # TODO - if summstats_strs, also need gts_strs
     if summstats_strs:
         assert gts_strs is not None #TODO check to ensure this check works properly
