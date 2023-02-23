@@ -167,7 +167,7 @@ def output_vcf(
                 ref_sample_haps_chrom = np.repeat(hap_sample_haps, inter_len)
             else:
                 hap_sample_haps = np.random.randint(2, size=len(hap_samples_ind))
-                ref_sample_haps_chrom = np.repeat(hap_sample_haps, interlen)
+                ref_sample_haps_chrom = np.repeat(hap_sample_haps, inter_len)
 
             # grab random haplotype from samples and use as gts for our simulated samples
             end_var = cur_var+ref_sample_inds_chrom.shape[0]
