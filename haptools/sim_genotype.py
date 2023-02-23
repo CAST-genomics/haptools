@@ -170,13 +170,14 @@ def output_vcf(
             # select which alleles for each segment
             if no_replacement:
                 ref_sample_haps_chrom = np.repeat(hap_sample_haps, inter_len)
-
+            else:
+                hap_sample_haps = np.random.randint(2, size=len(hap_sample_ind))
+                ref_sample_haps_chrom = np.repeat(hap_sample_haps, interlen)
 
             # grab random haplotype from samples and use as gts for our simulated samples
             end_var = cur_var+ref_sample_inds_chrom.shape[0]
             gt_vars = np.arange(cur_var, end_var, 1)
-            if not no_replacement:
-                ref_sample_haps_chrom = np.random.randint(2, size=len(gt_vars))
+
             ref_gts_chrom = vcf.data[ref_sample_inds_chrom,
                                      gt_vars,
                                      ref_sample_haps_chrom]
