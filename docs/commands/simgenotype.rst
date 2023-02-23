@@ -37,6 +37,7 @@ Parameter Descriptions
 * ``--region`` - Limit the simulation to a region within a single chromosome. Overwrites chroms with the chrom listed in this region. eg 1:1-10000 [Optional]
 * ``--pop_field`` - Flag for ouputting population field in VCF output. Note this flag does not work when your output is in PGEN format. [Optional]
 * ``--sample_field`` - Flag for ouputting sample field in VCF output. Note this flag does not work when your output is in PGEN format. Should only be used for debugging. [Optional]
+* ``--no_replacement`` - Flag for deteremining during the VCF generation process whether we grab samples' haplotypes with or without replacement from the reference VCF file. Default = False (With replacement) [Optional]
 * ``--verbosity`` - What level of output the logger should print to stdout. Please see `logging levels <https://docs.python.org/3/library/logging.html>`_ for output levels. Default = INFO [Optional]
 * ``--only_breakpoint`` - Flag which when provided only outputs the breakpoint file. Note you will not need to provide a ``--ref_vcf`` or ``--sample_info`` file and can instead put NA. eg.  ``--ref_vcf NA`` and ``--sample_info NA`` [Optional]
 
@@ -56,7 +57,7 @@ Examples
   --model tests/data/outvcf_gen.dat \
   --mapdir tests/data/map/ \
   --region 1:1-83000 \
-  --ref_vcf tests/data/outvcf_test.vcf \
+  --ref_vcf tests/data/outvcf_test.vcf.gz \
   --sample_info tests/data/outvcf_info.tab \
   --pop_field \
   --out tests/data/example_simgenotype.vcf

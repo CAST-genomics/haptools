@@ -24,7 +24,7 @@ To run any of the example code or commands in our documentation, follow these st
 
     .. code-block:: bash
 
-    	git clone https://github.com/CAST-genomics/haptools.git
+    	git clone -b v$(haptools --version) https://github.com/CAST-genomics/haptools.git
 
 3. Change to the cloned directory
 

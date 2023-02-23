@@ -204,7 +204,47 @@ class Phenotypes(Data):
                 )[1:-1]
                 phens.write(f"{samp}\t" + line + "\n")
 
-    # TODO: check_missing() (they'll be encoded as NA, nan, or -9)
+    def check_missing(self, discard_also=False):
+        """
+        Check that each sample has a phenotype value
+
+        Raises
+        ------
+        ValueError
+            If any of the samples have missing phenotypes, represented by -9
+
+        Parameters
+        ----------
+        discard_also : bool, optional
+            If True, discard any samples that are missing phenotypes without raising a
+            ValueError
+        """
+        # check: are there any samples that have phenotypes values that are -9?
+        mask = self.data == -9
+        missing = np.any(mask, axis=1)
+        if np.any(missing):
+            samp_idx = np.nonzero(missing)[0]
+            missing_phens = np.nonzero(np.any(mask, axis=0))[0]
+            if discard_also:
+                original_num_samples = len(self.samples)
+                self.data = np.delete(self.data, samp_idx, axis=0)
+                self.samples = tuple(np.delete(self.samples, samp_idx))
+                self.log.warning(
+                    "Ignoring missing phenotypes from "
+                    f"{original_num_samples - len(self.samples)} samples"
+                )
+            else:
+                raise ValueError(
+                    "Sample with ID {} for phenotype '{}' is missing".format(
+                        self.samples[samp_idx[0]],
+                        self.names[missing_phens[0]],
+                    )
+                )
+        if discard_also and not self.data.shape[0]:
+            self.log.warning(
+                "All samples were discarded! Check that that none of your samples have"
+                " missing phenotypes (a value of -9, NA, or na)."
+            )
 
     def standardize(self):
         """

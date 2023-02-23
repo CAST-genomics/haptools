@@ -119,6 +119,7 @@ def test_alt_chrom_name():
         None,
         True,
         True,
+        False,
         str(out_file),
         log,
     )
@@ -157,6 +158,85 @@ def test_alt_chrom_name():
     out_file.unlink()
 
 
+# TODO TEST THIS TO MAKE SURE IT PERFORMS HOW WE EXPECT ALTHOUGH THE ERROR MESSAGE OUTPUT SHOULD BE CHANGED SLIGHTLY SINCE WE CHECK PRIOR
+def test_no_replace():
+    # Test too few samples to generate a VCF when sampling without replacement
+    # read in all files and breakpoints
+    bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
+    bkp_file = DATADIR.joinpath("outvcf_test_no_replace.bp")
+    vcf_file = DATADIR.joinpath("outvcf_test_no_replace.vcf")
+    chroms = ["1", "2", "X"]
+    bkps = _get_breakpoints(bkp_file, model_file)
+
+    # test when we have enough CEU/YRI samples to simulate
+    output_vcf(
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        True,
+        True,
+        True,
+        str(out_file),
+        log,
+    )
+
+    # read in vcf file
+    vcf = VCF(str(out_file))
+    for var in vcf:
+        if var.CHROM == "chr1" and var.POS == 10114:
+            assert var.genotypes[0] == [0, 0, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "CEU,CEU"
+
+        elif var.CHROM == "chr1" and var.POS == 59423090:
+            assert var.genotypes[0] == [0, 1, True]
+            assert var.format("POP")[0] == "CEU,YRI"
+            assert var.genotypes[1] == [1, 0, True]
+            assert var.format("POP")[1] == "YRI,CEU"
+
+        elif var.CHROM == "chr2" and var.POS == 10122:
+            assert var.genotypes[0] == [1, 0, True]
+            assert var.format("POP")[0] == "YRI,CEU"
+            assert var.genotypes[1] == [0, 1, True]
+            assert var.format("POP")[1] == "CEU,YRI"
+
+        elif var.CHROM == "chrX" and var.POS == 10122:
+            assert var.genotypes[0] == [1, 1, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "YRI,YRI"
+
+        else:
+            assert False
+
+    # generate output vcf file should fail due to lack of CEU samples
+    # this info file has only one CEU individual
+    with pytest.raises(Exception, match="No available sample"):
+        one_ceu_sampleinfo_file = DATADIR.joinpath("outvcf_info-one_CEU.tab")
+        bkp_file = DATADIR.joinpath("outvcf_test_no_replace2.bp")
+        bkps = _get_breakpoints(bkp_file, model_file)
+        output_vcf(
+            bkps,
+            chroms,
+            model_file,
+            str(vcf_file),
+            one_ceu_sampleinfo_file,
+            None,
+            True,
+            True,
+            True,
+            str(out_file),
+            log,
+        )
+
+    # Clean up by removing the output file from output_vcf
+    out_file.unlink()
+
+
 def test_vcf_output():
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
@@ -173,6 +253,7 @@ def test_vcf_output():
         None,
         True,
         True,
+        False,
         str(out_file),
         log,
     )
@@ -246,6 +327,7 @@ def test_vcf_randomness():
         None,
         True,
         False,
+        False,
         str(out_file),
         log,
     )
@@ -281,6 +363,7 @@ def test_someflags_vcf():
         sampleinfo_file,
         None,
         True,
+        False,
         False,
         str(out_file),
         log,
@@ -339,6 +422,7 @@ def test_noflags_vcf():
         str(vcf_file),
         sampleinfo_file,
         None,
+        False,
         False,
         False,
         str(out_file),
@@ -402,6 +486,7 @@ def test_pgen_output():
         None,
         False,
         False,
+        False,
         str(out_file),
         log,
     )
@@ -436,6 +521,7 @@ def test_pgen_input():
         str(vcf_file),
         sampleinfo_file,
         None,
+        False,
         False,
         False,
         str(out_file),
@@ -488,6 +574,7 @@ def test_region_vcf():
         region,
         True,
         True,
+        False,
         str(out_file),
         log,
     )
@@ -519,6 +606,7 @@ def test_region_pgen():
         region,
         False,
         False,
+        False,
         str(out_file),
         log,
     )
@@ -544,14 +632,14 @@ def test_model_files():
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_number_to_int.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Can't convert samples number to an integer."
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_num_pops.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (
         str(e.value)
@@ -560,7 +648,7 @@ def test_model_files():
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_less_than_1.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Number of samples is less than 1."
 
@@ -568,21 +656,21 @@ def test_model_files():
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_pop_fracs.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Can't convert generation to integer."
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_frac.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Can't convert population fractions to type float."
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_pop_header.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (
         (str(e.value))
@@ -593,7 +681,7 @@ def test_model_files():
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_cur_gen.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (
         (str(e.value))
@@ -605,7 +693,7 @@ def test_model_files():
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_sum_frac.dat")
     with pytest.raises(Exception) as e:
         validate_params(
-            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Population fractions for generation 1 do not sum to 1."
 
@@ -614,26 +702,28 @@ def test_model_files():
     faulty_mapdir = DATADIR.joinpath("maps")
     with pytest.raises(Exception) as e:
         validate_params(
-            model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Map directory given is not a valid path."
 
     with pytest.raises(Exception) as e:
-        validate_params(model, mapdir, chroms, popsize, vcf_file, sampleinfo_file)
+        validate_params(
+            model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
+        )
     assert (str(e.value)) == f"Chromosome {chroms[0]} in the list given is not valid."
 
     chroms = ["1"]
     faulty_mapdir = DATADIR.joinpath("test_map")
     with pytest.raises(Exception) as e:
         validate_params(
-            model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Could not parse map directory files."
 
     faulty_mapdir = DATADIR.joinpath("test_map_2")
     with pytest.raises(Exception) as e:
         validate_params(
-            model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file
+            model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (
         (str(e.value))
@@ -644,14 +734,14 @@ def test_model_files():
     faulty_popsize = "NA"
     with pytest.raises(Exception) as e:
         validate_params(
-            model, mapdir, chroms, faulty_popsize, vcf_file, sampleinfo_file
+            model, mapdir, chroms, faulty_popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Popsize is not an Integer."
 
     faulty_popsize = 0
     with pytest.raises(Exception) as e:
         validate_params(
-            model, mapdir, chroms, faulty_popsize, vcf_file, sampleinfo_file
+            model, mapdir, chroms, faulty_popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Popsize must be greater than 0."
 
@@ -659,7 +749,7 @@ def test_model_files():
     faulty_vcf_file = DATADIR.joinpath("faulty_vcf.vcf")
     with pytest.raises(Exception) as e:
         validate_params(
-            model, mapdir, chroms, popsize, faulty_vcf_file, sampleinfo_file
+            model, mapdir, chroms, popsize, faulty_vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Unable to collect vcf samples."
 
@@ -667,7 +757,7 @@ def test_model_files():
     faulty_sampleinfo_file = DATADIR.joinpath("faulty_info.tab")
     with pytest.raises(Exception) as e:
         validate_params(
-            model, mapdir, chroms, popsize, vcf_file, faulty_sampleinfo_file
+            model, mapdir, chroms, popsize, vcf_file, faulty_sampleinfo_file, False
         )
     msg = "Sample HG00022 in sampleinfo file is not present in the vcf file."
     assert (str(e.value)) == msg
@@ -678,7 +768,7 @@ def test_model_files():
     with pytest.raises(Exception) as e:
         for model_pop in pops:
             validate_params(
-                faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file
+                faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
             )
         msg = (
             f"Population {model_pop} in model file is not present in the sample info"

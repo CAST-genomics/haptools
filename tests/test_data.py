@@ -505,6 +505,27 @@ class TestPhenotypes:
         phens.read()
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
+    def test_check_missing(self, caplog):
+        phens = Phenotypes(DATADIR.joinpath("simple.na.pheno"))
+        caplog.clear()
+        phens.read()
+
+        # we should have logged two ERRORS respectively for the 'NA' and 'na' values
+        assert len(caplog.records) > 0
+        assert sum(msg.levelname == "ERROR" for msg in caplog.records) == 2
+        # any samples with 'NA' or 'na' should have been dropped
+        assert len(phens.data) == 3
+        assert len(phens.samples) == 3
+
+        with pytest.raises(ValueError) as info:
+            phens.check_missing()
+        assert "HG00097" in str(info.value) and "bmi" in str(info.value)
+
+        # now: check that it works when we discard the sample
+        phens.check_missing(discard_also=True)
+        assert len(phens.data) == 2
+        assert len(phens.samples) == 2
+
     def test_load_phenotypes_iterate(self):
         expected_phen = self._get_fake_phenotypes()
         expected = expected_phen.data

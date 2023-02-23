@@ -12,7 +12,7 @@ import click
 
 ################### Haptools ##################
 @click.group()
-@click.version_option()
+@click.version_option(message="%(version)s")
 def main():
     """
     haptools: A toolkit for simulating and analyzing genotypes and
@@ -183,6 +183,16 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     ),
 )
 @click.option(
+    "--no_replacement",
+    is_flag=True,
+    required=False,
+    default=False,
+    help=(
+        "Flag used to determine whether to sample reference haplotypes"
+        " with or without replacement. (Default = Replacement)"
+    ),
+)
+@click.option(
     "--only_breakpoint",
     is_flag=True,
     required=False,
@@ -211,6 +221,7 @@ def simgenotype(
     region,
     pop_field,
     sample_field,
+    no_replacement,
     only_breakpoint,
     verbosity,
 ):
@@ -264,7 +275,15 @@ def simgenotype(
 
     # simulate breakpoints
     popsize = validate_params(
-        model, mapdir, chroms, popsize, ref_vcf, sample_info, region, only_breakpoint
+        model,
+        mapdir,
+        chroms,
+        popsize,
+        ref_vcf,
+        sample_info,
+        no_replacement,
+        region,
+        only_breakpoint,
     )
     samples, pop_dict, breakpoints = simulate_gt(
         model, mapdir, chroms, region, popsize, log, seed
@@ -284,6 +303,7 @@ def simgenotype(
             region,
             pop_field,
             sample_field,
+            no_replacement,
             out,
             log,
         )
