@@ -95,11 +95,6 @@ def output_vcf(
             pop_sample[pop].append(sample)
     log.debug(f"Filtered sample info to limit populations within model file. Populations: {pops}.")
 
-    # Shuffle samples for each pop if no_replacement to have random selection of samples
-    if no_replacement:
-        for key in pop_sample.keys():
-            np.random.shuffle(pop_sample[key])
-
     # check if pops without admixed is same as grabbed populations
     assert len(pops)-1 == len(list(set(pop_sample.keys())))
 
@@ -251,6 +246,10 @@ def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict, haps
 
         # Sample without replacement by keeping track of all segments used for each sample
         if no_replacement:
+            # Shuffle samples for each pop if no_replacement to have random selection of samples
+            np.random.shuffle(pop_sample[population])
+                
+            # No segments have been collected yet so start at position 0
             if not hap_pos:
                 sample_name, hap_ind = _find_random_sample(
                                                 pop_sample[population],
