@@ -13,10 +13,11 @@ from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
 
 # TODO make sure trtools is installed and see if this works otherwise just use the files in aryas feat/GenotypesTR branch
-try:
-    import trtools.utils.tr_harmonizer as trh
-except ModuleNotFoundError:
-    from . import tr_harmonizer as trh
+# TODO installing trtools does not seem feasible so just copy code over
+#try:
+#    import trtools.utils.tr_harmonizer as trh
+#except ModuleNotFoundError:
+#    from . import tr_harmonizer as trh
 
 from .data import Data
 

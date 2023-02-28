@@ -2,6 +2,7 @@
 
 # To test: ./clumpSTR.py --summstats-snps tests/eur_gwas_pvalue_chr19.LDL.glm.linear --clump-snp-field ID --clump-field p-value --clump-chrom-field CHROM --clump-pos-field position --clump-p1 0.2 --out test.clump
 import scipy.stats
+import numpy as np
 import logging
 import sys
 
@@ -126,16 +127,25 @@ def GetOverlappingSamples(snpgts, strgts):
     """
     return [] # TODO
 
-def LoadVariant(var, snpgts, strgts, samples):
+def LoadVariant(var, snpgts, strgts):
     """
     Extract vector of genotypes for this variant
     """
     # if it's a SNP we should take from data matrix in GenotypesRefAlt
     # if it's a STR we should take from data matrix in GenotypesTR
-    # TODO determine whether the variant is a snp or str
-    return [] # TODO
+    # Grab variant from snps or strs depending on variant type
+    if var.vartype == 'snp':
+        var_ind = (snpgts.variants['pos']==int(var.pos)) & \
+                  (snpgts.variants['chrom']==var.chrom)
+        variant_gts = np.sum(snpgts.data[:, var_ind,:], axis=2).flatten()
+    else:
+        var_ind = (strgts.variants['pos']==int(var.pos)) & \
+                  (strgts.variants['chrom']==var.chrom)
+        variant_gts = np.sum(strgts.data[:, var_ind,:], axis=2).flatten()
+    
+    return variant_gts
 
-def ComputeLD(candidate_gt, index_gt, snpgts, strgts, samples):
+def ComputeLD(candidate_gt, index_gt):
     """
     Compute the LD between two variants
     """
@@ -151,7 +161,6 @@ def WriteClump(indexvar, clumped_vars, outf):
     outf.write("\t".join([indexvar.varid, indexvar.chrom, str(indexvar.pos),
         str(indexvar.pval), indexvar.vartype, 
         ",".join([str(item) for item in clumped_vars])])+"\n")
-
 
 def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump_p2,
     clump_snp_field, clump_field, clump_chrom_field, clump_pos_field,
@@ -186,6 +195,15 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
         #strgts = GenotypesTR.load(gts_strs)
     #samples = GetOverlappingSamples(snpgts, strgts)
 
+    # NOTE snpgts has data, variants, and samples where data is alleles (samples x variants x alleles)
+    #      variants has id, pos, chrom, ref, alt for snps
+    #      samples is list of samples corresponding to x-axis of samples
+    # TODO uncomment subsample snps and strs to set of overlapping samples
+    #snpgts.data = snpgts.data[samples,:,:]
+    #snpgts.samples = snpgts.samples[samples]
+    #strgts.data = snpgts.data[samples,:,:]
+    #strgts.samples = snpgts.samples[samples]
+
     ###### Setup output file ##########
     outf = open(out, "w")
     outf.write("\t".join(["ID","CHROM","POS","P","VARTYPE","CLUMPVARS"])+"\n")
@@ -194,7 +212,7 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     indexvar = summstats.GetNextIndexVariant(clump_p1)
     while indexvar is not None:
         # Load indexvar gts
-        indexvar_gt = LoadVariant(indexvar, snpgts, strgts, samples)
+        indexvar_gt = LoadVariant(indexvar, snpgts, strgts)
         # Collect candidate variants within range of index variant
         candidates = summstats.QueryWindow(indexvar, clump_kb)
 
@@ -202,8 +220,8 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
         clumpvars = []
         for c in candidates:
             # load candidate variant c genotypes 
-            candidate_gt = LoadVariant(c, snpgts, strgts, samplels)
-            r2 = ComputeLD(candidate_gt, indexvar_gt, snpgts, strgts, samples)
+            candidate_gt = LoadVariant(c, snpgts, strgts)
+            r2 = ComputeLD(candidate_gt, indexvar_gt)
             if r2 > clump_r2:
                 clumpvars.append(c)
         WriteClump(indexvar, clumpvars, outf)
