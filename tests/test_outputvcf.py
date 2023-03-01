@@ -759,7 +759,7 @@ def test_model_files():
         validate_params(
             model, mapdir, chroms, popsize, vcf_file, faulty_sampleinfo_file, False
         )
-    msg = "Sample HG00022 in sampleinfo file is not present in the vcf file."
+    msg = "Sample HG00022 from population CEU in sampleinfo file is not present in the vcf file."
     assert (str(e.value)) == msg
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_info.dat")

@@ -624,8 +624,7 @@ class GenotypesRefAlt(Genotypes):
                 ("id", "U50"),
                 ("chrom", "U10"),
                 ("pos", np.uint32),
-                ("ref", "U100"),
-                ("alt", "U100"),
+                ("alleles", object),
             ],
         )
 
@@ -638,8 +637,7 @@ class GenotypesRefAlt(Genotypes):
                 record.ID,
                 record.CHROM,
                 record.POS,
-                record.REF,
-                record.ALT[0],
+                (record.REF, *record.ALT),
             ),
             dtype=self.variants.dtype,
         )
@@ -672,12 +670,14 @@ class GenotypesRefAlt(Genotypes):
                 vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
         for var_idx, var in enumerate(self.variants):
+            #if var["alt"] not in ["A", "C", "G", "T"]:
+            #    breakpoint
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
-                "stop": var["pos"] + len(var["ref"]) - 1,
+                "stop": var["pos"] + len(var["alleles"][0]) - 1,
                 "qual": None,
-                "alleles": tuple(var[["ref", "alt"]]),
+                "alleles": var["alleles"],
                 "id": var["id"],
                 "filter": None,
             }
@@ -845,8 +845,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                record[cid["REF"]],
-                record[cid["ALT"]],
+                (record[cid["REF"]], record[cid["ALT"]])
             ),
             dtype=self.variants.dtype,
         )
@@ -1199,9 +1198,9 @@ class GenotypesPLINK(GenotypesRefAlt):
                 rec = {
                     "contig": var["chrom"],
                     "start": var["pos"],
-                    "stop": var["pos"] + len(var["ref"]) - 1,
+                    "stop": var["pos"] + len(var["alleles"][0]) - 1,
                     "qual": None,
-                    "alleles": tuple(var[["ref", "alt"]]),
+                    "alleles": var["alleles"],
                     "id": var["id"],
                     "filter": None,
                 }

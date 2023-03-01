@@ -72,7 +72,7 @@ def output_vcf(
         Outputs messages to the appropriate channel.
     """
 
-    log.info(f"Outputting VCF file {out}.vcf.gz")
+    log.info(f"Outputting file {out}")
 
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
@@ -915,8 +915,8 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, no_repla
         else:
             total_per_pop[info_pop] += 1
 
-        if sample not in vcf_samples:
-            raise Exception(f"Sample {sample} in sampleinfo file is not present in the vcf file.")
+        if sample not in vcf_samples and info_pop in pops:
+            raise Exception(f"Sample {sample} from population {info_pop} in sampleinfo file is not present in the vcf file.")
     
     # Ensure that all populations from the model file are listed in the sample info file 
     #    and that there is sufficient enough samples when no_replacement is specified

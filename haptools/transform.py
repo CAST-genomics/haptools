@@ -483,9 +483,9 @@ class GenotypesAncestry(data.GenotypesRefAlt):
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
-                "stop": var["pos"] + len(var["ref"]) - 1,
+                "stop": var["pos"] + len(var["alleles"][0]) - 1,
                 "qual": None,
-                "alleles": tuple(var[["ref", "alt"]]),
+                "alleles": var["alleles"],
                 "id": var["id"],
                 "filter": None,
             }
