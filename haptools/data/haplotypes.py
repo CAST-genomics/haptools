@@ -490,7 +490,7 @@ class Haplotype:
         allele_arr = np.array(
             [
                 [
-                    [int(var.allele != gts.variants[i]["ref"])]
+                    [int(var.allele != gts.variants[i]["alleles"][0])]
                     for i, var in enumerate(self.variants)
                 ]
             ]
@@ -1080,7 +1080,7 @@ class Haplotypes(Data):
             hap_gts = GenotypesRefAlt(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
-            [(hap.id, hap.chrom, hap.start, "A", "T") for hap in self.data.values()],
+            [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in self.data.values()],
             dtype=hap_gts.variants.dtype,
         )
         # build a fast data structure for querying the alleles in each haplotype:
@@ -1104,7 +1104,7 @@ class Haplotypes(Data):
         # with shape (1, gts.data.shape[1], 1) for broadcasting later
         allele_arr = np.array(
             [
-                int(allele != gts.variants[i]["ref"])
+                int(allele != gts.variants[i]["alleles"][0])
                 for i, (vID, allele) in enumerate(alleles)
             ],
             dtype=gts.data.dtype,

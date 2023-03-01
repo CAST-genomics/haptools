@@ -51,7 +51,7 @@ class HaplotypeAncestry(data.Haplotype):
         allele_arr = np.array(
             [
                 [
-                    [int(var.allele != gts.variants[i]["ref"])]
+                    [int(var.allele != gts.variants[i]["alleles"][0])]
                     for i, var in enumerate(self.variants)
                 ]
             ]
@@ -125,7 +125,7 @@ class HaplotypesAncestry(data.Haplotypes):
         # with shape (1, gts.data.shape[1], 1) for broadcasting later
         allele_arr = np.array(
             [
-                int(allele != gts.variants[i]["ref"])
+                int(allele != gts.variants[i]["alleles"][0])
                 for i, (vID, allele) in enumerate(alleles)
             ],
             dtype=gts.data.dtype,
