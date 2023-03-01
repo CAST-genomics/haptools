@@ -111,6 +111,10 @@ def output_vcf(
     else:
         vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
 
+    if variant_file.endswith(".pgen"):
+        # the pgenlib library collapses multiallelic variants into a single allele
+        vcf.check_biallelic()
+
     log.debug(f"Read in variants from {variant_file}")
 
     sample_dict = {}
