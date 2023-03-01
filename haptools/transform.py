@@ -98,7 +98,7 @@ class HaplotypesAncestry(data.Haplotypes):
             hap_gts = data.GenotypesRefAlt(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
-            [(hap.id, hap.chrom, hap.start, "A", "T") for hap in self.data.values()],
+            [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in self.data.values()],
             dtype=hap_gts.variants.dtype,
         )
         # build a fast data structure for querying the alleles in each haplotype:
