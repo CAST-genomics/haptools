@@ -24,7 +24,7 @@ As an example, let's say we would like to convert the following ``.blocks.det`` 
 
     # load the genotypes file
     # you can use either a VCF or PGEN file
-    gt = data.GenotypesRefAlt.load("input.vcf.gz")
+    gt = data.GenotypesVCF.load("input.vcf.gz")
     gt = data.GenotypesPLINK.load("input.pgen")
 
     # load the haplotypes
@@ -84,7 +84,7 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
 
     # load the genotypes file
     # you can use either a VCF or PGEN file
-    gt = data.GenotypesRefAlt("tests/data/apoe.vcf.gz")
+    gt = data.GenotypesVCF("tests/data/apoe.vcf.gz")
     gt.read(variants=variants)
     # the advantage of using a PGEN file is that you can use read_variants() to load
     # the variants quickly w/o having to load the genotypes, too

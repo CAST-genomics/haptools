@@ -17,7 +17,7 @@ from haptools.data import (
     Covariates,
     Haplotypes,
     Breakpoints,
-    GenotypesRefAlt,
+    GenotypesVCF,
     GenotypesPLINK,
 )
 
@@ -282,7 +282,7 @@ class TestGenotypes:
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
         pgenlib = pytest.importorskip("pgenlib")
-        gts_ref_alt = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
+        gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_refalt()
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
         gts.samples = gts_ref_alt.samples
@@ -901,7 +901,7 @@ class TestHaplotypes:
         )
 
         hap = list(self._get_dummy_haps().data.values())[0]
-        gens = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
+        gens = TestGenotypesVCF()._get_fake_genotypes_refalt()
         hap_gt = hap.transform(gens)
         np.testing.assert_allclose(hap_gt, expected)
 
@@ -918,10 +918,10 @@ class TestHaplotypes:
         )
 
         haps = self._get_dummy_haps()
-        gens = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
+        gens = TestGenotypesVCF()._get_fake_genotypes_refalt()
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
-        hap_gt = GenotypesRefAlt(fname=None)
+        hap_gt = GenotypesVCF(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
 
@@ -1002,11 +1002,11 @@ class TestHaplotypes:
         test_hap1.fname.unlink()
 
 
-class TestGenotypesRefAlt:
+class TestGenotypesVCF:
     def _get_fake_genotypes_refalt(self, with_phase=False):
         base_gts = TestGenotypes()._get_fake_genotypes()
         # copy all of the fields
-        gts = GenotypesRefAlt(fname=None)
+        gts = GenotypesVCF(fname=None)
         gts.data = base_gts.data
         if with_phase:
             data_shape = (gts.data.shape[0], gts.data.shape[1], 1)
@@ -1030,7 +1030,7 @@ class TestGenotypesRefAlt:
 
     def test_read_ref_alt(self):
         # simple.vcf
-        gts_ref_alt_read = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
+        gts_ref_alt_read = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
         gts_ref_alt_read.read()
         expected = np.array(
             [
@@ -1045,7 +1045,7 @@ class TestGenotypesRefAlt:
             assert gts_ref_alt_read.variants["alleles"][i] == tuple(x.tolist())
 
         # example.vcf.gz
-        gts_ref_alt = GenotypesRefAlt(DATADIR.joinpath("example.vcf.gz"))
+        gts_ref_alt = GenotypesVCF(DATADIR.joinpath("example.vcf.gz"))
         gts_ref_alt.read()
         expected = np.array(
             [
@@ -1073,7 +1073,7 @@ class TestGenotypesRefAlt:
     def test_write_ref_alt(self):
         # strategy is to read in the file, write it, and then read again
         # read genotypes
-        gts_ref_alt_write = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
+        gts_ref_alt_write = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
         gts_ref_alt_write.read()
         gts_ref_alt_write.check_phase()
         # write file to new file
@@ -1289,7 +1289,7 @@ class TestDocExamples:
 
         # load the genotypes file
         # you can use either a VCF or PGEN file
-        gt = GenotypesRefAlt("tests/data/apoe.vcf.gz")
+        gt = GenotypesVCF("tests/data/apoe.vcf.gz")
         gt.read(variants=variants)
 
         # initialize an empty haplotype file

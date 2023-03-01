@@ -591,7 +591,7 @@ class Genotypes(Data):
                 )
 
 
-class GenotypesRefAlt(Genotypes):
+class GenotypesVCF(Genotypes):
     """
     A class for processing genotypes from a file
     Unlike the base Genotypes class, this class also includes REF and ALT alleles as
@@ -636,7 +636,7 @@ class GenotypesRefAlt(Genotypes):
 
     def write(self):
         """
-        Write the variants in this class to a VCF at :py:attr:`~.GenotypesRefAlt.fname`
+        Write the variants in this class to a VCF at :py:attr:`~.GenotypesVCF.fname`
         """
         vcf = VariantFile(str(self.fname), mode="w")
         # make sure the header is properly structured
@@ -685,20 +685,20 @@ class GenotypesRefAlt(Genotypes):
         vcf.close()
 
 
-class GenotypesPLINK(GenotypesRefAlt):
+class GenotypesPLINK(GenotypesVCF):
     """
     A class for processing genotypes from a PLINK ``.pgen`` file
 
     Attributes
     ----------
     data : np.array
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     samples : tuple
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     variants : np.array
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     log: Logger
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     chunk_size: int, optional
         The max number of variants to fetch from and write to the PGEN file at any
         given time
@@ -706,7 +706,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory
     _prephased: bool
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
 
     Examples
     --------
@@ -736,7 +736,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         samples : list[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Returns
         -------
@@ -853,9 +853,9 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         region : str, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Yields
         ------
@@ -928,11 +928,11 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         region : str, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         max_variants : int, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Returns
         -------
@@ -985,13 +985,13 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         region : str, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         samples : list[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         max_variants : int, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super(Genotypes, self).read()
         import pgenlib

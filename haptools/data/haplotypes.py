@@ -11,7 +11,7 @@ import numpy.typing as npt
 from pysam import TabixFile
 
 from .data import Data
-from .genotypes import GenotypesRefAlt
+from .genotypes import GenotypesVCF
 
 
 @dataclass
@@ -453,7 +453,7 @@ class Haplotype:
         """
         return tuple(extra.name for extra in cls._extras)
 
-    def transform(self, genotypes: GenotypesRefAlt) -> npt.NDArray[bool]:
+    def transform(self, genotypes: GenotypesVCF) -> npt.NDArray[bool]:
         """
         Transform a genotypes matrix via the current haplotype
 
@@ -462,7 +462,7 @@ class Haplotype:
 
         Parameters
         ----------
-        genotypes : GenotypesRefAlt
+        genotypes : GenotypesVCF
             The genotypes which to transform using the current haplotype
 
             If the genotypes have not been loaded into the Genotypes object yet, this
@@ -1053,9 +1053,9 @@ class Haplotypes(Data):
 
     def transform(
         self,
-        gts: GenotypesRefAlt,
-        hap_gts: GenotypesRefAlt = None,
-    ) -> GenotypesRefAlt:
+        gts: GenotypesVCF,
+        hap_gts: GenotypesVCF = None,
+    ) -> GenotypesVCF:
         """
         Transform a genotypes matrix via the current haplotype
 
@@ -1064,20 +1064,20 @@ class Haplotypes(Data):
 
         Parameters
         ----------
-        gts : GenotypesRefAlt
+        gts : GenotypesVCF
             The genotypes which to transform using the current haplotype
-        hap_gts: GenotypesRefAlt
-            An empty GenotypesRefAlt object into which the haplotype genotypes should
+        hap_gts: GenotypesVCF
+            An empty GenotypesVCF object into which the haplotype genotypes should
             be stored
 
         Returns
         -------
-        GenotypesRefAlt
+        GenotypesVCF
             A Genotypes object composed of haplotypes instead of regular variants.
         """
-        # Initialize GenotypesRefAlt return value
+        # Initialize GenotypesVCF return value
         if hap_gts is None:
-            hap_gts = GenotypesRefAlt(fname=None, log=self.log)
+            hap_gts = GenotypesVCF(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in self.data.values()],

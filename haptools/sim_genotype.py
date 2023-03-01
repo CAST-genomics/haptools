@@ -9,7 +9,7 @@ from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
-from .data import GenotypesRefAlt, GenotypesPLINK
+from .data import GenotypesVCF, GenotypesPLINK
 from .transform import GenotypesAncestry
 
 
@@ -104,7 +104,7 @@ def output_vcf(
     if variant_file.endswith(".pgen"):
         vcf = GenotypesPLINK(variant_file, log=log)
     else:
-        vcf = GenotypesRefAlt(variant_file, log=log)
+        vcf = GenotypesVCF(variant_file, log=log)
     
     if not region:
         vcf.read()
@@ -216,7 +216,7 @@ def output_vcf(
                 gts.valid_labels = output_labels
 
         if not pop_field and not sample_field:
-            gts = GenotypesRefAlt(out, log=log)
+            gts = GenotypesVCF(out, log=log)
 
     else:
         gts = GenotypesPLINK(out, log=log)

@@ -28,7 +28,7 @@ class HaplotypeAncestry(data.Haplotype):
         default=(data.Extra("ancestry", "s", "Local ancestry"),),
     )
 
-    def transform(self, genotypes: data.GenotypesRefAlt) -> npt.NDArray[bool]:
+    def transform(self, genotypes: data.GenotypesVCF) -> npt.NDArray[bool]:
         """
         Transform a genotypes matrix via the current haplotype and its ancestral
         population
@@ -91,11 +91,11 @@ class HaplotypesAncestry(data.Haplotypes):
     def transform(
         self,
         gts: data.GenotypesAncestry,
-        hap_gts: data.GenotypesRefAlt = None,
-    ) -> data.GenotypesRefAlt:
-        # Initialize GenotypesRefAlt return value
+        hap_gts: data.GenotypesVCF = None,
+    ) -> data.GenotypesVCF:
+        # Initialize GenotypesVCF return value
         if hap_gts is None:
-            hap_gts = data.GenotypesRefAlt(fname=None, log=self.log)
+            hap_gts = data.GenotypesVCF(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
             [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in self.data.values()],
@@ -147,9 +147,9 @@ class HaplotypesAncestry(data.Haplotypes):
         return hap_gts
 
 
-class GenotypesAncestry(data.GenotypesRefAlt):
+class GenotypesAncestry(data.GenotypesVCF):
     """
-    Extends the GenotypesRefAlt class for ancestry data
+    Extends the GenotypesVCF class for ancestry data
 
     The ancestry information is stored within the FORMAT field of the VCF
 
@@ -162,7 +162,7 @@ class GenotypesAncestry(data.GenotypesRefAlt):
     samples : tuple[str]
         See documentation for :py:attr:`~.Genotypes.samples`
     variants : np.array
-        See documentation for :py:attr:`~.GenotypesRefAlt.variants`
+        See documentation for :py:attr:`~.GenotypesVCF.variants`
     valid_labels: np.array
         Reference VCF sample and respective variant grabbed for
         each sample.
@@ -597,7 +597,7 @@ def transform_haps(
         if ancestry and not bps_file.exists():
             gt = GenotypesAncestry(fname=genotypes, log=log)
         else:
-            gt = data.GenotypesRefAlt(fname=genotypes, log=log)
+            gt = data.GenotypesVCF(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
@@ -631,7 +631,7 @@ def transform_haps(
         bps = data.Breakpoints(fname=bps_file, log=log)
         bps.read(samples=set(gt.samples))
         bps.encode()
-        # convert the GenotypesRefAlt object to a GenotypesAncestry object
+        # convert the GenotypesVCF object to a GenotypesAncestry object
         # TODO: figure out a better solution for this
         # this is just a temp hack to get output from simgenotype to load a bit faster
         gta = GenotypesAncestry(fname=None, log=log)
@@ -647,7 +647,7 @@ def transform_haps(
         hp_gt = data.GenotypesPLINK(fname=output, log=log, chunk_size=chunk_size)
     else:
         out_file_type = "VCF/BCF"
-        hp_gt = data.GenotypesRefAlt(fname=output, log=log)
+        hp_gt = data.GenotypesVCF(fname=output, log=log)
     log.info("Transforming genotypes via haplotypes")
     hp.transform(gt, hp_gt)
 
