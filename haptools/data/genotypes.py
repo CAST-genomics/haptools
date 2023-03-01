@@ -594,8 +594,8 @@ class Genotypes(Data):
 class GenotypesRefAlt(Genotypes):
     """
     A class for processing genotypes from a file
-    Unlike the base Genotypes class, this class also includes REF and ALT alleles in
-    the variants array
+    Unlike the base Genotypes class, this class also includes REF and ALT alleles as
+    a list of alleles in the variants array
 
     Attributes
     ----------
@@ -610,8 +610,7 @@ class GenotypesRefAlt(Genotypes):
             1. ID
             2. CHROM
             3. POS
-            4. REF
-            5. ALT
+            4. [REF, ALT1, ALT2, ...]
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
@@ -830,7 +829,6 @@ class GenotypesPLINK(GenotypesRefAlt):
         npt.NDArray
             A row from the :py:attr:`~.GenotypesPLINK.variants` array
         """
-        # TODO: remove the AAF column; right now, we just set it to 0.5 arbitrarily
         return np.array(
             (
                 record[cid["ID"]],
