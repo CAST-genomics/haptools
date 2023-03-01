@@ -153,7 +153,7 @@ You can index into a loaded :class:`Genotypes` instance using the ``subset()`` f
 By default, the ``subset()`` method returns a new :class:`Genotypes` instance. The samples and variants in the new instance will be in the order specified.
 
 GenotypesVCF
-+++++++++++++++
+++++++++++++
 The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesVCF` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF as a new column of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "alleles". The new "alleles" column contains lists of alleles designed such that the first element in the list is the REF allele, the second is ALT1, the third is ALT2, etc.
 
 All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesVCF` class implements an additional method ``write()`` for dumping the contents of the class to the provided file.

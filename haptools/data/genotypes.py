@@ -491,7 +491,10 @@ class Genotypes(Data):
             self.log.warning("Phase information has already been removed from the data")
             return
         # check: are there any variants that are heterozygous and unphased?
-        unphased = (self.data[:, :, 0] ^ self.data[:, :, 1]) & (~self.data[:, :, 2])
+        data = self.data
+        if data.dtype != np.bool_:
+            data = self.data.astype(np.bool_)
+        unphased = (data[:, :, 0] ^ data[:, :, 1]) & (~data[:, :, 2])
         if np.any(unphased):
             samp_idx, variant_idx = np.nonzero(unphased)
             raise ValueError(
