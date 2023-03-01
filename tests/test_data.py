@@ -1280,3 +1280,36 @@ class TestBreakpoints:
         with pytest.raises(ValueError) as info:
             pop_arr = expected.population_array(variants[[0, 1, 3]])
         assert str(info.value).startswith("Chromosome ")
+
+
+class TestDocExamples:
+    def test_gts2hap(self):
+        # which variants do we want to write to the haplotype file?
+        variants = {"rs429358", "rs7412"}
+
+        # load the genotypes file
+        # you can use either a VCF or PGEN file
+        gt = GenotypesRefAlt("tests/data/apoe.vcf.gz")
+        gt.read(variants=variants)
+
+        # initialize an empty haplotype file
+        hp = Haplotypes("output.hap", haplotype=Haplotype)
+        hp.data = {}
+
+        for variant in gt.variants:
+            ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]
+            end = pos + len(alleles[1])
+
+            # create a haplotype line in the .hap file
+            # you should fill out "beta" with your own value
+            hp.data[ID] = HaptoolsHaplotype(
+                chrom=chrom, start=pos, end=end, id=ID, beta=0.5
+            )
+
+            # create variant lines for each haplotype
+            hp.data[ID].variants = (
+                Variant(start=pos, end=end, id=ID, allele=alleles[1]),
+            )
+
+        hp.write()
+        hp.fname.unlink()
