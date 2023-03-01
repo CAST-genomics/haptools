@@ -1122,6 +1122,38 @@ class TestGenotypesVCF:
     def test_write_multiallelic(self):
         self.test_write_ref_alt(multiallelic=True)
 
+    def test_write_phase(self, prephased=True):
+        gts = self._get_fake_genotypes_refalt()
+
+        fname = DATADIR.joinpath("test_write_phase.vcf")
+        gts.fname = fname
+        if prephased:
+            gts._prephased = True
+        else:
+            # add phasing information back
+            gts.data = np.dstack(
+                (gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8))
+            )
+            gts.data[:2, 1, 2] = 0
+        gts.write()
+
+        new_gts = GenotypesVCF(fname)
+        if prephased:
+            new_gts._prephased = True
+        new_gts.read()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        fname.unlink()
+
+    def test_write_unphased(self):
+        self.test_write_phase(prephased=False)
+
 
 class TestBreakpoints:
     def _get_expected_breakpoints(self):

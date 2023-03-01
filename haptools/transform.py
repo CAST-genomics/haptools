@@ -479,6 +479,7 @@ class GenotypesAncestry(data.GenotypesVCF):
             for sample in self.samples:
                 vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
+        phased = self._prephased or (self.data.shape[2] < 3)
         for var_idx, var in enumerate(self.variants):
             rec = {
                 "contig": var["chrom"],
@@ -507,8 +508,11 @@ class GenotypesAncestry(data.GenotypesVCF):
                     record.samples[sample]["SAMPLE"] = tuple(
                         self.valid_labels[samp_idx, var_idx, :]
                     )
-                # TODO: add proper phase info
-                record.samples[sample].phased = True
+                # add proper phasing info
+                if phased:
+                    record.samples[sample].phased = True
+                else:
+                    record.samples[sample].phased = self.data[samp_idx, var_idx, 2]
             # write the record to a file
             vcf.write(record)
         vcf.close()

@@ -131,7 +131,7 @@ class TestGenotypesAncestry:
         assert False
 
     @pytest.mark.xfail(reason="not implemented yet")
-    def test_write_genotypes_unphased(self):
+    def test_write_genotypes_phase(self, prephased=True):
         assert False
 
 
