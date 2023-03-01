@@ -154,7 +154,7 @@ By default, the ``subset()`` method returns a new :class:`Genotypes` instance. T
 
 GenotypesRefAlt
 +++++++++++++++
-The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesRefAlt` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF to the columns of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "ref", and "alt".
+The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesRefAlt` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF as a new column of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "alleles". The new "alleles" column contains lists of alleles designed such that the first element in the list is the REF allele, the second is ALT1, the third is ALT2, etc.
 
 All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesRefAlt` class implements an additional method ``write()`` for dumping the contents of the class to the provided file.
 
@@ -188,7 +188,7 @@ The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` cla
 
 	genotypes = data.GenotypesPLINK.load('tests/data/simple.pgen')
 	genotypes.data     # a numpy array of shape n x p x 2
-	genotypes.variants # a numpy structured array of shape p x 6
+	genotypes.variants # a numpy structured array of shape p x 5
 	genotypes.samples  # a tuple of strings of length n
 
 In addition to the ``read()`` and ``load()`` methods, the :class:`GenotypesPLINK` class also has methods for reading (or writing) PVAR or PSAM files separately, without having to read (or write) the PGEN file as well.
@@ -198,7 +198,7 @@ In addition to the ``read()`` and ``load()`` methods, the :class:`GenotypesPLINK
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen')
 
 	genotypes.read_variants()
-	genotypes.variants # a numpy structured array of shape p x 6
+	genotypes.variants # a numpy structured array of shape p x 5
 
 	genotypes.read_samples()
 	genotypes.samples  # a tuple of strings of length n
