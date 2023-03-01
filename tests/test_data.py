@@ -1028,25 +1028,32 @@ class TestGenotypesVCF:
         )
         return gts
 
-    def test_read_ref_alt(self):
-        # simple.vcf
-        gts_ref_alt_read = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
-        gts_ref_alt_read.read()
-        expected = np.array(
+    def _get_fake_genotypes_multiallelic(self, with_phase=False):
+        gts = self._get_fake_genotypes_refalt(with_phase=with_phase)
+        # replace the necessary properties
+        gts.variants["alleles"] = np.array(
             [
                 ("T", "C"),
-                ("A", "G"),
+                ("A", "G", "T"),
                 ("C", "A"),
-                ("A", "G"),
+                ("A", "G", "C"),
             ],
-            dtype=gts_ref_alt_read.variants["alleles"].dtype,
+            dtype=gts.variants["alleles"].dtype,
         )
-        for i, x in enumerate(expected):
-            assert gts_ref_alt_read.variants["alleles"][i] == tuple(x.tolist())
+        gts.data[[2, 4], 1, [0, 1]] = 2
+        return gts
+
+    def test_read_ref_alt(self):
+        # simple.vcf
+        expected = self._get_fake_genotypes_refalt()
+        gts = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
+        gts.read()
+        for i, x in enumerate(expected.variants["alleles"]):
+            assert gts.variants["alleles"][i] == x
 
         # example.vcf.gz
-        gts_ref_alt = GenotypesVCF(DATADIR.joinpath("example.vcf.gz"))
-        gts_ref_alt.read()
+        gts = GenotypesVCF(DATADIR.joinpath("example.vcf.gz"))
+        gts.read()
         expected = np.array(
             [
                 ("C", "A"),
@@ -1065,37 +1072,55 @@ class TestGenotypesVCF:
                 ("T", "C"),
                 ("C", "T"),
             ],
-            dtype=gts_ref_alt.variants["alleles"].dtype,
+            dtype=gts.variants["alleles"].dtype,
         )
         for i, x in enumerate(expected):
-            assert gts_ref_alt.variants["alleles"][i] == tuple(x.tolist())
+            assert gts.variants["alleles"][i] == tuple(x.tolist())
 
-    def test_write_ref_alt(self):
+    def test_read_multiallelic(self):
+        # simple-multiallelic.vcf
+        expected = self._get_fake_genotypes_multiallelic(with_phase=True)
+
+        gts = GenotypesVCF(DATADIR.joinpath("simple-multiallelic.vcf"))
+        gts.read()
+        for i, x in enumerate(expected.variants["alleles"]):
+            assert gts.variants["alleles"][i] == x
+        np.testing.assert_allclose(gts.data, expected.data)
+
+    def test_write_ref_alt(self, multiallelic=False):
         # strategy is to read in the file, write it, and then read again
-        # read genotypes
-        gts_ref_alt_write = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
-        gts_ref_alt_write.read()
-        gts_ref_alt_write.check_phase()
+        if multiallelic:
+            expected = self._get_fake_genotypes_multiallelic()
+            # read genotypes
+            gts = GenotypesVCF(DATADIR.joinpath("simple-multiallelic.vcf"))
+        else:
+            expected = self._get_fake_genotypes_refalt()
+            # read genotypes
+            gts = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
+        gts.read()
+        gts.check_phase()
         # write file to new file
         fname = DATADIR.joinpath("test.vcf")
-        gts_ref_alt_write.fname = fname
-        gts_ref_alt_write.write()
+        gts.fname = fname
+        gts.write()
         # read again
-        gts_ref_alt_write.read()
-        gts_ref_alt_write.check_phase()
+        gts.read()
+        gts.check_phase()
         # compare samples, data, variants, and ref/alt for equality
-        expected = self._get_fake_genotypes_refalt()
-        assert gts_ref_alt_write.samples == expected.samples
-        np.testing.assert_allclose(gts_ref_alt_write.data, expected.data)
+        assert gts.samples == expected.samples
+        np.testing.assert_allclose(gts.data, expected.data)
 
         for i, x in enumerate(expected.variants):
             # dtype.names gives us names of columns in the array
             for col in expected.variants.dtype.names:
                 # each row is a variant
                 # index into col, i gets specific variant, x iterates thru
-                assert gts_ref_alt_write.variants[col][i] == x[col]
+                assert gts.variants[col][i] == x[col]
 
-        os.remove(str(fname))
+        fname.unlink()
+
+    def test_write_multiallelic(self):
+        self.test_write_ref_alt(multiallelic=True)
 
 
 class TestBreakpoints:
