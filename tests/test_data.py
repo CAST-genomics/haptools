@@ -148,14 +148,15 @@ class TestGenotypes:
         assert gts.samples[:25] == samples
 
     def test_load_genotypes_iterate(self, caplog):
-        expected = self._get_expected_genotypes().transpose((1, 0, 2))
-        samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        expected = self._get_fake_genotypes()
 
         # can we load the data from the VCF?
         gts = Genotypes(DATADIR.joinpath("simple.vcf"))
         for idx, line in enumerate(gts):
-            np.testing.assert_allclose(line.data, expected[idx])
-        assert gts.samples == samples
+            np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
+            for col in ("chrom", "pos", "id"):
+                assert line.variants[col] == expected.variants[col][idx]
+        assert gts.samples == expected.samples
 
     def test_load_genotypes_discard_multiallelic(self):
         gts = self._get_fake_genotypes()
@@ -299,7 +300,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_chunked(self):
@@ -313,7 +314,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_prephased(self):
@@ -327,7 +328,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_iterate(self):
@@ -338,8 +339,9 @@ class TestGenotypesPLINK:
         # check that everything matches what we expected
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id"):
                 assert line.variants[col] == expected.variants[col][idx]
+            assert line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
         assert gts.samples == expected.samples
 
     def test_load_genotypes_subset(self):
@@ -390,7 +392,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -413,7 +415,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -437,7 +439,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -462,7 +464,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -1011,21 +1013,20 @@ class TestGenotypesRefAlt:
                 (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
             )
         gts.samples = base_gts.samples
-        # add additional ref and alt alleles
-        ref_alt = np.array(
+        base_dtype = {k:v[0] for k,v in base_gts.variants.dtype.fields.items()}
+        ref_alt = [
+            ("T", "C"),
+            ("A", "G"),
+            ("C", "A"),
+            ("A", "G"),
+        ]
+        gts.variants = np.array(
             [
-                ("T", "C"),
-                ("A", "G"),
-                ("C", "A"),
-                ("A", "G"),
+                tuple(rec) + (ref_alt[idx],)
+                for idx, rec in enumerate(base_gts.variants)
             ],
-            dtype=[
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ],
+            dtype=(list(base_dtype.items()) + [("alleles", object)])
         )
-        # see https://stackoverflow.com/a/5356137
-        gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
         return gts
 
     def test_read_ref_alt(self):
@@ -1039,10 +1040,10 @@ class TestGenotypesRefAlt:
                 ("C", "A"),
                 ("A", "G"),
             ],
-            dtype=gts_ref_alt_read.variants[["ref", "alt"]].dtype,
+            dtype=gts_ref_alt_read.variants["alleles"].dtype,
         )
         for i, x in enumerate(expected):
-            assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
+            assert gts_ref_alt_read.variants["alleles"][i] == tuple(x.tolist())
 
         # example.vcf.gz
         gts_ref_alt = GenotypesRefAlt(DATADIR.joinpath("example.vcf.gz"))
@@ -1065,10 +1066,10 @@ class TestGenotypesRefAlt:
                 ("T", "C"),
                 ("C", "T"),
             ],
-            dtype=gts_ref_alt.variants[["ref", "alt"]].dtype,
+            dtype=gts_ref_alt.variants["alleles"].dtype,
         )
         for i, x in enumerate(expected):
-            assert gts_ref_alt.variants[["ref", "alt"]][i] == x
+            assert gts_ref_alt.variants["alleles"][i] == tuple(x.tolist())
 
     def test_write_ref_alt(self):
         # strategy is to read in the file, write it, and then read again
