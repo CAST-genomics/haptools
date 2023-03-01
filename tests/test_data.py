@@ -341,7 +341,9 @@ class TestGenotypesPLINK:
             np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
             for col in ("chrom", "pos", "id"):
                 assert line.variants[col] == expected.variants[col][idx]
-            assert line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            assert (
+                line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            )
         assert gts.samples == expected.samples
 
     def test_load_genotypes_subset(self):
@@ -1013,7 +1015,7 @@ class TestGenotypesRefAlt:
                 (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
             )
         gts.samples = base_gts.samples
-        base_dtype = {k:v[0] for k,v in base_gts.variants.dtype.fields.items()}
+        base_dtype = {k: v[0] for k, v in base_gts.variants.dtype.fields.items()}
         ref_alt = [
             ("T", "C"),
             ("A", "G"),
@@ -1021,11 +1023,8 @@ class TestGenotypesRefAlt:
             ("A", "G"),
         ]
         gts.variants = np.array(
-            [
-                tuple(rec) + (ref_alt[idx],)
-                for idx, rec in enumerate(base_gts.variants)
-            ],
-            dtype=(list(base_dtype.items()) + [("alleles", object)])
+            [tuple(rec) + (ref_alt[idx],) for idx, rec in enumerate(base_gts.variants)],
+            dtype=(list(base_dtype.items()) + [("alleles", object)]),
         )
         return gts
 

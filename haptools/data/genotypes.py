@@ -618,7 +618,7 @@ class GenotypesRefAlt(Genotypes):
 
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
-        dtype = {k:v[0] for k,v in self.variants.dtype.fields.items()}
+        dtype = {k: v[0] for k, v in self.variants.dtype.fields.items()}
         self.variants = np.array([], dtype=list(dtype.items()) + [("alleles", object)])
 
     def _variant_arr(self, record: Variant):
@@ -663,8 +663,6 @@ class GenotypesRefAlt(Genotypes):
                 vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
         for var_idx, var in enumerate(self.variants):
-            #if var["alt"] not in ["A", "C", "G", "T"]:
-            #    breakpoint
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
@@ -838,7 +836,7 @@ class GenotypesPLINK(GenotypesRefAlt):
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                (record[cid["REF"]], record[cid["ALT"]])
+                (record[cid["REF"]], record[cid["ALT"]]),
             ),
             dtype=self.variants.dtype,
         )
