@@ -665,6 +665,7 @@ class GenotypesVCF(Genotypes):
                 vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
         phased = self._prephased or (self.data.shape[2] < 3)
+        missing_val = np.iinfo(np.uint8).max
         for var_idx, var in enumerate(self.variants):
             rec = {
                 "contig": var["chrom"],
@@ -680,8 +681,10 @@ class GenotypesVCF(Genotypes):
             # parse the record into a pysam.VariantRecord
             record = vcf.new_record(**rec)
             for samp_idx, sample in enumerate(self.samples):
-                # TODO: make this work when there are missing values
-                record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
+                record.samples[sample]["GT"] = tuple(
+                    None if val == missing_val else val
+                    for val in self.data[samp_idx, var_idx, :2]
+                )
                 # add proper phasing info
                 if phased:
                     record.samples[sample].phased = True

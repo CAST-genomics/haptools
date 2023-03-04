@@ -1154,6 +1154,40 @@ class TestGenotypesVCF:
     def test_write_unphased(self):
         self.test_write_phase(prephased=False)
 
+    def test_write_missing(self):
+        gts = self._get_fake_genotypes_refalt()
+        gts.fname = DATADIR.joinpath("test_write_missing.vcf")
+        vals = len(np.unique(gts.data))
+
+        gts.write()
+
+        new_gts = GenotypesVCF(gts.fname)
+        new_gts.read()
+
+        new_gts.check_missing()
+
+        # force two of the samples to have a missing GT
+        gts.data = gts.data.astype(np.int8)
+        gts.data[1, 1, 1] = -1
+        gts.data = gts.data.astype(np.uint8)
+
+        gts.write()
+
+        new_gts = GenotypesVCF(gts.fname)
+        new_gts.read()
+
+        assert len(np.unique(gts.data)) == (vals + 1)
+
+        with pytest.raises(ValueError) as info:
+            gts.check_missing()
+        assert (
+            str(info.value)
+            == "Genotype with ID 1:10116:A:G at POS 1:10116 is missing for sample"
+            " HG00097"
+        )
+
+        gts.fname.unlink()
+
 
 class TestBreakpoints:
     def _get_expected_breakpoints(self):
