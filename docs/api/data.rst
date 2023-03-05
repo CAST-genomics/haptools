@@ -49,7 +49,7 @@ This module supports reading and writing files that follow `the VCF <https://gat
 Documentation
 -------------
 The :ref:`genotypes.py API docs <api-haptools-data-genotypes>` contain example usage of the :class:`Genotypes` class.
-See the documentation for the :class:`GenotypesRefAlt` class for an example of extending the :class:`Genotypes` class so that it loads REF and ALT alleles as well.
+See the documentation for the :class:`GenotypesVCF` class for an example of extending the :class:`Genotypes` class so that it loads REF and ALT alleles as well.
 
 Classes
 -------
@@ -152,15 +152,15 @@ You can index into a loaded :class:`Genotypes` instance using the ``subset()`` f
 
 By default, the ``subset()`` method returns a new :class:`Genotypes` instance. The samples and variants in the new instance will be in the order specified.
 
-GenotypesRefAlt
-+++++++++++++++
-The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesRefAlt` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF to the columns of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "ref", and "alt".
+GenotypesVCF
+++++++++++++
+The :class:`Genotypes` class can be easily *extended* (sub-classed) to load extra fields into the ``variants`` structured array. The :class:`GenotypesVCF` class is an example of this where I extended the :class:`Genotypes` class to add REF and ALT fields from the VCF as a new column of the structured array. So the ``variants`` array will have named columns: "id", "chrom", "pos", "alleles". The new "alleles" column contains lists of alleles designed such that the first element in the list is the REF allele, the second is ALT1, the third is ALT2, etc.
 
-All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesRefAlt` class implements an additional method ``write()`` for dumping the contents of the class to the provided file.
+All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesVCF` class implements an additional method ``write()`` for dumping the contents of the class to the provided file.
 
 .. code-block:: python
 
-	genotypes = data.GenotypesRefAlt.load('tests/data/simple.vcf')
+	genotypes = data.GenotypesVCF.load('tests/data/simple.vcf')
 	# make the first sample homozygous for the alt allele of the fourth variant
 	genotypes.data[0, 3] = (1, 1)
 	genotypes.write()
@@ -182,13 +182,13 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 
 		pip install haptools[files]
 
-The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesRefAlt` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
+The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesVCF` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
 .. code-block:: python
 
 	genotypes = data.GenotypesPLINK.load('tests/data/simple.pgen')
 	genotypes.data     # a numpy array of shape n x p x 2
-	genotypes.variants # a numpy structured array of shape p x 6
+	genotypes.variants # a numpy structured array of shape p x 5
 	genotypes.samples  # a tuple of strings of length n
 
 In addition to the ``read()`` and ``load()`` methods, the :class:`GenotypesPLINK` class also has methods for reading (or writing) PVAR or PSAM files separately, without having to read (or write) the PGEN file as well.
@@ -198,7 +198,7 @@ In addition to the ``read()`` and ``load()`` methods, the :class:`GenotypesPLINK
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen')
 
 	genotypes.read_variants()
-	genotypes.variants # a numpy structured array of shape p x 6
+	genotypes.variants # a numpy structured array of shape p x 5
 
 	genotypes.read_samples()
 	genotypes.samples  # a tuple of strings of length n
@@ -305,14 +305,14 @@ To write to a **.hap** file, you must first initialize a :class:`Haplotypes` obj
 
 Obtaining haplotype "genotypes"
 *******************************
-Using the ``transform()`` function, you can obtain a full instance of the :class:`GenotypesRefAlt` class where haplotypes from a :class:`Haplotypes` object are encoded as the variants in the genotype matrix.
+Using the ``transform()`` function, you can obtain a full instance of the :class:`GenotypesVCF` class where haplotypes from a :class:`Haplotypes` object are encoded as the variants in the genotype matrix.
 
 .. code-block:: python
 
 	haplotypes = data.Haplotypes.load('tests/data/example.hap.gz')
-	genotypes = data.GenotypesRefAlt.load('tests/data/example.vcf.gz')
+	genotypes = data.GenotypesVCF.load('tests/data/example.vcf.gz')
 	hap_gts = haplotypes.transform(genotypes)
-	hap_gts   # a GenotypesRefAlt instance where haplotypes are variants
+	hap_gts   # a GenotypesVCF instance where haplotypes are variants
 
 Haplotype
 +++++++++

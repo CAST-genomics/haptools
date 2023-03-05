@@ -10,7 +10,7 @@ import click
 import numpy as np
 import matplotlib.pyplot as plt
 
-from haptools.data import GenotypesRefAlt, GenotypesPLINK
+from haptools.data import GenotypesVCF, GenotypesPLINK
 
 
 # COMMAND FOR GENERATING UKB PLOT:
@@ -32,7 +32,7 @@ def create_variant_files(gts, intervals, num_samps):
         sub.fname = variant_dir / f"{val}.pgen"
         sub.write()
         # write VCF files
-        vcf = GenotypesRefAlt(sub.fname.with_suffix(".vcf"))
+        vcf = GenotypesVCF(sub.fname.with_suffix(".vcf"))
         vcf.data = sub.data
         vcf.samples = sub.samples
         vcf.variants = sub.variants
@@ -51,7 +51,7 @@ def create_sample_files(gts, intervals, num_vars):
         sub.fname = sample_dir / f"{val}.pgen"
         sub.write()
         # write VCF files
-        vcf = GenotypesRefAlt(sub.fname.with_suffix(".vcf"))
+        vcf = GenotypesVCF(sub.fname.with_suffix(".vcf"))
         vcf.data = sub.data
         vcf.samples = sub.samples
         vcf.variants = sub.variants
@@ -60,7 +60,7 @@ def create_sample_files(gts, intervals, num_vars):
 
 
 def time_vcf(vcf, max_variants):
-    GenotypesRefAlt(vcf).read(max_variants=max_variants)
+    GenotypesVCF(vcf).read(max_variants=max_variants)
 
 
 def time_plink(pgen, max_variants):

@@ -17,7 +17,7 @@ from haptools.data import (
     Covariates,
     Haplotypes,
     Breakpoints,
-    GenotypesRefAlt,
+    GenotypesVCF,
     GenotypesPLINK,
 )
 
@@ -148,14 +148,15 @@ class TestGenotypes:
         assert gts.samples[:25] == samples
 
     def test_load_genotypes_iterate(self, caplog):
-        expected = self._get_expected_genotypes().transpose((1, 0, 2))
-        samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        expected = self._get_fake_genotypes()
 
         # can we load the data from the VCF?
         gts = Genotypes(DATADIR.joinpath("simple.vcf"))
         for idx, line in enumerate(gts):
-            np.testing.assert_allclose(line.data, expected[idx])
-        assert gts.samples == samples
+            np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
+            for col in ("chrom", "pos", "id"):
+                assert line.variants[col] == expected.variants[col][idx]
+        assert gts.samples == expected.samples
 
     def test_load_genotypes_discard_multiallelic(self):
         gts = self._get_fake_genotypes()
@@ -281,7 +282,7 @@ class TestGenotypes:
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
         pgenlib = pytest.importorskip("pgenlib")
-        gts_ref_alt = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
+        gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_refalt()
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
         gts.samples = gts_ref_alt.samples
@@ -299,7 +300,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_chunked(self):
@@ -313,7 +314,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_prephased(self):
@@ -327,7 +328,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
     def test_load_genotypes_iterate(self):
@@ -338,8 +339,11 @@ class TestGenotypesPLINK:
         # check that everything matches what we expected
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id"):
                 assert line.variants[col] == expected.variants[col][idx]
+            assert (
+                line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            )
         assert gts.samples == expected.samples
 
     def test_load_genotypes_subset(self):
@@ -390,7 +394,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -413,7 +417,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -437,7 +441,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -462,7 +466,7 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, new_gts.data)
         assert gts.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
-            for col in ("chrom", "pos", "id", "ref", "alt"):
+            for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == new_gts.variants[col][i]
 
         # clean up afterwards: delete the files we created
@@ -897,7 +901,7 @@ class TestHaplotypes:
         )
 
         hap = list(self._get_dummy_haps().data.values())[0]
-        gens = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
+        gens = TestGenotypesVCF()._get_fake_genotypes_refalt()
         hap_gt = hap.transform(gens)
         np.testing.assert_allclose(hap_gt, expected)
 
@@ -914,10 +918,10 @@ class TestHaplotypes:
         )
 
         haps = self._get_dummy_haps()
-        gens = TestGenotypesRefAlt()._get_fake_genotypes_refalt()
+        gens = TestGenotypesVCF()._get_fake_genotypes_refalt()
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
-        hap_gt = GenotypesRefAlt(fname=None)
+        hap_gt = GenotypesVCF(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
 
@@ -998,11 +1002,11 @@ class TestHaplotypes:
         test_hap1.fname.unlink()
 
 
-class TestGenotypesRefAlt:
+class TestGenotypesVCF:
     def _get_fake_genotypes_refalt(self, with_phase=False):
         base_gts = TestGenotypes()._get_fake_genotypes()
         # copy all of the fields
-        gts = GenotypesRefAlt(fname=None)
+        gts = GenotypesVCF(fname=None)
         gts.data = base_gts.data
         if with_phase:
             data_shape = (gts.data.shape[0], gts.data.shape[1], 1)
@@ -1011,42 +1015,45 @@ class TestGenotypesRefAlt:
                 (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
             )
         gts.samples = base_gts.samples
-        # add additional ref and alt alleles
-        ref_alt = np.array(
+        base_dtype = {k: v[0] for k, v in base_gts.variants.dtype.fields.items()}
+        ref_alt = [
+            ("T", "C"),
+            ("A", "G"),
+            ("C", "A"),
+            ("A", "G"),
+        ]
+        gts.variants = np.array(
+            [tuple(rec) + (ref_alt[idx],) for idx, rec in enumerate(base_gts.variants)],
+            dtype=(list(base_dtype.items()) + [("alleles", object)]),
+        )
+        return gts
+
+    def _get_fake_genotypes_multiallelic(self, with_phase=False):
+        gts = self._get_fake_genotypes_refalt(with_phase=with_phase)
+        # replace the necessary properties
+        gts.variants["alleles"] = np.array(
             [
                 ("T", "C"),
-                ("A", "G"),
+                ("A", "G", "T"),
                 ("C", "A"),
-                ("A", "G"),
+                ("A", "G", "C"),
             ],
-            dtype=[
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ],
+            dtype=gts.variants["alleles"].dtype,
         )
-        # see https://stackoverflow.com/a/5356137
-        gts.variants = rfn.merge_arrays((base_gts.variants, ref_alt), flatten=True)
+        gts.data[[2, 4], 1, [0, 1]] = 2
         return gts
 
     def test_read_ref_alt(self):
         # simple.vcf
-        gts_ref_alt_read = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
-        gts_ref_alt_read.read()
-        expected = np.array(
-            [
-                ("T", "C"),
-                ("A", "G"),
-                ("C", "A"),
-                ("A", "G"),
-            ],
-            dtype=gts_ref_alt_read.variants[["ref", "alt"]].dtype,
-        )
-        for i, x in enumerate(expected):
-            assert gts_ref_alt_read.variants[["ref", "alt"]][i] == x
+        expected = self._get_fake_genotypes_refalt()
+        gts = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
+        gts.read()
+        for i, x in enumerate(expected.variants["alleles"]):
+            assert gts.variants["alleles"][i] == x
 
         # example.vcf.gz
-        gts_ref_alt = GenotypesRefAlt(DATADIR.joinpath("example.vcf.gz"))
-        gts_ref_alt.read()
+        gts = GenotypesVCF(DATADIR.joinpath("example.vcf.gz"))
+        gts.read()
         expected = np.array(
             [
                 ("C", "A"),
@@ -1065,37 +1072,121 @@ class TestGenotypesRefAlt:
                 ("T", "C"),
                 ("C", "T"),
             ],
-            dtype=gts_ref_alt.variants[["ref", "alt"]].dtype,
+            dtype=gts.variants["alleles"].dtype,
         )
         for i, x in enumerate(expected):
-            assert gts_ref_alt.variants[["ref", "alt"]][i] == x
+            assert gts.variants["alleles"][i] == tuple(x.tolist())
 
-    def test_write_ref_alt(self):
+    def test_read_multiallelic(self):
+        # simple-multiallelic.vcf
+        expected = self._get_fake_genotypes_multiallelic(with_phase=True)
+
+        gts = GenotypesVCF(DATADIR.joinpath("simple-multiallelic.vcf"))
+        gts.read()
+        for i, x in enumerate(expected.variants["alleles"]):
+            assert gts.variants["alleles"][i] == x
+        np.testing.assert_allclose(gts.data, expected.data)
+
+    def test_write_ref_alt(self, multiallelic=False):
         # strategy is to read in the file, write it, and then read again
-        # read genotypes
-        gts_ref_alt_write = GenotypesRefAlt(DATADIR.joinpath("simple.vcf"))
-        gts_ref_alt_write.read()
-        gts_ref_alt_write.check_phase()
+        if multiallelic:
+            expected = self._get_fake_genotypes_multiallelic()
+            # read genotypes
+            gts = GenotypesVCF(DATADIR.joinpath("simple-multiallelic.vcf"))
+        else:
+            expected = self._get_fake_genotypes_refalt()
+            # read genotypes
+            gts = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
+        gts.read()
+        gts.check_phase()
         # write file to new file
         fname = DATADIR.joinpath("test.vcf")
-        gts_ref_alt_write.fname = fname
-        gts_ref_alt_write.write()
+        gts.fname = fname
+        gts.write()
         # read again
-        gts_ref_alt_write.read()
-        gts_ref_alt_write.check_phase()
+        gts.read()
+        gts.check_phase()
         # compare samples, data, variants, and ref/alt for equality
-        expected = self._get_fake_genotypes_refalt()
-        assert gts_ref_alt_write.samples == expected.samples
-        np.testing.assert_allclose(gts_ref_alt_write.data, expected.data)
+        assert gts.samples == expected.samples
+        np.testing.assert_allclose(gts.data, expected.data)
 
         for i, x in enumerate(expected.variants):
             # dtype.names gives us names of columns in the array
             for col in expected.variants.dtype.names:
                 # each row is a variant
                 # index into col, i gets specific variant, x iterates thru
-                assert gts_ref_alt_write.variants[col][i] == x[col]
+                assert gts.variants[col][i] == x[col]
 
-        os.remove(str(fname))
+        fname.unlink()
+
+    def test_write_multiallelic(self):
+        self.test_write_ref_alt(multiallelic=True)
+
+    def test_write_phase(self, prephased=True):
+        gts = self._get_fake_genotypes_refalt()
+
+        fname = DATADIR.joinpath("test_write_phase.vcf")
+        gts.fname = fname
+        if prephased:
+            gts._prephased = True
+        else:
+            # add phasing information back
+            gts.data = np.dstack(
+                (gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8))
+            )
+            gts.data[:2, 1, 2] = 0
+        gts.write()
+
+        new_gts = GenotypesVCF(fname)
+        if prephased:
+            new_gts._prephased = True
+        new_gts.read()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        fname.unlink()
+
+    def test_write_unphased(self):
+        self.test_write_phase(prephased=False)
+
+    def test_write_missing(self):
+        gts = self._get_fake_genotypes_refalt()
+        gts.fname = DATADIR.joinpath("test_write_missing.vcf")
+        vals = len(np.unique(gts.data))
+
+        gts.write()
+
+        new_gts = GenotypesVCF(gts.fname)
+        new_gts.read()
+
+        new_gts.check_missing()
+
+        # force two of the samples to have a missing GT
+        gts.data = gts.data.astype(np.int8)
+        gts.data[1, 1, 1] = -1
+        gts.data = gts.data.astype(np.uint8)
+
+        gts.write()
+
+        new_gts = GenotypesVCF(gts.fname)
+        new_gts.read()
+
+        assert len(np.unique(gts.data)) == (vals + 1)
+
+        with pytest.raises(ValueError) as info:
+            gts.check_missing()
+        assert (
+            str(info.value)
+            == "Genotype with ID 1:10116:A:G at POS 1:10116 is missing for sample"
+            " HG00097"
+        )
+
+        gts.fname.unlink()
 
 
 class TestBreakpoints:
@@ -1280,3 +1371,36 @@ class TestBreakpoints:
         with pytest.raises(ValueError) as info:
             pop_arr = expected.population_array(variants[[0, 1, 3]])
         assert str(info.value).startswith("Chromosome ")
+
+
+class TestDocExamples:
+    def test_gts2hap(self):
+        # which variants do we want to write to the haplotype file?
+        variants = {"rs429358", "rs7412"}
+
+        # load the genotypes file
+        # you can use either a VCF or PGEN file
+        gt = GenotypesVCF("tests/data/apoe.vcf.gz")
+        gt.read(variants=variants)
+
+        # initialize an empty haplotype file
+        hp = Haplotypes("output.hap", haplotype=Haplotype)
+        hp.data = {}
+
+        for variant in gt.variants:
+            ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]
+            end = pos + len(alleles[1])
+
+            # create a haplotype line in the .hap file
+            # you should fill out "beta" with your own value
+            hp.data[ID] = HaptoolsHaplotype(
+                chrom=chrom, start=pos, end=end, id=ID, beta=0.5
+            )
+
+            # create variant lines for each haplotype
+            hp.data[ID].variants = (
+                Variant(start=pos, end=end, id=ID, allele=alleles[1]),
+            )
+
+        hp.write()
+        hp.fname.unlink()
