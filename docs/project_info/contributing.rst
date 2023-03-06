@@ -116,6 +116,8 @@ First, locate the definition of the command in `__main__.py <https://github.com/
 
 You can add a ``@click.option`` or ``@click.argument`` line if you want to add a new option or argument. Please follow `click's convention <https://click.palletsprojects.com/parameters/#parameters>`_ and only use ``@click.argument`` for required arguments and ``@click.option`` for optional ones. See `the click documentation <https://click.palletsprojects.com/#documentation>`_ for directions on modifying or adding parameters like options/arguments.
 
+Please note that any modifications to our CLI represent a BREAKING change to haptools. To note this, please add an exclamation point ``!`` to your pull request prefix as described in the `conventional commits spec <https://www.conventionalcommits.org/>`_.
+
 ~~~~~~~~~~~~~~~~~
 Add a new command
 ~~~~~~~~~~~~~~~~~
@@ -159,6 +161,24 @@ To add a new command, you only have to define a new function in `__main__.py <ht
 
 Notice that we usually define a logging object here to use throughout our code. For more information about logging, see the :ref:`section about it below <contributing-style-errors>`. All ``haptools`` commands should use a default verbosity of ``INFO``.
 
+~~~~~~~~~~~~~~~~~~~~~
+Documentating our CLI
+~~~~~~~~~~~~~~~~~~~~~
+
++++++++++++++++++++++++++++++++
+For command-line option changes
++++++++++++++++++++++++++++++++
+
+Any new or modified command-line options will be automatically documented via **click**. The changes should appear in the *Detailed Usage* section of the documentation for the command that you changed.
+
+In addition to the auto-documented changes, you might want to consider adding a new example of the usage of your option to the *Examples* section of the documentation for the command that you changed. All examples in our documentation should also be executed within a file in our `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_.
+
+++++++++++++++++
+For new commands
+++++++++++++++++
+
+After you add a new command, you should make sure to create tests for it in the `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_. You should also create a new page in the *Commands* section of our documentation with sections for a short description, an abbreviated usage, example commands, and a detailed usage (which is auto-generated). You can refer to :ref:`the index command <commands-index>` as an example. To ensure your new documentation page appears in our table of contents, add the name of the page to the list at the bottom of our `index.rst file <https://github.com/CAST-genomics/haptools/blob/main/docs/index.rst>`_.
+
 .. _code-check-instructions:
 
 -----------
@@ -177,7 +197,7 @@ Before creating your pull request, please run each of our code checks.
     .. code-block:: bash
 
         sphinx-build docs docs/_build
-        open docs/_build/html/index.html
+        open docs/_build/index.html
 
 3. Run all of the tests
 
