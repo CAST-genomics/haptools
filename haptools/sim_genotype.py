@@ -382,16 +382,12 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
     # sort coordinate files to ensure coords read are in sorted order
     # remove all chr files not found in chroms list
     all_coord_files = glob.glob(f'{coords_dir}/*.map')
-    if region:
-        try:
-            all_coord_files = [coord_file for coord_file in all_coord_files \
-                        if f"chr{region['chr']}" in coord_file]
-        except:
-            raise Exception(f"Unable to find region chromosome {region['chr']} in map file directory.")
-    else:
-        all_coord_files = [coord_file for coord_file in all_coord_files \
-                       if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
-        all_coord_files.sort(key=numeric_alpha)
+    all_coord_files = [coord_file for coord_file in all_coord_files \
+                if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+    all_coord_files.sort(key=numeric_alpha)
+
+    if len(all_coord_files) != len(chroms):
+        raise Exception(f"Unable to find all chromosomes {chroms} in map file directory.")
     
     # coords list has form chroms x coords
     coords = []
