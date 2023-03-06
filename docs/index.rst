@@ -48,6 +48,13 @@ We gladly welcome any contributions to ``haptools``!
 
 Please read our :doc:`contribution guidelines </project_info/contributing>` and then submit a `Github issue <https://github.com/cast-genomics/haptools/issues>`_.
 
+Citing
+~~~~~~
+
+There is an option to *Cite this repository* on the right sidebar of `the repository homepage <https://github.com/CAST-genomics/haptools>`_.
+
+   Arya R Massarat, Michael Lamkin, Ciara Reeve, Amy L Williams, Matteo D’Antonio, Melissa Gymrek, Haptools: a toolkit for admixture and haplotype analysis, Bioinformatics, 2023;, btad104, https://doi.org/10.1093/bioinformatics/btad104
+
 
 .. toctree::
    :caption: Overview
