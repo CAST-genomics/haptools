@@ -9,6 +9,8 @@ import sys
 from haptools.data.genotypes import GenotypesRefAlt
 from haptools.data.genotypes import GenotypesTR # TODO for GenotypesTR import trtools first then if not use the code
 
+# TODO update all print statements with log variable
+
 class Variant:
     def __init__(self, varid, chrom, pos, pval, vartype):
         self.varid = varid
@@ -41,7 +43,10 @@ class SummaryStats:
 
         # First, parse header line to get col. numbers
         f = open(statsfile, "r")
-        header_items = [item.strip() for item in f.readline().split()]
+        header = f.readline()
+        if header.startswith('#'):
+            header = header[1:]
+        header_items = [item.strip() for item in header.split()]
         try:
             snp_col = header_items.index(snp_field)
         except ValueError:
@@ -134,7 +139,7 @@ def LoadVariant(var, snpgts, strgts):
     # if it's a SNP we should take from data matrix in GenotypesRefAlt
     # if it's a STR we should take from data matrix in GenotypesTR
     # Grab variant from snps or strs depending on variant type
-    if var.vartype == 'snp':
+    if var.vartype.lower() == 'snp':
         var_ind = (snpgts.variants['pos']==int(var.pos)) & \
                   (snpgts.variants['chrom']==var.chrom)
         variant_gts = np.sum(snpgts.data[:, var_ind,:], axis=2).flatten()
@@ -189,7 +194,7 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     snpgts = None
     strgts = None
     if gts_snps is not None:
-        snpgts = GenotypesRefAlt.load(gts_snps)
+        snpgts = GenotypesRefAlt.load(gts_snps) # TODO need to check if input is PGEN (use GenotypesPLINK instead)
     if gts_strs is not None:
         pass # TODO remove once GenotypesTR is implemented
         #strgts = GenotypesTR.load(gts_strs)
