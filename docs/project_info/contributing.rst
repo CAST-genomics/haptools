@@ -217,7 +217,7 @@ Publish a new version
 To publish a new version of haptools:
 
 1. First, locate `the most recent haptools PR <https://github.com/CAST-genomics/haptools/pulls>`_ prefixed "chore(main)" created by our Github actions bot
-2. Comment "/check" on the PR to force the required checks to run and then merge the PR
+2. List an admin on our repository (currently: ``@aryarm``) as a reviewer of the PR and ask them to merge it
 3. The bot will automatically create a new version on PyPI and tag a release on Github
 4. A few hours later, bioconda will automatically detect the new release on PyPI and create a PR in `their repository <https://github.com/bioconda/bioconda-recipes/pulls>`_
 5. Check that all of the dependencies in the recipe have been updated properly. If they are, you should comment on the bioconda PR with "@BiocondaBot please add label"
