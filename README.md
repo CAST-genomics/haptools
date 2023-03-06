@@ -11,3 +11,8 @@ Homepage: [https://haptools.readthedocs.io/](https://haptools.readthedocs.io/)
 Visit our homepage for installation and usage instructions.
 
 ![haptools commands](https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_)
+
+## citation
+There is an option to _"Cite this repository"_ on the right sidebar of [the repository homepage](https://github.com/CAST-genomics/haptools)
+
+> Arya R Massarat, Michael Lamkin, Ciara Reeve, Amy L Williams, Matteo D’Antonio, Melissa Gymrek, Haptools: a toolkit for admixture and haplotype analysis, Bioinformatics, 2023;, btad104, https://doi.org/10.1093/bioinformatics/btad104

@@ -26,12 +26,14 @@ Fix a bug
 ~~~~~~~~~
 Look through our issues page for bugs. We especially need help with bugs labeled "help wanted". If you want to start working on a bug then please write a message within the thread for that issue on our issues page, so that no one is duplicating work.
 
+Please add a test reproducing the bug in our `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_.
+
 ~~~~~~~~~~~~~~~~~~~~~~~
 Implement a new feature
 ~~~~~~~~~~~~~~~~~~~~~~~
 Our issues page will almost always have features on our wishlist. Once again, if you want to start working on a feature then please write a message within the thread for that feature on our issues page, so that no one is duplicating work.
 
-Have an idea for a new feature that isn't on our wishlist? We'd love to hear about it! Before getting to work, please create a Github issue for it, so that you can make sure we're in agreement about what it should do.
+Have an idea for a new feature that isn't on our wishlist? We'd love to hear about it! Before getting to work, please create a Github issue for it, so that you can make sure we're in agreement about what it should do. After you finish the feature, please add tests and documentation for it, as well.
 
 -------------------------------------------
 How to fix a bug or implement a new feature
@@ -103,6 +105,82 @@ You should specify a `version constraint <https://python-poetry.org/docs/master/
 
         poetry add 'click>=8.0.4'
 
+
+------------------------------------------
+Modifying our command line interface (CLI)
+------------------------------------------
+We use the `click library <https://click.palletsprojects.com/>`_ to define ``haptools``'s command line interface as `nested commands <https://click.palletsprojects.com/quickstart/#nesting-commands>`_. All of the CLI logic is defined in `__main__.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/__main__.py>`_.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Add or modify a command-line option
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+First, locate the definition of the command in `__main__.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/__main__.py>`_
+
+You can add a ``@click.option`` or ``@click.argument`` line if you want to add a new option or argument. Please follow `click's convention <https://click.palletsprojects.com/parameters/#parameters>`_ and only use ``@click.argument`` for required arguments and ``@click.option`` for optional ones. See `the click documentation <https://click.palletsprojects.com/#documentation>`_ for directions on modifying or adding parameters like options/arguments.
+
+Please note that any modifications to our CLI represent a BREAKING change to haptools. To note this, please add an exclamation point ``!`` to your pull request prefix as described in the `conventional commits spec <https://www.conventionalcommits.org/>`_.
+
+~~~~~~~~~~~~~~~~~
+Add a new command
+~~~~~~~~~~~~~~~~~
+To add a new command, you only have to define a new function in `__main__.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/__main__.py>`_. Within that function, you can import and call the rest of your code. For example, to add a command called ``mycommand`` which takes a single required file called ``arg1``, you might do the following.
+
+.. code-block:: python
+
+    @main.command(short_help="A short description of my command")
+    @click.argument("arg1", type=click.Path(exists=True, path_type=Path))
+    @click.option(
+        "-o",
+        "--output",
+        type=click.Path(path_type=Path),
+        default=Path("/dev/stdout"),
+        show_default="stdout",
+        help="The output of my command",
+    )
+    @click.option(
+        "-v",
+        "--verbosity",
+        type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+        default="INFO",
+        show_default=True,
+        help="The level of verbosity desired",
+    )
+    def mycommand(
+        arg1: Path,
+        output: Path = None,
+        verbosity: str = "INFO",
+    ):
+        """
+        A longer description of mycommand
+        """
+
+        from .mycommand import run_things
+        from .logging import getLogger
+
+        log = getLogger(name="mycommand", level=verbosity)
+
+        run_things(arg1, output, log)
+
+Notice that we usually define a logging object here to use throughout our code. For more information about logging, see the :ref:`section about it below <contributing-style-errors>`. All ``haptools`` commands should use a default verbosity of ``INFO``.
+
+~~~~~~~~~~~~~~~~~~~~~
+Documentating our CLI
+~~~~~~~~~~~~~~~~~~~~~
+
++++++++++++++++++++++++++++++++
+For command-line option changes
++++++++++++++++++++++++++++++++
+
+Any new or modified command-line options will be automatically documented via **click**. The changes should appear in the *Detailed Usage* section of the documentation for the command that you changed.
+
+In addition to the auto-documented changes, you might want to consider adding a new example of the usage of your option to the *Examples* section of the documentation for the command that you changed. All examples in our documentation should also be executed within a file in our `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_.
+
+++++++++++++++++
+For new commands
+++++++++++++++++
+
+After you add a new command, you should make sure to create tests for it in the `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_. You should also create a new page in the *Commands* section of our documentation with sections for a short description, an abbreviated usage, example commands, and a detailed usage (which is auto-generated). You can refer to :ref:`the index command <commands-index>` as an example. To ensure your new documentation page appears in our table of contents, add the name of the page to the list at the bottom of our `index.rst file <https://github.com/CAST-genomics/haptools/blob/main/docs/index.rst>`_.
+
 .. _code-check-instructions:
 
 -----------
@@ -121,7 +199,7 @@ Before creating your pull request, please run each of our code checks.
     .. code-block:: bash
 
         sphinx-build docs docs/_build
-        open docs/_build/html/index.html
+        open docs/_build/index.html
 
 3. Run all of the tests
 
@@ -141,7 +219,7 @@ Publish a new version
 To publish a new version of haptools:
 
 1. First, locate `the most recent haptools PR <https://github.com/CAST-genomics/haptools/pulls>`_ prefixed "chore(main)" created by our Github actions bot
-2. Comment "/check" on the PR to force the required checks to run and then merge the PR
+2. List an admin on our repository (currently: ``@aryarm``) as a reviewer of the PR and ask them to merge it
 3. The bot will automatically create a new version on PyPI and tag a release on Github
 4. A few hours later, bioconda will automatically detect the new release on PyPI and create a PR in `their repository <https://github.com/bioconda/bioconda-recipes/pulls>`_
 5. Check that all of the dependencies in the recipe have been updated properly. If they are, you should comment on the bioconda PR with "@BiocondaBot please add label"
@@ -161,6 +239,8 @@ Code
         i. from the python standard library
         ii. from external, third party packages
         iii. from our own internal code
+
+.. _contributing-style-errors:
 
 ~~~~~~
 Errors

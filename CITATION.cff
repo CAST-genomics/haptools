@@ -1,0 +1,45 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'Haptools: a toolkit for admixture and haplotype analysis'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Arya R
+    family-names: Massarat
+    affiliation: >-
+      Bioinformatics and Systems Biology Graduate Program, Department of Bioengineering, University of California San Diego, La Jolla, 92093, USA
+    orcid: 'https://orcid.org/0000-0002-3679-0345'
+  - given-names: Michael
+    family-names: Lamkin
+    affiliation: >-
+      Department of Computer Science and Engineering, University of California San Diego, La Jolla, 92093, USA
+    orcid: 'https://orcid.org/0000-0000-1579-7191'
+  - given-names: Ciara
+    family-names: Reeve
+    affiliation: >-
+      Department of Bioengineering, University of California San Diego, La Jolla, 92093, USA
+  - given-names: Amy L
+    family-names: Williams
+    affiliation: '23andMe, Inc., Sunnyvale, California, 94086, USA'
+    orcid: 'https://orcid.org/0000-0003-0737-0533'
+  - given-names: Matteo
+    family-names: D’Antonio
+    affiliation: >-
+      Department of Biomedical Informatics, Department of Medicine, University of California San Diego, La Jolla, 92093, USA
+    orcid: 'https://orcid.org/0000-0001-5844-6433'
+  - given-names: Melissa
+    family-names: Gymrek
+    email: mgymrek@eng.ucsd.edu
+    affiliation: >-
+      Department of Computer Science and Engineering, University of California San Diego, La Jolla, 92093, USA & Department of Medicine, University of California San Diego, La Jolla, 92093, USA
+    orcid: 'https://orcid.org/0000-0002-6086-3903'
+identifiers:
+  - type: doi
+    value: 10.1093/bioinformatics/btad104
+repository-code: 'https://github.com/CAST-genomics/haptools'
+url: 'https://haptools.readthedocs.io/'
+license: MIT
