@@ -9,7 +9,7 @@ from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
-from .data import GenotypesRefAlt, GenotypesPLINK
+from .data import GenotypesVCF, GenotypesPLINK
 from .transform import GenotypesAncestry
 
 
@@ -22,6 +22,7 @@ def output_vcf(
         region, 
         pop_field, 
         sample_field, 
+        no_replacement,
         out, 
         log
     ):
@@ -62,13 +63,16 @@ def output_vcf(
         Flag to determine whether to have the population field in the VCF file output
     sample_field: boolean
         Flag to determine whether to have the sample field in the VCF file output
+    no_replacement: boolean
+        Flag to determine whether we sample from the reference VCF with or without
+        replacement. When True there will be no replacement.
     out: str
         output prefix
     log: log object
         Outputs messages to the appropriate channel.
     """
 
-    log.info(f"Outputting VCF file {out}.vcf.gz")
+    log.info(f"Outputting file {out}")
 
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
@@ -100,18 +104,25 @@ def output_vcf(
     if variant_file.endswith(".pgen"):
         vcf = GenotypesPLINK(variant_file, log=log)
     else:
-        vcf = GenotypesRefAlt(variant_file, log=log)
+        vcf = GenotypesVCF(variant_file, log=log)
     
     if not region:
         vcf.read()
     else:
         vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
 
+    if variant_file.endswith(".pgen"):
+        # the pgenlib library collapses multiallelic variants into a single allele
+        vcf.check_biallelic()
+
     log.debug(f"Read in variants from {variant_file}")
 
     sample_dict = {}
     for ind, sample in enumerate(vcf.samples):
         sample_dict[sample] = ind
+
+    # initialize hap_used array which should contain list of lists for each reference sample's genome and what segment has been used for each
+    haps_used = [[] for samp in range(len(vcf.samples)*2)]
 
     log.debug(f"Created index array storing per sample which segment is being processed.")
 
@@ -140,8 +151,10 @@ def output_vcf(
         for chrom in chroms:
             # limit reference vcf variants to current chrom
             ref_vars_chrom = ref_vars["pos"][ref_vars["chrom"] == f"{cur_chrom}{chrom}"]
-            # Convert haplotype to numpy array of segment position, populations, and samples
-            hap_positions, hap_pops, hap_samples_name, hap_samples_ind = _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict)
+
+            # Convert haplotype to numpy array of segment position, populations, samples, and sample haplotypes
+            hap_positions, hap_pops, hap_samples_name, hap_samples_ind, hap_sample_haps = \
+                    _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict, haps_used, no_replacement)
 
             # if the variant position is = breakpoint end then we consider it part of that bkp
             bkp_pos = np.searchsorted(ref_vars_chrom, hap_positions, side='right')
@@ -153,12 +166,20 @@ def output_vcf(
             # create ref_gts from mapping hap_samples to their respective genotypes 
             ref_sample_inds_chrom = np.repeat(hap_samples_ind, inter_len)
 
+            # select which alleles for each segment
+            if no_replacement:
+                ref_sample_haps_chrom = np.repeat(hap_sample_haps, inter_len)
+            else:
+                hap_sample_haps = np.random.randint(2, size=len(hap_samples_ind))
+                ref_sample_haps_chrom = np.repeat(hap_sample_haps, inter_len)
+
             # grab random haplotype from samples and use as gts for our simulated samples
             end_var = cur_var+ref_sample_inds_chrom.shape[0]
             gt_vars = np.arange(cur_var, end_var, 1)
+
             ref_gts_chrom = vcf.data[ref_sample_inds_chrom,
                                      gt_vars,
-                                     np.random.randint(2, size=len(gt_vars))]
+                                     ref_sample_haps_chrom]
             ref_gts[cur_var:end_var] = ref_gts_chrom
 
             if pop_field:
@@ -195,7 +216,7 @@ def output_vcf(
                 gts.valid_labels = output_labels
 
         if not pop_field and not sample_field:
-            gts = GenotypesRefAlt(out, log=log)
+            gts = GenotypesVCF(out, log=log)
 
     else:
         gts = GenotypesPLINK(out, log=log)
@@ -208,13 +229,14 @@ def output_vcf(
     
     return
 
-def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
+def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict, haps_used, no_replacement):
     if chrom == 'X': chrom = 23
     # Do binary search to find beginning of chr in haplotype segments
     hap_start_ind = start_segment(0, int(chrom), haplotype)
     hap_subset = haplotype[hap_start_ind:]
     hap_pos = []
     hap_pops = []
+    hap_inds = []
     hap_samples = []
     hap_samples_ind = []
 
@@ -222,7 +244,38 @@ def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
     for segment in hap_subset:
         if not segment.get_chrom() == int(chrom):
             break
-        sample_name = np.random.choice(pop_sample[pop_dict[segment.get_pop()]])
+
+        # Grab reference sample to take variants for current segment
+        population = pop_dict[segment.get_pop()]
+
+        # Sample without replacement by keeping track of all segments used for each sample
+        if no_replacement:
+            # Shuffle samples for each pop if no_replacement to have random selection of samples
+            np.random.shuffle(pop_sample[population])
+                
+            # No segments have been collected yet so start at position 0
+            if not hap_pos:
+                sample_name, hap_ind = _find_random_sample(
+                                                pop_sample[population],
+                                                sample_dict,
+                                                haps_used,
+                                                chrom,
+                                                0,
+                                                segment.get_end_coord(),
+                                                )
+            else:
+                sample_name, hap_ind = _find_random_sample(
+                                                pop_sample[population],
+                                                sample_dict,
+                                                haps_used,
+                                                chrom,
+                                                hap_pos[-1]+1,
+                                                segment.get_end_coord(),
+                                                )
+            hap_inds.append(hap_ind)
+        else:
+            sample_name = np.random.choice(pop_sample[population])
+        
         hap_pos.append(segment.get_end_coord())
         hap_pops.append(segment.get_pop())
         hap_samples.append(sample_name)
@@ -231,7 +284,30 @@ def _convert_haplotype(haplotype, chrom, pop_dict, pop_sample, sample_dict):
     return np.asarray(hap_pos, dtype=np.int64), \
            np.asarray(hap_pops, dtype=np.uint8), \
            np.asarray(hap_samples, dtype=object), \
-           np.asarray(hap_samples_ind, dtype=np.int32)
+           np.asarray(hap_samples_ind, dtype=np.int32), \
+           np.asarray(hap_inds, dtype=np.uint8)
+
+def _find_random_sample(samples, sample_dict, haps_used, chrom, start_coord, end_coord):
+    for sample in samples:
+        for haplotype in range(2):
+            # Determine whether the coord we want to sample is being used
+            if _find_coord(haps_used[sample_dict[sample]*2+haplotype], chrom, start_coord, end_coord):
+                continue
+            else:
+                return sample, haplotype
+
+    raise Exception(f"No available sample for the current coords {start_coord}-{end_coord}.")
+
+def _find_coord(cur_hap, chrom, start_coord, end_coord):
+    if cur_hap:
+        for coords in cur_hap:
+            # check for whether the segment has already been used or partially been used
+            if chrom == coords[0]:
+                if start_coord <= coords[1] < end_coord or start_coord < coords[2] <= end_coord: 
+                    return True
+    # segment isn't found so add segment to current sample's haplotype
+    cur_hap.append((chrom, start_coord, end_coord))
+    return False
 
 def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None):
     """
@@ -306,16 +382,12 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
     # sort coordinate files to ensure coords read are in sorted order
     # remove all chr files not found in chroms list
     all_coord_files = glob.glob(f'{coords_dir}/*.map')
-    if region:
-        try:
-            all_coord_files = [coord_file for coord_file in all_coord_files \
-                        if f"chr{region['chr']}" in coord_file]
-        except:
-            raise Exception(f"Unable to find region chromosome {region['chr']} in map file directory.")
-    else:
-        all_coord_files = [coord_file for coord_file in all_coord_files \
-                       if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
-        all_coord_files.sort(key=numeric_alpha)
+    all_coord_files = [coord_file for coord_file in all_coord_files \
+                if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+    all_coord_files.sort(key=numeric_alpha)
+
+    if len(all_coord_files) != len(chroms):
+        raise Exception(f"Unable to find all chromosomes {chroms} in map file directory.")
     
     # coords list has form chroms x coords
     coords = []
@@ -738,7 +810,7 @@ def start_segment(start, chrom, segments):
 
     return len(segments)
 
-def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region=None, only_bp=False):
+def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, no_replacement, region=None, only_bp=False):
     # validate model file
     mfile = open(model, 'r')
     num_samples, *pops = mfile.readline().strip().split()
@@ -832,19 +904,27 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, region=N
 
     # validate sample_info file (ensure pops given are in model file and samples in vcf file)
     # ensure sample_info col 2 in pops
+    total_per_pop = {}
     sample_pops = set()
     for line in open(sample_info, 'r'):
         sample = line.split()[0]
         info_pop = line.split()[1]
         sample_pops.add(info_pop)
+        if not total_per_pop.get(info_pop, False):
+            total_per_pop[info_pop] = 1
+        else:
+            total_per_pop[info_pop] += 1
 
-        if sample not in vcf_samples:
-            raise Exception(f"Sample {sample} in sampleinfo file is not present in the vcf file.")
+        if sample not in vcf_samples and info_pop in pops:
+            raise Exception(f"Sample {sample} from population {info_pop} in sampleinfo file is not present in the vcf file.")
     
-    # Ensure that all populations from the model file are listed in the sample info file
+    # Ensure that all populations from the model file are listed in the sample info file 
+    #    and that there is sufficient enough samples when no_replacement is specified
     for model_pop in pops[1:]:
         if model_pop not in list(sample_pops):
             raise Exception(f"Population {model_pop} in model file is not present in the sample info file.")
+        if no_replacement and total_per_pop[model_pop] < num_samples:
+            raise Exception(f"Population {model_pop} does not have enough samples to sample without replacement. Please ensure that each population specified has >= total number of samples output: {num_samples}")
 
     # Ensure that the region parameter can be properly interpreted
     if region:

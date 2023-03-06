@@ -152,7 +152,7 @@ def calc_ld(
         gt = data.GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
     else:
         log.info("Loading genotypes from VCF/BCF file")
-        gt = data.GenotypesRefAlt(fname=genotypes, log=log)
+        gt = data.GenotypesVCF(fname=genotypes, log=log)
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
@@ -180,7 +180,7 @@ def calc_ld(
 
     if not from_gts:
         log.info("Transforming genotypes via haplotypes")
-        hp_gt = data.GenotypesRefAlt(fname=None, log=log)
+        hp_gt = data.GenotypesVCF(fname=None, log=log)
         hp.transform(gt, hp_gt)
 
     log.info("Obtaining target genotypes")

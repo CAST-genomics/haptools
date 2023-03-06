@@ -12,8 +12,8 @@ from haptools.transform import (
     GenotypesAncestry,
 )
 from haptools.__main__ import main
-from .test_data import TestGenotypesRefAlt
-from haptools.data import Variant, GenotypesRefAlt, GenotypesPLINK
+from .test_data import TestGenotypesVCF
+from haptools.data import Variant, GenotypesVCF, GenotypesPLINK
 
 
 DATADIR = Path(__file__).parent.joinpath("data")
@@ -37,7 +37,7 @@ class TestGenotypesAncestry:
         return expected
 
     def _get_fake_genotypes(self):
-        base_gts = TestGenotypesRefAlt()._get_fake_genotypes_refalt(with_phase=True)
+        base_gts = TestGenotypesVCF()._get_fake_genotypes_refalt(with_phase=True)
         # copy all of the fields
         gts = GenotypesAncestry(fname=None)
         gts.data = base_gts.data
@@ -131,7 +131,7 @@ class TestGenotypesAncestry:
         assert False
 
     @pytest.mark.xfail(reason="not implemented yet")
-    def test_write_genotypes_unphased(self):
+    def test_write_genotypes_phase(self, prephased=True):
         assert False
 
 
@@ -199,7 +199,7 @@ class TestHaplotypesAncestry:
         gens = TestGenotypesAncestry()._get_fake_genotypes()
         gens.check_phase()
 
-        hap_gt = GenotypesRefAlt(fname=None)
+        hap_gt = GenotypesVCF(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
 
@@ -208,7 +208,7 @@ class TestHaplotypesAncestry:
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
 
-        hap_gt = GenotypesRefAlt(fname=None)
+        hap_gt = GenotypesVCF(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
 
@@ -242,7 +242,7 @@ def test_basic_subset(capfd):
 """
 
     # first, remove the last two variants in the genotypes file
-    gts = GenotypesRefAlt.load("tests/data/simple.vcf")
+    gts = GenotypesVCF.load("tests/data/simple.vcf")
     gts.fname = Path("simple_minus_two.vcf")
     gts.subset(variants=tuple(gts.variants["id"][:-2]), inplace=True)
     gts.write()

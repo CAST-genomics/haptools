@@ -14,7 +14,6 @@ from .data import (
     Phenotypes,
     Haplotypes,
     GenotypesPLINK,
-    GenotypesRefAlt,
 )
 
 

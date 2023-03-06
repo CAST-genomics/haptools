@@ -24,7 +24,7 @@ As an example, let's say we would like to convert the following ``.blocks.det`` 
 
     # load the genotypes file
     # you can use either a VCF or PGEN file
-    gt = data.GenotypesRefAlt.load("input.vcf.gz")
+    gt = data.GenotypesVCF.load("input.vcf.gz")
     gt = data.GenotypesPLINK.load("input.pgen")
 
     # load the haplotypes
@@ -46,9 +46,9 @@ As an example, let's say we would like to convert the following ``.blocks.det`` 
 
             # create variant lines for each haplotype
             # Note that the .blocks.det file doesn't specify an allele, so
-            # we simply choose the REF allele for this example
+            # we simply choose the first allele (ie the REF allele) for this example
             hp.data[hap_id].variants = tuple(
-                data.Variant(start=v["pos"], end=v["pos"]+len(v["ref"]), id=v["id"], allele=v["ref"])
+                data.Variant(start=v["pos"], end=v["pos"]+len(v["alleles"][0]), id=v["id"], allele=v["alleles"][0])
                 for v in snp_gts.variants
             )
 
@@ -84,7 +84,7 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
 
     # load the genotypes file
     # you can use either a VCF or PGEN file
-    gt = data.GenotypesRefAlt("tests/data/apoe.vcf.gz")
+    gt = data.GenotypesVCF("tests/data/apoe.vcf.gz")
     gt.read(variants=variants)
     # the advantage of using a PGEN file is that you can use read_variants() to load
     # the variants quickly w/o having to load the genotypes, too
@@ -96,14 +96,14 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
     hp.data = {}
 
     for variant in gt.variants:
-        ID, chrom, pos, alt = variant[["id", "chrom", "pos", "alt"]]
-        end = pos + len(alt)
+        ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]
+        end = pos + len(alleles[1])
 
         # create a haplotype line in the .hap file
         # you should fill out "beta" with your own value
         hp.data[ID] = Haplotype(chrom=chrom, start=pos, end=end, id=ID, beta=0.5)
 
         # create variant lines for each haplotype
-        hp.data[ID].variants = (data.Variant(start=pos, end=end, id=ID, allele=alt),)
+        hp.data[ID].variants = (data.Variant(start=pos, end=end, id=ID, allele=alleles[1]),)
 
     hp.write()
