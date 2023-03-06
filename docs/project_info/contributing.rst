@@ -26,12 +26,14 @@ Fix a bug
 ~~~~~~~~~
 Look through our issues page for bugs. We especially need help with bugs labeled "help wanted". If you want to start working on a bug then please write a message within the thread for that issue on our issues page, so that no one is duplicating work.
 
+Please add a test reproducing the bug in our `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_.
+
 ~~~~~~~~~~~~~~~~~~~~~~~
 Implement a new feature
 ~~~~~~~~~~~~~~~~~~~~~~~
 Our issues page will almost always have features on our wishlist. Once again, if you want to start working on a feature then please write a message within the thread for that feature on our issues page, so that no one is duplicating work.
 
-Have an idea for a new feature that isn't on our wishlist? We'd love to hear about it! Before getting to work, please create a Github issue for it, so that you can make sure we're in agreement about what it should do.
+Have an idea for a new feature that isn't on our wishlist? We'd love to hear about it! Before getting to work, please create a Github issue for it, so that you can make sure we're in agreement about what it should do. After you finish the feature, please add tests and documentation for it, as well.
 
 -------------------------------------------
 How to fix a bug or implement a new feature
