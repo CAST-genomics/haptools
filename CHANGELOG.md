@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0](https://github.com/CAST-genomics/haptools/compare/v0.1.3...v0.2.0) (2023-03-06)
+
+
+### Features
+
+* `Phenotypes.check missing()` method ([#191](https://github.com/CAST-genomics/haptools/issues/191)) ([621fc62](https://github.com/CAST-genomics/haptools/commit/621fc624d8b58223349767139ddd93bab6d622d3))
+* Sampling without replacement option for simgenotype ([#194](https://github.com/CAST-genomics/haptools/issues/194)) ([85bd494](https://github.com/CAST-genomics/haptools/commit/85bd4946fe70e72d8e18175cc9b19acbd9e39299))
+
+
+### Bug Fixes
+
+* Fixed faulty coord file parsing logic ([#196](https://github.com/CAST-genomics/haptools/issues/196)) ([f9819b1](https://github.com/CAST-genomics/haptools/commit/f9819b15416eb1c596f8e84167f1336f6885fdd6))
+* regression in multiallelic support for `simgenotype` ([#195](https://github.com/CAST-genomics/haptools/issues/195)) ([b57f91f](https://github.com/CAST-genomics/haptools/commit/b57f91fcd519845de23ce731648278bec6e3d056))
+
+
+### Documentation
+
+* describe how to add to our CLI ([#193](https://github.com/CAST-genomics/haptools/issues/193)) ([2056c7e](https://github.com/CAST-genomics/haptools/commit/2056c7e8488fdb5b2c3e47c10b98e8428fa0f07a))
+
 ## [0.1.3](https://github.com/CAST-genomics/haptools/compare/v0.1.2...v0.1.3) (2023-02-10)
 
 
