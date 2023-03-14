@@ -137,7 +137,7 @@ Additionally, you can use the ``check_maf()`` method after checking for missing 
 	genotypes.read()
 	genotypes.check_missing()
 	genotypes.check_biallelic()
-	genotypes.check_maf(threshold=0.05)
+	genotypes.check_maf(threshold=0)
 	genotypes.check_phase()
 
 Subsetting
@@ -258,7 +258,7 @@ The ``load()`` method initializes an instance of the :class:`Haplotypes` class a
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes('tests/data/basic.hap', Haplotype, Variant)
+	haplotypes = data.Haplotypes('tests/data/basic.hap', data.Haplotype, data.Variant)
 	haplotypes.read()
 	haplotypes.data # returns a dictionary of Haplotype objects
 
@@ -266,8 +266,8 @@ Both the ``load()`` and ``read()`` methods support `region` and `haplotypes` par
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes('tests/data/basic.hap.gz', Haplotype, Variant)
-	haplotypes.read(region='chr21:26928472-26941960', haplotypes=["chr21.q.3365*10"])
+	haplotypes = data.Haplotypes('tests/data/basic.hap.gz', data.Haplotype, data.Variant)
+	haplotypes.read(region='21:26928472-26941960', haplotypes=["chr21.q.3365*10"])
 
 The file must be indexed if you wish to use these parameters, since in that case, the ``read()`` method can take advantage of the indexing to parse the file a bit faster. Otherwise, if the file isn't indexed, the ``read()`` method will assume the file could be unsorted and simply reads each line one-by-one. Although I haven't tested it yet, streams like stdin should be supported by this case.
 
@@ -287,7 +287,7 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 
 .. code-block:: python
 
-	haplotypes = data.Haplotypes('tests/data/basic.hap')
+	haplotypes = data.Haplotypes('tests/data/basic.hap.gz')
 	for line in haplotypes.__iter__(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"}):
 	    print(line)
 
@@ -299,8 +299,8 @@ To write to a **.hap** file, you must first initialize a :class:`Haplotypes` obj
 
 	haplotypes = data.Haplotypes('tests/data/example-write.hap')
 	haplotypes.data = {}
-	haplotypes.data['H1'] = Haplotype(chrom='chr1', start=0, end=10, id='H1')
-	haplotypes.data['H1'].variants = (Variant(start=0, end=1, id='rs123', allele='A'),)
+	haplotypes.data['H1'] = data.Haplotype(chrom='chr1', start=0, end=10, id='H1')
+	haplotypes.data['H1'].variants = (data.Variant(start=0, end=1, id='rs123', allele='A'),)
 	haplotypes.write()
 
 Obtaining haplotype "genotypes"
@@ -341,7 +341,7 @@ To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) 
             ),
         )
 
-    haps = Haplotypes("file.hap", haplotype=CustomHaplotype)
+    haps = data.Haplotypes("file.hap", haplotype=CustomHaplotype)
     haps.read()
     haps.write()
 
@@ -372,7 +372,7 @@ To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) 
             ),
         )
 
-    haps = Haplotypes("file.hap", variant=CustomVariant)
+    haps = data.Haplotypes("file.hap", variant=CustomVariant)
     haps.read()
     haps.write()
 
