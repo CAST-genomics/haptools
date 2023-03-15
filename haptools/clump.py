@@ -4,6 +4,7 @@
 import scipy.stats
 import numpy as np
 import logging
+import math
 import sys
 
 from haptools.data.genotypes import GenotypesRefAlt
@@ -132,7 +133,7 @@ def GetOverlappingSamples(snpgts, strgts):
     """
     return [] # TODO
 
-def LoadVariant(var, snpgts, strgts):
+def LoadVariant(var, snpgts, strgts, log):
     """
     Extract vector of genotypes for this variant
     """
@@ -150,13 +151,183 @@ def LoadVariant(var, snpgts, strgts):
     
     return variant_gts
 
-def ComputeLD(candidate_gt, index_gt):
+def _CalcChiSQ(f00, f01, f10, f11, gt_counts, n):
+    """
+    Calculate Chi-squared test stat for given freqs.
+    """
+    chisq_exp = np.zeros((3,3))
+    root_exp = np.zeros((3,3))
+
+    # calculate expected values for a given root
+    root_exp[0,0] = n * f00**2
+    root_exp[0,1] = 2 * n * f00 * f01
+    root_exp[0,2] = n * f01**2
+    root_exp[1,0] = 2 * n * f00 * f10
+    root_exp[1,1] = 2 * n * f01 * f10 + 2 * n * f00 * f11 
+    root_exp[1,2] = 2 * n * f01 * f11
+    root_exp[2,0] = n * f10**2
+    root_exp[2,1] = 2 * n * f10 * f11
+    root_exp[2,2] = n * f11**2
+    for i in range(3):
+        for j in range(3):
+            if root_exp[i,j] > 0.0:
+                chisq_exp = ((gt_counts[i,j] - root_exp[i,j])**2/root_exp[i,j])
+
+    return np.sum(chisq_exp)
+
+def _CalcLDStats(f00, p, q, gt_counts, n):
+    """
+    Given frequency of gt 0|0 (f11) and major and minor allele freqs p and q calculate stats.
+    """
+    f01 = p - f00
+    f10 = q - f00
+    f11 = 1 - (f00 + f01 + f10)
+    D = (f00 * f11) - (f01 * f10)
+    if D >= 0.0:
+        Dmax = min(p*(1.0-q), q*(1.0-p))
+    else:
+        Dmax = min(p*q,(1-p)*(1-q))
+    Dprime = D/Dmax
+    r_squared = (D**2)/(p*(1-p)*q*(1-q))
+
+    return round(Dprime,6), \
+           round(r_squared,6), \
+           _CalcChiSQ(f00, f01, f10, f11, gt_counts, n)
+
+def _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n):
+    """
+    Given a list of real roots (max possible 3) calculate the best root.
+    The best root is the one with the lowest chisq test statistic value.
+    """
+    # determine the best root by grabbing the one with the lowest chisq
+    best_Dprime = 0
+    best_rsquared = 0
+    best_chisq = np.inf
+    for root_freq00 in real_roots:
+        # calculate LD stats given root freq is within bounds
+        if root_freq00 >= minhap - 0.00001 and root_freq00 <= maxhap + 0.00001:
+            Dprime, r_squared, chisq = _CalcLDStats(root_freq00, p, q, gt_counts, n)
+            if chisq < best_chisq:
+                best_Dprime = Dprime
+                best_rsquared = r_squared
+                best_chisq = chisq
+        
+    return best_Dprime, best_rsquared
+
+def ComputeMlsLD(candidate_gt, index_gt, log):
+    """
+    Compute maximum likelihood solution of haplotype frequencies to calculate r squared value.
+    # TODO add https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-8-428 to docs
+    # TODO add https://github.com/t0mrg/cubex to docs
+
+    NOTE currently this approach only works for biallelic variants since having more variants
+    causes the equation we're solving for to be a cubic but instead to the degree of n where 
+    n is the total number of alelles which also invalidates STRs.
+
+    Parameters
+    ----------
+    candidate_gt: np.array
+        array of size (genotypes,) where genotypes is the number of samples
+    index_gt: np.array
+        array of size (genotypes,) where genotypes is the number of samples
+
+    Returns
+    -------
+    r_squared: float
+        R squared value inferred from ML solution.
+    """
+    # load in 3x3 array where axes are genotypes (0,1,2) for each variant
+    # y-axis = candidate gt, x-axis = index_gt
+    gt_counts = np.zeros((3,3))
+    for gt1 in range(3):
+        # subset candidate gts to genotype gt
+        subset_gt1 = candidate_gt == gt1
+        for gt2 in range(3):
+            subset_index_gt = index_gt[subset_gt1]
+            gt_counts[gt1,gt2] = np.sum(subset_index_gt == gt2)
+
+    n = np.sum(gt_counts)
+    p = (2.0*np.sum(gt_counts[0,:]) + np.sum(gt_counts[1,:]))/(2.0 * n)
+    q = (2.0*np.sum(gt_counts[:,0]) + np.sum(gt_counts[:,1]))/(2.0 * n)
+
+    num_alt = (2.0*gt_counts[0,0] + gt_counts[0,1] + gt_counts[1,0])
+    a = 4.0*n
+    b = 2.0*n*(1.0 - 2.0*p - 2.0*q) - 2.0*num_alt - gt_counts[1,1]
+    c = -num_alt*(1.0 - 2.0*p - 2.0*q) - gt_counts[1,1]*(1.0 - p - q) + 2.0*n*p*q
+    d = -num_alt*p*q
+
+    minhap = num_alt / (2.0 * float(n))
+    maxhap = (num_alt + gt_counts[1,1]) / (2.0 * float(n))
+    
+    xN = -b/(3.0*a)
+    d2 = (math.pow(b,2)-3.0*a*c)/(9*math.pow(a,2))
+    yN = a * math.pow(xN,3) + b * math.pow(xN,2) + c * xN + d
+    yN2 = math.pow(yN,2)
+    h2 = 4 * math.pow(a,2) * math.pow(d2,3)
+
+    # store all real roots to cubic to iterate over and determine which is best
+    real_roots = []
+
+    # three possible scenarios of solutions
+    if yN2 > h2:
+        # calculate real root alpha
+        number1 = 0.0
+        number2 = 0.0
+        if (1.0/(2.0*a)*(-yN + math.pow((yN2 - h2),0.5))) < 0:
+            number1 = -math.pow(-(1.0/(2.0*a)*(-yN + math.pow((yN2 - h2),0.5))),1.0/3.0)
+        else: 
+            number1 = math.pow((1.0/(2.0*a)*(-yN + math.pow((yN2 - h2),0.5))),1.0/3.0)
+        
+        if (1.0/(2.0*a)*(-yN - math.pow((yN2 - h2),0.5))) < 0:
+            number2 = -math.pow(-(1.0/(2.0*a)*(-yN - math.pow((yN2 - h2),0.5))),1.0/3.0)
+        else: 
+            number2 = math.pow((1.0/(2.0*a)*(-yN - math.pow((yN2 - h2),0.5))),1.0/3.0)
+
+        # singular real root
+        alpha = xN + number1 + number2
+
+        # store real root alpha
+        real_roots = [alpha]
+
+    elif yN2 == h2:
+        # Calculate three real roots alpha beta and gamma
+        delta = math.pow((yN/2.0*a),(1.0/3.0))
+        alpha = xN + delta
+        beta = xN + delta
+        gamma = xN - 2.0*delta
+
+        # store all real roots
+        real_roots = [alpha, beta, gamma]
+
+    elif yN2 < h2:
+        # calculate 3 real roots alpha beta and gamma
+        h = math.pow(h2, 0.5)
+        theta = ((math.acos(-yN/h))/3.0)
+        delta = math.pow(d2,0.5)
+        alpha = xN + 2.0 * delta * math.cos(theta)
+        beta = xN + 2.0 * delta * math.cos(2.0 * math.pi/3.0 + theta)
+        gamma = xN + 2.0 * delta * math.cos(4.0 * math.pi/3.0 + theta)
+
+        # store all real roots
+        real_roots = [alpha, beta, gamma]
+
+    else: 
+        raise Exception(f"Can't calculate r squared from given values {yN2} and {h2}")
+
+    # Solve for best roots
+    best_Dprime, best_rsquared = _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n)
+    return best_Dprime, best_rsquared
+
+def ComputeLD(candidate_gt, index_gt, LD_type, log):
     """
     Compute the LD between two variants
     """
-    # TODO - possibly check for NAs in gts and remove them
-    # Compute and return Pearson r2
-    return scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
+    # TODO - Check for NAs in gts and remove them
+    # Compute and Maximum likelihood solution or Pearson r2
+    if LD_type == 'MLS':
+        return ComputeMlsLD(candidate_gt, index_gt, log)
+    elif LD_type == 'Pearson':
+        return scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
 
 def WriteClump(indexvar, clumped_vars, outf):
     """
@@ -169,8 +340,9 @@ def WriteClump(indexvar, clumped_vars, outf):
 
 def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump_p2,
     clump_snp_field, clump_field, clump_chrom_field, clump_pos_field,
-    clump_kb, clump_r2, out, log):
+    clump_kb, clump_r2, LD_type, out, log):
     ###### User checks ##########
+    # TODO NEED TO ADD THE LOGGER TO EACH FUNCTION TO TRACK DEBUG AND INFO MESSAGES
     # TODO - need one of summstats_snps or summstats_strs
     # TODO - if summstats_snps, also need gts_snps
     if summstats_snps:
@@ -194,11 +366,15 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     snpgts = None
     strgts = None
     if gts_snps is not None:
+        log.debug("Loading SNP Genotypes.")
         snpgts = GenotypesRefAlt.load(gts_snps) # TODO need to check if input is PGEN (use GenotypesPLINK instead)
     if gts_strs is not None:
-        pass # TODO remove once GenotypesTR is implemented
+        log.debug("Loading STR Genotypes.")
+        # TODO Implement STR loader 
         #strgts = GenotypesTR.load(gts_strs)
-    #samples = GetOverlappingSamples(snpgts, strgts)
+    if gts_snps and gts_strs:
+        log.debug("Calculating set of overlapping samples between STRs and SNPs.")
+        samples = GetOverlappingSamples(snpgts, strgts)
 
     # NOTE snpgts has data, variants, and samples where data is alleles (samples x variants x alleles)
     #      variants has id, pos, chrom, ref, alt for snps
@@ -217,16 +393,22 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     indexvar = summstats.GetNextIndexVariant(clump_p1)
     while indexvar is not None:
         # Load indexvar gts
-        indexvar_gt = LoadVariant(indexvar, snpgts, strgts)
+        indexvar_gt = LoadVariant(indexvar, snpgts, strgts, log)
         # Collect candidate variants within range of index variant
         candidates = summstats.QueryWindow(indexvar, clump_kb)
+
+        log.debug(f"Current index variant: {indexvar}")
 
         # calculate LD between candidate vars and index var
         clumpvars = []
         for c in candidates:
             # load candidate variant c genotypes 
-            candidate_gt = LoadVariant(c, snpgts, strgts)
-            r2 = ComputeLD(candidate_gt, indexvar_gt)
+            candidate_gt = LoadVariant(c, snpgts, strgts, log)
+            Dprime, r2 = ComputeLD(candidate_gt, indexvar_gt, LD_type, log)
+            log.debug(
+                    f"D\' and r2 between {indexvar} with {c}\n" +
+                    f"D\' = {Dprime}, r^2 = {r2}"
+            )
             if r2 > clump_r2:
                 clumpvars.append(c)
         WriteClump(indexvar, clumpvars, outf)

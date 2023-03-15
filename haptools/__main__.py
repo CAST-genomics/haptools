@@ -914,6 +914,16 @@ def index(
     help="r^2 threshold",
 )
 @click.option(
+    "--ld",
+    type=click.Choice(["MLS", "Pearson"]),
+    default="Pearson",
+    show_default=True,
+    help=(
+        "Calculation type to infer LD, Maximum Likelihood Solution or "
+        "Pearson R. (MLS|Pearson)"
+    ),
+)
+@click.option(
     "--out",
     type=str,
     required=True,
@@ -940,6 +950,7 @@ def clump(
     clump_pos_field: str,
     clump_kb: float,
     clump_r2: float,
+    ld: str,
     out: Path,
     verbosity: str = "CRITICAL",
 ):
@@ -968,6 +979,7 @@ def clump(
         clump_pos_field,
         clump_kb,
         clump_r2,
+        ld,
         out,
         log,
     )
