@@ -854,7 +854,13 @@ class Haplotypes(Data):
                     types[symbol][extra] = None
         return types
 
-    def _iter_haps(self, haps_file: TabixFile, line_type: tuple[Extra], region: str = None, haplotypes: set[str] = None) -> Iterator[Haplotype]:
+    def _iter_haps(
+        self,
+        haps_file: TabixFile,
+        line_types: tuple[Extra],
+        region: str = None,
+        haplotypes: set[str] = None,
+    ) -> Iterator[Haplotype]:
         """
         Read haplotype lines from a .hap file line by line
 
@@ -864,7 +870,7 @@ class Haplotypes(Data):
         ----------
         haps_file: TabixFile
             The indexed .hap file from which to read haplotype lines
-        line_type: tuple[Extra]
+        line_types: tuple[Extra]
             The set of declared extra field names for haplotype lines
         region: str, optional
             See documentation for :py:meth:`~.Haplotypes.__iter__`
@@ -878,24 +884,27 @@ class Haplotypes(Data):
         """
         if region:
             region_str = region
-            # split region into tuple
+            # split region positions into variable-length tuple
             region = region.split(":", maxsplit=1)
-            if len(region) > 1:
-                region = [region[0],] + list(map(int, region[1].split("-")))
-                # adjust for 0-based vs 1-based indexing of region coordinates
-                region[1] -= 1
+            if len(region) <= 1 or region[1] == "":
+                region = []
+            else:
+                region = region[1].split("-", maxsplit=1)
+                if len(region) > 1 and region[1] == "":
+                    region = [region[0]]
+                region = list(map(int, region))
             # fetch region
             # we already know that each line will start with an H, so we don't
             # need to check that
             for line in haps_file.fetch(region=region_str, multiple_iterators=True):
-                hap = self.types["H"].from_hap_spec(line, types=line_type)
+                hap = self.types["H"].from_hap_spec(line, types=line_types)
                 if haplotypes is not None:
                     if hap.id not in haplotypes:
                         continue
                 # also exclude haplotypes that overlap but don't fit perfectly
-                if len(region) >= 3 and hap.start < region[1] or hap.end > region[2]:
+                if len(region) >= 2 and (hap.start < region[0] or hap.end > region[1]):
                     continue
-                elif len(region) == 2 and hap.start < region[1]:
+                elif len(region) == 1 and hap.start < region[0]:
                     continue
                 yield hap
         else:
@@ -903,7 +912,7 @@ class Haplotypes(Data):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
                 if line_type == "H":
-                    hap = self.types["H"].from_hap_spec(line, types=line_type)
+                    hap = self.types["H"].from_hap_spec(line, types=line_types)
                     if hap.id in haplotypes:
                         yield hap
                 elif line_type > "H":
@@ -975,6 +984,7 @@ class Haplotypes(Data):
             types = self._get_field_types(extras, metas.get("order"))
             # query for the variants of each haplotype
             for hap in self._iter_haps(haps_file, types["H"], region, haplotypes):
+                yield hap
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
