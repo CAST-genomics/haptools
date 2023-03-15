@@ -558,6 +558,7 @@ class Haplotypes(Data):
     Examples
     --------
     Parsing a basic .hap file without any extra fields is simple:
+
     >>> haplotypes = Haplotypes.load('tests/data/basic.hap')
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
 
@@ -565,6 +566,7 @@ class Haplotypes(Data):
     manually. You'll also need to create Haplotype and Variant subclasses that support
     the extra fields and then specify the names of the classes when you initialize the
     Haplotypes object:
+
     >>> haplotypes = Haplotypes('tests/data/simphenotype.hap', HaptoolsHaplotype)
     >>> haplotypes.read()
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
@@ -858,6 +860,11 @@ class Haplotypes(Data):
         """
         Read haplotypes from a .hap file line by line without storing anything
 
+        .. note::
+            The elements output by ``__iter__()`` are not guaranteed to be in any
+            particular order except that variants of a haplotype will never appear
+            before the haplotype, itself.
+
         Parameters
         ----------
         region: str, optional
@@ -1043,6 +1050,7 @@ class Haplotypes(Data):
         --------
         To write to a .hap file, you must first initialize a Haplotypes object and then
         fill out the data property:
+
         >>> haplotypes = Haplotypes('tests/data/basic.hap')
         >>> haplotypes.data = {'H1': Haplotype('chr1', 0, 10, 'H1')}
         >>> haplotypes.write()

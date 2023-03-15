@@ -137,7 +137,7 @@ Additionally, you can use the ``check_maf()`` method after checking for missing 
 	genotypes.read()
 	genotypes.check_missing()
 	genotypes.check_biallelic()
-	genotypes.check_maf(threshold=0)
+	genotypes.check_maf(threshold=0.0) # replace 0 with your desired threshold
 	genotypes.check_phase()
 
 Subsetting
