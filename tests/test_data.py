@@ -770,13 +770,13 @@ class TestHaplotypes:
         assert all(line in exp_single_hap2 for line in haps_iter)
 
         # also, try adding the hap ID
-        for exp_hap, line in zip(exp_single_hap, haps.__iter__(
-            region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"}
-        )):
+        i = haps.__iter__(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
+        for exp_hap, line in zip(exp_single_hap, i):
             assert exp_hap == line
 
         # also, try adding the hap ID
-        for exp_hap, line in zip(exp_single_hap, haps.__iter__(haplotypes={"chr21.q.3365*1"})):
+        haps_iter = haps.__iter__(haplotypes={"chr21.q.3365*1"})
+        for exp_hap, line in zip(exp_single_hap, haps_iter):
             assert exp_hap == line
 
     def test_read_subset(self):
