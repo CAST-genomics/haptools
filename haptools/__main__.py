@@ -611,7 +611,7 @@ def transform(
     discard_missing: bool = False,
     ancestry: bool = False,
     output: Path = Path("-"),
-    verbosity: str = "CRITICAL",
+    verbosity: str = "INFO",
 ):
     """
     Creates a VCF composed of haplotypes
@@ -775,7 +775,7 @@ def ld(
     discard_missing: bool = False,
     from_gts: bool = False,
     output: Path = Path("/dev/stdout"),
-    verbosity: str = "CRITICAL",
+    verbosity: str = "INFO",
 ):
     """
     Compute the pair-wise LD (Pearson's correlation) between haplotypes (or variants)
@@ -861,7 +861,7 @@ def index(
     haplotypes: Path,
     sort: bool = False,
     output: Path = None,
-    verbosity: str = "CRITICAL",
+    verbosity: str = "INFO",
 ):
     """
     Takes in an unsorted .hap file and outputs it as a .gz and a .tbi file

@@ -11,7 +11,7 @@ import click
 import numpy as np
 import matplotlib.pyplot as plt
 
-from haptools.data import GenotypesRefAlt, Haplotypes, Haplotype, Variant
+from haptools.data import GenotypesVCF, Haplotypes, Haplotype, Variant
 
 
 # ---------------USAGE----------------
@@ -22,7 +22,7 @@ from haptools.data import GenotypesRefAlt, Haplotypes, Haplotype, Variant
 
 
 def create_genotypes(log, samples, variants, with_phase=False):
-    gts = GenotypesRefAlt(fname=None, log=log)
+    gts = GenotypesVCF(fname=None, log=log)
     shape = (samples, variants, 2 + with_phase)
     # create a GT matrix with shape: samples x SNPs x (strands+phase)
     gts.data = np.random.choice([0, 1], size=np.prod(shape))

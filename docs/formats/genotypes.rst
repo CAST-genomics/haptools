@@ -34,4 +34,4 @@ If you run out memory when using PGEN files, consider reading/writing variants f
 
 	.. code-block:: bash
 
-		plink2 --snps-only 'just-acgt' --vcf tests/data/simple.vcf --make-pgen --out simple
+		plink2 --snps-only 'just-acgt' --max-alleles 2 --vcf input.vcf --make-pgen --out output

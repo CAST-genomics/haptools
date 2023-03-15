@@ -492,7 +492,10 @@ class Genotypes(Data):
             self.log.warning("Phase information has already been removed from the data")
             return
         # check: are there any variants that are heterozygous and unphased?
-        unphased = (self.data[:, :, 0] ^ self.data[:, :, 1]) & (~self.data[:, :, 2])
+        data = self.data
+        if data.dtype != np.bool_:
+            data = self.data.astype(np.bool_)
+        unphased = (data[:, :, 0] ^ data[:, :, 1]) & (~data[:, :, 2])
         if np.any(unphased):
             samp_idx, variant_idx = np.nonzero(unphased)
             raise ValueError(
@@ -592,11 +595,11 @@ class Genotypes(Data):
                 )
 
 
-class GenotypesRefAlt(Genotypes):
+class GenotypesVCF(Genotypes):
     """
     A class for processing genotypes from a file
-    Unlike the base Genotypes class, this class also includes REF and ALT alleles in
-    the variants array
+    Unlike the base Genotypes class, this class also includes REF and ALT alleles as
+    a list of alleles in the variants array
 
     Attributes
     ----------
@@ -611,24 +614,15 @@ class GenotypesRefAlt(Genotypes):
             1. ID
             2. CHROM
             3. POS
-            4. REF
-            5. ALT
+            4. [REF, ALT1, ALT2, ...]
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
 
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
-        self.variants = np.array(
-            [],
-            dtype=[
-                ("id", "U50"),
-                ("chrom", "U10"),
-                ("pos", np.uint32),
-                ("ref", "U100"),
-                ("alt", "U100"),
-            ],
-        )
+        dtype = {k: v[0] for k, v in self.variants.dtype.fields.items()}
+        self.variants = np.array([], dtype=list(dtype.items()) + [("alleles", object)])
 
     def _variant_arr(self, record: Variant):
         """
@@ -639,15 +633,14 @@ class GenotypesRefAlt(Genotypes):
                 record.ID,
                 record.CHROM,
                 record.POS,
-                record.REF,
-                record.ALT[0],
+                (record.REF, *record.ALT),
             ),
             dtype=self.variants.dtype,
         )
 
     def write(self):
         """
-        Write the variants in this class to a VCF at :py:attr:`~.GenotypesRefAlt.fname`
+        Write the variants in this class to a VCF at :py:attr:`~.GenotypesVCF.fname`
         """
         vcf = VariantFile(str(self.fname), mode="w")
         # make sure the header is properly structured
@@ -672,13 +665,15 @@ class GenotypesRefAlt(Genotypes):
             for sample in self.samples:
                 vcf.header.add_sample(sample)
         self.log.info("Writing VCF records")
+        phased = self._prephased or (self.data.shape[2] < 3)
+        missing_val = np.iinfo(np.uint8).max
         for var_idx, var in enumerate(self.variants):
             rec = {
                 "contig": var["chrom"],
                 "start": var["pos"],
-                "stop": var["pos"] + len(var["ref"]) - 1,
+                "stop": var["pos"] + len(var["alleles"][0]) - 1,
                 "qual": None,
-                "alleles": tuple(var[["ref", "alt"]]),
+                "alleles": var["alleles"],
                 "id": var["id"],
                 "filter": None,
             }
@@ -687,10 +682,15 @@ class GenotypesRefAlt(Genotypes):
             # parse the record into a pysam.VariantRecord
             record = vcf.new_record(**rec)
             for samp_idx, sample in enumerate(self.samples):
-                # TODO: make this work when there are missing values
-                record.samples[sample]["GT"] = tuple(self.data[samp_idx, var_idx, :2])
-                # TODO: add proper phase info
-                record.samples[sample].phased = True
+                record.samples[sample]["GT"] = tuple(
+                    None if val == missing_val else val
+                    for val in self.data[samp_idx, var_idx, :2]
+                )
+                # add proper phasing info
+                if phased:
+                    record.samples[sample].phased = True
+                else:
+                    record.samples[sample].phased = self.data[samp_idx, var_idx, 2]
             # write the record to a file
             vcf.write(record)
         vcf.close()
@@ -752,20 +752,20 @@ class GenotypesTR(Genotypes):
         )
 
 
-class GenotypesPLINK(GenotypesRefAlt):
+class GenotypesPLINK(GenotypesVCF):
     """
     A class for processing genotypes from a PLINK ``.pgen`` file
 
     Attributes
     ----------
     data : np.array
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     samples : tuple
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     variants : np.array
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     log: Logger
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
     chunk_size: int, optional
         The max number of variants to fetch from and write to the PGEN file at any
         given time
@@ -773,7 +773,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory
     _prephased: bool
-        See documentation for :py:attr:`~.GenotypesRefAlt.data`
+        See documentation for :py:attr:`~.GenotypesVCF.data`
 
     Examples
     --------
@@ -803,7 +803,7 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         samples : list[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Returns
         -------
@@ -896,14 +896,12 @@ class GenotypesPLINK(GenotypesRefAlt):
         npt.NDArray
             A row from the :py:attr:`~.GenotypesPLINK.variants` array
         """
-        # TODO: remove the AAF column; right now, we just set it to 0.5 arbitrarily
         return np.array(
             (
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                record[cid["REF"]],
-                record[cid["ALT"]],
+                (record[cid["REF"]], record[cid["ALT"]]),
             ),
             dtype=self.variants.dtype,
         )
@@ -922,9 +920,9 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         region : str, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Yields
         ------
@@ -997,11 +995,11 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         region : str, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         max_variants : int, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Returns
         -------
@@ -1054,13 +1052,13 @@ class GenotypesPLINK(GenotypesRefAlt):
         Parameters
         ----------
         region : str, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         samples : list[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         max_variants : int, optional
-            See documentation for :py:attr:`~.GenotypesRefAlt.read`
+            See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super(Genotypes, self).read()
         import pgenlib
@@ -1256,9 +1254,9 @@ class GenotypesPLINK(GenotypesRefAlt):
                 rec = {
                     "contig": var["chrom"],
                     "start": var["pos"],
-                    "stop": var["pos"] + len(var["ref"]) - 1,
+                    "stop": var["pos"] + len(var["alleles"][0]) - 1,
                     "qual": None,
-                    "alleles": tuple(var[["ref", "alt"]]),
+                    "alleles": var["alleles"],
                     "id": var["id"],
                     "filter": None,
                 }

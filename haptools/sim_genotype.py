@@ -9,7 +9,7 @@ from cyvcf2 import VCF
 from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
-from .data import GenotypesRefAlt, GenotypesPLINK
+from .data import GenotypesVCF, GenotypesPLINK
 from .transform import GenotypesAncestry
 
 
@@ -72,7 +72,7 @@ def output_vcf(
         Outputs messages to the appropriate channel.
     """
 
-    log.info(f"Outputting VCF file {out}.vcf.gz")
+    log.info(f"Outputting file {out}")
 
     # details to know
     # vcf file: how to handle samples and which sample is which haplotype block randomly choose out of current population types
@@ -104,12 +104,16 @@ def output_vcf(
     if variant_file.endswith(".pgen"):
         vcf = GenotypesPLINK(variant_file, log=log)
     else:
-        vcf = GenotypesRefAlt(variant_file, log=log)
+        vcf = GenotypesVCF(variant_file, log=log)
     
     if not region:
         vcf.read()
     else:
         vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
+
+    if variant_file.endswith(".pgen"):
+        # the pgenlib library collapses multiallelic variants into a single allele
+        vcf.check_biallelic()
 
     log.debug(f"Read in variants from {variant_file}")
 
@@ -212,7 +216,7 @@ def output_vcf(
                 gts.valid_labels = output_labels
 
         if not pop_field and not sample_field:
-            gts = GenotypesRefAlt(out, log=log)
+            gts = GenotypesVCF(out, log=log)
 
     else:
         gts = GenotypesPLINK(out, log=log)
@@ -378,16 +382,12 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
     # sort coordinate files to ensure coords read are in sorted order
     # remove all chr files not found in chroms list
     all_coord_files = glob.glob(f'{coords_dir}/*.map')
-    if region:
-        try:
-            all_coord_files = [coord_file for coord_file in all_coord_files \
-                        if f"chr{region['chr']}" in coord_file]
-        except:
-            raise Exception(f"Unable to find region chromosome {region['chr']} in map file directory.")
-    else:
-        all_coord_files = [coord_file for coord_file in all_coord_files \
-                       if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
-        all_coord_files.sort(key=numeric_alpha)
+    all_coord_files = [coord_file for coord_file in all_coord_files \
+                if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+    all_coord_files.sort(key=numeric_alpha)
+
+    if len(all_coord_files) != len(chroms):
+        raise Exception(f"Unable to find all chromosomes {chroms} in map file directory.")
     
     # coords list has form chroms x coords
     coords = []
@@ -915,8 +915,8 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, no_repla
         else:
             total_per_pop[info_pop] += 1
 
-        if sample not in vcf_samples:
-            raise Exception(f"Sample {sample} in sampleinfo file is not present in the vcf file.")
+        if sample not in vcf_samples and info_pop in pops:
+            raise Exception(f"Sample {sample} from population {info_pop} in sampleinfo file is not present in the vcf file.")
     
     # Ensure that all populations from the model file are listed in the sample info file 
     #    and that there is sufficient enough samples when no_replacement is specified

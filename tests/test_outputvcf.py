@@ -90,9 +90,9 @@ def _get_expected_output():
     gts.data = gts.data.transpose((1, 0, 2))
     gts.variants = np.array(
         [
-            ("1:10114:T:C", "1", 10114, "T", "C"),
-            ("1:59423090:A:G", "1", 59423090, "A", "G"),
-            ("2:10122:A:G", "2", 10122, "A", "G"),
+            ("1:10114:T:C", "1", 10114, ("T", "C")),
+            ("1:59423090:A:G", "1", 59423090, ("A", "G")),
+            ("2:10122:A:G", "2", 10122, ("A", "G")),
         ],
         dtype=gts.variants.dtype,
     )
@@ -759,7 +759,10 @@ def test_model_files():
         validate_params(
             model, mapdir, chroms, popsize, vcf_file, faulty_sampleinfo_file, False
         )
-    msg = "Sample HG00022 in sampleinfo file is not present in the vcf file."
+    msg = (
+        "Sample HG00022 from population CEU in sampleinfo file is not present in the"
+        " vcf file."
+    )
     assert (str(e.value)) == msg
 
     faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_info.dat")
