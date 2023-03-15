@@ -729,6 +729,38 @@ class TestHaplotypes:
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap.gz"))
         assert expected == haps.data
 
+    def test_iterate(self):
+        expected_full = self._basic_haps()
+        expected_single_hap = expected_full["chr21.q.3365*1"]
+        expected = [
+            hap for hap in expected_full.values()
+        ]
+        for hap in expected:
+            hap.variants = ()
+        expected += [
+            variant for hap in expected_full.values() for variant in hap.variants
+        ]
+
+        # can we load this data from the hap file?
+        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        for exp_hap, line in zip(expected, haps):
+            assert exp_hap == line
+
+        exp_sort = expected.copy()
+        exp_sort[1], exp_sort[2] = exp_sort[2], exp_sort[1]
+
+        # also check whether it works when we pass function params
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        for exp_hap, line in zip(exp_sort, haps.__iter__(region='21:26928472-26941960')):
+            assert exp_hap == line
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        count = 0
+        for line in haps.__iter__(region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"}):
+            count += 1
+            assert line == expected_single_hap
+        assert count == 1
+
     def test_read_subset(self):
         expected = {}
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
