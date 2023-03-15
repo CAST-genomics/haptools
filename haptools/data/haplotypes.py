@@ -854,6 +854,64 @@ class Haplotypes(Data):
                     types[symbol][extra] = None
         return types
 
+    def _iter_haps(self, haps_file: TabixFile, line_type: tuple[Extra], region: str = None, haplotypes: set[str] = None) -> Iterator[Haplotype]:
+        """
+        Read haplotype lines from a .hap file line by line
+
+        This is a helper function for :py:meth:`~.Haplotypes.__iter__`
+
+        Parameters
+        ----------
+        haps_file: TabixFile
+            The indexed .hap file from which to read haplotype lines
+        line_type: tuple[Extra]
+            The set of declared extra field names for haplotype lines
+        region: str, optional
+            See documentation for :py:meth:`~.Haplotypes.__iter__`
+        haplotypes: set[str], optional
+            See documentation for :py:meth:`~.Haplotypes.__iter__`
+
+        Yields
+        ------
+        Iterator[Haplotype]
+            An iterator over each Haplotype line in the file
+        """
+        if region:
+            region_str = region
+            # split region into tuple
+            region = region.split(":", maxsplit=1)
+            if len(region) > 1:
+                region = [region[0],] + list(map(int, region[1].split("-")))
+                # adjust for 0-based vs 1-based indexing of region coordinates
+                region[1] -= 1
+            # fetch region
+            # we already know that each line will start with an H, so we don't
+            # need to check that
+            for line in haps_file.fetch(region=region_str, multiple_iterators=True):
+                hap = self.types["H"].from_hap_spec(line, types=line_type)
+                if haplotypes is not None:
+                    if hap.id not in haplotypes:
+                        continue
+                # also exclude haplotypes that overlap but don't fit perfectly
+                if len(region) >= 3 and hap.start < region[1] or hap.end > region[2]:
+                    continue
+                elif len(region) == 2 and hap.start < region[1]:
+                    continue
+                yield hap
+        else:
+            for line in haps_file.fetch(multiple_iterators=True):
+                # we only want lines that start with an H
+                line_type = self._line_type(line)
+                if line_type == "H":
+                    hap = self.types["H"].from_hap_spec(line, types=line_type)
+                    if hap.id in haplotypes:
+                        yield hap
+                elif line_type > "H":
+                    # if we've already passed all of the H's, we can just exit
+                    # We assume the file has been sorted so that all of the H lines
+                    # come before the V lines
+                    break
+
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
     ) -> Iterator[Variant | Haplotype]:
@@ -890,11 +948,13 @@ class Haplotypes(Data):
         If you're worried that the contents of the .hap file will be large, you may
         opt to parse the file line-by-line instead of loading it all into memory at
         once. In cases like these, you can use the __iter__() method in a for-loop:
+
         >>> haplotypes = Haplotypes('tests/data/basic.hap')
         >>> for line in haplotypes:
         ...     print(line)
 
         Call the function manually to pass it the region or haplotypes params:
+
         >>> haplotypes = Haplotypes('tests/data/basic.hap.gz')
         >>> for line in haplotypes.__iter__(
         ...    region='21:26928472-26941960', haplotypes={"chr21.q.3365*1"}
@@ -913,50 +973,18 @@ class Haplotypes(Data):
             haps_file = TabixFile(str(self.fname))
             metas, extras = self.check_header(list(haps_file.header))
             types = self._get_field_types(extras, metas.get("order"))
-            if region:
-                region_positions = region.split(":", maxsplit=1)[1]
-                region_start, region_end = tuple(map(int, region_positions.split("-")))
-                # fetch region
-                # we already know that each line will start with an H, so we don't
-                # need to check that
-                for line in haps_file.fetch(region):
-                    hap = self.types["H"].from_hap_spec(line, types=types["H"])
-                    if haplotypes is not None:
-                        if hap.id not in haplotypes:
-                            continue
-                    # also exclude haplotypes that overlap but don't fit perfectly
-                    if hap.start < region_start or hap.end > region_end:
-                        continue
-                    yield hap
-            else:
-                for line in haps_file.fetch():
-                    # we only want lines that start with an H
-                    line_type = self._line_type(line)
-                    if line_type == "H":
-                        hap = self.types["H"].from_hap_spec(line, types=types["H"])
-                        if hap.id in haplotypes:
-                            yield hap
-                    elif line_type > "H":
-                        # if we've already passed all of the H's, we can just exit
-                        # We assume the file has been sorted so that all of the H lines
-                        # come before the V lines
-                        break
             # query for the variants of each haplotype
-            for hap_id in self.data:
-                # exclude variants outside the desired region
-                hap_region = hap_id
-                if region:
-                    hap_region = hap_id
+            for hap in self._iter_haps(haps_file, types["H"], region, haplotypes):
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
-                for line in haps_file.fetch(hap_region):
+                for line in haps_file.fetch(reference=hap.id, multiple_iterators=True):
                     line_type = self._line_type(line)
                     if line_type == "V":
                         var = self.types["V"].from_hap_spec(line, types=types["V"])[1]
                         # add the haplotype, since otherwise, the user won't know
                         # which haplotype this variant belongs to
-                        var.hap = hap_id
+                        var.hap = hap.id
                         yield var
                     else:
                         self.log.warning(
