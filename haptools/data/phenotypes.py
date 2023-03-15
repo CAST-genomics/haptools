@@ -140,7 +140,7 @@ class Phenotypes(Data):
             Defaults to loading phenotypes from all samples
 
         Returns
-        ------
+        -------
         Iterable[namedtuple]
             See documentation for :py:meth:`~.Phenotypes._iterate`
         """
