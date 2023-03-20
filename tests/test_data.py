@@ -730,6 +730,56 @@ class TestHaplotypes:
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap.gz"))
         assert expected == haps.data
 
+    def test_iterate(self):
+        exp_full = self._basic_haps()
+
+        exp_single_hap = [exp_full["chr21.q.3365*1"]]
+        exp_single_hap += exp_single_hap[0].variants
+        exp_single_hap2 = [exp_full["chr21.q.3365*11"]]
+        exp_single_hap2 += exp_single_hap2[0].variants
+
+        expected = [hap for hap in exp_full.values()]
+        for hap in tuple(expected):
+            expected += hap.variants
+            hap.variants = ()
+
+        # can we load this data from the hap file?
+        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        for exp_hap, line in zip(expected, haps):
+            assert exp_hap == line
+
+        # also check whether it works when we pass function params
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps_iter = list(haps.__iter__(region="21:26928472-26941960"))
+        assert len(haps_iter) == len(expected)
+        assert all(line in expected for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21"))
+        assert len(haps_iter) == len(expected)
+        assert all(line in expected for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:"))
+        assert len(haps_iter) == len(expected)
+        assert all(line in expected for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:26928472-"))
+        assert len(haps_iter) == len(expected)
+        assert all(line in expected for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:26928472-26938989"))
+        assert len(haps_iter) == len(exp_single_hap2)
+        assert all(line in exp_single_hap2 for line in haps_iter)
+
+        # also, try adding the hap ID
+        i = haps.__iter__(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
+        for exp_hap, line in zip(exp_single_hap, i):
+            assert exp_hap == line
+
+        # also, try adding the hap ID
+        haps_iter = haps.__iter__(haplotypes={"chr21.q.3365*1"})
+        for exp_hap, line in zip(exp_single_hap, haps_iter):
+            assert exp_hap == line
+
     def test_read_subset(self):
         expected = {}
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
@@ -759,6 +809,7 @@ class TestHaplotypes:
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941960")
+        assert len(expected) == len(haps.data)
         assert expected == haps.data
 
     def test_subset(self):

@@ -34,6 +34,7 @@ haptools.data.genotypes module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __iter__
 
 .. _api-haptools-data-phenotypes:
 
@@ -44,6 +45,7 @@ haptools.data.phenotypes module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __iter__
 
 .. _api-haptools-data-covariates:
 
@@ -54,6 +56,7 @@ haptools.data.covariates module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __iter__
 
 .. _api-haptools-data-haplotypes:
 
@@ -64,6 +67,7 @@ haptools.data.haplotypes module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __iter__
 
 .. _api-haptools-data-breakpoints:
 
@@ -92,6 +96,7 @@ haptools.sim_phenotype module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __iter__
 
 haptools.karyogram module
 ~~~~~~~~~~~~~~~~~~~~~~~~~
