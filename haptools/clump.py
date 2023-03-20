@@ -267,9 +267,9 @@ def _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n):
         
     return best_Dprime, best_rsquared
 
-def ComputeMlsLD(candidate_gt, index_gt, log):
+def ComputeExactLD(candidate_gt, index_gt, log):
     """
-    Compute maximum likelihood solution of haplotype frequencies to calculate r squared value.
+    Compute exact solution of haplotype frequencies to calculate r squared value.
     # TODO add https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-8-428 to docs
     # TODO add https://github.com/t0mrg/cubex to docs
 
@@ -390,8 +390,8 @@ def ComputeLD(candidate_gt, index_gt, LD_type, log):
         return 0
 
     # Compute and Maximum likelihood solution or Pearson r2
-    if LD_type == 'MLS':
-        return ComputeMlsLD(candidate_gt, index_gt, log)
+    if LD_type == 'Exact':
+        return ComputeExactLD(candidate_gt, index_gt, log)
     elif LD_type == 'Pearson':
         return scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
 
@@ -418,10 +418,10 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
         assert gts_strs is not None #TODO check to ensure this check works properly
         assert summstats_strs is not None
 
-    if summstats_strs and LD_type == 'MLS':
+    if summstats_strs and LD_type == 'Exact':
         raise Exception(
-            "The MLS method of computing LD can only be used with biallelic loci. " +
-            "STRs are not compatible with the MLS LD compute method. "
+            "The exact method of computing LD can only be used with biallelic loci. " +
+            "STRs are not compatible with the exact LD compute method. "
         )
 
     ###### Load summary stats ##########

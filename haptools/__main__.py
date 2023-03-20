@@ -915,12 +915,12 @@ def index(
 )
 @click.option(
     "--ld",
-    type=click.Choice(["MLS", "Pearson"]),
+    type=click.Choice(["Exact", "Pearson"]),
     default="Pearson",
     show_default=True,
     help=(
-        "Calculation type to infer LD, Maximum Likelihood Solution or "
-        "Pearson R. (MLS|Pearson)"
+        "Calculation type to infer LD, Exact Solution or "
+        "Pearson R. (Exact|Pearson)"
     ),
 )
 @click.option(
