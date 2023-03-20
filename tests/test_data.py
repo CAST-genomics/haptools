@@ -19,6 +19,7 @@ from haptools.data import (
     Breakpoints,
     GenotypesVCF,
     GenotypesPLINK,
+    GenotypesTR,
 )
 
 
@@ -1188,6 +1189,11 @@ class TestGenotypesVCF:
 
         gts.fname.unlink()
 
+# TODO write test functions for loading in STRs
+class TestGenotypesTR:
+    # TODO create test STR vcf to use 
+    def test_load(self):
+        return
 
 class TestBreakpoints:
     def _get_expected_breakpoints(self):

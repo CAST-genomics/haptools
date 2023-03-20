@@ -10,13 +10,118 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set
 import cyvcf2
 import numpy as np
 
-from .utils import InferRepeatSequence, FabricateAllele
-
 # List of supported VCF types
 # TODO: add Beagle
 # TODO: add support for tool version numbers
 
 _beagle_error = "If this file was imputed by Beagle, did you remember to copy the info fields over?"
+
+def GetCanonicalOneStrand(repseq):
+    r"""Get canonical STR sequence, considering one strand
+    The canonical sequence is the first alphabetically
+    out of all possible rotations. e.g. CAG -> AGC.
+    Parameters
+    ----------
+    repseq : str
+          String giving a STR motif (repeat unit sequence)
+    Returns
+    -------
+    canon : str
+          The canonical sequence of the STR motif
+    Examples
+    --------
+    >>> GetCanonicalOneStrand("CAG")
+    "AGC"
+    """
+    nucToNumber={"A":0,"C":1,"G":2,"T":3}
+    repseq = repseq.upper()
+    size = len(repseq)
+    canonical = repseq
+    for i in range(size):
+        newseq = repseq[size-i:]+repseq[0:size-i]
+        for j in range(size):
+            if nucToNumber[newseq[j]] < nucToNumber[canonical[j]]:
+                canonical = newseq
+            elif nucToNumber[newseq[j]] > nucToNumber[canonical[j]]:
+                break
+    return canonical
+
+def InferRepeatSequence(seq, period):
+    """
+    TODO change to dynamic programming approach
+    Infer the repeated sequence in a string
+    Parameters
+    ----------
+    seq : str
+        A string of nucleotides
+    period : int
+        Length of the repeat unit
+    Returns
+    -------
+    repseq : str
+        The inferred repeat unit (motif).
+        If the input sequence is smaller than the period,
+        repseq consists of all N's.
+    Examples
+    --------
+    >>> InferRepeatSequence('ATATATAT', 2)
+    'AT'
+    """
+    if period > len(seq):
+        return "N"*period
+    best_kmer = None
+    best_copies = 0
+    for offset in range(0, period):
+        kmers = {}
+        start_idx = 0
+        while start_idx + period <= len(seq):
+            kmer = seq[start_idx:(start_idx + period)]
+            if kmer not in kmers:
+                kmers[kmer] = 1
+            else:
+                kmers[kmer] += 1
+            start_idx += period
+            current_best_kmer = max(kmers, key = lambda k: kmers[k])
+            current_best_copies = kmers[current_best_kmer]
+            if current_best_copies > best_copies:
+                best_kmer = current_best_kmer
+                best_copies = current_best_copies
+    return GetCanonicalOneStrand(best_kmer)
+
+def FabricateAllele(motif, length):
+    """
+    Fabricate an allele with the given motif and length.
+    Parameters
+    ----------
+    motif : str
+        the motif to build the allele from
+    length : float
+        the number of times to copy the motif
+        (noninteger implies partial repeats).
+        This does NOT specify the desired length of the
+        returned string.
+    Return
+    ------
+    str
+        the fabricated allele string
+    Notes
+    -----
+    The allele is fabricated with the given motif orientation
+    (e.g. motif = 'ACG' could produce 'ACGACGACG' but not 'CGACGACGA').
+    Fabricated alleles will contain no impurities nor flanking base pairs.
+    In the case of length being a noninteger float (because of partial
+    repeats) and where it is unclear if the last nucleotide should be
+    included in the fabricated repeat or not due to imprecision in the
+    length float, the last nucleotide will always be left off (the
+    length of the returned string will always be rounded down).
+    """
+    fab = math.floor(length) * motif
+    idx = 0
+    while (len(fab) + 1) / len(motif) < length:
+        fab += motif[idx]
+        idx += 1
+
+    return fab
 
 class VcfTypes(enum.Enum):
     """The different tr callers that tr_harmonizer supports."""
@@ -92,7 +197,7 @@ def HasLengthRefGenotype(vcftype: Union[str, VcfTypes]):
     Determine if the reference alleles of variants are given by length.
     If True, then reference alleles for all variants produced by this
     caller are specified by length and not by sequence. Sequences are
-    fabricated according to :py:func:`trtools.utils.utils.FabricateAllele`.
+    fabricated according to :py:func:`FabricateAllele`.
     If True, then :py:meth:`HasLengthAltGenotypes` will also be true
     Returns
     -------
@@ -122,7 +227,7 @@ def HasLengthAltGenotypes(vcftype: Union[str, VcfTypes]):
     Determine if the alt alleles of variants are given by length.
     If True, then alt alleles for all variants produced by this
     caller are specified by length and not by sequence. Sequences are
-    fabricated according to :py:func:`trtools.utils.utils.FabricateAllele`.
+    fabricated according to :py:func:`FabricateAllele`.
     Returns
     -------
     bool
@@ -233,6 +338,8 @@ def HarmonizeRecord(vcftype: Union[str, VcfTypes], vcfrecord: cyvcf2.Variant):
     object of possibly unknown type.
     Parameters
     ----------
+    vcftype :
+        Type of vcf to harmonize from.
     vcfrecord :
         A cyvcf2.Variant Object
     Returns
@@ -351,8 +458,8 @@ def _HarmonizeHipSTRRecord(vcfrecord: cyvcf2.Variant):
 
     # Get the motif.
     # Hipstr doesn't tell us this explicitly, so figure it out
-    motif = utils.InferRepeatSequence(ref_allele[start_offset:],
-                                      vcfrecord.INFO["PERIOD"])
+    motif = InferRepeatSequence(ref_allele[start_offset:],
+                                vcfrecord.INFO["PERIOD"])
     record_id = vcfrecord.ID
 
     return TRRecord(vcfrecord,
@@ -613,7 +720,7 @@ class TRRecord:
         If this is passed, the alt_alleles parameter to the constructor must
         be set to None and the alt_alleles attribute of the record will be set
         to fabricated alleles (see
-        :py:meth:`trtools.utils.utils.FabricateAllele`)
+        :py:meth:`.FabricateAllele`)
     ref_allele_length :
         like alt_allele_lengths, but for the reference allele.
         If this is passed, alt_allele_lengths must also be passed
@@ -674,7 +781,7 @@ class TRRecord:
 
         if ref_allele_length is not None:
             self.has_fabricated_ref_allele = True
-            self.ref_allele = utils.FabricateAllele(motif, ref_allele_length)
+            self.ref_allele = FabricateAllele(motif, ref_allele_length)
         else:
             self.has_fabricated_ref_allele = False
             self.ref_allele_length = len(ref_allele) / len(motif)
@@ -689,7 +796,7 @@ class TRRecord:
         if alt_allele_lengths is not None:
             self.has_fabricated_alt_alleles = True
             self.alt_alleles = [
-                utils.FabricateAllele(motif, length) for length in
+                FabricateAllele(motif, length) for length in
                 alt_allele_lengths
             ]
         else:
@@ -697,8 +804,6 @@ class TRRecord:
             self.alt_allele_lengths = [
                 len(allele) / len(motif) for allele in self.alt_alleles
             ]
-
-
 
         try:
             self._CheckRecord()
@@ -902,7 +1007,7 @@ class TRRecord:
         Note that some TR callers will only call allele lengths, not allele
         sequences. In such a case, this method will return a fabricated
         sequence based on the called length (see
-        :py:meth:`trtools.utils.utils.FabricateAllele`) and
+        :py:meth:`FabricateAllele`) and
         a warning will be raised. This may not be intended -
         use :py:meth:`GetLengthGenotypes` for a fully caller agnostic
         way of handling genotypes.
@@ -1449,6 +1554,8 @@ class TRRecordHarmonizer:
     Attributes
     ----------
     vcffile : cyvcf2.VCF instance
+    region : str
+        Region to grab strs from within the VCF file.
     vcftype : enum
        Type of the VCF file. Must be included in VcfTypes
     Raises
@@ -1458,9 +1565,11 @@ class TRRecordHarmonizer:
         See :py:meth:`InferVCFType` for more details.
     """
 
-    def __init__(self, vcffile: cyvcf2.VCF, vcftype: Union[str, VcfTypes] = "auto"):
+    def __init__(self, vcffile: cyvcf2.VCF, vcfiter: object, region: str, vcftype: Union[str, VcfTypes] = "auto"):
         self.vcffile = vcffile
+        self.vcfiter = vcfiter
         self.vcftype = InferVCFType(vcffile, vcftype)
+        self.region = region
 
     def MayHaveImpureRepeats(self) -> bool:
         """
@@ -1531,6 +1640,6 @@ class TRRecordHarmonizer:
 
     def __next__(self) -> TRRecord:
         """Iterate over TRRecord produced from the underlying vcf."""
-        return HarmonizeRecord(self.vcftype, next(self.vcffile))
+        return HarmonizeRecord(self.vcftype, next(self.vcfiter))
 
 # TODO check all users of this class for new options

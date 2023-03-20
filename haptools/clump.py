@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 
 # To test: ./clumpSTR.py --summstats-snps tests/eur_gwas_pvalue_chr19.LDL.glm.linear --clump-snp-field ID --clump-field p-value --clump-chrom-field CHROM --clump-pos-field position --clump-p1 0.2 --out test.clump
+from logging import getLogger, Logger
 import scipy.stats
 import numpy as np
 import logging
 import math
 import sys
 
-from haptools.data.genotypes import GenotypesRefAlt
-from haptools.data.genotypes import GenotypesTR # TODO for GenotypesTR import trtools first then if not use the code
-
-# TODO update all print statements with log variable
+from haptools.data.genotypes import GenotypesVCF
+from haptools.data.genotypes import GenotypesTR
 
 class Variant:
     def __init__(self, varid, chrom, pos, pval, vartype):
@@ -29,8 +28,9 @@ class SummaryStats:
     TODO: add detailed class and methods documentation
     """
 
-    def __init__(self):
+    def __init__(self, log: Logger = None):
         self.summstats = []
+        self.log = log or getLogger(self.__class__.__name__)
 
     def Load(self, statsfile, vartype="SNP", pthresh=1.0,
             snp_field="SNP", p_field="P",
@@ -51,22 +51,22 @@ class SummaryStats:
         try:
             snp_col = header_items.index(snp_field)
         except ValueError:
-            print("Could not find %s in header"%snp_field)
+            self.log.error("Could not find %s in header"%snp_field)
             sys.exit(1)
         try:
             p_col = header_items.index(p_field)
         except ValueError:
-            print("Could not find %s in header"%p_field)
+            self.log.error("Could not find %s in header"%p_field)
             sys.exit(1)
         try:
             chrom_col = header_items.index(chrom_field)
         except ValueError:
-            print("Could not find %s in header"%chrom_field)
+            self.log.error("Could not find %s in header"%chrom_field)
             sys.exit(1)
         try:
             pos_col = header_items.index(pos_field)
         except ValueError:
-            print("Could not find %s in header"%pos_field)
+            self.log.error("Could not find %s in header"%pos_field)
             sys.exit(1)
 
         # Now, load in stats. Skip things with pval>pthresh
@@ -127,17 +127,70 @@ class SummaryStats:
                 keepvars.append(variant)
         self.summstats = keepvars
 
+
+def _SortSamples(samples):
+    """
+    Sort samples along with their indices.
+    """
+    # Create indices to track for each sample
+    inds = np.arange(len(samples))
+
+    # Sort indices and samples together
+    sorted_data = [[sample, ind] for sample, ind in sorted(zip(samples, inds))]
+
+    # Grab samples and inds separately
+    sorted_samples = [sample for sample, _ in sorted_data]
+    sorted_inds = [ind for _, ind in sorted_data]
+
+    return sorted_samples, sorted_inds
+
+
 def GetOverlappingSamples(snpgts, strgts):
     """
-    Get overlapping set of samples
+    Get indices of overlapping samples for snps and strs
+
+    Parameters
+    ----------
+    snpgts: GenotypesVCF
+        SNP Genotypes object
+    strgts: GenotypesTR
+        STR Genotypes object
+    
+    Returns
+    -------
+    snp_samples: list(int)
+        Indices of overlapping samples for snps
+    str_samples: list(int)
+        Indices of overlapping samples for strs
     """
-    return [] # TODO
+    # Sort samples and respective indices in sample array together
+    snp_match_inds = []
+    str_match_inds = []
+    snp_samples, snp_inds = _SortSamples(snpgts.samples)
+    str_samples, str_inds = _SortSamples(strgts.samples)
+
+    # Since both lists are sorted we iterate over each list using counters
+    # to determine where potential matching samples are
+    snp_counter = 0
+    str_counter = 0
+    while snp_counter < len(snp_inds) and str_counter < len(str_inds):
+        if str_samples[str_counter] < snp_samples[snp_counter]:
+            str_counter += 1
+        elif str_samples[str_counter] == snp_samples[snp_counter]:
+            snp_match_inds.append(snp_inds[snp_counter])
+            str_match_inds.append(str_inds[str_counter])
+            snp_counter += 1
+            str_counter += 1
+        else:
+            snp_counter += 1
+
+    return snp_match_inds, str_match_inds
 
 def LoadVariant(var, snpgts, strgts, log):
     """
     Extract vector of genotypes for this variant
     """
-    # if it's a SNP we should take from data matrix in GenotypesRefAlt
+    # if it's a SNP we should take from data matrix in GenotypesVCF
     # if it's a STR we should take from data matrix in GenotypesTR
     # Grab variant from snps or strs depending on variant type
     if var.vartype.lower() == 'snp':
@@ -318,11 +371,24 @@ def ComputeMlsLD(candidate_gt, index_gt, log):
     best_Dprime, best_rsquared = _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n)
     return best_Dprime, best_rsquared
 
+def _FilterGts(candidate_gt, index_gt):
+    """
+    Filter invalid values from gts which is 255 since uint8 encodes -1 as 255
+    """
+    valid_gts = (candidate_gt != 255) & (index_gt != 255)
+    candidate_gt = candidate_gt[valid_gts]
+    index_gt = index_gt[valid_gts]
+    return candidate_gt, index_gt
+
 def ComputeLD(candidate_gt, index_gt, LD_type, log):
     """
     Compute the LD between two variants
     """
-    # TODO - Check for NAs in gts and remove them
+    # Filter invalid gt values
+    candidate_gt, index_gt = _FilterGts(candidate_gt, index_gt)
+    if not (candidate_gt or index_gt):
+        return 0
+
     # Compute and Maximum likelihood solution or Pearson r2
     if LD_type == 'MLS':
         return ComputeMlsLD(candidate_gt, index_gt, log)
@@ -343,16 +409,23 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     clump_kb, clump_r2, LD_type, out, log):
     ###### User checks ##########
     # TODO NEED TO ADD THE LOGGER TO EACH FUNCTION TO TRACK DEBUG AND INFO MESSAGES
-    # TODO - need one of summstats_snps or summstats_strs
-    # TODO - if summstats_snps, also need gts_snps
-    if summstats_snps:
+    # if summstats_snps, also need gts_snps
+    if summstats_snps or gts_snps:
         assert gts_snps is not None # TODO check to ensure this check works properly
-    # TODO - if summstats_strs, also need gts_strs
-    if summstats_strs:
+        assert summstats_snps is not None
+    # if summstats_strs, also need gts_strs
+    if summstats_strs or gts_strs:
         assert gts_strs is not None #TODO check to ensure this check works properly
+        assert summstats_strs is not None
+
+    if summstats_strs and LD_type == 'MLS':
+        raise Exception(
+            "The MLS method of computing LD can only be used with biallelic loci. " +
+            "STRs are not compatible with the MLS LD compute method. "
+        )
 
     ###### Load summary stats ##########
-    summstats = SummaryStats()
+    summstats = SummaryStats(log)
     if summstats_snps is not None:
         summstats.Load(summstats_snps, vartype="SNP", pthresh=clump_p2,
             snp_field=clump_snp_field, p_field=clump_field,
@@ -366,24 +439,28 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     snpgts = None
     strgts = None
     if gts_snps is not None:
-        log.debug("Loading SNP Genotypes.")
-        snpgts = GenotypesRefAlt.load(gts_snps) # TODO need to check if input is PGEN (use GenotypesPLINK instead)
+        if gts_snps.endswith('pgen'):
+            log.debug("Loading SNP Genotypes.")
+            snpgts = GenotypesPLINK.load(gts_snps)
+        else:
+            log.debug("Loading SNP Genotypes.")
+            snpgts = GenotypesVCF.load(gts_snps)
     if gts_strs is not None:
         log.debug("Loading STR Genotypes.")
-        # TODO Implement STR loader 
-        #strgts = GenotypesTR.load(gts_strs)
+        strgts = GenotypesTR.load(gts_strs)
     if gts_snps and gts_strs:
         log.debug("Calculating set of overlapping samples between STRs and SNPs.")
-        samples = GetOverlappingSamples(snpgts, strgts)
+        # Grab all shared samples between snp list and str list
+        # NOTE samples are returned such that resulting data is matching
+        snp_samples, str_samples = GetOverlappingSamples(snpgts, strgts)
 
-    # NOTE snpgts has data, variants, and samples where data is alleles (samples x variants x alleles)
-    #      variants has id, pos, chrom, ref, alt for snps
-    #      samples is list of samples corresponding to x-axis of samples
-    # TODO uncomment subsample snps and strs to set of overlapping samples
-    #snpgts.data = snpgts.data[samples,:,:]
-    #snpgts.samples = snpgts.samples[samples]
-    #strgts.data = snpgts.data[samples,:,:]
-    #strgts.samples = snpgts.samples[samples]
+        # NOTE snpgts has data, variants, and samples where data is alleles (samples x variants x alleles)
+        #      variants has id, pos, chrom, ref, alt for snps
+        #      samples is list of samples corresponding to x-axis of samples
+        snpgts.data = snpgts.data[snp_samples,:,:]
+        snpgts.samples = snpgts.samples[snp_samples]
+        strgts.data = snpgts.data[str_samples,:,:]
+        strgts.samples = snpgts.samples[str_samples]
 
     ###### Setup output file ##########
     outf = open(out, "w")
