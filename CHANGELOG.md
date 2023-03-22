@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/CAST-genomics/haptools/compare/v0.2.0...v0.2.1) (2023-03-22)
+
+
+### Bug Fixes
+
+* NoneType error in `Haplotypes.__iter__` ([#197](https://github.com/CAST-genomics/haptools/issues/197)) ([aade751](https://github.com/CAST-genomics/haptools/commit/aade751001fb7f008382d246663dfee68886d6c6))
+* precision of phenotypes written to pheno file ([#199](https://github.com/CAST-genomics/haptools/issues/199)) ([a397c96](https://github.com/CAST-genomics/haptools/commit/a397c964d80c6a1a947458a1f1b0393974ae7102))
+
 ## [0.2.0](https://github.com/CAST-genomics/haptools/compare/v0.1.3...v0.2.0) (2023-03-06)
 
 
