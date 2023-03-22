@@ -585,7 +585,7 @@ class TestPhenotypes:
         # now, let's load the data and check that it's what we wrote
         result = Phenotypes(expected_phen.fname)
         result.read()
-        np.testing.assert_allclose(expected_phen.data, result.data)
+        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
         assert expected_phen.names == result.names
         assert expected_phen.samples == result.samples
 
@@ -597,7 +597,7 @@ class TestPhenotypes:
         # now, let's load the data and check that it's what we wrote
         result = Phenotypes(expected_phen.fname)
         result.read()
-        np.testing.assert_allclose(expected_phen.data, result.data)
+        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
         assert expected_phen.names == result.names
         assert expected_phen.samples == result.samples
 
