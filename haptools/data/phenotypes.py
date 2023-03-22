@@ -195,7 +195,7 @@ class Phenotypes(Data):
             for samp, phen in zip(self.samples, self.data):
                 line = np.array2string(
                     phen,
-                    sign=" ",
+                    sign="-",
                     legacy=False,
                     separator="\t",
                     threshold=np.inf,

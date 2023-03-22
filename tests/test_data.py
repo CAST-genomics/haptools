@@ -601,6 +601,18 @@ class TestPhenotypes:
         assert expected_phen.names == result.names
         assert expected_phen.samples == result.samples
 
+        # try to make some of the data negative/positive and check that, as well
+        expected_phen.data[[1, 4], [0, 1]] = -439.58
+        expected_phen.data[[2, 3], [0, 1]] = 439.58
+        expected_phen.write()
+
+        # now, let's load the data and check that it's what we wrote
+        result = Phenotypes(expected_phen.fname)
+        result.read()
+        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
+        assert expected_phen.names == result.names
+        assert expected_phen.samples == result.samples
+
         # let's clean up after ourselves and delete the file
         expected_phen.fname.unlink()
 
