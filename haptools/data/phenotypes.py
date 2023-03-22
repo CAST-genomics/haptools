@@ -192,15 +192,17 @@ class Phenotypes(Data):
         # now we can finally write the file
         with self.hook_compressed(self.fname, mode="w") as phens:
             phens.write("#IID\t" + "\t".join(names) + "\n")
-            formatter = {"float_kind": lambda x: "%.2f" % x}
             for samp, phen in zip(self.samples, self.data):
                 line = np.array2string(
                     phen,
+                    sign=" ",
+                    legacy=False,
                     separator="\t",
-                    formatter=formatter,
-                    max_line_width=np.inf,
                     threshold=np.inf,
                     edgeitems=np.inf,
+                    floatmode="unique",
+                    suppress_small=False,
+                    max_line_width=np.inf,
                 )[1:-1]
                 phens.write(f"{samp}\t" + line + "\n")
 
