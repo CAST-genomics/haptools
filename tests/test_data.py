@@ -586,12 +586,24 @@ class TestPhenotypes:
         # now, let's load the data and check that it's what we wrote
         result = Phenotypes(expected_phen.fname)
         result.read()
-        np.testing.assert_allclose(expected_phen.data, result.data)
+        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
+        assert expected_phen.names == result.names
+        assert expected_phen.samples == result.samples
+
+        # try to standardize the data and see if it's still close
+        # to validate that our code can handle phenotypes with arbitrary precision
+        expected_phen.standardize()
+        expected_phen.write()
+
+        # now, let's load the data and check that it's what we wrote
+        result = Phenotypes(expected_phen.fname)
+        result.read()
+        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
         assert expected_phen.names == result.names
         assert expected_phen.samples == result.samples
 
         # let's clean up after ourselves and delete the file
-        os.remove(str(expected_phen.fname))
+        expected_phen.fname.unlink()
 
     def test_append_phenotype(self):
         expected1 = self._get_fake_phenotypes()
