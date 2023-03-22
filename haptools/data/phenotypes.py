@@ -176,7 +176,7 @@ class Phenotypes(Data):
         fill out the names, data, and samples properties:
         >>> phenotypes = Phenotypes('tests/data/simple.pheno')
         >>> phenotypes.names = ('height',)
-        >>> phenotypes.data = np.array([1, 1, 2], dtype='float64')
+        >>> phenotypes.data = np.array([[1, 1, 2]], dtype='float64')
         >>> phenotypes.samples = ('HG00096', 'HG00097', 'HG00099')
         >>> phenotypes.write()
         """
@@ -189,6 +189,10 @@ class Phenotypes(Data):
                 suffix = f"-{uniq_names[name]}"
             names[idx] = name + suffix
             uniq_names[name] += 1
+        # check that the phenotypes aren't a single vector; they must have a 2D shape!
+        # otherwise, negative signs won't get written correctly to the output
+        if len(self.data.shape) <= 1:
+            raise ValueError("The data property must have a 2D shape.")
         # now we can finally write the file
         with self.hook_compressed(self.fname, mode="w") as phens:
             phens.write("#IID\t" + "\t".join(names) + "\n")
@@ -221,6 +225,8 @@ class Phenotypes(Data):
             If True, discard any samples that are missing phenotypes without raising a
             ValueError
         """
+        if len(self.data.shape) <= 1:
+            raise ValueError("The data property must have a 2D shape.")
         # check: are there any samples that have phenotypes values that are -9?
         mask = self.data == -9
         missing = np.any(mask, axis=1)
@@ -254,6 +260,8 @@ class Phenotypes(Data):
 
         This function modifies :py:attr:`~.Phenotypes.data` in-place
         """
+        if len(self.data.shape) <= 1:
+            raise ValueError("The data property must have a 2D shape.")
         std = np.std(self.data, axis=0)
         self.data = (self.data - np.mean(self.data, axis=0)) / std
         # for phenotypes where the stdev is 0, just set all values to 0 instead of nan
@@ -275,6 +283,8 @@ class Phenotypes(Data):
             containing the phenotype values for each sample. Must have the same dtype
             as :py:attr:`~.Phenotypes.data.`
         """
+        if len(self.data.shape) <= 1:
+            raise ValueError("The data property must have a 2D shape.")
         if len(self.samples):
             if len(self.samples) != len(data):
                 self.log.error(

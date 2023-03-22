@@ -576,45 +576,57 @@ class TestPhenotypes:
         np.testing.assert_allclose(expected_phen.data, exp_data)
 
     def test_write_phenotypes(self):
-        expected_phen = self._get_fake_phenotypes()
+        exp_phen = self._get_fake_phenotypes()
 
         # first, we write the data
-        expected_phen.fname = DATADIR.joinpath("test.pheno")
-        expected_phen.write()
+        exp_phen.fname = DATADIR.joinpath("test.pheno")
+        exp_phen.write()
 
         # now, let's load the data and check that it's what we wrote
-        result = Phenotypes(expected_phen.fname)
+        result = Phenotypes(exp_phen.fname)
         result.read()
-        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
-        assert expected_phen.names == result.names
-        assert expected_phen.samples == result.samples
+        np.testing.assert_allclose(exp_phen.data, result.data, rtol=0, atol=0)
+        assert exp_phen.names == result.names
+        assert exp_phen.samples == result.samples
 
         # try to standardize the data and see if it's still close
         # to validate that our code can handle phenotypes with arbitrary precision
-        expected_phen.standardize()
-        expected_phen.write()
+        exp_phen.standardize()
+        exp_phen.write()
 
         # now, let's load the data and check that it's what we wrote
-        result = Phenotypes(expected_phen.fname)
+        result = Phenotypes(exp_phen.fname)
         result.read()
-        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
-        assert expected_phen.names == result.names
-        assert expected_phen.samples == result.samples
+        np.testing.assert_allclose(exp_phen.data, result.data, rtol=0, atol=0)
+        assert exp_phen.names == result.names
+        assert exp_phen.samples == result.samples
 
         # try to make some of the data negative/positive and check that, as well
-        expected_phen.data[[1, 4], [0, 1]] = -439.58
-        expected_phen.data[[2, 3], [0, 1]] = 439.58
-        expected_phen.write()
+        exp_phen.data[[1, 4], [0, 1]] = -439.58
+        exp_phen.data[[2, 3], [0, 1]] = 439.58
+        exp_phen.write()
 
         # now, let's load the data and check that it's what we wrote
-        result = Phenotypes(expected_phen.fname)
+        result = Phenotypes(exp_phen.fname)
         result.read()
-        np.testing.assert_allclose(expected_phen.data, result.data, rtol=0, atol=0)
-        assert expected_phen.names == result.names
-        assert expected_phen.samples == result.samples
+        np.testing.assert_allclose(exp_phen.data, result.data, rtol=0, atol=0)
+        assert exp_phen.names == result.names
+        assert exp_phen.samples == result.samples
+
+        # let's just try to create random, fake phenotypes
+        shape = exp_phen.data.shape[0] * exp_phen.data.shape[1]
+        exp_phen.data = np.random.normal(size=shape).reshape(exp_phen.data.shape)
+        exp_phen.write()
+
+        # now, let's load the data and check that it's what we wrote
+        result = Phenotypes(exp_phen.fname)
+        result.read()
+        np.testing.assert_allclose(exp_phen.data, result.data, rtol=0, atol=0)
+        assert exp_phen.names == result.names
+        assert exp_phen.samples == result.samples
 
         # let's clean up after ourselves and delete the file
-        expected_phen.fname.unlink()
+        exp_phen.fname.unlink()
 
     def test_append_phenotype(self):
         expected1 = self._get_fake_phenotypes()
