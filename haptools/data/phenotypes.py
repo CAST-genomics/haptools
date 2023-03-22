@@ -283,8 +283,8 @@ class Phenotypes(Data):
             containing the phenotype values for each sample. Must have the same dtype
             as :py:attr:`~.Phenotypes.data.`
         """
-        if len(self.data.shape) <= 1:
-            raise ValueError("The data property must have a 2D shape.")
+        if len(data.shape) != 1:
+            raise ValueError("The data argument must have a 1D shape.")
         if len(self.samples):
             if len(self.samples) != len(data):
                 self.log.error(
@@ -299,5 +299,7 @@ class Phenotypes(Data):
         if self.unset():
             self.data = data[:, np.newaxis]
         else:
+            if len(self.data.shape) <= 1:
+                raise ValueError("The data property must have a 2D shape.")
             self.data = np.concatenate((self.data, data[:, np.newaxis]), axis=1)
         self.names = self.names + (name,)
