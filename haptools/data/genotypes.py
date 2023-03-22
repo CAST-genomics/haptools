@@ -871,7 +871,6 @@ class GenotypesTR(Genotypes):
         self.log.info(f"Transposing genotype matrix of size {self.data.shape}.")
         self.data = self.data.transpose((1, 0, 2))
 
-    # TODO rewrite iterate functions using TRHarmonizer funtion
     def __iter__(
         self, region: str = None, samples: list[str] = None, variants: set[str] = None
     ) -> Iterator[namedtuple]:
@@ -898,7 +897,6 @@ class GenotypesTR(Genotypes):
         # see https://stackoverflow.com/a/36726497
         return self._iterate(vcf, region, variants)
 
-    # TODO update for incorporation with TRHarmonizer
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
         A generator over the lines of a VCF
@@ -964,7 +962,7 @@ class GenotypesTR(Genotypes):
             data = data[:, : (2 + (not self._prephased))]
             yield Record(data, variant_arr)
             num_seen += 1
-        vcf.close() # TODO fix error regarding closed VCF file and __next__ function in TRHarmonizer
+        vcf.close()
 
 
 class GenotypesPLINK(GenotypesVCF):
