@@ -872,11 +872,11 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, no_repla
             if re.search(r'(?<=chr)(X|\d+)', coord_file) and \
                re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
     except:
-        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name "
+        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name"
                         " and end in .map")
     
     if not all_coord_files:
-        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name "
+        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name"
                         " and end in .map")
     
     # validate popsize
