@@ -718,7 +718,11 @@ def test_model_files():
         validate_params(
             model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
-    assert (str(e.value)) == "Could not parse map directory files."
+    assert (
+        (str(e.value))
+        == "No valid coordinate files found. Must contain chr{1-22,X} in the file name"
+        " and end in .map"
+    )
 
     faulty_mapdir = DATADIR.joinpath("test_map_2")
     with pytest.raises(Exception) as e:
@@ -727,7 +731,8 @@ def test_model_files():
         )
     assert (
         (str(e.value))
-        == "No valid coordinate files found. Must contain chr{1-22,X} in the file name."
+        == "No valid coordinate files found. Must contain chr{1-22,X} in the file name"
+        " and end in .map"
     )
 
     # validate popsize exceptions
