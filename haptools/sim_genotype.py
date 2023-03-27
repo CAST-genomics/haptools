@@ -383,7 +383,8 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
     # remove all chr files not found in chroms list
     all_coord_files = glob.glob(f'{coords_dir}/*.map')
     all_coord_files = [coord_file for coord_file in all_coord_files \
-                if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+                if re.search(r'(?<=chr)(X|\d+)', coord_file) and \
+                   re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
     all_coord_files.sort(key=numeric_alpha)
 
     if len(all_coord_files) != len(chroms):
@@ -868,12 +869,15 @@ def validate_params(model, mapdir, chroms, popsize, invcf, sample_info, no_repla
     try:
         all_coord_files = glob.glob(f'{mapdir}/*.map')
         all_coord_files = [coord_file for coord_file in all_coord_files \
-            if re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+            if re.search(r'(?<=chr)(X|\d+)', coord_file) and \
+               re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
     except:
-        raise Exception("Could not parse map directory files.")
+        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name"
+                        " and end in .map")
     
     if not all_coord_files:
-        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name.")
+        raise Exception("No valid coordinate files found. Must contain chr{1-22,X} in the file name"
+                        " and end in .map")
     
     # validate popsize
     if not isinstance(popsize, int):
