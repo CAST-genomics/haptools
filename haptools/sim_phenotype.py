@@ -13,6 +13,7 @@ from .data import (
     Genotypes,
     Phenotypes,
     Haplotypes,
+    GenotypesTR,
     GenotypesPLINK,
 )
 
@@ -206,7 +207,7 @@ class PhenoSimulator:
         """
         self.phens.write()
 
-
+# TODO update with repeats option
 def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
@@ -288,6 +289,7 @@ def simulate_pt(
     if log is None:
         log = getLogger(name="simphenotype", level="ERROR")
 
+    # TODO ensure we can load the R line in the haplotype file 
     log.info("Loading haplotypes")
     hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
@@ -301,6 +303,14 @@ def simulate_pt(
     else:
         log.info("Loading genotypes from VCF/BCF file")
         gt = Genotypes(fname=genotypes, log=log)
+
+    # TODO need to also load STR genotypes when the option is given --repeats and a file is given
+    # TODO need to import GenotypesTR class
+    if repeat:
+        log.info("Loading TR genotypes")
+        str_gt = GenotypesTR(fname=genotypes, log=log)
+        
+
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=haplotype_ids)
     log.info("QC-ing genotypes")

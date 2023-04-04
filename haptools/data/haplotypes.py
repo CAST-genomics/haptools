@@ -535,6 +535,189 @@ class Haplotype:
 
         self.variants = tuple(sorted(self.variants))
 
+@total_ordering
+@dataclass
+class TandemRepeats:
+    """
+    A tandem repeat within the .hap format spec
+
+    In order to use this class with the Haplotypes class, you should
+    1) add properties to the class for each of extra fields
+    2) override the _extras property to describe the header declaration
+
+    Attributes
+    ----------
+    chrom: str
+        The contig to which this tandem repeat belongs
+    start: int
+        The chromosomal start position of the tandem repeat
+    end: int
+        The chromosomal end position of the tandem repeat
+    id: str
+        The tandem repeat's unique ID
+    _extras: tuple[Extra]
+        Extra fields for the tandem repeat
+
+    Examples
+    --------
+    Let's extend this class and add an extra field called "ancestry"
+
+    >>> from dataclasses import dataclass, field
+    >>> @dataclass
+    >>> class CustomHaplotype(Haplotype):
+    ...     ancestry: str
+    ...     _extras: tuple = field(
+    ...         repr=False,
+    ...         init=False,
+    ...         default = (
+    ...             Extra("ancestry", "s", "Local ancestry"),
+    ...         ),
+    ...     )
+    """
+    chrom: str
+    start: int
+    end: int
+    id: str
+    _extras: tuple = field(default=tuple(), init=False, repr=False)
+
+    @property
+    def ID(self):
+        """
+        Create an alias for the id property
+        """
+        return self.id
+
+    @property
+    # TODO: use @cached_property in py3.8
+    def _fmt(self):
+        extras = ""
+        if len(self._extras):
+            extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
+        return "R\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}" + extras
+
+    @classproperty
+    # TODO: use @cached_property in py3.8
+    def types(cls) -> dict[str, type]:
+        """
+        Obtain the types of each property in the object
+
+        Returns
+        -------
+        dict[str, type]
+            A mapping of each property in the object to its type
+        """
+        return {
+            k: v
+            for k, v in get_type_hints(cls).items()
+            if not (k.startswith("_"))
+        }
+
+    @classmethod
+    def from_hap_spec(
+        cls: Haplotype,
+        line: str,
+        types: dict[str, type] = None,
+    ) -> Haplotype:
+        """
+        Convert a variant line into a tandem repeat object in the .hap format spec
+
+        Note that this implementation does NOT support having more extra fields than
+        appear in the header
+
+        Parameters
+        ----------
+        line: str
+            A variant (R) line from the .hap file
+        types: dict[str, type], optional
+            The types of each property in the object
+
+        Returns
+        -------
+        TandemRepeat
+            The tandem repeat object for the variant
+        """
+        assert line[0] == "R", "Attempting to init a tandem repeat with a non-R line"
+        line = line[2:].split("\t")
+        types = types or cls.types
+        tr_fields = {
+            name: val(line[idx])
+            for idx, (name, val) in enumerate(types.items())
+            if val is not None
+        }
+        tr = cls(**tr_fields)
+        return tr
+
+    def to_hap_spec(self) -> str:
+        """
+        Convert a tandem repeat object into a tandem repeat line in the .hap format spec
+
+        Returns
+        -------
+        str
+            A valid tandem repeat line (R) in the .hap format spec
+        """
+        return self._fmt.format(**self.__dict__)
+
+    @classmethod
+    def extras_head(cls) -> set:
+        """
+        Return the header lines of the extra fields that are supported
+
+        Returns
+        -------
+        tuple
+            The header lines of the extra fields
+        """
+        return set(extra.to_hap_spec("R") for extra in cls._extras)
+
+    @classmethod
+    def extras_order(cls) -> tuple[str]:
+        """
+        The names of the extra fields in order
+
+        Returns
+        -------
+        tuple[str]
+            The names of the extra fields in the order in which they are stored
+        """
+        return tuple(extra.name for extra in cls._extras)
+
+    def __lt__(self, other: Haplotype):
+        """
+        Defines ordering for sort() method when dealing with variants.
+
+        This function will sort first by start followed by end and lastly ID
+
+        Parameters
+        ----------
+        other: Haplotype
+            A haplotype line from the .hap file
+
+        Returns
+        -------
+        bool
+            True if other is less than this instance, and False otherwise
+        """
+
+        if self.chrom == other.chrom:
+            if self.start == other.start:
+                if self.end == other.end:
+                    return self.id < other.id
+                else:
+                    return self.end < other.end
+            else:
+                return self.start < other.start
+        else:
+            return self.chrom < other.chrom
+
+    def sort(self):
+        """
+        Sorts the variants within this Haplotype instance
+
+        """
+
+        self.variants = tuple(sorted(self.variants))
+
 
 class Haplotypes(Data):
     """
