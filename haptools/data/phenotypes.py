@@ -39,6 +39,8 @@ class Phenotypes(Data):
         self.samples = tuple()
         self.names = tuple()
         self._ext = "pheno"
+        self._samp_idx = None
+        self._name_idx = None
 
     @classmethod
     def load(
@@ -241,6 +243,7 @@ class Phenotypes(Data):
                     "Ignoring missing phenotypes from "
                     f"{original_num_samples - len(self.samples)} samples"
                 )
+                self._samp_idx = None
             else:
                 raise ValueError(
                     "Sample with ID {} for phenotype '{}' is missing".format(
@@ -302,4 +305,104 @@ class Phenotypes(Data):
             if len(self.data.shape) <= 1:
                 raise ValueError("The data property must have a 2D shape.")
             self.data = np.concatenate((self.data, data[:, np.newaxis]), axis=1)
+        if self._name_idx is not None:
+            self._name_idx[name] = len(self.names)
         self.names = self.names + (name,)
+
+    def index(self, samples: bool = True, names: bool = True):
+        """
+        Call this function once to improve the amortized time-complexity of look-ups of
+        samples and names by their ID. This is useful if you intend to later subset
+        by a set of samples or name IDs.
+        The time complexity of this function should be roughly O(n+p) if both
+        parameters are True. Otherwise, it will be either O(n) or O(p).
+
+        Parameters
+        ----------
+        samples: bool, optional
+            Whether to index the samples for fast loop-up. Adds complexity O(n).
+        names: bool, optional
+            Whether to index the names for fast look-up. Adds complexity O(p).
+
+        Raises
+        ------
+        ValueError
+            If any samples or names appear more than once
+        """
+        if samples and self._samp_idx is None:
+            self._samp_idx = dict(zip(self.samples, range(len(self.samples))))
+            if len(self._samp_idx) < len(self.samples):
+                duplicates = Counter(self.samples).items()
+                duplicates = [samp_id for samp_id, count in duplicates if count > 1]
+                a_few = 5 if len(duplicates) > 5 else len(duplicates)
+                raise ValueError(f"Found duplicate sample IDs: {duplicates[:a_few]}")
+        if names and self._name_idx is None:
+            self._name_idx = dict(zip(self.names, range(len(self.names))))
+            if len(self._name_idx) < len(self.names):
+                duplicates = Counter(self.names).items()
+                duplicates = [name_id for name_id, count in duplicates if count > 1]
+                a_few = 5 if len(duplicates) > 5 else len(duplicates)
+                raise ValueError(f"Found duplicate name IDs: {duplicates[:a_few]}")
+
+    def subset(
+        self,
+        samples: tuple[str] = None,
+        names: tuple[str] = None,
+        inplace: bool = False
+    ):
+        """
+        Subset these phenotypes to a smaller set of samples or a smaller set of names
+
+        The order of the samples and names in the subsetted instance will match
+        the order in the provided tuple parameters.
+
+        Parameters
+        ----------
+        samples: tuple[str]
+            A subset of samples to keep
+        names: tuple[str]
+            A subset of phenotype IDs to keep
+        inplace: bool, optional
+            If False, return a new Phenotypes object; otherwise, alter the current one
+
+        Returns
+        -------
+            A new Phenotypes object if inplace is set to False, else returns None
+        """
+        # First, initialize variables
+        pts = self
+        if not inplace:
+            pts = self.__class__(self.fname, self.log)
+        pts.samples = self.samples
+        pts.names = self.names
+        pts.data = self.data
+        # Index the current set of samples and names so we can have fast look-up
+        self.index(samples=(samples is not None), names=(names is not None))
+        # Subset the samples
+        if samples is not None:
+            pts.samples = tuple(samp for samp in samples if samp in self._samp_idx)
+            if len(pts.samples) < len(samples):
+                diff = len(samples) - len(pts.samples)
+                self.log.warning(
+                    f"Saw {diff} fewer samples than requested. Proceeding with "
+                    f"{len(pts.samples)} samples."
+                )
+            samp_idx = tuple(self._samp_idx[samp] for samp in pts.samples)
+            if inplace:
+                self._samp_idx = None
+            pts.data = pts.data[samp_idx, :]
+        # Subset the names
+        if names is not None:
+            pts.names = tuple(name for name in names if name in self._name_idx)
+            if len(pts.names) < len(names):
+                diff = len(names) - len(pts.names)
+                self.log.warning(
+                    f"Saw {diff} fewer names than requested. Proceeding with "
+                    f"{len(pts.names)} names."
+                )
+            name_idx = tuple(self._name_idx[name] for name in pts.names)
+            if inplace:
+                self._pts.names = None
+            pts.data = pts.data[:, name_idx]
+        if not inplace:
+            return pts
