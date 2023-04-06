@@ -348,7 +348,7 @@ class Phenotypes(Data):
         self,
         samples: tuple[str] = None,
         names: tuple[str] = None,
-        inplace: bool = False
+        inplace: bool = False,
     ):
         """
         Subset these phenotypes to a smaller set of samples or a smaller set of names
