@@ -703,7 +703,7 @@ class TestPhenotypes:
 
         # subset both: samples and names
         expected_data = pts.data[[3, 4], [1]]
-        espected_data = expected_data[:, np.newaxis]
+        expected_data = expected_data[:, np.newaxis]
         assert len(expected_data.shape) == 2
         expected_names = (pts.names[1],)
         samples = ("HG00100", "HG00101")
