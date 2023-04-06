@@ -679,6 +679,39 @@ class TestPhenotypes:
         np.testing.assert_allclose(expected1.data, expected2.data[:, :2])
         np.testing.assert_allclose(expected2.data[:, 2], new_phen)
 
+    def test_subset_phenotypes(self):
+        pts = self._get_fake_phenotypes()
+
+        # subset to just the samples we want
+        expected_data = pts.data[:3]
+        expected_names = pts.names
+        samples = ("HG00096", "HG00097", "HG00099")
+        pts_sub = pts.subset(samples=samples)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
+        # subset to just the names we want
+        expected_data = pts.data[:, [1]]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        names = ("bmi",)
+        pts_sub = pts.subset(names=names)
+        assert pts_sub.samples == pts.samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
+        # subset both: samples and names
+        expected_data = pts.data[[3, 4], [1,]][:, np.newaxis]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        samples = ("HG00100", "HG00101")
+        names = ("bmi",)
+        pts_sub = pts.subset(samples=samples, names=names)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
 
 class TestCovariates:
     def _get_expected_covariates(self):
