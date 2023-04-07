@@ -1345,6 +1345,7 @@ class TestGenotypesVCF:
 
         gts.fname.unlink()
 
+
 class TestGenotypesTR:
     def test_read_tr(self):
         # simple_tr.vcf
@@ -1359,10 +1360,10 @@ class TestGenotypesTR:
         )
         expected_alleles = np.array(
             [
-                [[1,2,1], [3,4,1], [5,6,1], [7,8,1], [9,0,1]],
-                [[0,1,1], [0,1,1], [1,1,1], [1,1,1], [0,0,1]],
-                [[0,0,1], [0,0,1], [0,0,1], [0,0,1], [0,0,1]],
-                [[0,11,1], [255,255,1], [7,2,1], [3,4,1], [0,255,1]],
+                [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
+                [[0, 1, 1], [0, 1, 1], [1, 1, 1], [1, 1, 1], [0, 0, 1]],
+                [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                [[0, 11, 1], [255, 255, 1], [7, 2, 1], [3, 4, 1], [0, 255, 1]],
             ],
             dtype=np.uint8,
         )
@@ -1374,7 +1375,7 @@ class TestGenotypesTR:
         # check genotypes
         for i, variants in enumerate(expected_alleles):
             for j, sample_var in enumerate(variants):
-                assert tuple(sample_var) == tuple(gts.data[j,i])
+                assert tuple(sample_var) == tuple(gts.data[j, i])
 
 
 class TestBreakpoints:
