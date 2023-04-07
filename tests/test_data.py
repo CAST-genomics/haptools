@@ -17,6 +17,7 @@ from haptools.data import (
     Covariates,
     Haplotypes,
     Breakpoints,
+    GenotypesTR,
     GenotypesVCF,
     GenotypesPLINK,
 )
@@ -679,6 +680,40 @@ class TestPhenotypes:
         np.testing.assert_allclose(expected1.data, expected2.data[:, :2])
         np.testing.assert_allclose(expected2.data[:, 2], new_phen)
 
+    def test_subset_phenotypes(self):
+        pts = self._get_fake_phenotypes()
+
+        # subset to just the samples we want
+        expected_data = pts.data[:3]
+        expected_names = pts.names
+        samples = ("HG00096", "HG00097", "HG00099")
+        pts_sub = pts.subset(samples=samples)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
+        # subset to just the names we want
+        expected_data = pts.data[:, [1]]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        names = ("bmi",)
+        pts_sub = pts.subset(names=names)
+        assert pts_sub.samples == pts.samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
+        # subset both: samples and names
+        expected_data = pts.data[[3, 4], [1]]
+        expected_data = expected_data[:, np.newaxis]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        samples = ("HG00100", "HG00101")
+        names = ("bmi",)
+        pts_sub = pts.subset(samples=samples, names=names)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
 
 class TestCovariates:
     def _get_expected_covariates(self):
@@ -1309,6 +1344,38 @@ class TestGenotypesVCF:
         )
 
         gts.fname.unlink()
+
+
+class TestGenotypesTR:
+    def test_read_tr(self):
+        # simple_tr.vcf
+        expected = np.array(
+            [
+                ("GTT", "GTTGTT"),
+                ("ACACAC", "AC"),
+                ("AAA", "AAAA"),
+                ("GTGT", "GTGTGT"),
+            ],
+            dtype=object,
+        )
+        expected_alleles = np.array(
+            [
+                [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
+                [[0, 1, 1], [0, 1, 1], [1, 1, 1], [1, 1, 1], [0, 0, 1]],
+                [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                [[0, 11, 1], [255, 255, 1], [7, 2, 1], [3, 4, 1], [0, 255, 1]],
+            ],
+            dtype=np.uint8,
+        )
+        gts = GenotypesTR(DATADIR.joinpath("simple_tr.vcf"))
+        gts.read()
+        for i, x in enumerate(expected):
+            assert gts.variants["alleles"][i] == tuple(x)
+
+        # check genotypes
+        for i, variants in enumerate(expected_alleles):
+            for j, sample_var in enumerate(variants):
+                assert tuple(sample_var) == tuple(gts.data[j, i])
 
 
 class TestBreakpoints:

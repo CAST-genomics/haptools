@@ -1,0 +1,13 @@
+##fileformat=VCFv4.2
+##command=HipSTR-v0.7 --test
+##filedate=20180225
+##INFO=<ID=START,Number=1,Type=Integer,Description="Inclusive start coodinate for the repetitive portion of the reference allele">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Inclusive end coordinate for the repetitive portion of the reference allele">
+##INFO=<ID=PERIOD,Number=1,Type=Integer,Description="Length of STR motif">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=1>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00096	HG00097	HG00099	HG00100	HG00101
+1	10114	1:10114:GTT	GTT	GTTGTT	.	.	START=10114;END=10999;PERIOD=3	GT	1|2	3|4	5|6	7|8	9|0
+1	11000	1:10116:ACACAC	ACACAC	AC	.	.	START=11000;END=11016;PERIOD=2	GT	0|1	0|1	1|1	1|1	0|0
+1	12117	1:10117:AAA	AAA	AAAA	.	.	START=12117;END=12143;PERIOD=1	GT	0|0	0|0	0|0	0|0	0|0
+1	13122	1:10122:GTGT	GTGT	GTGTGT	.	.	START=13122;END=13150;PERIOD=2	GT	0|11	.|.	7|2	3|4	0|.
