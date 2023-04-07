@@ -695,6 +695,7 @@ class GenotypesVCF(Genotypes):
             vcf.write(record)
         vcf.close()
 
+
 class GenotypesTR(Genotypes):
     """
     A class for processing TR genotypes from a file
@@ -939,13 +940,16 @@ class GenotypesTR(Genotypes):
             # Check
             try:
                 data = np.array(variant.vcfrecord.genotypes, dtype=np.uint8)
-                
-            except ValueError: 
+
+            except ValueError:
                 self.log.warning(
-                    "The current variant in the VCF contains genotypes that do not have 2 alleles. " +
-                    "This will result in a significant slowdown due to iterating over " +
-                    "all GTs and fixing the shape issue. Please update the VCF by " +
-                    "adding another allele to each GT with only one allele to fix the slowdown."
+                    "The current variant in the VCF contains genotypes that do not have"
+                    " 2 alleles. "
+                    + "This will result in a significant slowdown due to iterating"
+                    " over "
+                    + "all GTs and fixing the shape issue. Please update the VCF by "
+                    + "adding another allele to each GT with only one allele to fix the"
+                    " slowdown."
                 )
                 data = []
                 for gt_sample in variant.vcfrecord.genotypes:
