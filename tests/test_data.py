@@ -17,6 +17,7 @@ from haptools.data import (
     Covariates,
     Haplotypes,
     Breakpoints,
+    GenotypesTR,
     GenotypesVCF,
     GenotypesPLINK,
 )
@@ -1309,6 +1310,70 @@ class TestGenotypesVCF:
         )
 
         gts.fname.unlink()
+
+class TestGenotypesVCF:
+    # TODO load TRs and not SNPS this code is copied from above
+    def _get_fake_genotypes_tr(self, with_phase=False):
+        base_gts = TestGenotypes()._get_fake_genotypes()
+        # copy all of the fields
+        gts = GenotypesTR(fname=None)
+        gts.data = base_gts.data
+        if with_phase:
+            data_shape = (gts.data.shape[0], gts.data.shape[1], 1)
+            # add phase info back
+            gts.data = np.concatenate(
+                (gts.data, np.ones(data_shape, dtype=gts.data.dtype)), axis=2
+            )
+        gts.samples = base_gts.samples
+        base_dtype = {k: v[0] for k, v in base_gts.variants.dtype.fields.items()}
+        ref_alt = [
+            ("T", "C"),
+            ("A", "G"),
+            ("C", "A"),
+            ("A", "G"),
+        ]
+        gts.variants = np.array(
+            [tuple(rec) + (ref_alt[idx],) for idx, rec in enumerate(base_gts.variants)],
+            dtype=(list(base_dtype.items()) + [("alleles", object)]),
+        )
+        return gts
+
+    # TODO update simple.vcf to simple_tr.vcf for testing
+    def test_read_tr(self):
+        # simple.vcf
+        expected = self._get_fake_genotypes_tr()
+        gts = GenotypesTR(DATADIR.joinpath("simple_tr.vcf"))
+        gts.read()
+        for i, x in enumerate(expected.variants["alleles"]):
+            assert gts.variants["alleles"][i] == x
+
+        # example_tr.vcf.gz
+        # TODO update with STR genotypes expected like hipstr output
+        gts = GenotypesTR(DATADIR.joinpath("example_tr.vcf.gz"))
+        gts.read()
+        # TODO update with expected TR repeat number
+        expected = np.array(
+            [
+                ("C", "A"),
+                ("T", "C"),
+                ("G", "A"),
+                ("T", "C"),
+                ("A", "G"),
+                ("A", "G"),
+                ("T", "G"),
+                ("T", "A"),
+                ("G", "A"),
+                ("T", "C"),
+                ("C", "G"),
+                ("A", "G"),
+                ("T", "C"),
+                ("T", "C"),
+                ("C", "T"),
+            ],
+            dtype=gts.variants["alleles"].dtype,
+        )
+        for i, x in enumerate(expected):
+            assert gts.variants["alleles"][i] == tuple(x.tolist())
 
 
 class TestBreakpoints:

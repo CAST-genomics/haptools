@@ -721,7 +721,6 @@ class GenotypesTR(Genotypes):
 
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
-        # TODO see if this is correct for reading in STR datatypes
         dtype = {k: v[0] for k, v in self.variants.dtype.fields.items()}
         self.variants = np.array([], dtype=list(dtype.items()) + [("alleles", object)])
 
@@ -729,8 +728,6 @@ class GenotypesTR(Genotypes):
         """
         See documentation for :py:meth:`~.Genotypes._variant_arr`
         """
-
-        # TODO see if this is correct since ref alt doesn't really exist
         return np.array(
             (
                 record.record_id,

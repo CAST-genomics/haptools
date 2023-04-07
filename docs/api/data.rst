@@ -167,6 +167,21 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 
 .. _api-data-genotypesplink:
 
+GenotypesTR
+++++++++++++
+:class:`GenotypesTR` class *extends* :class:`Genotypes` class. The :class:`GenotypesTR` class follows the same structure of :class:`GenotypesVCF`, but can now load repeat count of tandem repeats as the alleles.
+
+All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesTR` class' ``load()`` function is unique to loading tandem repeat variants.
+
+.. code-block:: python
+
+	genotypes = data.GenotypesTR.load('tests/data/simple_tr.vcf')
+	# make the first sample have 4 and 7 repeats for the alleles of the fourth variant
+	genotypes.data[0, 3] = (4, 7)
+	genotypes.write()
+
+.. _api-data-genotypesplink:
+
 GenotypesPLINK
 ++++++++++++++
 The :class:`GenotypesPLINK` class offers experimental support for reading and writing PLINK2 PGEN, PVAR, and PSAM files. We are able to read genotypes from a PLINK2 PGEN files in a fraction of the time of VCFs. Reading from VCFs is :math:`O(n*p)`, while reading from PGEN files is approximately :math:`O(1)`.
