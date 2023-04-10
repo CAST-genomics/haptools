@@ -28,5 +28,5 @@ class Covariates(Phenotypes):
     """
 
     def __init__(self, fname: Path | str, log: Logger = None):
-        super(Phenotypes, self).__init__(fname, log)
+        super().__init__(fname, log)
         self._ext = "covar"
