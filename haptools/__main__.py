@@ -412,6 +412,12 @@ def simgenotype(
     help="If using a PGEN file, read genotypes in chunks of X variants; reduces memory",
 )
 @click.option(
+    "--repeats",
+    type=click.File("r"),
+    default=None,
+    help="VCF file for genotypes of repeats",
+)
+@click.option(
     "--seed",
     type=int,
     default=None,
@@ -447,6 +453,7 @@ def simphenotype(
     ids: tuple[str] = tuple(),
     ids_file: Path = None,
     chunk_size: int = None,
+    repeats: Path = None,
     seed: int = None,
     output: Path = Path("-"),
     verbosity: str = "INFO",
@@ -499,6 +506,7 @@ def simphenotype(
         samples,
         ids,
         chunk_size,
+        repeats,
         seed,
         output,
         log,

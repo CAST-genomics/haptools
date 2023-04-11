@@ -219,6 +219,7 @@ def simulate_pt(
     samples: list[str] = None,
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
+    repeats: Path = None,
     seed: int = None,
     output: Path = Path("-"),
     log: logging.Logger = None,
@@ -281,6 +282,10 @@ def simulate_pt(
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
+    repeats: Path, optional
+        The path to a VCF file for repeat genotypes
+    seed: int, optional
+        Seed for random processes
     output : Path, optional
         The location to which to write the simulated phenotypes
     log : logging.Logger, optional
@@ -304,13 +309,12 @@ def simulate_pt(
         log.info("Loading genotypes from VCF/BCF file")
         gt = Genotypes(fname=genotypes, log=log)
 
-    # TODO need to also load STR genotypes when the option is given --repeats and a file is given
-    # TODO need to import GenotypesTR class
+    str_gt = None
     if repeat:
         log.info("Loading TR genotypes")
-        str_gt = GenotypesTR(fname=genotypes, log=log)
-        
-
+        str_gt = GenotypesTR(fname=repeats, log=log)
+        str_gt.read(region=region, samples=samples, variants=haplotype_ids)
+    
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=haplotype_ids)
     log.info("QC-ing genotypes")
