@@ -62,6 +62,7 @@ class PhenoSimulator:
     def __init__(
         self,
         genotypes: Genotypes,
+        tr_genotypes: GenotypesTR = None,
         output: Path = Path("/dev/stdout"),
         seed: int = None,
         log: logging.Logger = None,
@@ -73,6 +74,8 @@ class PhenoSimulator:
         ----------
         genotypes: Genotypes
             Genotypes for each haplotype
+        tr_genotypes: GenotypesTR, optional
+            TR Genotypes for each haplotype
         output: Path, optional
             Path to a '.pheno' file to which the generated phenotypes could be written
 
@@ -86,6 +89,7 @@ class PhenoSimulator:
             A logging instance for recording debug statements
         """
         self.gens = genotypes
+        self.tr_gens = tr_genotypes
         self.phens = Phenotypes(fname=output)
         self.phens.data = None
         self.phens.samples = self.gens.samples
@@ -128,6 +132,7 @@ class PhenoSimulator:
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
         # extract the relevant haplotype info from the Haplotype objects
+        # TODO ensure that ids dont grab repeat IDS
         ids = [hap.id for hap in effects]
         betas = np.array([hap.beta for hap in effects])
         self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
@@ -135,6 +140,11 @@ class PhenoSimulator:
         # extract the haplotype "genotypes" and compute the phenotypes
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
+
+        if self.tr_gens:
+            # TODO ensure ids grabbed are only the tr IDS here since we already grabbed Variant IDS above I believe
+            tr_gts = self.tr_gens.subset(variants=ids).data[:,:,2].sum(axis=2)
+
         # standardize the genotypes
         if normalize:
             std = gts.std(axis=0)
@@ -149,7 +159,7 @@ class PhenoSimulator:
                     zero_elements_ids = zero_elements_ids[:5]
                 self.log.warning(
                     "Some of your causal variables have genotypes with variance 0. "
-                    f"Here are the first few few: {zero_elements_ids}"
+                    f"Here are the first few: {zero_elements_ids}"
                 )
             gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
         # generate the genetic component
@@ -294,7 +304,7 @@ def simulate_pt(
     if log is None:
         log = getLogger(name="simphenotype", level="ERROR")
 
-    # TODO ensure we can load the R line in the haplotype file 
+    # TODO ensure we can load the R line in the haplotype file and is processed correctly during simulation
     log.info("Loading haplotypes")
     hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
@@ -309,11 +319,11 @@ def simulate_pt(
         log.info("Loading genotypes from VCF/BCF file")
         gt = Genotypes(fname=genotypes, log=log)
 
-    str_gt = None
+    tr_gt = None
     if repeat:
         log.info("Loading TR genotypes")
-        str_gt = GenotypesTR(fname=repeats, log=log)
-        str_gt.read(region=region, samples=samples, variants=haplotype_ids)
+        tr_gt = GenotypesTR(fname=repeats, log=log)
+        tr_gt.read(region=region, samples=samples, variants=haplotype_ids)
     
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=haplotype_ids)
@@ -333,7 +343,7 @@ def simulate_pt(
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
-    pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
+    pt_sim = PhenoSimulator(gt, tr_genotypes=tr_gt output=output, seed=seed, log=log)
     for i in range(num_replications):
         pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
     log.info("Writing phenotypes")

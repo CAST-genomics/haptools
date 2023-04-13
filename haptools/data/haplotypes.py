@@ -537,7 +537,7 @@ class Haplotype:
 
 @total_ordering
 @dataclass
-class TandemRepeats:
+class Repeat:
     """
     A tandem repeat within the .hap format spec
 
@@ -614,12 +614,12 @@ class TandemRepeats:
 
     @classmethod
     def from_hap_spec(
-        cls: Haplotype,
+        cls: Repeat,
         line: str,
         types: dict[str, type] = None,
-    ) -> Haplotype:
+    ) -> tuple[str, Repeat]:
         """
-        Convert a variant line into a tandem repeat object in the .hap format spec
+        Convert a tandem repeat line into a tandem repeat object in the .hap format spec
 
         Note that this implementation does NOT support having more extra fields than
         appear in the header
@@ -627,36 +627,42 @@ class TandemRepeats:
         Parameters
         ----------
         line: str
-            A variant (R) line from the .hap file
+            A tandem repeat (R) line from the .hap file
         types: dict[str, type], optional
             The types of each property in the object
 
         Returns
         -------
-        TandemRepeat
-            The tandem repeat object for the variant
+        Repeat
+            The repeat object for the variant
         """
-        assert line[0] == "R", "Attempting to init a tandem repeat with a non-R line"
+        assert line[0] == "R", "Attempting to init a Repeat with a non-R line"
         line = line[2:].split("\t")
+        hap_id = line[0]
+        line = line[1:]
         types = types or cls.types
         tr_fields = {
             name: val(line[idx])
             for idx, (name, val) in enumerate(types.items())
             if val is not None
         }
-        tr = cls(**tr_fields)
-        return tr
+        return hap_id, cls(**tr_fields)
 
-    def to_hap_spec(self) -> str:
+    def to_hap_spec(self, hap_id: str) -> str:
         """
-        Convert a tandem repeat object into a tandem repeat line in the .hap format spec
+        Convert a Repeat object into a repeat line in the .hap format spec
+
+        Parameters
+        ----------
+        hap_id: str
+            The ID of the haplotype associated with this variant
 
         Returns
         -------
         str
-            A valid tandem repeat line (R) in the .hap format spec
+            A valid variant line (V) in the .hap format spec
         """
-        return self._fmt.format(**self.__dict__)
+        return self._fmt.format(**self.__dict__, hap=hap_id)
 
     @classmethod
     def extras_head(cls) -> set:
@@ -710,14 +716,6 @@ class TandemRepeats:
         else:
             return self.chrom < other.chrom
 
-    def sort(self):
-        """
-        Sorts the variants within this Haplotype instance
-
-        """
-
-        self.variants = tuple(sorted(self.variants))
-
 
 class Haplotypes(Data):
     """
@@ -729,10 +727,12 @@ class Haplotypes(Data):
         The path to the file containing the data
     data: dict[str, Haplotype]
         A dict of Haplotype objects keyed by their IDs
+    tr_data: dict[str, [Repeat]]
+        A dict of a list of Repeat objects keyed by Haplotype IDs that they belong to. 
     types: dict
         A dict of class names keyed by the symbol denoting their line type
 
-        Ex: {'H': Haplotype, 'V': Variant}
+        Ex: {'H': Haplotype, 'V': Variant, 'R': Repeat}
     version: str
         A string denoting the current file format version
     log: Logger
@@ -760,13 +760,15 @@ class Haplotypes(Data):
         fname: Path | str,
         haplotype: type[Haplotype] = Haplotype,
         variant: type[Variant] = Variant,
+        repeat: type[Repeat] = Repeat,
         log: Logger = None,
     ):
         super().__init__(fname, log)
         self.data = None
+        self.tr_data = None
         # note: it's important that self.types is created such that its keys are sorted
         # otherwise, the write() method might create unsorted files
-        self.types = {"H": haplotype, "V": variant}
+        self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.version = "0.1.0"
 
     @classmethod
@@ -985,6 +987,11 @@ class Haplotypes(Data):
                 del line.hap
                 # store the variant for later
                 var_haps.setdefault(hap_id, []).append(line)
+            elif isinstance(line, Repeat):
+                hap_id = line.hap
+                del line.hap
+                # store the repeat for later
+                self.tr_data.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
         self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
@@ -1104,6 +1111,7 @@ class Haplotypes(Data):
                     # come before the V lines
                     break
 
+    # TODO see where this function is used in sim_phenotype to see where we need to grab repeat gts or if we need too at all
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
     ) -> Iterator[Variant | Haplotype]:
@@ -1131,9 +1139,9 @@ class Haplotypes(Data):
 
         Yields
         ------
-        Iterator[Variant|Haplotype]
+        Iterator[Variant|Repeat|Haplotype]
             An iterator over each line in the file, where each line is encoded as a
-            Variant or Haplotype containing each of the class properties
+            Variant, Repeat, or Haplotype containing each of the class properties
 
         Examples
         --------
@@ -1169,6 +1177,7 @@ class Haplotypes(Data):
             for hap in self._iter_haps(haps_file, types["H"], region, haplotypes):
                 yield hap
                 # fetch region
+                # TODO test that repeats are correcly handled
                 # we already know that each line will start with a V, so we don't
                 # need to check that
                 for line in haps_file.fetch(reference=hap.id, multiple_iterators=True):
@@ -1179,11 +1188,16 @@ class Haplotypes(Data):
                         # which haplotype this variant belongs to
                         var.hap = hap.id
                         yield var
+                    elif line_type == 'R':
+                        tr = self.types["R"].from_hap_spec(line, types=types["R"])[1]
+                        tr.hap = hap.id
+                        yield tr
                     else:
                         self.log.warning(
                             "Check that chromosomes are distinct from your hap IDs!"
                         )
             haps_file.close()
+        # TODO test TR repeat
         else:
             # the file is not indexed, so we can't assume it's sorted, either
             # use hook_compressed to automatically handle gz files
@@ -1223,11 +1237,19 @@ class Haplotypes(Data):
                                 # know which haplotype this variant belongs to
                                 var.hap = hap_id
                                 yield var
+                        elif line_type == "R":
+                            hap_id, tr = self.types["R"].from_hap_spec(
+                                line, types=types["R"]
+                            )/
+                            if haplotypes is None or hap_id in haplotypes:
+                                tr.hap = hap_id
+                                yield tr
                         else:
                             self.log.warning(
                                 f"Ignoring unsupported line type '{line[0]}'"
                             )
 
+    # TODO Test with repeats
     def to_str(self, sort: bool = True) -> Generator[str, None, None]:
         """
         Create a string representation of this Haplotype
@@ -1255,6 +1277,8 @@ class Haplotypes(Data):
         for hap_id in sorted_hap_ids:
             for var in self.data[hap_id].variants:
                 yield self.types["V"].to_hap_spec(var, hap_id)
+            for tr in self.tr_data[hap_id]:
+                yield self.types["R"].to_hap_spec(tr, hap_id)
 
     def __repr__(self):
         return "\n".join(self.to_str())
