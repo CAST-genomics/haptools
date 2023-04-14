@@ -176,9 +176,9 @@ We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever 
 
 .. code-block:: bash
 
-  LC_ALL=C sort -k2,4 -o file.hap file.hap
-  bgzip file.hap
-  tabix -s 2 -b 3 -e 4 file.hap.gz
+  awk '$0 ~ /^#/ {print; next} {print | "LC_ALL=C sort -k2,4"}' file.hap > sorted.hap
+  bgzip sorted.hap
+  tabix -s 2 -b 3 -e 4 sorted.hap.gz
 
 In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones.
 
@@ -281,7 +281,7 @@ v0.2.0
 ------
 Support for tandem repeats in the specification via a new 'R' line type that has similar fields to the 'H' line type.
 
-Also, ``.hap`` files no longer need to be sorted by their first field in order to be indexed.
+Also, ``.hap`` files no longer need to be sorted by their first field in order to be indexed. We have updated the recommended ``sort`` command to reflect this. The new command wraps ``sort`` in a call to ``awk`` to ensure header lines are kept at the beginning of the file.
 
 v0.1.0
 ------
