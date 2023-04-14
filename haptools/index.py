@@ -71,6 +71,7 @@ def index_haps(
                 tmp.write(haps.read())
 
     try:
+        breakpoint()
         tabix_index(str(hp.fname), seq_col=1, start_col=2, end_col=3)
     except OSError as e:
         # check if the error message matches what we expect if the file is unsorted

@@ -867,7 +867,7 @@ def ld(
 )
 def index(
     haplotypes: Path,
-    sort: bool = False,
+    sort: bool = True,
     output: Path = None,
     verbosity: str = "INFO",
 ):

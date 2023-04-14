@@ -10,6 +10,7 @@ from .logging import getLogger
 from .data import Haplotype as HaplotypeBase
 from .data import (
     Extra,
+    Repeat,
     Genotypes,
     Phenotypes,
     Haplotypes,
@@ -99,6 +100,7 @@ class PhenoSimulator:
     def run(
         self,
         effects: list[Haplotype],
+        tr_effects: list[Repeat] = None,
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
@@ -113,6 +115,8 @@ class PhenoSimulator:
         ----------
         effects: list[Haplotype]
             A list of Haplotypes to use in an additive fashion within the simulations
+        tr_effects: list[Repeat], optional
+            A list of Repeats to use for simulation.
         heritability: float, optional
             The simulated heritability of the trait
 
@@ -132,7 +136,6 @@ class PhenoSimulator:
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
         # extract the relevant haplotype info from the Haplotype objects
-        # TODO ensure that ids dont grab repeat IDS
         ids = [hap.id for hap in effects]
         betas = np.array([hap.beta for hap in effects])
         self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
@@ -141,27 +144,22 @@ class PhenoSimulator:
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
 
-        if self.tr_gens:
-            # TODO ensure ids grabbed are only the tr IDS here since we already grabbed Variant IDS above I believe
-            tr_gts = self.tr_gens.subset(variants=ids).data[:,:,2].sum(axis=2)
-
         # standardize the genotypes
+        # TODO also normalize TR genotypes
         if normalize:
-            std = gts.std(axis=0)
-            gts = (gts - gts.mean(axis=0)) / std
-            # when the stdev is 0, just set all values to 0 instead of nan
-            zero_elements = std == 0
-            num_zero_elements = np.sum(zero_elements)
-            if num_zero_elements:
-                # get the first five causal variables with variances == 0
-                zero_elements_ids = np.array(ids)[zero_elements]
-                if len(zero_elements_ids) > 5:
-                    zero_elements_ids = zero_elements_ids[:5]
-                self.log.warning(
-                    "Some of your causal variables have genotypes with variance 0. "
-                    f"Here are the first few: {zero_elements_ids}"
-                )
-            gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
+            gts = self.normalize_gts(gts)
+
+        if self.tr_gens:
+            # TODO grab tr haplotype ids 
+            tr_ids = [tr.id for tr in tr_effects] # TODO add repeat effects 
+            tr_gts = self.tr_gens.subset(variants=tr_ids).data[:,:,2].sum(axis=2)
+            if normalize:
+                tr_gts = self.normalize_gts(tr_gts)
+            # TODO update with TRs 
+            # TODO update betas to account for TRs
+            betas = []
+            gts = []
+
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
@@ -209,6 +207,37 @@ class PhenoSimulator:
         # now, save the archived phenotypes for later
         self.phens.append(name="-".join(ids) + name_suffix, data=pt.astype(np.float64))
         return pt
+
+    def normalize_gts(self, gts):
+        """
+        Normalize variant or repeats genotypes
+        
+        Parameters
+        ----------
+        gts: np.array
+            Genotypes variant array stored in data.
+
+        Returns
+        -------
+        normalized_gts: np.array
+            Normalized Genotypes variant array.
+        """
+        std = gts.std(axis=0)
+        gts = (gts - gts.mean(axis=0)) / std
+        # when the stdev is 0, just set all values to 0 instead of nan
+        zero_elements = std == 0
+        num_zero_elements = np.sum(zero_elements)
+        if num_zero_elements:
+            # get the first five causal variables with variances == 0
+            zero_elements_ids = np.array(ids)[zero_elements]
+            if len(zero_elements_ids) > 5:
+                zero_elements_ids = zero_elements_ids[:5]
+            self.log.warning(
+                "Some of your causal variables have genotypes with variance 0. "
+                f"Here are the first few: {zero_elements_ids}"
+            )
+        gts[:, zero_elements] = np.zeros((gts.shape[0], num_zero_elements))
+        return gts
 
     def write(self):
         """
@@ -343,8 +372,9 @@ def simulate_pt(
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
-    pt_sim = PhenoSimulator(gt, tr_genotypes=tr_gt output=output, seed=seed, log=log)
+    pt_sim = PhenoSimulator(gt, tr_genotypes=tr_gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
+        # TODO update since all haplotype and repeat data is stored under data
+        pt_sim.run(hp.data.type_ids["H"], hp.data.type_ids["R"], heritability, prevalence, normalize)
     log.info("Writing phenotypes")
     pt_sim.write()

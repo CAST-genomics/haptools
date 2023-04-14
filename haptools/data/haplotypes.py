@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import copy
 from pathlib import Path
 from functools import total_ordering
 from logging import getLogger, Logger
@@ -606,18 +607,14 @@ class Repeat:
         dict[str, type]
             A mapping of each property in the object to its type
         """
-        return {
-            k: v
-            for k, v in get_type_hints(cls).items()
-            if not (k.startswith("_"))
-        }
+        return {k: v for k, v in get_type_hints(cls).items() if not k.startswith("_")}
 
     @classmethod
     def from_hap_spec(
         cls: Repeat,
         line: str,
         types: dict[str, type] = None,
-    ) -> tuple[str, Repeat]:
+    ) -> Repeat:
         """
         Convert a tandem repeat line into a tandem repeat object in the .hap format spec
 
@@ -638,15 +635,13 @@ class Repeat:
         """
         assert line[0] == "R", "Attempting to init a Repeat with a non-R line"
         line = line[2:].split("\t")
-        hap_id = line[0]
-        line = line[1:]
         types = types or cls.types
         tr_fields = {
             name: val(line[idx])
             for idx, (name, val) in enumerate(types.items())
             if val is not None
         }
-        return hap_id, cls(**tr_fields)
+        return cls(**tr_fields)
 
     def to_hap_spec(self, hap_id: str) -> str:
         """
@@ -688,7 +683,7 @@ class Repeat:
         """
         return tuple(extra.name for extra in cls._extras)
 
-    def __lt__(self, other: Haplotype):
+    def __lt__(self, other: Haplotype|Repeat):
         """
         Defines ordering for sort() method when dealing with variants.
 
@@ -696,8 +691,8 @@ class Repeat:
 
         Parameters
         ----------
-        other: Haplotype
-            A haplotype line from the .hap file
+        other: Haplotype|Repeat
+            A haplotype or repeat line from the .hap file
 
         Returns
         -------
@@ -978,10 +973,14 @@ class Haplotypes(Data):
         """
         super().read()
         self.data = {}
+        self.tr_data = {}
         var_haps = {}
+        tr_haps = {}
         for line in self.__iter__(region, haplotypes):
             if isinstance(line, Haplotype):
-                self.data[line.id] = line
+                # must deepcopy otherwise both dicts reference same object
+                self.data[line.id] = copy.deepcopy(line)
+                self.tr_data[line.id] = copy.deepcopy(line)
             elif isinstance(line, Variant):
                 hap_id = line.hap
                 del line.hap
@@ -991,9 +990,11 @@ class Haplotypes(Data):
                 hap_id = line.hap
                 del line.hap
                 # store the repeat for later
-                self.tr_data.setdefault(hap_id, []).append(line)
+                tr_haps.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
+        for hap in tr_haps:
+            self.tr_data[hap].variants = tuple(tr_haps[hap])
         self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
 
     def _get_field_types(
@@ -1102,6 +1103,7 @@ class Haplotypes(Data):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
                 if line_type == "H":
+                    # TODO  if we find TR identifier field at end convert to Repeat object instead
                     hap = self.types["H"].from_hap_spec(line, types=line_types)
                     if hap.id in haplotypes:
                         yield hap
@@ -1240,7 +1242,7 @@ class Haplotypes(Data):
                         elif line_type == "R":
                             hap_id, tr = self.types["R"].from_hap_spec(
                                 line, types=types["R"]
-                            )/
+                            )
                             if haplotypes is None or hap_id in haplotypes:
                                 tr.hap = hap_id
                                 yield tr
@@ -1273,12 +1275,16 @@ class Haplotypes(Data):
             yield from sorted(line_instance.extras_head())
         for hap in self.data.values():
             yield self.types["H"].to_hap_spec(hap)
+
+        sorted_tr_hap_ids = sorted(self.tr_data.keys()) if sort else self.tr_data.keys()
+        for hap_id in sorted_tr_hap_ids:
+            for tr in self.tr_data[hap_id].variants:
+                yield self.types["R"].to_hap_spec(tr, hap_id)
+
         sorted_hap_ids = sorted(self.data.keys()) if sort else self.data.keys()
         for hap_id in sorted_hap_ids:
             for var in self.data[hap_id].variants:
                 yield self.types["V"].to_hap_spec(var, hap_id)
-            for tr in self.tr_data[hap_id]:
-                yield self.types["R"].to_hap_spec(tr, hap_id)
 
     def __repr__(self):
         return "\n".join(self.to_str())
@@ -1382,6 +1388,7 @@ class Haplotypes(Data):
         Also sorts the variants within each haplotype
         """
         self.data = dict(sorted(self.data.items(), key=lambda item: item[1]))
+        self.tr_data = dict(sorted(self.tr_data.items(), key=lambda item: item[1]))
         for hap in self.data.values():
             hap.sort()
 
