@@ -120,17 +120,21 @@ def calc_ld(
             variants.update(var.id for var in hp.data[target].variants)
     else:
         log.info("Extracting variants from haplotypes")
-        variants = {var.id for hap in hp.data.values() for var in hap.variants}
+        variants = {var.id for h in hp.type_ids["H"] for var in hp.data[h].variants}
 
     # check to see whether the target was a haplotype
-    if target in hp.data:
+    if target in hp.type_ids["H"]:
         log.info(f"Identified target '{target}' as a haplotype")
         target = hp.data.pop(target)
+        hp.index(force=True)
         if len(hp.data) == 0 and not from_gts:
             log.error(
                 "There must be at least one more haplotype in the .hap file "
                 "than the TARGET haplotype specified."
             )
+    else:
+        # TODO: handle other line types
+        pass
 
     # check that all of the haplotypes were loaded successfully and warn otherwise
     if ids is not None and not from_gts and len(ids) > len(hp.data):
@@ -206,7 +210,7 @@ def calc_ld(
         # construct a new Haplotypes object that also stores the LD values
         hp_out = data.Haplotypes(fname=output, haplotype=Haplotype, log=log)
         hp_out.data = {}
-        for hap_id in hp.data:
+        for hap_id in hp.type_ids["H"]:
             # break the BaseHaplotype instance up into its properties
             hapd = hp.data[hap_id].__dict__
             hapd_variants = hapd.pop("variants")
