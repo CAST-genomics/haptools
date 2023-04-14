@@ -908,17 +908,17 @@ class Haplotypes(Data):
                     continue
                 yield hap
         else:
+            count = 0
             for line in haps_file.fetch(multiple_iterators=True):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
                 if line_type == "H":
                     hap = self.types["H"].from_hap_spec(line, types=line_types)
                     if hap.id in haplotypes:
+                        count += 1
                         yield hap
-                elif line_type > "H":
-                    # if we've already passed all of the H's, we can just exit
-                    # We assume the file has been sorted so that all of the H lines
-                    # come before the V lines
+                # exit prematurely if we've seen all of the requested haplotypes
+                if count == len(haplotypes):
                     break
 
     def __iter__(
