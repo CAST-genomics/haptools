@@ -42,7 +42,7 @@ You can use the ``--no-sort`` flag to skip the sorting step if your file is alre
 
   .. code-block:: bash
 
-    awk '$0 ~ /^#/ {print; next} {print | "LC_ALL=C sort -k2,4"}' tests/data/simphenotype.hap | \
+    awk '$0 ~ /^#/ {print; next} {print | "sort -k2,4"}' tests/data/simphenotype.hap | \
     haptools index --no-sort --output tests/data/simphenotype.hap.gz /dev/stdin
 
 All files used in these examples are described :doc:`here </project_info/example_files>`.

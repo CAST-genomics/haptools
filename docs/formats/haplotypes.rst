@@ -176,8 +176,7 @@ We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever 
 
 .. code-block:: bash
 
-  awk '$0 ~ /^#/ {print; next} {print | "LC_ALL=C sort -k2,4"}' file.hap > sorted.hap
-  bgzip sorted.hap
+  awk '$0 ~ /^#/ {print; next} {print | "sort -k2,4"}' file.hap | bgzip > sorted.hap.gz
   tabix -s 2 -b 3 -e 4 sorted.hap.gz
 
 In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones.
