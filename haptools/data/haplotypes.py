@@ -1094,10 +1094,9 @@ class Haplotypes(Data):
                     region = [region[0]]
                 region = list(map(int, region))
             # fetch region
-            # we already know that each line will start with an H, so we don't
-            # need to check that
             for line in haps_file.fetch(region=region_str, multiple_iterators=True):
-                hap = self.types["H"].from_hap_spec(line, types=line_types)
+                # hap can either be a Repeat or Haplotype
+                hap = self.types[line[0]].from_hap_spec(line, types=line_types)
                 if haplotypes is not None:
                     if hap.id not in haplotypes:
                         continue
@@ -1112,9 +1111,9 @@ class Haplotypes(Data):
             for line in haps_file.fetch(multiple_iterators=True):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
-                if line_type == "H":
-                    # TODO  if we find TR identifier field at end convert to Repeat object instead
-                    hap = self.types["H"].from_hap_spec(line, types=line_types)
+                if line_type == "H" or line_type == "R":
+                    # TODO check what haplotypes will be
+                    hap = self.types[line_type].from_hap_spec(line, types=line_types)
                     if hap.id in haplotypes:
                         count += 1
                         yield hap
@@ -1122,7 +1121,6 @@ class Haplotypes(Data):
                 if count == len(haplotypes):
                     break
 
-    # TODO see where this function is used in sim_phenotype to see where we need to grab repeat gts or if we need too at all
     def __iter__(
         self, region: str = None, haplotypes: set[str] = None
     ) -> Iterator[Variant | Haplotype]:
@@ -1187,8 +1185,12 @@ class Haplotypes(Data):
             # query for the variants of each haplotype
             for hap in self._iter_haps(haps_file, types["H"], region, haplotypes):
                 yield hap
+
+                # If the haplotype is a repeat it will not have variants so continue
+                if isinstance(hap, Repeat):
+                    continue
+                
                 # fetch region
-                # TODO test that repeats are correcly handled
                 # we already know that each line will start with a V, so we don't
                 # need to check that
                 for line in haps_file.fetch(reference=hap.id, multiple_iterators=True):
@@ -1199,16 +1201,11 @@ class Haplotypes(Data):
                         # which haplotype this variant belongs to
                         var.hap = hap.id
                         yield var
-                    elif line_type == 'R':
-                        tr = self.types["R"].from_hap_spec(line, types=types["R"])[1]
-                        tr.hap = hap.id
-                        yield tr
                     else:
                         self.log.warning(
                             "Check that chromosomes are distinct from your hap IDs!"
                         )
             haps_file.close()
-        # TODO test TR repeat
         else:
             # the file is not indexed, so we can't assume it's sorted, either
             # use hook_compressed to automatically handle gz files
@@ -1233,9 +1230,9 @@ class Haplotypes(Data):
                             types = self._get_field_types(extras, metas.get("order"))
                             header_lines = None
                             self.log.info("Finished reading header.")
-                        if line_type == "H":
-                            temp_hap = self.types["H"].from_hap_spec(
-                                line, types=types["H"]
+                        if line_type == "H" or line_type == "R":
+                            temp_hap = self.types[line_type].from_hap_spec(
+                                line, types=types[line_type]
                             )
                             if haplotypes is None or temp_hap.id in haplotypes:
                                 yield temp_hap
@@ -1248,13 +1245,6 @@ class Haplotypes(Data):
                                 # know which haplotype this variant belongs to
                                 var.hap = hap_id
                                 yield var
-                        elif line_type == "R":
-                            hap_id, tr = self.types["R"].from_hap_spec(
-                                line, types=types["R"]
-                            )
-                            if haplotypes is None or hap_id in haplotypes:
-                                tr.hap = hap_id
-                                yield tr
                         else:
                             self.log.warning(
                                 f"Ignoring unsupported line type '{line[0]}'"

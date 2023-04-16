@@ -817,11 +817,9 @@ class TestHaplotypes:
             "chr21.q.3365*1": Haplotype("21", 26928472, 26941960, "chr21.q.3365*1"),
             "chr21.q.3365*10": Haplotype("21", 26938989, 26941960, "chr21.q.3365*10"),
             "chr21.q.3365*11": Haplotype("21", 26938353, 26938989, "chr21.q.3365*11"),
-        }
-        tr_expected = {
-            "chr21.q.3365*1": Haplotype("21", 26928472, 26941960, "chr21.q.3365*1"),
-            "chr21.q.3365*10": Haplotype("21", 26938989, 26941960, "chr21.q.3365*10"),
-            "chr21.q.3365*11": Haplotype("21", 26938353, 26938989, "chr21.q.3365*11"),
+            "21_26941880_STR": Repeat("21", 26941880, 26941900, "21_26941880_STR"),
+            "21_26938989_STR": Repeat("21", 26939000, 26939010, "21_26938989_STR"),
+            "21_26938353_STR": Repeat("21", 26938353, 26938400, "21_26938353_STR"),
         }
         expected["chr21.q.3365*1"].variants = (
             Variant(26928472, 26928472, "21_26928472_C_A", "C"),
@@ -838,16 +836,7 @@ class TestHaplotypes:
             Variant(26938353, 26938353, "21_26938353_T_C", "T"),
             Variant(26938989, 26938989, "21_26938989_G_A", "A"),
         )
-        tr_expected["chr21.q.3365*1"].variants = (
-            Repeat(26941880, 26941900, "21_26941880_STR"),
-        )
-        tr_expected["chr21.q.3365*10"].variants = (
-            Repeat(26939000, 26939010, "21_26938989_STR"),
-        )
-        tr_expected["chr21.q.3365*11"].variants = (
-            Repeat(26938353, 26938400, "21_26938353_STR"),
-        )
-        return expected, tr_expected
+        return expected
 
     def _basic_unordered_first_field_haps(self):
         # what do we expect to see from the basic.hap file?
@@ -907,18 +896,17 @@ class TestHaplotypes:
         assert (greater_repeat < haps.data["H2"]) == False
 
     def test_load(self):
-        expected, tr_expected = self._basic_haps()
+        expected = self._basic_haps()
 
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
         assert expected == haps.data
-        assert tr_expected == haps.tr_data
 
         # also check the indexed file
         # it should be the same
+        # TODO update with data from basic.hap (need to index with haptools index)
         haps = Haplotypes.load(DATADIR.joinpath("basic.hap.gz"))
         assert expected == haps.data
-        assert tr_expected == haps.tr_data
 
     def test_iterate(self):
         exp_full = self._basic_haps()
