@@ -657,7 +657,7 @@ class Repeat:
         str
             A valid variant line (V) in the .hap format spec
         """
-        return self._fmt.format(**self.__dict__, hap=hap_id)
+        return self._fmt.format(**self.__dict__)
 
     @classmethod
     def extras_head(cls) -> set:
@@ -720,14 +720,17 @@ class Haplotypes(Data):
     ----------
     fname: Path | str
         The path to the file containing the data
-    data: dict[str, Haplotype]
-        A dict of Haplotype objects keyed by their IDs
-    tr_data: dict[str, [Repeat]]
-        A dict of a list of Repeat objects keyed by Haplotype IDs that they belong to. 
+    data: dict[str, Haplotype|Repeat]
+        A dict of Haplotype/Repeat objects keyed by their IDs 
     types: dict
         A dict of class names keyed by the symbol denoting their line type
 
         Ex: {'H': Haplotype, 'V': Variant, 'R': Repeat}
+    type_ids: dict[str, list]
+        A dict of class names keyed by the symbol denoting line type.
+        Stores all haplotype and repeat IDs. 
+
+        Ex: {'H': ["H1", "H2", "H3"], 'R': ["STR_1", "STR_2"]}
     version: str
         A string denoting the current file format version
     log: Logger
@@ -760,10 +763,10 @@ class Haplotypes(Data):
     ):
         super().__init__(fname, log)
         self.data = None
-        self.tr_data = None
         # note: it's important that self.types is created such that its keys are sorted
         # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant, "R": repeat}
+        self.type_ids = None
         self.version = "0.1.0"
 
     @classmethod
@@ -953,6 +956,20 @@ class Haplotypes(Data):
             # if none of the lines matched, return None
             return None
 
+    def index(self, force=False):
+        """
+        Reset the type_ids parameter
+
+        You should call this method after any changes to the data property
+        """
+        if not (force or self.type_ids is None):
+            # do not remap IDs if they've already been mapped
+            return
+        self.type_ids = {"H": [], "R": []}
+        for key, value in self.data.items():
+            if isinstance(value, Haplotype):
+                self.type_ids["H"].append(key)
+
     def read(self, region: str = None, haplotypes: set[str] = None):
         """
         Read haplotypes from a .hap file into a list stored in :py:attr:`~.Haplotypes.data`
@@ -973,29 +990,21 @@ class Haplotypes(Data):
         """
         super().read()
         self.data = {}
-        self.tr_data = {}
         var_haps = {}
-        tr_haps = {}
         for line in self.__iter__(region, haplotypes):
-            if isinstance(line, Haplotype):
-                # must deepcopy otherwise both dicts reference same object
-                self.data[line.id] = copy.deepcopy(line)
-                self.tr_data[line.id] = copy.deepcopy(line)
+            if isinstance(line, Haplotype) or isinstance(line, Repeat):
+                # store Haplotype object and Repeat object the same way
+                self.data[line.id] = line
             elif isinstance(line, Variant):
                 hap_id = line.hap
                 del line.hap
                 # store the variant for later
                 var_haps.setdefault(hap_id, []).append(line)
-            elif isinstance(line, Repeat):
-                hap_id = line.hap
-                del line.hap
-                # store the repeat for later
-                tr_haps.setdefault(hap_id, []).append(line)
         for hap in var_haps:
             self.data[hap].variants = tuple(var_haps[hap])
-        for hap in tr_haps:
-            self.tr_data[hap].variants = tuple(tr_haps[hap])
-        self.log.info(f"Loaded {len(self.data)} haplotypes from .hap file")
+        self.index()
+        num_haps = len(self.type_ids["H"])
+        self.log.info(f"Loaded {num_haps} haplotypes from .hap file")
 
     def _get_field_types(
         self,
@@ -1099,6 +1108,7 @@ class Haplotypes(Data):
                     continue
                 yield hap
         else:
+            count = 0
             for line in haps_file.fetch(multiple_iterators=True):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
@@ -1106,11 +1116,10 @@ class Haplotypes(Data):
                     # TODO  if we find TR identifier field at end convert to Repeat object instead
                     hap = self.types["H"].from_hap_spec(line, types=line_types)
                     if hap.id in haplotypes:
+                        count += 1
                         yield hap
-                elif line_type > "H":
-                    # if we've already passed all of the H's, we can just exit
-                    # We assume the file has been sorted so that all of the H lines
-                    # come before the V lines
+                # exit prematurely if we've seen all of the requested haplotypes
+                if count == len(haplotypes):
                     break
 
     # TODO see where this function is used in sim_phenotype to see where we need to grab repeat gts or if we need too at all
@@ -1259,13 +1268,14 @@ class Haplotypes(Data):
         Parameters
         ----------
         sort: bool, optional
-            Whether to attempt to output lines in sorted order
+            Whether to attempt to sort variant lines by their haplotype IDs
 
         Yields
         ------
         Generator[str, None, None]
             A list of lines (strings) to include in the output
         """
+        self.index()
         for symbol, line_instance in self.types.items():
             extras_order = line_instance.extras_order()
             if extras_order:
@@ -1273,18 +1283,19 @@ class Haplotypes(Data):
         yield "#\tversion\t" + self.version
         for line_instance in self.types.values():
             yield from sorted(line_instance.extras_head())
-        for hap in self.data.values():
-            yield self.types["H"].to_hap_spec(hap)
 
-        sorted_tr_hap_ids = sorted(self.tr_data.keys()) if sort else self.tr_data.keys()
-        for hap_id in sorted_tr_hap_ids:
-            for tr in self.tr_data[hap_id].variants:
-                yield self.types["R"].to_hap_spec(tr, hap_id)
+        for hap in self.type_ids["H"]:
+            yield self.types["H"].to_hap_spec(self.data[hap])
 
-        sorted_hap_ids = sorted(self.data.keys()) if sort else self.data.keys()
-        for hap_id in sorted_hap_ids:
-            for var in self.data[hap_id].variants:
-                yield self.types["V"].to_hap_spec(var, hap_id)
+        sorted_tr_hap_ids = sorted(self.type_ids["R"]) if sort else self.type_ids["R"]
+        for tr_id in sorted_tr_hap_ids:
+            for tr in self.data[tr_id]:
+                yield self.types["R"].to_hap_spec(tr) # TODO update to_hap_spec so doesnt take id as input
+
+        sorted_hap_ids = sorted(self.type_ids["H"]) if sort else self.type_ids["H"]
+        for hap in sorted_hap_ids:
+            for var in self.data[hap].variants:
+                yield self.types["V"].to_hap_spec(var, hap)
 
     def __repr__(self):
         return "\n".join(self.to_str())
@@ -1334,21 +1345,23 @@ class Haplotypes(Data):
         GenotypesVCF
             A Genotypes object composed of haplotypes instead of regular variants.
         """
+        self.index()
+        haps = [self.data[hap] for hap in self.type_ids["H"]]
         # Initialize GenotypesVCF return value
         if hap_gts is None:
             hap_gts = GenotypesVCF(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
-            [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in self.data.values()],
+            [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in haps],
             dtype=hap_gts.variants.dtype,
         )
         # build a fast data structure for querying the alleles in each haplotype:
         # a dict mapping (variant ID, allele) -> a unique index
         alleles = {}
         # and a list of arrays containing the indices of each hap's alleles
-        idxs = [None] * len(self.data)
+        idxs = [None] * len(haps)
         count = 0
-        for i, hap in enumerate(self.data.values()):
+        for i, hap in enumerate(haps):
             idxs[i] = np.empty(len(hap.variants), dtype=np.uintc)
             for j, variant in enumerate(hap.variants):
                 key = (variant.id, variant.allele)
@@ -1369,15 +1382,15 @@ class Haplotypes(Data):
             dtype=gts.data.dtype,
         )[np.newaxis, :, np.newaxis]
         # finally, obtain and merge the haplotype genotypes
-        self.log.info(f"Transforming genotypes for {len(self.data)} haplotypes")
+        self.log.info(f"Transforming genotypes for {len(haps)} haplotypes")
         equality_arr = np.equal(allele_arr, gts.data)
         self.log.debug(
             f"Allocating array with dtype {gts.data.dtype} and size "
-            f"{(len(gts.samples), len(self.data), 2)}"
+            f"{(len(gts.samples), len(haps), 2)}"
         )
-        hap_gts.data = np.empty((gts.data.shape[0], len(self.data), 2), dtype=np.bool_)
+        hap_gts.data = np.empty((gts.data.shape[0], len(haps), 2), dtype=np.bool_)
         self.log.debug("Computing haplotype genotypes. This may take a while")
-        for i in range(len(self.data)):
+        for i in range(len(haps)):
             hap_gts.data[:, i] = np.all(equality_arr[:, idxs[i]], axis=1)
         return hap_gts
 
@@ -1388,9 +1401,9 @@ class Haplotypes(Data):
         Also sorts the variants within each haplotype
         """
         self.data = dict(sorted(self.data.items(), key=lambda item: item[1]))
-        self.tr_data = dict(sorted(self.tr_data.items(), key=lambda item: item[1]))
-        for hap in self.data.values():
-            hap.sort()
+        self.index(force=True)
+        for hap in self.type_ids["H"]:
+            self.data[hap].sort()
 
     def subset(self, haplotypes: tuple[str], inplace: bool = False):
         """
@@ -1430,5 +1443,6 @@ class Haplotypes(Data):
                 f"{len(hps.data)} haplotypes."
             )
         hps.data = data
+        hps.index(force=True)
         if not inplace:
             return hps

@@ -849,6 +849,30 @@ class TestHaplotypes:
         )
         return expected, tr_expected
 
+    def _basic_unordered_first_field_haps(self):
+        # what do we expect to see from the basic.hap file?
+        expected = {
+            "21.q.3365*1": Haplotype("21", 26928472, 26941960, "21.q.3365*1"),
+            "22.q.3365*10": Haplotype("22", 26938989, 26941960, "22.q.3365*10"),
+            "22.q.3365*11": Haplotype("22", 26938353, 26938989, "22.q.3365*11"),
+        }
+        expected["21.q.3365*1"].variants = (
+            Variant(26928472, 26928472, "21_26928472_C_A", "C"),
+            Variant(26938353, 26938353, "21_26938353_T_C", "T"),
+            Variant(26940815, 26940815, "21_26940815_T_C", "C"),
+            Variant(26941960, 26941960, "21_26941960_A_G", "G"),
+        )
+        expected["22.q.3365*10"].variants = (
+            Variant(26938989, 26938989, "21_26938989_G_A", "A"),
+            Variant(26940815, 26940815, "21_26940815_T_C", "T"),
+            Variant(26941960, 26941960, "21_26941960_A_G", "A"),
+        )
+        expected["22.q.3365*11"].variants = (
+            Variant(26938353, 26938353, "21_26938353_T_C", "T"),
+            Variant(26938989, 26938989, "21_26938989_G_A", "A"),
+        )
+        return expected
+
     def _get_dummy_haps(self):
         # create three haplotypes
         haplotypes = {
@@ -944,6 +968,51 @@ class TestHaplotypes:
         # also, try adding the hap ID
         haps_iter = haps.__iter__(haplotypes={"chr21.q.3365*1"})
         for exp_hap, line in zip(exp_single_hap, haps_iter):
+            assert exp_hap == line
+
+    def test_iterate_unordered_first_field(self):
+        exp_full = self._basic_unordered_first_field_haps()
+
+        exp_single_hap = [exp_full["21.q.3365*1"]]
+        exp_single_hap += exp_single_hap[0].variants
+        exp_single_hap2 = [exp_full["22.q.3365*11"]]
+        exp_single_hap2 += exp_single_hap2[0].variants
+
+        expected = [hap for hap in exp_full.values()]
+        for hap in tuple(expected):
+            expected += hap.variants
+            hap.variants = ()
+
+        # also check whether it works when we pass function params
+        haps = Haplotypes(DATADIR.joinpath("unordered_first_field.hap.gz"))
+        haps_iter = list(haps.__iter__(region="21:26928472-26941960"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:26928472-"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="22:26928472-26938989"))
+        assert len(haps_iter) == len(exp_single_hap2)
+        assert all(line in exp_single_hap2 for line in haps_iter)
+
+        # also, try adding the hap ID
+        i = haps.__iter__(region="21:26928472-26941960", haplotypes={"21.q.3365*1"})
+        for exp_hap, line in zip(exp_single_hap, i):
+            assert exp_hap == line
+
+        # also, try adding the hap ID
+        haps_iter = haps.__iter__(haplotypes={"22.q.3365*11"})
+        for exp_hap, line in zip(exp_single_hap2, haps_iter):
             assert exp_hap == line
 
     def test_read_subset(self):
