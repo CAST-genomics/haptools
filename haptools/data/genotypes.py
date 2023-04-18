@@ -715,15 +715,9 @@ class GenotypesTR(Genotypes):
             1. ID
             2. CHROM
             3. POS
-            4. [REF, ALT1, ALT2, ...]
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
-
-    def __init__(self, fname: Path | str, log: Logger = None):
-        super().__init__(fname, log)
-        dtype = {k: v[0] for k, v in self.variants.dtype.fields.items()}
-        self.variants = np.array([], dtype=list(dtype.items()) + [("alleles", object)])
 
     def _variant_arr(self, record: Variant):
         """
@@ -734,7 +728,6 @@ class GenotypesTR(Genotypes):
                 record.record_id,
                 record.chrom,
                 record.pos,
-                (record.ref_allele, *record.alt_alleles),
             ),
             dtype=self.variants.dtype,
         )

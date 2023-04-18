@@ -631,7 +631,7 @@ class Repeat:
         Returns
         -------
         Repeat
-            The repeat object for the variant
+            The repeat object line.
         """
         assert line[0] == "R", "Attempting to init a Repeat with a non-R line"
         line = line[2:].split("\t")
@@ -643,19 +643,14 @@ class Repeat:
         }
         return cls(**tr_fields)
 
-    def to_hap_spec(self, hap_id: str) -> str:
+    def to_hap_spec(self) -> str:
         """
         Convert a Repeat object into a repeat line in the .hap format spec
-
-        Parameters
-        ----------
-        hap_id: str
-            The ID of the haplotype associated with this variant
 
         Returns
         -------
         str
-            A valid variant line (V) in the .hap format spec
+            A valid Repeat line (R) in the .hap format spec
         """
         return self._fmt.format(**self.__dict__)
 
@@ -1112,7 +1107,6 @@ class Haplotypes(Data):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
                 if line_type == "H" or line_type == "R":
-                    # TODO check what haplotypes will be
                     hap = self.types[line_type].from_hap_spec(line, types=line_types)
                     if hap.id in haplotypes:
                         count += 1
@@ -1274,13 +1268,11 @@ class Haplotypes(Data):
         for line_instance in self.types.values():
             yield from sorted(line_instance.extras_head())
 
-        for hap in self.type_ids["H"]:
-            yield self.types["H"].to_hap_spec(self.data[hap])
-
-        sorted_tr_hap_ids = sorted(self.type_ids["R"]) if sort else self.type_ids["R"]
-        for tr_id in sorted_tr_hap_ids:
-            for tr in self.data[tr_id]:
-                yield self.types["R"].to_hap_spec(tr) # TODO update to_hap_spec so doesnt take id as input
+        for hap in self.data.values():
+            if isinstance(hap, Haplotype):
+                yield self.types["H"].to_hap_spec(hap)
+            elif isinstance(hap, Repeat):
+                yield self.types["R"].to_hap_spec(hap)
 
         sorted_hap_ids = sorted(self.type_ids["H"]) if sort else self.type_ids["H"]
         for hap in sorted_hap_ids:

@@ -7,4 +7,5 @@ V	test2	2000	2500	test7	test7
 H	B	7	1008	test4
 H	C	0	1000	test5
 V	test1	100	1000	test6	test6
+R	A	100	1000	test6
 V	test4	1	1000	test8	test8

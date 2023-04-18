@@ -34,6 +34,21 @@ class Haplotype(HaplotypeBase):
         default=(Extra("beta", ".2f", "Effect size in linear model"),),
     )
 
+@dataclass
+class RepeatScore(Repeat):
+    """
+    A repeat with sufficient fields for simphenotype
+
+    Properties and functions are shared with the base Repeat object, "Repeat"
+    """
+
+    beta: float
+    _extras: tuple = field(
+        repr=False,
+        init=False,
+        default=(Extra("beta", ".2f", "Effect size in linear model"),),
+    )
+
 
 class PhenoSimulator:
     """
@@ -145,7 +160,6 @@ class PhenoSimulator:
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
 
         # standardize the genotypes
-        # TODO also normalize TR genotypes
         if normalize:
             gts = self.normalize_gts(gts)
 
@@ -333,9 +347,9 @@ def simulate_pt(
     if log is None:
         log = getLogger(name="simphenotype", level="ERROR")
 
-    # TODO ensure we can load the R line in the haplotype file and is processed correctly during simulation
+    # TODO ensure we can load the R line with beta score in the haplotype file and is processed correctly during simulation
     log.info("Loading haplotypes")
-    hp = Haplotypes(haplotypes, haplotype=Haplotype, log=log)
+    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatScore, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
     if haplotype_ids is None:
