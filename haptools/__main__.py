@@ -10,6 +10,7 @@ import click
 # any imports we put here will make it slower to use the command line client
 # a basic "haptools --help" should be quick and require very few imports, for example
 
+
 ################### Haptools ##################
 @click.group()
 @click.version_option(message="%(version)s")
