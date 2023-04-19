@@ -53,7 +53,7 @@ if os.getenv("CONDA_EXE"):
         session.conda_install(
             "coverage[toml]",
             "pytest",
-            "numpy>=1.23.2",
+            "numpy>=1.20.0",
             "bzip2",
             "zlib",
             channel="conda-forge",
