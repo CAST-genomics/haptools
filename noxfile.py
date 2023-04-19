@@ -54,8 +54,6 @@ if os.getenv("CONDA_EXE"):
             "coverage[toml]",
             "pytest",
             "numpy>=1.20.0",
-            "bzip2",
-            "zlib",
             channel="conda-forge",
         )
         # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
@@ -75,7 +73,7 @@ else:
     @session(python=python_versions)
     def tests(session: Session) -> None:
         """Run the test suite."""
-        session.install("coverage[toml]", "pytest", "bzip2", "zlib")
+        session.install("coverage[toml]", "pytest")
         # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
         # https://github.com/chrchang/plink-ng/releases
         session.install(".")
