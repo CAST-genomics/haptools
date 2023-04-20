@@ -1,8 +1,0 @@
-##fileformat=VCFv4.2
-##FILTER=<ID=PASS,Description="All filters passed">
-##contig=<ID=1>
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00096	HG00097	HG00099	HG00100	HG00101
-1	10114	H1	A	T	.	.	.	GT	0|1	0|1	1|1	1|1	0|0
-1	10114	H2	A	T	.	.	.	GT	0|0	0|0	0|0	0|0	0|0
-1	10116	H3	A	T	.	.	.	GT	0|0	0|0	0|0	0|0	0|0
