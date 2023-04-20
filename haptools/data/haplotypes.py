@@ -1244,7 +1244,6 @@ class Haplotypes(Data):
                                 f"Ignoring unsupported line type '{line[0]}'"
                             )
 
-    # TODO Test with repeats
     def to_str(self, sort: bool = True) -> Generator[str, None, None]:
         """
         Create a string representation of this Haplotype

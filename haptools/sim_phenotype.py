@@ -35,7 +35,7 @@ class Haplotype(HaplotypeBase):
     )
 
 @dataclass
-class RepeatScore(Repeat):
+class RepeatBeta(Repeat):
     """
     A repeat with sufficient fields for simphenotype
 
@@ -114,8 +114,9 @@ class PhenoSimulator:
 
     def run(
         self,
-        effects: list[Haplotype],
-        tr_effects: list[Repeat] = None,
+        hap: Haplotypes,
+        hap_ids: list[str],
+        tr_ids: list[str] = None,
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
@@ -128,9 +129,13 @@ class PhenoSimulator:
 
         Parameters
         ----------
-        effects: list[Haplotype]
+        # TODO ADD THIS TO DOCUMENTATION IF NEEDED
+        hap: Haplotypes
+            Haplotypes object storing all data from given .hap file.
+            Used to grab Haplotype and Repeat object data.
+        hap_ids: list[Haplotype]
             A list of Haplotypes to use in an additive fashion within the simulations
-        tr_effects: list[Repeat], optional
+        tr_ids: list[Repeat], optional
             A list of Repeats to use for simulation.
         heritability: float, optional
             The simulated heritability of the trait
@@ -151,12 +156,13 @@ class PhenoSimulator:
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
         # extract the relevant haplotype info from the Haplotype objects
-        ids = [hap.id for hap in effects]
-        betas = np.array([hap.beta for hap in effects])
-        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
+        ids = hap_ids
+        betas = np.array([hap.data[hid].beta for hid in hap_ids])
+        self.log.debug(f"Extracting haplotype genotypes for haps: {hap_ids}")
         self.log.debug(f"Beta values are {betas}")
         # extract the haplotype "genotypes" and compute the phenotypes
-        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
+        # shape (samples, variants)
+        gts = self.gens.subset(variants=hap_ids).data[:, :, :2].sum(axis=2)
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
 
         # standardize the genotypes
@@ -164,15 +170,14 @@ class PhenoSimulator:
             gts = self.normalize_gts(gts)
 
         if self.tr_gens:
-            # TODO grab tr haplotype ids 
-            tr_ids = [tr.id for tr in tr_effects] # TODO add repeat effects 
+            ids.extend(tr_ids)
+            tr_betas = np,array([hap.data[rid].beta for rid in tr_ids])
             tr_gts = self.tr_gens.subset(variants=tr_ids).data[:,:,2].sum(axis=2)
             if normalize:
                 tr_gts = self.normalize_gts(tr_gts)
-            # TODO update with TRs 
-            # TODO update betas to account for TRs
-            betas = []
-            gts = []
+            tr_betas = np,array([hap.data[rid].beta for rid in tr_ids])
+            gts = np.concatenate((gts, tr_gts), axis=1)
+            betas = np.concatenate((betas, tr_betas), axis=None)
 
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
@@ -260,7 +265,6 @@ class PhenoSimulator:
         """
         self.phens.write()
 
-# TODO update with repeats option
 def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
@@ -347,9 +351,8 @@ def simulate_pt(
     if log is None:
         log = getLogger(name="simphenotype", level="ERROR")
 
-    # TODO ensure we can load the R line with beta score in the haplotype file and is processed correctly during simulation
     log.info("Loading haplotypes")
-    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatScore, log=log)
+    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
     if haplotype_ids is None:
@@ -388,7 +391,6 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, tr_genotypes=tr_gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        # TODO update since all haplotype and repeat data is stored under data
-        pt_sim.run(hp.data.type_ids["H"], hp.data.type_ids["R"], heritability, prevalence, normalize)
+        pt_sim.run(hp, hp.type_ids["H"], hp.type_ids["R"], heritability, prevalence, normalize)
     log.info("Writing phenotypes")
     pt_sim.write()

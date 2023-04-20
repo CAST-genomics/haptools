@@ -48,10 +48,12 @@ class TestSimPhenotype:
         return gts
 
     def _get_fake_haps(self):
-        return [
-            Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25),
-            Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75),
-        ]
+        fake_haps = Haplotypes('', None)
+        hap1 = Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25)
+        hap2 = Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75)
+        fake_haps.data = {"1:10114:T:C": hap1, "1:10116:A:G": hap2}
+        fake_haps.index()
+        return fake_haps
 
     def _get_expected_phens(self):
         pts = Phenotypes(fname=None)
@@ -72,12 +74,14 @@ class TestSimPhenotype:
     def test_one_hap_zero_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
+        hp_ids = [hp for hp in hps.type_ids['H']]
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run([hps[0]], heritability=1)
+        data = pt_sim.run(hps, hp_ids, heritability=1)
         data = data[:, np.newaxis]
         phens = pt_sim.phens
+        print(phens.data)
 
         # check the data and the generated phenotype object
         assert phens.data.shape == (5, 1)
