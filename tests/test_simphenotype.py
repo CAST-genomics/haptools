@@ -7,11 +7,12 @@ from click.testing import CliRunner
 import numpy.lib.recfunctions as rfn
 
 from haptools.__main__ import main
-from haptools.sim_phenotype import Haplotype, PhenoSimulator
+from haptools.sim_phenotype import Haplotype, RepeatBeta, PhenoSimulator
 from haptools.data import (
     Genotypes,
     Phenotypes,
     Haplotypes,
+    GenotypesTR,
     GenotypesPLINK,
 )
 
@@ -47,11 +48,41 @@ class TestSimPhenotype:
         gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         return gts
 
+    def _get_fake_tr_gens(self):
+        gts = GenotypesTR(fname=None)
+        gts.data = np.array(
+            [
+                [[1, 0]],
+                [[0, 1]],
+                [[4, 4]],
+                [[1, 1]],
+                [[5, 5]],
+            ],
+            dtype=np.uint8,
+        )
+        gts.variants = np.array(
+            [
+                ("1_10110_STR", "1", 10110),
+            ],
+            dtype=[
+                ("id", "U50"),
+                ("chrom", "U10"),
+                ("pos", np.uint32),
+            ],
+        )
+        gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        return gts
+
     def _get_fake_haps(self):
         fake_haps = Haplotypes('', None)
         hap1 = Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25)
         hap2 = Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75)
-        fake_haps.data = {"1:10114:T:C": hap1, "1:10116:A:G": hap2}
+        repeat1 = RepeatBeta("1", 10110, 10120, "1_10110_STR", 0.5)
+        fake_haps.data = {
+            "1:10114:T:C": hap1, 
+            "1:10116:A:G": hap2, 
+            "1_10110_STR": repeat1,
+        }
         fake_haps.index()
         return fake_haps
 
@@ -69,6 +100,22 @@ class TestSimPhenotype:
         )
         pts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
         pts.names = ("1:10114:T:C", "1:10116:A:G")
+        return pts
+
+    def _get_expected_tr_phens(self):
+        pts = Phenotypes(fname=None)
+        pts.data = np.array(
+            [
+                [-0.37748681, False],
+                [-0.37748681, False],
+                [0.20317629, True],
+                [0.08726684, True],
+                [0.46453048, True],
+            ],
+            dtype=np.float64,
+        )
+        pts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+        pts.names = ("1:10114:T:C-1_10110_STR",)
         return pts
 
     def test_one_hap_zero_noise(self):
@@ -284,8 +331,55 @@ class TestSimPhenotype:
         assert phens.samples == expected.samples
         assert phens.names[0] == expected.names[0]
 
+    def test_repeat(self):
+        gts = self._get_fake_gens()
+        tr_gts = self._get_fake_tr_gens()
+        hps = self._get_fake_haps()
+        hp_ids = [hp for hp in hps.type_ids['H']]
+        tr_ids = [tr for tr in hps.type_ids['R']]
+        expected = self._get_expected_tr_phens()
+
+        pt_sim = PhenoSimulator(gts, tr_gts, seed=42)
+        data = pt_sim.run(hps, [hp_ids[0]], tr_ids, heritability=1)
+        data = data[:, np.newaxis]
+        phens = pt_sim.phens
+
+        for i in range(len(phens.data)):
+            assert round(phens.data[i][0], 4) == round(expected.data[i][0], 4)
+        assert phens.samples == expected.samples
+        assert phens.names[0] == expected.names[0]
+
+    def test_repeat_no_normalize(self):
+        gts = self._get_fake_gens()
+        tr_gts = self._get_fake_tr_gens()
+        hps = self._get_fake_haps()
+        hp_ids = [hp for hp in hps.type_ids['H']]
+        tr_ids = [tr for tr in hps.type_ids['R']]
+
+        pt_sim = PhenoSimulator(gts, tr_gts, seed=42)
+        data = pt_sim.run(hps, [hp_ids[0]], tr_ids, heritability=1, normalize=False)
+        data = data[:, np.newaxis]
+        phens = pt_sim.phens
+
+        assert phens.data[0][0] == 0.75
+        assert phens.data[1][0] == 0.75
+        assert phens.data[2][0] == 4
+        assert phens.data[3][0] == 1.5
+        assert phens.data[4][0] == 5
 
 class TestSimPhenotypeCLI:
+    def _get_tr_stdin(self):
+        expected = """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|1\t0|1\t1|1\t1|1\t0|0
+1\t10115\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+        return expected
+
     def _get_transform_stdin(self):
         expected = """##fileformat=VCFv4.2
 ##FILTER=<ID=PASS,Description="All filters passed">
@@ -503,6 +597,20 @@ class TestSimPhenotypeCLI:
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
         assert captured.out == captured1
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
+
+    def test_repeat(self, capfd):
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_tr_stdin())
+
+        cmd = f"simphenotype --repeats tests/data/simple_tr.vcf {tmp_transform} tests/data/simple_tr.hap"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
         assert result.exit_code == 0
 
         tmp_transform.unlink()

@@ -58,6 +58,8 @@ class PhenoSimulator:
     ----------
     gens: Genotypes
         Genotypes to simulate
+    tr_gens: GenotypesTR
+        TR Genotypes to simulate
     phens: Phenotypes
         Simulated phenotypes; filled by :py:meth:`~.PhenoSimular.run`
     rng: np.random.Generator, optional
@@ -68,6 +70,7 @@ class PhenoSimulator:
     Examples
     --------
     >>> gens = Genotypes.load("tests/data/example.vcf.gz")
+    >>> tr_gens = GenotypesTR.load("tests/data/simple_tr.vcf")
     >>> haps = Haplotypes.load("tests/data/basic.hap")
     >>> haps_gts = haps.transform(gens)
     >>> phenosim = PhenoSimulator(haps_gts)
@@ -129,7 +132,6 @@ class PhenoSimulator:
 
         Parameters
         ----------
-        # TODO ADD THIS TO DOCUMENTATION IF NEEDED
         hap: Haplotypes
             Haplotypes object storing all data from given .hap file.
             Used to grab Haplotype and Repeat object data.
@@ -163,7 +165,6 @@ class PhenoSimulator:
         # extract the haplotype "genotypes" and compute the phenotypes
         # shape (samples, variants)
         gts = self.gens.subset(variants=hap_ids).data[:, :, :2].sum(axis=2)
-        self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
 
         # standardize the genotypes
         if normalize:
@@ -171,13 +172,15 @@ class PhenoSimulator:
 
         if self.tr_gens:
             ids.extend(tr_ids)
-            tr_betas = np,array([hap.data[rid].beta for rid in tr_ids])
-            tr_gts = self.tr_gens.subset(variants=tr_ids).data[:,:,2].sum(axis=2)
+            tr_betas = np.array([hap.data[rid].beta for rid in tr_ids])
+            tr_gts = self.tr_gens.subset(variants=tr_ids).data[:,:,:2].sum(axis=2)
             if normalize:
                 tr_gts = self.normalize_gts(tr_gts, tr_ids)
-            tr_betas = np,array([hap.data[rid].beta for rid in tr_ids])
+            tr_betas = np.array([hap.data[rid].beta for rid in tr_ids])
             gts = np.concatenate((gts, tr_gts), axis=1)
             betas = np.concatenate((betas, tr_betas), axis=None)
+
+        self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
 
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)

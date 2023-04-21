@@ -413,7 +413,7 @@ def simgenotype(
 )
 @click.option(
     "--repeats",
-    type=click.File("r"),
+    type=click.Path(exists=True, path_type=Path),
     default=None,
     help="VCF file for genotypes of repeats",
 )

@@ -964,6 +964,8 @@ class Haplotypes(Data):
         for key, value in self.data.items():
             if isinstance(value, Haplotype):
                 self.type_ids["H"].append(key)
+            if isinstance(value, Repeat):
+                self.type_ids["R"].append(key)
 
     def read(self, region: str = None, haplotypes: set[str] = None):
         """
