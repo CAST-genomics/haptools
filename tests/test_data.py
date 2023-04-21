@@ -810,6 +810,7 @@ class TestCovariates:
         np.testing.assert_allclose(cvs_sub.data, expected_data)
         assert np.array_equal(cvs_sub.names, expected_names)
 
+
 class TestHaplotypes:
     def _basic_haps(self):
         # what do we expect to see from the basic.hap file?
@@ -1095,7 +1096,7 @@ class TestHaplotypes:
 
         # can we load this data from the hap file?
         haps = Haplotypes(
-            DATADIR.joinpath("simphenotype.hap"), 
+            DATADIR.joinpath("simphenotype.hap"),
             haplotype=HaptoolsHaplotype,
             repeat=HaptoolsRepeat,
         )
@@ -1147,8 +1148,8 @@ class TestHaplotypes:
         expected = self._get_writable_haplotypes()
 
         haps = Haplotypes(
-            DATADIR.joinpath("test.hap"), 
-            haplotype=HaptoolsHaplotype, 
+            DATADIR.joinpath("test.hap"),
+            haplotype=HaptoolsHaplotype,
             repeat=HaptoolsRepeat,
         )
         haps.data = expected
@@ -1179,6 +1180,7 @@ class TestHaplotypes:
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
             )
+
         @dataclass
         class RepeatPlusExtra(HaptoolsRepeat):
             """
@@ -1196,6 +1198,7 @@ class TestHaplotypes:
                     Extra("beta", ".2f", "Effect size in linear model"),
                 ),
             )
+
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
@@ -1216,7 +1219,7 @@ class TestHaplotypes:
                 expected[hap_id].variants = hap.variants
 
         haps = Haplotypes(
-            DATADIR.joinpath("test.hap"), 
+            DATADIR.joinpath("test.hap"),
             haplotype=HaplotypePlusExtra,
             repeat=RepeatPlusExtra,
         )
@@ -1224,7 +1227,7 @@ class TestHaplotypes:
         haps.write()
 
         haps = Haplotypes(
-            DATADIR.joinpath("test.hap"), 
+            DATADIR.joinpath("test.hap"),
             haplotype=HaptoolsHaplotype,
             repeat=HaptoolsRepeat,
         )
@@ -1292,16 +1295,16 @@ class TestHaplotypes:
 
         # remove the file
         os.remove(str(fname))
-     
+
     def test_lt_repeat_hap(self):
         # test comparison of haplotypes and repeats
         haps = self._get_dummy_haps()
         less_repeat = Repeat(chrom="1", start=10113, end=10118, id="U2")
         equal_repeat = Repeat(chrom="1", start=10114, end=10119, id="H2")
         greater_repeat = Repeat(chrom="2", start=10114, end=10119, id="H2")
-        assert (less_repeat < haps.data["H2"])
+        assert less_repeat < haps.data["H2"]
         assert not (equal_repeat < haps.data["H2"])
-        assert not (greater_repeat < haps.data["H2"]) 
+        assert not (greater_repeat < haps.data["H2"])
 
     def test_lt_haps(self):
         hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")

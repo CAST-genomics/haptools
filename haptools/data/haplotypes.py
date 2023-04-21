@@ -536,6 +536,7 @@ class Haplotype:
 
         self.variants = tuple(sorted(self.variants))
 
+
 @total_ordering
 @dataclass
 class Repeat:
@@ -575,6 +576,7 @@ class Repeat:
     ...         ),
     ...     )
     """
+
     chrom: str
     start: int
     end: int
@@ -678,7 +680,7 @@ class Repeat:
         """
         return tuple(extra.name for extra in cls._extras)
 
-    def __lt__(self, other: Haplotype|Repeat):
+    def __lt__(self, other: Haplotype | Repeat):
         """
         Defines ordering for sort() method when dealing with variants.
 
@@ -716,14 +718,14 @@ class Haplotypes(Data):
     fname: Path | str
         The path to the file containing the data
     data: dict[str, Haplotype|Repeat]
-        A dict of Haplotype/Repeat objects keyed by their IDs 
+        A dict of Haplotype/Repeat objects keyed by their IDs
     types: dict
         A dict of class names keyed by the symbol denoting their line type
 
         Ex: {'H': Haplotype, 'V': Variant, 'R': Repeat}
     type_ids: dict[str, list]
         A dict of class names keyed by the symbol denoting line type.
-        Stores all haplotype and repeat IDs. 
+        Stores all haplotype and repeat IDs.
 
         Ex: {'H': ["H1", "H2", "H3"], 'R': ["STR_1", "STR_2"]}
     version: str
@@ -1185,7 +1187,7 @@ class Haplotypes(Data):
                 # If the haplotype is a repeat it will not have variants so continue
                 if isinstance(hap, Repeat):
                     continue
-                
+
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that

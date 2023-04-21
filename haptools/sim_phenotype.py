@@ -34,6 +34,7 @@ class Haplotype(HaplotypeBase):
         default=(Extra("beta", ".2f", "Effect size in linear model"),),
     )
 
+
 @dataclass
 class RepeatBeta(Repeat):
     """
@@ -173,7 +174,7 @@ class PhenoSimulator:
         if self.tr_gens:
             ids.extend(tr_ids)
             tr_betas = np.array([hap.data[rid].beta for rid in tr_ids])
-            tr_gts = self.tr_gens.subset(variants=tr_ids).data[:,:,:2].sum(axis=2)
+            tr_gts = self.tr_gens.subset(variants=tr_ids).data[:, :, :2].sum(axis=2)
             if normalize:
                 tr_gts = self.normalize_gts(tr_gts, tr_ids)
             tr_betas = np.array([hap.data[rid].beta for rid in tr_ids])
@@ -233,7 +234,7 @@ class PhenoSimulator:
     def normalize_gts(self, gts, ids):
         """
         Normalize variant or repeats genotypes
-        
+
         Parameters
         ----------
         gts: np.array
@@ -269,6 +270,7 @@ class PhenoSimulator:
         :py:meth:`~.PhenoSimular.__init__`
         """
         self.phens.write()
+
 
 def simulate_pt(
     genotypes: Path,
@@ -380,7 +382,7 @@ def simulate_pt(
         log.info("Loading TR genotypes")
         tr_gt = GenotypesTR(fname=repeats, log=log)
         tr_gt.read(region=region, samples=samples, variants=haplotype_ids)
-    
+
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=haplotype_ids)
     log.info("QC-ing genotypes")
@@ -401,6 +403,8 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, tr_genotypes=tr_gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp, hp.type_ids["H"], hp.type_ids["R"], heritability, prevalence, normalize)
+        pt_sim.run(
+            hp, hp.type_ids["H"], hp.type_ids["R"], heritability, prevalence, normalize
+        )
     log.info("Writing phenotypes")
     pt_sim.write()
