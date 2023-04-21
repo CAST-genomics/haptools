@@ -40,6 +40,8 @@ The ``.hap`` format describes a tab-separated file composed of different types o
      - Comment/Header
    * - H
      - Haplotype
+   * - R
+     - Repeat
    * - V
      - Variant
 
@@ -83,12 +85,12 @@ Declaring extra fields in the header
 ------------------------------------
 Any extra fields in the file must be declared in the header. To declare an extra field, create a tab-separated line containing the following fields:
 
-1. A header symbol followed by a line type symbol (ex: ``#H`` or ``#V``)
+1. A header symbol followed by a line type symbol (ex: ``#H``, ``#R``, ``#V``)
 2. Field name
 3. Python format string (ex: 'd' for int, 's' for string, or '.3f' for a float with 3 decimals)
 4. Description
 
-Note that the first field must follow the ``#`` symbol immediately (ex: ``#H`` or ``#V``).
+Note that the first field must follow the ``#`` symbol immediately (ex: ``#H``, ``#R``, ``#V``).
 
 ``H`` Haplotype
 ~~~~~~~~~~~~~~~
@@ -121,6 +123,38 @@ Haplotypes contain the following attributes:
 
 .. note::
    It is not currently possible to encode haplotypes that span more than one contig.
+
+``R`` Repeat
+~~~~~~~~~~~~
+Repeats contain the following attributes:
+
+.. list-table::
+   :widths: 25 25 25 50
+   :header-rows: 1
+
+   * - Column
+     - Field
+     - Type
+     - Description
+   * - 1
+     - Chromosome
+     - string
+     - The contig that this repeat belongs on
+   * - 2
+     - Start Position
+     - int
+     - The start position of this repeat on this contig
+   * - 3
+     - End Position
+     - int
+     - The end position of this repeat on this contig
+   * - 4
+     - Repeat ID
+     - string
+     - Uniquely identifies a repeat
+
+.. note::
+   Repeats cannot store Variants and only encode for a single repeat per line.
 
 ``V`` Variant
 ~~~~~~~~~~~~~
@@ -269,6 +303,22 @@ You can download an example header with a *beta* extra field from `tests/data/si
      - Effect Size
      - float
      - The effect size of this haplotype; for use in ``simphenotype``
+
+``R`` Repeat
+++++++++++++
+
+.. list-table::
+   :widths: 25 25 25 50
+   :header-rows: 1
+
+   * - Column
+     - Field
+     - Type
+     - Description
+   * - 5
+     - Effect Size
+     - float
+     - The effect size of this repeat; for use in ``simphenotype``
 
 ``V`` Variant
 +++++++++++++

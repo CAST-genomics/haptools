@@ -22,6 +22,7 @@ Usage
    --id ID --id ID \
    --ids-file FILENAME \
    --chunk-size INT \
+   --repeats PATH \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
    GENOTYPES HAPLOTYPES
@@ -88,6 +89,13 @@ To simulate ancestry-specific effects from a genotypes file with population labe
 
    haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
    haptools simphenotype --id 'H1' /dev/stdin tests/data/simple.hap
+
+To simulate tandem repeat effects we require a R line in the **.hap** file and a VCF file with repeats passed to ``simphenotype`` using the ``--repeats`` option.
+
+.. code-block:: bash
+
+   haptools transform tests/data/simple.vcf tests/data/simple.hap | \
+   haptools simphenotype --repeats tests/data/simple_tr.vcf /dev/stdin tests/data/simple_tr.hap
 
 If speed is important, it's generally faster to use PGEN files than VCFs.
 

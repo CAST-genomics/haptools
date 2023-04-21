@@ -565,7 +565,7 @@ class Repeat:
 
     >>> from dataclasses import dataclass, field
     >>> @dataclass
-    >>> class CustomHaplotype(Haplotype):
+    >>> class CustomRepeat(Repeat):
     ...     ancestry: str
     ...     _extras: tuple = field(
     ...         repr=False,
