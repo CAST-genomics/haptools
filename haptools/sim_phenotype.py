@@ -167,14 +167,14 @@ class PhenoSimulator:
 
         # standardize the genotypes
         if normalize:
-            gts = self.normalize_gts(gts)
+            gts = self.normalize_gts(gts, hap_ids)
 
         if self.tr_gens:
             ids.extend(tr_ids)
             tr_betas = np,array([hap.data[rid].beta for rid in tr_ids])
             tr_gts = self.tr_gens.subset(variants=tr_ids).data[:,:,2].sum(axis=2)
             if normalize:
-                tr_gts = self.normalize_gts(tr_gts)
+                tr_gts = self.normalize_gts(tr_gts, tr_ids)
             tr_betas = np,array([hap.data[rid].beta for rid in tr_ids])
             gts = np.concatenate((gts, tr_gts), axis=1)
             betas = np.concatenate((betas, tr_betas), axis=None)
@@ -227,7 +227,7 @@ class PhenoSimulator:
         self.phens.append(name="-".join(ids) + name_suffix, data=pt.astype(np.float64))
         return pt
 
-    def normalize_gts(self, gts):
+    def normalize_gts(self, gts, ids):
         """
         Normalize variant or repeats genotypes
         
@@ -235,6 +235,8 @@ class PhenoSimulator:
         ----------
         gts: np.array
             Genotypes variant array stored in data.
+        ids: list[str]
+            IDs for variants
 
         Returns
         -------
@@ -352,7 +354,12 @@ def simulate_pt(
         log = getLogger(name="simphenotype", level="ERROR")
 
     log.info("Loading haplotypes")
-    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
+    if repeats:
+        hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
+    else:
+        # Use Repeat because otherwise beta is expected in the file
+        # and R lines must be present
+        hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
     if haplotype_ids is None:
@@ -366,7 +373,7 @@ def simulate_pt(
         gt = Genotypes(fname=genotypes, log=log)
 
     tr_gt = None
-    if repeat:
+    if repeats:
         log.info("Loading TR genotypes")
         tr_gt = GenotypesTR(fname=repeats, log=log)
         tr_gt.read(region=region, samples=samples, variants=haplotype_ids)

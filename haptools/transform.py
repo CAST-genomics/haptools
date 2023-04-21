@@ -587,7 +587,7 @@ def transform_haps(
         )
 
     log.info("Extracting variants from haplotypes")
-    variants = {var.id for hap in hp.data.values() for var in hap.variants}
+    variants = {vr.id for id in hp.type_ids["H"] for vr in hp.data[id].variants}
 
     # load the genotypes, but first get the path to the breakpoints file
     if genotypes.suffix == ".gz":
