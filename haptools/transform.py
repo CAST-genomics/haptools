@@ -520,8 +520,8 @@ class GenotypesAncestry(data.GenotypesVCF):
         vcf.close()
 
     def merge_variants(
-        cls, objs: tuple[Genotypes], check_samples: bool = True, **kwargs
-    ) -> Genotypes:
+        cls, objs: tuple[data.Genotypes], check_samples: bool = True, **kwargs
+    ) -> data.Genotypes:
         """
         See documentation for :py:meth:`~.data.Genotypes.merge_variants`
         """
