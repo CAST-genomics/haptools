@@ -523,7 +523,7 @@ class GenotypesAncestry(data.GenotypesVCF):
         cls, objs: tuple[Genotypes], check_samples: bool = True, **kwargs
     ) -> Genotypes:
         """
-        See documentation for :py:meth:`~.Genotypes.merge_variants`
+        See documentation for :py:meth:`~.data.Genotypes.merge_variants`
         """
         raise ValueError("Not implemented yet")
 
