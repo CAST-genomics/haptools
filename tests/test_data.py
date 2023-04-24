@@ -281,6 +281,34 @@ class TestGenotypes:
         with pytest.raises(ValueError) as info:
             gts.check_sorted()
 
+    def test_merge_variants(self):
+        gts1 = self._get_fake_genotypes()
+        gts2 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2.read()
+        gts2.check_phase()
+        gts2.subset(samples=gts1.samples, inplace=True)
+
+        gts = Genotypes.merge_variants((gts1, gts2), fname=None)
+
+        assert gts.samples == gts1.samples
+        assert len(gts.variants) == len(gts1.variants) + len(gts2.variants)
+        assert gts.data.shape[0] == gts1.data.shape[0]
+        assert gts.data.shape[2] == gts1.data.shape[2]
+        assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
+
+        # also try it when the phases are different
+        gts2 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2.read()
+        gts2.subset(samples=gts1.samples, inplace=True)
+
+        gts = Genotypes.merge_variants((gts1, gts2), fname=None)
+
+        assert gts.samples == gts1.samples
+        assert len(gts.variants) == len(gts1.variants) + len(gts2.variants)
+        assert gts.data.shape[0] == gts1.data.shape[0]
+        assert gts.data.shape[2] == gts2.data.shape[2]
+        assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
+
 
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
@@ -1546,6 +1574,22 @@ class TestGenotypesVCF:
         )
 
         gts.fname.unlink()
+
+    def test_merge_variants_vcf(self):
+        gts1 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2 = self._get_fake_genotypes_refalt()
+        gts1.read()
+        gts1.check_phase()
+        gts1.subset(samples=gts2.samples, inplace=True)
+
+        gts = Genotypes.merge_variants((gts1, gts2), fname=None)
+
+        assert isinstance(gts, Genotypes)
+        assert gts.samples == gts1.samples
+        assert len(gts.variants) == len(gts1.variants) + len(gts2.variants)
+        assert gts.data.shape[0] == gts1.data.shape[0]
+        assert gts.data.shape[2] == gts1.data.shape[2]
+        assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
 
 class TestGenotypesTR:
