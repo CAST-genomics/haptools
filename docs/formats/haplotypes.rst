@@ -155,6 +155,7 @@ Repeats contain the following attributes:
 
 .. note::
    Repeats cannot store Variants and only encode for a single repeat per line.
+   Also, the set of Repeat IDs must be distinct from the set of Haplotype IDs. A Haplotype line can never have the same ID as a Repeat line, but a Haplotype (or Repeat) line *can* have the same ID as a Variant line.
 
 ``V`` Variant
 ~~~~~~~~~~~~~

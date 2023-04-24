@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -57,10 +58,8 @@ class PhenoSimulator:
 
     Attributes
     ----------
-    gens: Genotypes
+    gens: dict[Genotypes]
         Genotypes to simulate
-    tr_gens: GenotypesTR
-        TR Genotypes to simulate
     phens: Phenotypes
         Simulated phenotypes; filled by :py:meth:`~.PhenoSimular.run`
     rng: np.random.Generator, optional
@@ -82,7 +81,6 @@ class PhenoSimulator:
     def __init__(
         self,
         genotypes: Genotypes,
-        tr_genotypes: GenotypesTR = None,
         output: Path = Path("/dev/stdout"),
         seed: int = None,
         log: logging.Logger = None,
@@ -94,8 +92,6 @@ class PhenoSimulator:
         ----------
         genotypes: Genotypes
             Genotypes for each haplotype
-        tr_genotypes: GenotypesTR, optional
-            TR Genotypes for each haplotype
         output: Path, optional
             Path to a '.pheno' file to which the generated phenotypes could be written
 
@@ -108,8 +104,7 @@ class PhenoSimulator:
         log: logging.Logger, optional
             A logging instance for recording debug statements
         """
-        self.gens = genotypes
-        self.tr_gens = tr_genotypes
+        self.gens = genotypes # TODO update with merged variants matrix (SEE ARYA ON PR) and figure out betas and ids
         self.phens = Phenotypes(fname=output)
         self.phens.data = None
         self.phens.samples = self.gens.samples
@@ -119,8 +114,6 @@ class PhenoSimulator:
     def run(
         self,
         hap: Haplotypes,
-        hap_ids: list[str],
-        tr_ids: list[str] = None,
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
@@ -136,10 +129,6 @@ class PhenoSimulator:
         hap: Haplotypes
             Haplotypes object storing all data from given .hap file.
             Used to grab Haplotype and Repeat object data.
-        hap_ids: list[Haplotype]
-            A list of Haplotypes to use in an additive fashion within the simulations
-        tr_ids: list[Repeat], optional
-            A list of Repeats to use for simulation.
         heritability: float, optional
             The simulated heritability of the trait
 
@@ -158,28 +147,17 @@ class PhenoSimulator:
         npt.NDArray
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
-        # extract the relevant haplotype info from the Haplotype objects
-        ids = hap_ids
-        betas = np.array([hap.data[hid].beta for hid in hap_ids])
-        self.log.debug(f"Extracting haplotype genotypes for haps: {hap_ids}")
+        # extract the relevant haplotype info from the Haplotype objects and GTs
+        # Collect betas, ids, and genotypes
+        ids = [hid for key in hap.keys() for hid in hap.type_ids[key]]
+        betas = [hap.data[hid].beta for hid in ids]
+        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
+
+        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
         self.log.debug(f"Beta values are {betas}")
-        # extract the haplotype "genotypes" and compute the phenotypes
-        # shape (samples, variants)
-        gts = self.gens.subset(variants=hap_ids).data[:, :, :2].sum(axis=2)
 
-        # standardize the genotypes
         if normalize:
-            gts = self.normalize_gts(gts, hap_ids)
-
-        if self.tr_gens:
-            ids.extend(tr_ids)
-            tr_betas = np.array([hap.data[rid].beta for rid in tr_ids])
-            tr_gts = self.tr_gens.subset(variants=tr_ids).data[:, :, :2].sum(axis=2)
-            if normalize:
-                tr_gts = self.normalize_gts(tr_gts, tr_ids)
-            tr_betas = np.array([hap.data[rid].beta for rid in tr_ids])
-            gts = np.concatenate((gts, tr_gts), axis=1)
-            betas = np.concatenate((betas, tr_betas), axis=None)
+            gts = self.normalize_gts(gts, ids)
 
         self.log.info(f"Computing genetic component w/ {gts.shape[1]} causal effects")
 
@@ -359,39 +337,45 @@ def simulate_pt(
         log = getLogger(name="simphenotype", level="ERROR")
 
     log.info("Loading haplotypes")
-    if repeats:
-        hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
-    else:
-        # Use Repeat because otherwise beta is expected in the file
-        # and R lines must be present
-        hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
+    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
-    if haplotype_ids is None:
-        haplotype_ids = set(hp.data.keys())
-
-    if genotypes.suffix == ".pgen":
-        log.info("Loading genotypes from PGEN file")
-        gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
+    # check if a file path was given
+    if os.path.isfile(genotypes):
+        if genotypes.suffix == ".pgen":
+            log.info("Loading genotypes from PGEN file")
+            gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
+        else:
+            log.info("Loading genotypes from VCF/BCF file")
+            gt = Genotypes(fname=genotypes, log=log)
+        
+        # gt._prephased = True
+        gt.read(region=region, samples=samples, variants=hp.type_ids["H"])
+        log.info("QC-ing genotypes")
+        gt.check_missing()
+        gt.check_biallelic()
     else:
-        log.info("Loading genotypes from VCF/BCF file")
-        gt = Genotypes(fname=genotypes, log=log)
+        gt = None
 
     tr_gt = None
     if repeats:
         log.info("Loading TR genotypes")
         tr_gt = GenotypesTR(fname=repeats, log=log)
-        tr_gt.read(region=region, samples=samples, variants=haplotype_ids)
+        tr_gt.read(region=region, samples=samples, variants=hp.type_ids["R"])
 
-    # gt._prephased = True
-    gt.read(region=region, samples=samples, variants=haplotype_ids)
-    log.info("QC-ing genotypes")
-    gt.check_missing()
-    gt.check_biallelic()
+    if not gt and not tr_gt:
+        raise Exception("No valid vcf file given.")
+
+    if gt and tr_gt:
+        gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
+    # should only have repeats in the hap file in this case
+    elif tr_gt and not gt:
+        gt = tr_gt
 
     # check that all of the genotypes were loaded successfully and warn otherwise
-    if len(haplotype_ids) < len(gt.variants):
-        diff = list(haplotype_ids.difference(gt.variants["id"]))
+    all_ids = [hid for key in hp.type_ids.keys() for hid in hp.type_ids[key]]
+    if len(all_ids) < len(gt.variants):
+        diff = list(all_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
         log.warning(
             f"{len(diff)} haplotypes could not be found in the genotypes file. Check "
@@ -401,10 +385,8 @@ def simulate_pt(
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
-    pt_sim = PhenoSimulator(gt, tr_genotypes=tr_gt, output=output, seed=seed, log=log)
+    pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(
-            hp, hp.type_ids["H"], hp.type_ids["R"], heritability, prevalence, normalize
-        )
+        pt_sim.run(hp, heritability, prevalence, normalize)
     log.info("Writing phenotypes")
     pt_sim.write()

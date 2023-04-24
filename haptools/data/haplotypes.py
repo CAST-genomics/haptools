@@ -1,6 +1,5 @@
 from __future__ import annotations
 import os
-import copy
 from pathlib import Path
 from functools import total_ordering
 from logging import getLogger, Logger
@@ -835,7 +834,7 @@ class Haplotypes(Data):
         self,
         lines: list[str],
         check_version=True,
-        softly=False,
+        softly=True,
     ) -> tuple[dict, dict[str, tuple[str]]]:
         """
         1) Check and parse any metadata and 2) check that any extra fields declared in
