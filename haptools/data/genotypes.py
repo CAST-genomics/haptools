@@ -631,20 +631,20 @@ class Genotypes(Data):
                 if objs[0].samples != obj.samples:
                     raise ValueError("Samples must be shared among all Genotypes")
         else:
-            num_samps = np.array([len(obj.samples) for obj in objs])
-            if (num_samps[0] == num_samps[1:]).all():
+            num_samps = [len(obj.samples) for obj in objs]
+            if all(num_samps[0] == num_samps[1:]):
                 gts.samples = tuple(samp for obj in objs for samp in obj.samples)
             else:
                 raise ValueError("Samples must be shared among all Genotypes")
         gts.samples = objs[0].samples
         dtypes = list(gts.variants.dtype.names)
         gts.variants = np.concatenate(tuple(obj.variants[dtypes] for obj in objs))
-        unphased = np.array([obj.data.shape[2] for obj in objs]) == 3
+        unphased = [obj.data.shape[2] == 3 for obj in objs]
         # check: do we have a mix of phased and unphased objects?
-        if unphased.any() and not unphased.all():
+        if any(unphased) and not all(unphased):
             data = (
-                np.insert(obj.data, 2, 1, axis=2) if phase else obj.data
-                for phase, obj in zip(~unphased, objs)
+                obj.data if phase else np.insert(obj.data, 2, 1, axis=2)
+                for phase, obj in zip(unphased, objs)
             )
             dtype = np.uint8
         else:
