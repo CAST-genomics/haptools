@@ -601,6 +601,10 @@ class Genotypes(Data):
         """
         Merge genotypes objects with different sets of variants together
 
+        .. note::
+            The input genotypes objects are not expected to have any overlapping sets
+            of variants. Also, all samples in the input genotypes must be the same.
+
         Parameters
         ----------
         objs: tuple[Genotypes]

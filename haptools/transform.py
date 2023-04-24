@@ -519,6 +519,14 @@ class GenotypesAncestry(data.GenotypesVCF):
             vcf.write(record)
         vcf.close()
 
+    def merge_variants(
+        cls, objs: tuple[Genotypes], check_samples: bool = True, **kwargs
+    ) -> Genotypes:
+        """
+        See documentation for :py:meth:`~.Genotypes.merge_variants`
+        """
+        raise ValueError("Not implemented yet")
+
 
 def transform_haps(
     genotypes: Path,
