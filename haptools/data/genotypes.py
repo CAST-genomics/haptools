@@ -594,6 +594,61 @@ class Genotypes(Data):
                     f"The variants in chromosome '{chrom}' are not sorted by position"
                 )
 
+    @classmethod
+    def merge_variants(
+        cls, objs: tuple[Genotypes], check_samples: bool = True, **kwargs
+    ) -> Genotypes:
+        """
+        Merge genotypes objects with different sets of variants together
+
+        Parameters
+        ----------
+        objs: tuple[Genotypes]
+            The objects that should be merged together
+        check_samples: bool, optional
+            Whether to check that the set of provided samples is *exactly* the same
+            for all genotypes. This can take a while so you may want to avoid it
+        **kwargs
+            Any parameters to pass to :py:meth:`~.Genotypes._init__`
+
+        Raises
+        ------
+        ValueError
+            If the set of samples in each input object is not the same
+
+        Returns
+        -------
+        Genotypes
+            A new object containing merged versions of the properties in each object
+        """
+        gts = cls(**kwargs)
+        if check_samples:
+            for obj in objs[1:]:
+                if objs[0].samples != obj.samples:
+                    raise ValueError("Samples must be shared among all Genotypes")
+        else:
+            num_samps = np.array([len(obj.samples) for obj in objs])
+            if (num_samps[0] == num_samps[1:]).all():
+                gts.samples = tuple(samp for obj in objs for samp in obj.samples)
+            else:
+                raise ValueError("Samples must be shared among all Genotypes")
+        gts.samples = objs[0].samples
+        dtypes = list(gts.variants.dtype.names)
+        gts.variants = np.concatenate(tuple(obj.variants[dtypes] for obj in objs))
+        unphased = np.array([obj.data.shape[2] for obj in objs]) == 3
+        # check: do we have a mix of phased and unphased objects?
+        if unphased.any() and not unphased.all():
+            data = (
+                np.insert(obj.data, 2, 1, axis=2) if phase else obj.data
+                for phase, obj in zip(~unphased, objs)
+            )
+            dtype = np.uint8
+        else:
+            data = (obj.data for obj in objs)
+            dtype = objs[0].data.dtype
+        gts.data = np.concatenate(tuple(data), axis=1, dtype=dtype)
+        return gts
+
 
 class GenotypesVCF(Genotypes):
     """
