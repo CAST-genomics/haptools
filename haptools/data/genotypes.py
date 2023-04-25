@@ -649,7 +649,9 @@ class Genotypes(Data):
         else:
             data = (obj.data for obj in objs)
         # TODO: fix Genotypes.check_biallelic so it always keeps data as np.uint8 and then adjust this code accordingly
-        dtype = np.bool_ if all(obj.data.dtype == np.bool_ for obj in objs) else np.uint8
+        dtype = (
+            np.bool_ if all(obj.data.dtype == np.bool_ for obj in objs) else np.uint8
+        )
         gts.data = np.concatenate(tuple(data), axis=1, dtype=dtype)
         return gts
 

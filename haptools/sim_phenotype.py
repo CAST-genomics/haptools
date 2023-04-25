@@ -348,7 +348,7 @@ def simulate_pt(
         else:
             log.info("Loading genotypes from VCF/BCF file")
             gt = Genotypes(fname=genotypes, log=log)
-        
+
         # gt._prephased = True
         gt.read(region=region, samples=samples, variants=hp.type_ids["H"])
         log.info("QC-ing genotypes")
