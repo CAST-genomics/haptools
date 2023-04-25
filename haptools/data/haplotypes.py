@@ -536,6 +536,178 @@ class Haplotype:
         self.variants = tuple(sorted(self.variants))
 
 
+@total_ordering
+@dataclass
+class Repeat:
+    """
+    A tandem repeat within the .hap format spec
+
+    In order to use this class with the Haplotypes class, you should
+    1) add properties to the class for each of extra fields
+    2) override the _extras property to describe the header declaration
+
+    Attributes
+    ----------
+    chrom: str
+        The contig to which this tandem repeat belongs
+    start: int
+        The chromosomal start position of the tandem repeat
+    end: int
+        The chromosomal end position of the tandem repeat
+    id: str
+        The tandem repeat's unique ID
+    _extras: tuple[Extra]
+        Extra fields for the tandem repeat
+
+    Examples
+    --------
+    Let's extend this class and add an extra field called "ancestry"
+
+    >>> from dataclasses import dataclass, field
+    >>> @dataclass
+    >>> class CustomRepeat(Repeat):
+    ...     ancestry: str
+    ...     _extras: tuple = field(
+    ...         repr=False,
+    ...         init=False,
+    ...         default = (
+    ...             Extra("ancestry", "s", "Local ancestry"),
+    ...         ),
+    ...     )
+    """
+
+    chrom: str
+    start: int
+    end: int
+    id: str
+    _extras: tuple = field(default=tuple(), init=False, repr=False)
+
+    @property
+    def ID(self):
+        """
+        Create an alias for the id property
+        """
+        return self.id
+
+    @property
+    # TODO: use @cached_property in py3.8
+    def _fmt(self):
+        extras = ""
+        if len(self._extras):
+            extras = "\t" + "\t".join(extra.fmt_str for extra in self._extras)
+        return "R\t{chrom:s}\t{start:d}\t{end:d}\t{id:s}" + extras
+
+    @classproperty
+    # TODO: use @cached_property in py3.8
+    def types(cls) -> dict[str, type]:
+        """
+        Obtain the types of each property in the object
+
+        Returns
+        -------
+        dict[str, type]
+            A mapping of each property in the object to its type
+        """
+        return {k: v for k, v in get_type_hints(cls).items() if not k.startswith("_")}
+
+    @classmethod
+    def from_hap_spec(
+        cls: Repeat,
+        line: str,
+        types: dict[str, type] = None,
+    ) -> Repeat:
+        """
+        Convert a tandem repeat line into a tandem repeat object in the .hap format spec
+
+        Note that this implementation does NOT support having more extra fields than
+        appear in the header
+
+        Parameters
+        ----------
+        line: str
+            A tandem repeat (R) line from the .hap file
+        types: dict[str, type], optional
+            The types of each property in the object
+
+        Returns
+        -------
+        Repeat
+            The repeat object line.
+        """
+        assert line[0] == "R", "Attempting to init a Repeat with a non-R line"
+        line = line[2:].split("\t")
+        types = types or cls.types
+        tr_fields = {
+            name: val(line[idx])
+            for idx, (name, val) in enumerate(types.items())
+            if val is not None
+        }
+        return cls(**tr_fields)
+
+    def to_hap_spec(self) -> str:
+        """
+        Convert a Repeat object into a repeat line in the .hap format spec
+
+        Returns
+        -------
+        str
+            A valid Repeat line (R) in the .hap format spec
+        """
+        return self._fmt.format(**self.__dict__)
+
+    @classmethod
+    def extras_head(cls) -> set:
+        """
+        Return the header lines of the extra fields that are supported
+
+        Returns
+        -------
+        tuple
+            The header lines of the extra fields
+        """
+        return set(extra.to_hap_spec("R") for extra in cls._extras)
+
+    @classmethod
+    def extras_order(cls) -> tuple[str]:
+        """
+        The names of the extra fields in order
+
+        Returns
+        -------
+        tuple[str]
+            The names of the extra fields in the order in which they are stored
+        """
+        return tuple(extra.name for extra in cls._extras)
+
+    def __lt__(self, other: Haplotype | Repeat):
+        """
+        Defines ordering for sort() method when dealing with variants.
+
+        This function will sort first by start followed by end and lastly ID
+
+        Parameters
+        ----------
+        other: Haplotype|Repeat
+            A haplotype or repeat line from the .hap file
+
+        Returns
+        -------
+        bool
+            True if other is less than this instance, and False otherwise
+        """
+
+        if self.chrom == other.chrom:
+            if self.start == other.start:
+                if self.end == other.end:
+                    return self.id < other.id
+                else:
+                    return self.end < other.end
+            else:
+                return self.start < other.start
+        else:
+            return self.chrom < other.chrom
+
+
 class Haplotypes(Data):
     """
     A class for processing haplotypes from a file
@@ -544,12 +716,17 @@ class Haplotypes(Data):
     ----------
     fname: Path | str
         The path to the file containing the data
-    data: dict[str, Haplotype]
-        A dict of Haplotype objects keyed by their IDs
+    data: dict[str, Haplotype|Repeat]
+        A dict of Haplotype/Repeat objects keyed by their IDs
     types: dict
         A dict of class names keyed by the symbol denoting their line type
 
-        Ex: {'H': Haplotype, 'V': Variant}
+        Ex: {'H': Haplotype, 'V': Variant, 'R': Repeat}
+    type_ids: dict[str, list]
+        A dict of class names keyed by the symbol denoting line type.
+        Stores all haplotype and repeat IDs.
+
+        Ex: {'H': ["H1", "H2", "H3"], 'R': ["STR_1", "STR_2"]}
     version: str
         A string denoting the current file format version
     log: Logger
@@ -577,13 +754,14 @@ class Haplotypes(Data):
         fname: Path | str,
         haplotype: type[Haplotype] = Haplotype,
         variant: type[Variant] = Variant,
+        repeat: type[Repeat] = Repeat,
         log: Logger = None,
     ):
         super().__init__(fname, log)
         self.data = None
         # note: it's important that self.types is created such that its keys are sorted
         # otherwise, the write() method might create unsorted files
-        self.types = {"H": haplotype, "V": variant}
+        self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.type_ids = None
         self.version = "0.1.0"
 
@@ -656,7 +834,7 @@ class Haplotypes(Data):
         self,
         lines: list[str],
         check_version=True,
-        softly=False,
+        softly=True,
     ) -> tuple[dict, dict[str, tuple[str]]]:
         """
         1) Check and parse any metadata and 2) check that any extra fields declared in
@@ -783,10 +961,12 @@ class Haplotypes(Data):
         if not (force or self.type_ids is None):
             # do not remap IDs if they've already been mapped
             return
-        self.type_ids = {"H": []}
+        self.type_ids = {"H": [], "R": []}
         for key, value in self.data.items():
             if isinstance(value, Haplotype):
                 self.type_ids["H"].append(key)
+            if isinstance(value, Repeat):
+                self.type_ids["R"].append(key)
 
     def read(self, region: str = None, haplotypes: set[str] = None):
         """
@@ -810,7 +990,8 @@ class Haplotypes(Data):
         self.data = {}
         var_haps = {}
         for line in self.__iter__(region, haplotypes):
-            if isinstance(line, Haplotype):
+            if isinstance(line, Haplotype) or isinstance(line, Repeat):
+                # store Haplotype object and Repeat object the same way
                 self.data[line.id] = line
             elif isinstance(line, Variant):
                 hap_id = line.hap
@@ -911,10 +1092,12 @@ class Haplotypes(Data):
                     region = [region[0]]
                 region = list(map(int, region))
             # fetch region
-            # we already know that each line will start with an H, so we don't
-            # need to check that
             for line in haps_file.fetch(region=region_str, multiple_iterators=True):
-                hap = self.types["H"].from_hap_spec(line, types=line_types)
+                # hap can either be a Repeat or Haplotype
+                line_type = self._line_type(line)
+                hap = self.types[line_type].from_hap_spec(
+                    line, types=line_types[line_type]
+                )
                 if haplotypes is not None:
                     if hap.id not in haplotypes:
                         continue
@@ -929,8 +1112,10 @@ class Haplotypes(Data):
             for line in haps_file.fetch(multiple_iterators=True):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
-                if line_type == "H":
-                    hap = self.types["H"].from_hap_spec(line, types=line_types)
+                if line_type == "H" or line_type == "R":
+                    hap = self.types[line_type].from_hap_spec(
+                        line, types=line_types[line_type]
+                    )
                     if hap.id in haplotypes:
                         count += 1
                         yield hap
@@ -965,9 +1150,9 @@ class Haplotypes(Data):
 
         Yields
         ------
-        Iterator[Variant|Haplotype]
+        Iterator[Variant|Repeat|Haplotype]
             An iterator over each line in the file, where each line is encoded as a
-            Variant or Haplotype containing each of the class properties
+            Variant, Repeat, or Haplotype containing each of the class properties
 
         Examples
         --------
@@ -1000,8 +1185,13 @@ class Haplotypes(Data):
             metas, extras = self.check_header(list(haps_file.header))
             types = self._get_field_types(extras, metas.get("order"))
             # query for the variants of each haplotype
-            for hap in self._iter_haps(haps_file, types["H"], region, haplotypes):
+            for hap in self._iter_haps(haps_file, types, region, haplotypes):
                 yield hap
+
+                # If the haplotype is a repeat it will not have variants so continue
+                if isinstance(hap, Repeat):
+                    continue
+
                 # fetch region
                 # we already know that each line will start with a V, so we don't
                 # need to check that
@@ -1042,9 +1232,9 @@ class Haplotypes(Data):
                             types = self._get_field_types(extras, metas.get("order"))
                             header_lines = None
                             self.log.info("Finished reading header.")
-                        if line_type == "H":
-                            temp_hap = self.types["H"].from_hap_spec(
-                                line, types=types["H"]
+                        if line_type == "H" or line_type == "R":
+                            temp_hap = self.types[line_type].from_hap_spec(
+                                line, types=types[line_type]
                             )
                             if haplotypes is None or temp_hap.id in haplotypes:
                                 yield temp_hap
@@ -1084,8 +1274,13 @@ class Haplotypes(Data):
         yield "#\tversion\t" + self.version
         for line_instance in self.types.values():
             yield from sorted(line_instance.extras_head())
-        for hap in self.type_ids["H"]:
-            yield self.types["H"].to_hap_spec(self.data[hap])
+
+        for hap in self.data.values():
+            if isinstance(hap, Haplotype):
+                yield self.types["H"].to_hap_spec(hap)
+            elif isinstance(hap, Repeat):
+                yield self.types["R"].to_hap_spec(hap)
+
         sorted_hap_ids = sorted(self.type_ids["H"]) if sort else self.type_ids["H"]
         for hap in sorted_hap_ids:
             for var in self.data[hap].variants:

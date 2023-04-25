@@ -519,6 +519,14 @@ class GenotypesAncestry(data.GenotypesVCF):
             vcf.write(record)
         vcf.close()
 
+    def merge_variants(
+        cls, objs: tuple[data.Genotypes], check_samples: bool = True, **kwargs
+    ) -> data.Genotypes:
+        """
+        See documentation for :py:meth:`~.data.Genotypes.merge_variants`
+        """
+        raise ValueError("Not implemented yet")
+
 
 def transform_haps(
     genotypes: Path,
@@ -587,7 +595,7 @@ def transform_haps(
         )
 
     log.info("Extracting variants from haplotypes")
-    variants = {var.id for hap in hp.data.values() for var in hap.variants}
+    variants = {vr.id for id in hp.type_ids["H"] for vr in hp.data[id].variants}
 
     # load the genotypes, but first get the path to the breakpoints file
     if genotypes.suffix == ".gz":
