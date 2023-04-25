@@ -97,6 +97,12 @@ To simulate tandem repeat effects we require a R line in the **.hap** file and a
    haptools transform tests/data/simple.vcf tests/data/simple.hap | \
    haptools simphenotype --repeats tests/data/simple_tr.vcf /dev/stdin tests/data/simple_tr.hap
 
+To perform simphenotype on only repeats it requires the ``--repeats`` option for the repeats VCF, but we can pass an empty path where normally the SNP VCF would be located. Please note the empty path MUST be a valid path otherwise simphenotype will error. 
+
+.. code-block:: bash
+
+   haptools simphenotype --repeats tests/data/simple_tr.vcf tests/data tests/data/only_tr.hap
+
 If speed is important, it's generally faster to use PGEN files than VCFs.
 
 .. code-block:: bash
