@@ -40,6 +40,8 @@ The ``.hap`` format describes a tab-separated file composed of different types o
      - Comment/Header
    * - H
      - Haplotype
+   * - R
+     - Repeat
    * - V
      - Variant
 
@@ -83,12 +85,12 @@ Declaring extra fields in the header
 ------------------------------------
 Any extra fields in the file must be declared in the header. To declare an extra field, create a tab-separated line containing the following fields:
 
-1. A header symbol followed by a line type symbol (ex: ``#H`` or ``#V``)
+1. A header symbol followed by a line type symbol (ex: ``#H``, ``#R``, ``#V``)
 2. Field name
 3. Python format string (ex: 'd' for int, 's' for string, or '.3f' for a float with 3 decimals)
 4. Description
 
-Note that the first field must follow the ``#`` symbol immediately (ex: ``#H`` or ``#V``).
+Note that the first field must follow the ``#`` symbol immediately (ex: ``#H``, ``#R``, ``#V``).
 
 ``H`` Haplotype
 ~~~~~~~~~~~~~~~
@@ -121,6 +123,39 @@ Haplotypes contain the following attributes:
 
 .. note::
    It is not currently possible to encode haplotypes that span more than one contig.
+
+``R`` Repeat
+~~~~~~~~~~~~
+Repeats contain the following attributes:
+
+.. list-table::
+   :widths: 25 25 25 50
+   :header-rows: 1
+
+   * - Column
+     - Field
+     - Type
+     - Description
+   * - 1
+     - Chromosome
+     - string
+     - The contig that this repeat belongs on
+   * - 2
+     - Start Position
+     - int
+     - The start position of this repeat on this contig
+   * - 3
+     - End Position
+     - int
+     - The end position of this repeat on this contig
+   * - 4
+     - Repeat ID
+     - string
+     - Uniquely identifies a repeat
+
+.. note::
+   Repeats cannot store Variants and only encode for a single repeat per line.
+   Also, the set of Repeat IDs must be distinct from the set of Haplotype IDs. A Haplotype line can never have the same ID as a Repeat line, but a Haplotype (or Repeat) line *can* have the same ID as a Variant line.
 
 ``V`` Variant
 ~~~~~~~~~~~~~
@@ -176,11 +211,10 @@ We encourage you to sort, bgzip compress, and index your ``.hap`` file whenever 
 
 .. code-block:: bash
 
-  LC_ALL=C sort -k1,4 -o file.hap file.hap
-  bgzip file.hap
-  tabix -s 2 -b 3 -e 4 file.hap.gz
+  awk '$0 ~ /^#/ {print; next} {print | "sort -k2,4"}' file.hap | bgzip > sorted.hap.gz
+  tabix -s 2 -b 3 -e 4 sorted.hap.gz
 
-In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones. In addition, you must sort on the first field (ie the line type symbol) in addition to the latter three.
+In order to properly index the file, the set of IDs in the haplotype lines must be distinct from the set of chromosome names. This is a best practice in unindexed ``.hap`` files but a requirement for indexed ones.
 
 Querying an indexed file
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -271,12 +305,34 @@ You can download an example header with a *beta* extra field from `tests/data/si
      - float
      - The effect size of this haplotype; for use in ``simphenotype``
 
+``R`` Repeat
+++++++++++++
+
+.. list-table::
+   :widths: 25 25 25 50
+   :header-rows: 1
+
+   * - Column
+     - Field
+     - Type
+     - Description
+   * - 5
+     - Effect Size
+     - float
+     - The effect size of this repeat; for use in ``simphenotype``
+
 ``V`` Variant
 +++++++++++++
 No extra fields are required here.
 
 Changelog
 ~~~~~~~~~
+v0.2.0
+------
+Support for tandem repeats in the specification via a new 'R' line type that has similar fields to the 'H' line type.
+
+Also, ``.hap`` files no longer need to be sorted by their first field in order to be indexed. We have updated the recommended ``sort`` command to reflect this. The new command wraps ``sort`` in a call to ``awk`` to ensure header lines are kept at the beginning of the file.
+
 v0.1.0
 ------
 Updates to the header lines in the specification. See `PR #80 <https://github.com/cast-genomics/haptools/pull/80>`_.

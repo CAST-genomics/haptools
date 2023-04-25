@@ -594,6 +594,67 @@ class Genotypes(Data):
                     f"The variants in chromosome '{chrom}' are not sorted by position"
                 )
 
+    @classmethod
+    def merge_variants(
+        cls, objs: tuple[Genotypes], check_samples: bool = True, **kwargs
+    ) -> Genotypes:
+        """
+        Merge genotypes objects with different sets of variants together
+
+        .. note::
+            The input genotypes objects are not expected to have any overlapping sets
+            of variants. Also, all samples in the input genotypes must be the same.
+
+        Parameters
+        ----------
+        objs: tuple[Genotypes]
+            The objects that should be merged together
+        check_samples: bool, optional
+            Whether to check that the set of provided samples is *exactly* the same
+            for all genotypes. This can take a while so you may want to avoid it
+        **kwargs
+            Any parameters to pass to :py:meth:`~.Genotypes._init__`
+
+        Raises
+        ------
+        ValueError
+            If the set of samples in each input object is not the same
+
+        Returns
+        -------
+        Genotypes
+            A new object containing merged versions of the properties in each object
+        """
+        gts = cls(**kwargs)
+        if check_samples:
+            for obj in objs[1:]:
+                if objs[0].samples != obj.samples:
+                    raise ValueError("Samples must be shared among all Genotypes")
+        else:
+            num_samps = [len(obj.samples) for obj in objs]
+            if all(num_samps[0] == num_samps[1:]):
+                gts.samples = tuple(samp for obj in objs for samp in obj.samples)
+            else:
+                raise ValueError("Samples must be shared among all Genotypes")
+        gts.samples = objs[0].samples
+        dtypes = list(gts.variants.dtype.names)
+        gts.variants = np.concatenate(tuple(obj.variants[dtypes] for obj in objs))
+        unphased = [obj.data.shape[2] == 3 for obj in objs]
+        # check: do we have a mix of phased and unphased objects?
+        if any(unphased) and not all(unphased):
+            data = (
+                obj.data if phase else np.insert(obj.data, 2, 1, axis=2)
+                for phase, obj in zip(unphased, objs)
+            )
+        else:
+            data = (obj.data for obj in objs)
+        # TODO: fix Genotypes.check_biallelic so it always keeps data as np.uint8 and then adjust this code accordingly
+        dtype = (
+            np.bool_ if all(obj.data.dtype == np.bool_ for obj in objs) else np.uint8
+        )
+        gts.data = np.concatenate(tuple(data), axis=1, dtype=dtype)
+        return gts
+
 
 class GenotypesVCF(Genotypes):
     """
@@ -949,6 +1010,269 @@ class GenotypesTR(Genotypes):
                     "This will result in a significant slowdown due to iterating over " +
                     "all GTs and fixing the shape issue. Please update the VCF by " +
                     "adding another allele to each GT with only one allele to fix the slowdown."
+                )
+                data = []
+                for gt_sample in variant.vcfrecord.genotypes:
+                    if len(gt_sample) == 2:
+                        new_gt_sample = [gt_sample[0], -1, gt_sample[1]]
+                    else:
+                        new_gt_sample = gt_sample
+                    data.append(new_gt_sample)
+                data = np.array(data, dtype=np.uint8)
+
+            data = data[:, : (2 + (not self._prephased))]
+            yield Record(data, variant_arr)
+            num_seen += 1
+        vcf.close()
+
+
+class GenotypesTR(Genotypes):
+    """
+    A class for processing TR genotypes from a file
+    Unlike the base Genotypes class, this class genotypes will be repeat number
+    in the variants array
+
+    Attributes
+    ----------
+    data : np.array
+        See documentation for :py:attr:`~.Genotypes.data`
+    fname : Path | str
+        See documentation for :py:attr:`~.Genotypes.fname`
+    samples : tuple[str]
+        See documentation for :py:attr:`~.Genotypes.samples`
+    variants : np.array
+        Variant-level meta information:
+            1. ID
+            2. CHROM
+            3. POS
+    log: Logger
+        See documentation for :py:attr:`~.Genotypes.log`
+    """
+
+    def _variant_arr(self, record: Variant):
+        """
+        See documentation for :py:meth:`~.Genotypes._variant_arr`
+        """
+        return np.array(
+            (
+                record.record_id,
+                record.chrom,
+                record.pos,
+            ),
+            dtype=self.variants.dtype,
+        )
+
+    @classmethod
+    def load(
+        cls: GenotypesTR,
+        fname: Path | str,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+    ) -> Genotypes:
+        """
+        Load STR genotypes from a VCF file
+
+        Read the file contents, check the genotype phase, and create the MAC matrix
+
+        Parameters
+        ----------
+        fname
+            See documentation for :py:attr:`~.Data.fname`
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        samples : list[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Returns
+        -------
+        Genotypes
+            A Genotypes object with the data loaded into its properties
+        """
+        genotypes = cls(fname)
+        genotypes.read(region, samples, variants)
+        genotypes.check_phase()
+        return genotypes
+
+    def read(
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
+        """
+        Read genotypes from a VCF into a numpy matrix stored in :py:attr:`~.Genotypes.data`
+
+        Raises
+        ------
+        ValueError
+            If the genotypes array is empty
+
+        Parameters
+        ----------
+        region : str, optional
+            The region from which to extract genotypes; ex: 'chr1:1234-34566' or 'chr7'
+
+            For this to work, the VCF must be indexed and the seqname must match!
+
+            Defaults to loading all genotypes
+        samples : list[str], optional
+            A subset of the samples from which to extract genotypes
+
+            Defaults to loading genotypes from all samples
+        variants : set[str], optional
+            A set of variant IDs for which to extract genotypes
+
+            All other variants will be ignored. This may be useful if you're running
+            out of memory.
+        max_variants : int, optional
+            The maximum mumber of variants to load from the file. Setting this value
+            helps preallocate the arrays, making the process faster and less memory
+            intensive. You should use this option if your processes are frequently
+            "Killed" from memory overuse.
+
+            If you don't know how many variants there are, set this to a large number
+            greater than what you would except. The np array will be resized
+            appropriately. You can also use the bcftools "counts" plugin to obtain the
+            number of expected sites within a region.
+
+            Note that this value is ignored if the variants argument is provided.
+        """
+        super().read()
+        records = self.__iter__(region=region, samples=samples, variants=variants)
+        if variants is not None:
+            max_variants = len(variants)
+        # check whether we can preallocate memory instead of making copies
+        if max_variants is None:
+            self.log.warning(
+                "The max_variants parameter was not specified. We have no choice but to"
+                " append to an ever-growing array, which can lead to memory overuse!"
+            )
+            variants_arr = []
+            data_arr = []
+            for rec in records:
+                variants_arr.append(rec.variants)
+                data_arr.append(rec.data)
+            self.log.info(f"Copying {len(variants_arr)} variants into np arrays.")
+            # convert to np array for speedy operations later on
+            self.variants = np.array(variants_arr, dtype=self.variants.dtype)
+            self.data = np.array(data_arr, dtype=np.uint8)
+        else:
+            # preallocate arrays! this will save us lots of memory and speed b/c
+            # appends can sometimes make copies
+            self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
+            # in order to check_phase() later, we must store the phase info, as well
+            self.data = np.empty(
+                (max_variants, len(self.samples), (2 + (not self._prephased))),
+                dtype=np.uint8,
+            )
+            num_seen = 0
+            for rec in records:
+                if num_seen >= max_variants:
+                    break
+                self.variants[num_seen] = rec.variants
+                self.data[num_seen] = rec.data
+                num_seen += 1
+            if max_variants > num_seen:
+                self.log.info(
+                    f"Removing {max_variants-num_seen} unneeded variant records that "
+                    "were preallocated b/c max_variants was specified."
+                )
+                self.variants = self.variants[:num_seen]
+                self.data = self.data[:num_seen]
+        if 0 in self.data.shape:
+            self.log.warning(
+                "Failed to load genotypes. If you specified a region, check that the"
+                " contig name matches! For example, double-check the 'chr' prefix."
+            )
+        # transpose the GT matrix so that samples are rows and variants are columns
+        self.log.info(f"Transposing genotype matrix of size {self.data.shape}.")
+        self.data = self.data.transpose((1, 0, 2))
+
+    def __iter__(
+        self, region: str = None, samples: list[str] = None, variants: set[str] = None
+    ) -> Iterator[namedtuple]:
+        """
+        Read genotypes from a VCF line by line without storing anything
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        samples : list[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Returns
+        -------
+        Iterator[namedtuple]
+            See documentation for :py:meth:`~.Genotypes._iterate`
+        """
+        vcf = VCF(str(self.fname), samples=samples, lazy=True)
+        self.samples = tuple(vcf.samples)
+        # call another function to force the lines above to be run immediately
+        # see https://stackoverflow.com/a/36726497
+        return self._iterate(vcf, region, variants)
+
+    def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
+        """
+        A generator over the lines of a VCF
+
+        This is a helper function for :py:meth:`~.Genotypes.__iter__`
+
+        Parameters
+        ----------
+        vcf: VCF
+            The cyvcf2.VCF object from which to fetch variant records
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        self.log.info(f"Loading genotypes from {len(self.samples)} samples")
+        Record = namedtuple("Record", "data variants")
+        # iterable used to collect records
+        vcfiter = vcf(region)
+        tr_records = trh.TRRecordHarmonizer(vcffile=vcf, vcfiter=vcfiter, region=region)
+        num_seen = 0
+        # iterate over each line in the VCF
+        # note, this can take a lot of time if there are many samples
+        for variant in tr_records:
+            if variants is not None and variant.record_id not in variants:
+                if num_seen >= len(variants):
+                    # exit early if we've already found all the variants
+                    break
+                continue
+            # save meta information about each variant
+            variant_arr = self._variant_arr(variant)
+            # extract the genotypes to a matrix of size n x 3
+            # the last dimension has three items:
+            # 1) presence of REF in strand one
+            # 2) presence of REF in strand two
+            # 3) whether the genotype is phased (if self._prephased is False)
+            # Check
+            try:
+                data = np.array(variant.vcfrecord.genotypes, dtype=np.uint8)
+
+            except ValueError:
+                self.log.warning(
+                    "The current variant in the VCF contains genotypes that do not have"
+                    " 2 alleles. "
+                    + "This will result in a significant slowdown due to iterating"
+                    " over "
+                    + "all GTs and fixing the shape issue. Please update the VCF by "
+                    + "adding another allele to each GT with only one allele to fix the"
+                    " slowdown."
                 )
                 data = []
                 for gt_sample in variant.vcfrecord.genotypes:

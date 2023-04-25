@@ -7,8 +7,10 @@ import numpy as np
 import numpy.lib.recfunctions as rfn
 
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
+from haptools.sim_phenotype import RepeatBeta as HaptoolsRepeat
 from haptools.data import (
     Extra,
+    Repeat,
     Variant,
     HapBlock,
     Haplotype,
@@ -17,6 +19,7 @@ from haptools.data import (
     Covariates,
     Haplotypes,
     Breakpoints,
+    GenotypesTR,
     GenotypesVCF,
     GenotypesPLINK,
     GenotypesTR,
@@ -278,6 +281,34 @@ class TestGenotypes:
 
         with pytest.raises(ValueError) as info:
             gts.check_sorted()
+
+    def test_merge_variants(self):
+        gts1 = self._get_fake_genotypes()
+        gts2 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2.read()
+        gts2.check_phase()
+        gts2.subset(samples=gts1.samples, inplace=True)
+
+        gts = Genotypes.merge_variants((gts1, gts2), fname=None)
+
+        assert gts.samples == gts1.samples
+        assert len(gts.variants) == len(gts1.variants) + len(gts2.variants)
+        assert gts.data.shape[0] == gts1.data.shape[0]
+        assert gts.data.shape[2] == gts1.data.shape[2]
+        assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
+
+        # also try it when the phases are different
+        gts2 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2.read()
+        gts2.subset(samples=gts1.samples, inplace=True)
+
+        gts = Genotypes.merge_variants((gts1, gts2), fname=None)
+
+        assert gts.samples == gts1.samples
+        assert len(gts.variants) == len(gts1.variants) + len(gts2.variants)
+        assert gts.data.shape[0] == gts1.data.shape[0]
+        assert gts.data.shape[2] == gts2.data.shape[2]
+        assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
 
 class TestGenotypesPLINK:
@@ -680,6 +711,40 @@ class TestPhenotypes:
         np.testing.assert_allclose(expected1.data, expected2.data[:, :2])
         np.testing.assert_allclose(expected2.data[:, 2], new_phen)
 
+    def test_subset_phenotypes(self):
+        pts = self._get_fake_phenotypes()
+
+        # subset to just the samples we want
+        expected_data = pts.data[:3]
+        expected_names = pts.names
+        samples = ("HG00096", "HG00097", "HG00099")
+        pts_sub = pts.subset(samples=samples)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
+        # subset to just the names we want
+        expected_data = pts.data[:, [1]]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        names = ("bmi",)
+        pts_sub = pts.subset(names=names)
+        assert pts_sub.samples == pts.samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
+        # subset both: samples and names
+        expected_data = pts.data[[3, 4], [1]]
+        expected_data = expected_data[:, np.newaxis]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        samples = ("HG00100", "HG00101")
+        names = ("bmi",)
+        pts_sub = pts.subset(samples=samples, names=names)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
 
 class TestCovariates:
     def _get_expected_covariates(self):
@@ -740,6 +805,40 @@ class TestCovariates:
         np.testing.assert_allclose(covars.data, expected)
         assert covars.samples == tuple(samples)
 
+    def test_subset_covariates(self):
+        cvs = self._get_fake_covariates()
+
+        # subset to just the samples we want
+        expected_data = cvs.data[:3]
+        expected_names = cvs.names
+        samples = ("HG00096", "HG00097", "HG00099")
+        cvs_sub = cvs.subset(samples=samples)
+        assert cvs_sub.samples == samples
+        np.testing.assert_allclose(cvs_sub.data, expected_data)
+        assert np.array_equal(cvs_sub.names, expected_names)
+
+        # subset to just the names we want
+        expected_data = cvs.data[:, [1]]
+        assert len(expected_data.shape) == 2
+        expected_names = (cvs.names[1],)
+        names = ("age",)
+        cvs_sub = cvs.subset(names=names)
+        assert cvs_sub.samples == cvs.samples
+        np.testing.assert_allclose(cvs_sub.data, expected_data)
+        assert np.array_equal(cvs_sub.names, expected_names)
+
+        # subset both: samples and names
+        expected_data = cvs.data[[3, 4], [1]]
+        expected_data = expected_data[:, np.newaxis]
+        assert len(expected_data.shape) == 2
+        expected_names = (cvs.names[1],)
+        samples = ("HG00100", "HG00101")
+        names = ("age",)
+        cvs_sub = cvs.subset(samples=samples, names=names)
+        assert cvs_sub.samples == samples
+        np.testing.assert_allclose(cvs_sub.data, expected_data)
+        assert np.array_equal(cvs_sub.names, expected_names)
+
 
 class TestHaplotypes:
     def _basic_haps(self):
@@ -748,6 +847,9 @@ class TestHaplotypes:
             "chr21.q.3365*1": Haplotype("21", 26928472, 26941960, "chr21.q.3365*1"),
             "chr21.q.3365*10": Haplotype("21", 26938989, 26941960, "chr21.q.3365*10"),
             "chr21.q.3365*11": Haplotype("21", 26938353, 26938989, "chr21.q.3365*11"),
+            "21_26941880_STR": Repeat("21", 26941880, 26941900, "21_26941880_STR"),
+            "21_26938989_STR": Repeat("21", 26939000, 26939010, "21_26938989_STR"),
+            "21_26938353_STR": Repeat("21", 26938353, 26938400, "21_26938353_STR"),
         }
         expected["chr21.q.3365*1"].variants = (
             Variant(26928472, 26928472, "21_26928472_C_A", "C"),
@@ -761,6 +863,31 @@ class TestHaplotypes:
             Variant(26941960, 26941960, "21_26941960_A_G", "A"),
         )
         expected["chr21.q.3365*11"].variants = (
+            Variant(26938353, 26938353, "21_26938353_T_C", "T"),
+            Variant(26938989, 26938989, "21_26938989_G_A", "A"),
+        )
+        return expected
+
+    def _basic_unordered_first_field_haps(self):
+        # what do we expect to see from the basic.hap file?
+        expected = {
+            "21.q.3365*1": Haplotype("21", 26928472, 26941960, "21.q.3365*1"),
+            "22.q.3365*10": Haplotype("22", 26938989, 26941960, "22.q.3365*10"),
+            "22.q.3365*11": Haplotype("22", 26938353, 26938989, "22.q.3365*11"),
+            "21_26938353_STR": Repeat("21", 26938353, 26938400, "21_26938353_STR"),
+        }
+        expected["21.q.3365*1"].variants = (
+            Variant(26928472, 26928472, "21_26928472_C_A", "C"),
+            Variant(26938353, 26938353, "21_26938353_T_C", "T"),
+            Variant(26940815, 26940815, "21_26940815_T_C", "C"),
+            Variant(26941960, 26941960, "21_26941960_A_G", "G"),
+        )
+        expected["22.q.3365*10"].variants = (
+            Variant(26938989, 26938989, "21_26938989_G_A", "A"),
+            Variant(26940815, 26940815, "21_26940815_T_C", "T"),
+            Variant(26941960, 26941960, "21_26941960_A_G", "A"),
+        )
+        expected["22.q.3365*11"].variants = (
             Variant(26938353, 26938353, "21_26938353_T_C", "T"),
             Variant(26938989, 26938989, "21_26938989_G_A", "A"),
         )
@@ -808,14 +935,22 @@ class TestHaplotypes:
         exp_single_hap += exp_single_hap[0].variants
         exp_single_hap2 = [exp_full["chr21.q.3365*11"]]
         exp_single_hap2 += exp_single_hap2[0].variants
+        exp_single_hap2 += [exp_full["21_26938353_STR"]]
+        exp_single_hap3 = [exp_full["21_26938353_STR"]]
 
-        expected = [hap for hap in exp_full.values()]
-        for hap in tuple(expected):
-            expected += hap.variants
-            hap.variants = ()
+        expected = [hp for hp in exp_full.values() if isinstance(hp, Haplotype)]
+        all_haps = [hp for hp in exp_full.values() if isinstance(hp, Haplotype)]
+        repeats = [hap for hap in exp_full.values() if isinstance(hap, Repeat)]
+        for i, hap in enumerate(tuple(all_haps)):
+            if isinstance(hap, Haplotype):
+                expected += hap.variants
+                expected += [repeats[i]]
+                hap.variants = ()
 
         # can we load this data from the hap file?
         haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+
+        # currently read like repeats after haplotypes which isnt
         for exp_hap, line in zip(expected, haps):
             assert exp_hap == line
 
@@ -851,22 +986,88 @@ class TestHaplotypes:
         for exp_hap, line in zip(exp_single_hap, haps_iter):
             assert exp_hap == line
 
+        # try adding repeat ID
+        i = haps.__iter__(region="21:26928472-26938989", haplotypes={"21_26938353_STR"})
+        for exp_hap, line in zip(exp_single_hap3, i):
+            assert exp_hap == line
+
+    def test_iterate_unordered_first_field(self):
+        exp_full = self._basic_unordered_first_field_haps()
+
+        exp_single_hap = [exp_full["21.q.3365*1"]]
+        exp_single_hap += exp_single_hap[0].variants
+        exp_single_hap += [exp_full["21_26938353_STR"]]
+        exp_single_hap2 = [exp_full["22.q.3365*11"]]
+        exp_single_hap2 += exp_single_hap2[0].variants
+
+        expected = [hap for hap in exp_full.values()]
+        for hap in tuple(expected):
+            if isinstance(hap, Haplotype):
+                expected += hap.variants
+                hap.variants = ()
+
+        # also check whether it works when we pass function params
+        haps = Haplotypes(DATADIR.joinpath("unordered_first_field.hap.gz"))
+        haps_iter = list(haps.__iter__(region="21:26928472-26941960"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="21:26928472-"))
+        assert len(haps_iter) == len(exp_single_hap)
+        assert all(line in exp_single_hap for line in haps_iter)
+
+        haps_iter = list(haps.__iter__(region="22:26928472-26938989"))
+        assert len(haps_iter) == len(exp_single_hap2)
+        assert all(line in exp_single_hap2 for line in haps_iter)
+
+        # also, try adding the hap ID
+        i = haps.__iter__(region="21:26928472-26941960", haplotypes={"21.q.3365*1"})
+        for exp_hap, line in zip(exp_single_hap, i):
+            assert exp_hap == line
+
+        # also, try adding the hap ID
+        haps_iter = haps.__iter__(haplotypes={"22.q.3365*11"})
+        for exp_hap, line in zip(exp_single_hap2, haps_iter):
+            assert exp_hap == line
+
     def test_read_subset(self):
         expected = {}
         expected["chr21.q.3365*1"] = self._basic_haps()["chr21.q.3365*1"]
+        tr_expected = {}
+        tr_expected["21_26938989_STR"] = self._basic_haps()["21_26938989_STR"]
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap"))
         # this shouldn't fail anymore as of version 0.1.0
         haps.read(haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
+        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        haps.read(haplotypes={"21_26938989_STR"})
+        assert tr_expected == haps.data
+
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(haplotypes={"21_26938989_STR"})
+        assert tr_expected == haps.data
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
+
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26928472-26941960", haplotypes={"21_26938989_STR"})
+        assert tr_expected == haps.data
 
         # check that haplotypes that overlap but don't fit perfectly are excluded!
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
@@ -874,6 +1075,14 @@ class TestHaplotypes:
         assert {} == haps.data
         haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
         haps.read(region="21:26928472-26941959", haplotypes={"chr21.q.3365*1"})
+        assert {} == haps.data
+
+        # test repeats overlap but don't fit perfectly
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26938273-26938360", haplotypes={"21_26938353_STR"})
+        assert {} == haps.data
+        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps.read(region="21:26941890-26941959", haplotypes={"21_26941880_STR"})
         assert {} == haps.data
 
         expected = self._basic_haps()
@@ -906,12 +1115,20 @@ class TestHaplotypes:
             "chr21.q.3365*11": HaptoolsHaplotype(
                 "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
+            "21_26938353_STR": HaptoolsRepeat(
+                "21", 26938353, 26938400, "21_26938353_STR", 0.45
+            ),
         }
         for hap_id, hap in self._basic_haps().items():
-            expected[hap_id].variants = hap.variants
+            if isinstance(hap, Haplotype):
+                expected[hap_id].variants = hap.variants
 
         # can we load this data from the hap file?
-        haps = Haplotypes(DATADIR.joinpath("simphenotype.hap"), HaptoolsHaplotype)
+        haps = Haplotypes(
+            DATADIR.joinpath("simphenotype.hap"),
+            haplotype=HaptoolsHaplotype,
+            repeat=HaptoolsRepeat,
+        )
         haps.read()
         assert expected == haps.data
 
@@ -946,16 +1163,24 @@ class TestHaplotypes:
             "chr21.q.3365*11": HaptoolsHaplotype(
                 "21", 26938353, 26938989, "chr21.q.3365*11", 0.49
             ),
+            "21_26938353_STR": HaptoolsRepeat(
+                "21", 26938353, 26938400, "21_26938353_STR", 0.45
+            ),
         }
         for hap_id, hap in self._basic_haps().items():
-            expected[hap_id].variants = hap.variants
+            if isinstance(hap, Haplotype):
+                expected[hap_id].variants = hap.variants
         return expected
 
     def test_write_extras(self):
         # what do we expect to see from the test.hap file?
         expected = self._get_writable_haplotypes()
 
-        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
+        haps = Haplotypes(
+            DATADIR.joinpath("test.hap"),
+            haplotype=HaptoolsHaplotype,
+            repeat=HaptoolsRepeat,
+        )
         haps.data = expected
         haps.write()
 
@@ -985,6 +1210,24 @@ class TestHaplotypes:
                 ),
             )
 
+        @dataclass
+        class RepeatPlusExtra(HaptoolsRepeat):
+            """
+            A repeat with an additional, unnecessary extra field
+
+            Properties and functions are shared with the HaptoolsRepeat object
+            """
+
+            score: float
+            _extras: tuple = field(
+                repr=False,
+                init=False,
+                default=(
+                    Extra("score", ".2f", "Score for a thing"),
+                    Extra("beta", ".2f", "Effect size in linear model"),
+                ),
+            )
+
         # what do we want to write to the test.hap file?
         expected = {
             "chr21.q.3365*1": HaplotypePlusExtra(
@@ -996,15 +1239,27 @@ class TestHaplotypes:
             "chr21.q.3365*11": HaplotypePlusExtra(
                 "21", 26938353, 26938989, "chr21.q.3365*11", 0.49, 0.84
             ),
+            "21_26938353_STR": RepeatPlusExtra(
+                "21", 26938353, 26938400, "21_26938353_STR", 0.45, 0.0
+            ),
         }
         for hap_id, hap in self._basic_haps().items():
-            expected[hap_id].variants = hap.variants
+            if isinstance(hap, Haplotype):
+                expected[hap_id].variants = hap.variants
 
-        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaplotypePlusExtra)
+        haps = Haplotypes(
+            DATADIR.joinpath("test.hap"),
+            haplotype=HaplotypePlusExtra,
+            repeat=RepeatPlusExtra,
+        )
         haps.data = expected
         haps.write()
 
-        haps = Haplotypes(DATADIR.joinpath("test.hap"), HaptoolsHaplotype)
+        haps = Haplotypes(
+            DATADIR.joinpath("test.hap"),
+            haplotype=HaptoolsHaplotype,
+            repeat=HaptoolsRepeat,
+        )
         haps.read()
         assert haps.data == self._get_writable_haplotypes()
 
@@ -1069,6 +1324,16 @@ class TestHaplotypes:
 
         # remove the file
         os.remove(str(fname))
+
+    def test_lt_repeat_hap(self):
+        # test comparison of haplotypes and repeats
+        haps = self._get_dummy_haps()
+        less_repeat = Repeat(chrom="1", start=10113, end=10118, id="U2")
+        equal_repeat = Repeat(chrom="1", start=10114, end=10119, id="H2")
+        greater_repeat = Repeat(chrom="2", start=10114, end=10119, id="H2")
+        assert less_repeat < haps.data["H2"]
+        assert not (equal_repeat < haps.data["H2"])
+        assert not (greater_repeat < haps.data["H2"])
 
     def test_lt_haps(self):
         hap1 = Haplotype(chrom="A", start=3, end=1000, id="test1")
@@ -1311,11 +1576,42 @@ class TestGenotypesVCF:
 
         gts.fname.unlink()
 
-# TODO write test functions for loading in STRs
+    def test_merge_variants_vcf(self):
+        gts1 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2 = self._get_fake_genotypes_refalt()
+        gts1.read()
+        gts1.check_phase()
+        gts1.subset(samples=gts2.samples, inplace=True)
+
+        gts = Genotypes.merge_variants((gts1, gts2), fname=None)
+
+        assert isinstance(gts, Genotypes)
+        assert gts.samples == gts1.samples
+        assert len(gts.variants) == len(gts1.variants) + len(gts2.variants)
+        assert gts.data.shape[0] == gts1.data.shape[0]
+        assert gts.data.shape[2] == gts1.data.shape[2]
+        assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
+
+
 class TestGenotypesTR:
-    # TODO create test STR vcf to use 
-    def test_load(self):
-        return
+    def test_read_tr(self):
+        expected_alleles = np.array(
+            [
+                [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
+                [[0, 1, 1], [0, 1, 1], [1, 1, 1], [1, 1, 1], [0, 0, 1]],
+                [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                [[0, 11, 1], [255, 255, 1], [7, 2, 1], [3, 4, 1], [0, 255, 1]],
+            ],
+            dtype=np.uint8,
+        )
+        gts = GenotypesTR(DATADIR.joinpath("simple_tr.vcf"))
+        gts.read()
+
+        # check genotypes
+        for i, variants in enumerate(expected_alleles):
+            for j, sample_var in enumerate(variants):
+                assert tuple(sample_var) == tuple(gts.data[j, i])
+
 
 class TestBreakpoints:
     def _get_expected_breakpoints(self):
