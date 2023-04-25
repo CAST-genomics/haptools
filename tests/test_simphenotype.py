@@ -636,6 +636,24 @@ class TestSimPhenotypeCLI:
 
         tmp_transform.unlink()
 
+    def test_mix_ids_repeat(self, capfd):
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_tr_stdin())
+
+        cmd = (
+            "simphenotype --repeats tests/data/simple_tr.vcf"
+            f" -i 1:10114:GTT -i H1 {tmp_transform}"
+            " tests/data/simple_tr.hap"
+        )
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+
+        tmp_transform.unlink()
+
     def test_only_repeat(self, capfd):
         cmd = (
             "simphenotype --repeats tests/data/simple_tr.vcf"
