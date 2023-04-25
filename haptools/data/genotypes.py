@@ -646,10 +646,10 @@ class Genotypes(Data):
                 obj.data if phase else np.insert(obj.data, 2, 1, axis=2)
                 for phase, obj in zip(unphased, objs)
             )
-            dtype = np.uint8
         else:
             data = (obj.data for obj in objs)
-            dtype = objs[0].data.dtype
+        # TODO: fix Genotypes.check_biallelic so it always keeps data as np.uint8 and then adjust this code accordingly
+        dtype = np.bool_ if all(obj.data.dtype == np.bool_ for obj in objs) else np.uint8
         gts.data = np.concatenate(tuple(data), axis=1, dtype=dtype)
         return gts
 

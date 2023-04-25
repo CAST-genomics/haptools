@@ -104,7 +104,7 @@ class PhenoSimulator:
         log: logging.Logger, optional
             A logging instance for recording debug statements
         """
-        self.gens = genotypes # TODO update with merged variants matrix (SEE ARYA ON PR) and figure out betas and ids
+        self.gens = genotypes
         self.phens = Phenotypes(fname=output)
         self.phens.data = None
         self.phens.samples = self.gens.samples
@@ -149,7 +149,7 @@ class PhenoSimulator:
         """
         # extract the relevant haplotype info from the Haplotype objects and GTs
         # Collect betas, ids, and genotypes
-        ids = [hid for key in hap.keys() for hid in hap.type_ids[key]]
+        ids = [hid for key in hap.type_ids.keys() for hid in hap.type_ids[key]]
         betas = [hap.data[hid].beta for hid in ids]
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
 

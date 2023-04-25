@@ -122,10 +122,12 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["H"] = [hp_ids[0]]
+        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], heritability=1)
+        data = pt_sim.run(hps, heritability=1)
         data = data[:, np.newaxis]
         phens = pt_sim.phens
 
@@ -143,6 +145,8 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["H"] = [hp_ids[0]]
+        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         gts_shape = list(gts.data.shape)
@@ -155,7 +159,7 @@ class TestSimPhenotype:
         expected.data = np.zeros((gts_shape[0], 1), dtype=expected.data.dtype)
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], heritability=1)
+        data = pt_sim.run(hps, heritability=1)
         data = data[:, np.newaxis]
         phens = pt_sim.phens
 
@@ -170,6 +174,8 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["H"] = [hp_ids[0]]
+        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         gts_shape = list(gts.data.shape)
@@ -184,7 +190,7 @@ class TestSimPhenotype:
         previous_std = np.inf
         for h2 in (0, 0.5, 1):
             pt_sim = PhenoSimulator(gts, seed=42)
-            data = pt_sim.run(hps, [hp_ids[0]], heritability=h2)
+            data = pt_sim.run(hps, heritability=h2)
             data = data[:, np.newaxis]
             phens = pt_sim.phens
 
@@ -203,12 +209,14 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["H"] = [hp_ids[0]]
+        hps.type_ids["R"] = []
         # make the beta value negative
         hps.data[hp_ids[0]].beta = -hps.data[hp_ids[0]].beta
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], heritability=1)
+        data = pt_sim.run(hps, heritability=1)
         data = data[:, np.newaxis]
         phens = pt_sim.phens
 
@@ -226,11 +234,14 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["H"] = [hp_ids[0]]
+        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], heritability=1)
-        data = pt_sim.run(hps, [hp_ids[1]], heritability=1)
+        data = pt_sim.run(hps, heritability=1)
+        hps.type_ids["H"] = [hp_ids[1]]
+        data = pt_sim.run(hps, heritability=1)
         phens = pt_sim.phens
 
         # check the data and the generated phenotype object
@@ -251,11 +262,11 @@ class TestSimPhenotype:
     def test_combined_haps_zero_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
         expected = self._get_expected_phens()
+        hps.type_ids["R"] = []
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        pt_sim.run(hps, hp_ids, heritability=1)
+        pt_sim.run(hps, heritability=1)
         phens = pt_sim.phens
 
         # check the data and the generated phenotype object
@@ -268,14 +279,14 @@ class TestSimPhenotype:
     def test_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
         expected = self._get_expected_phens()
+        hps.type_ids["R"] = []
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        pt_sim.run(hps, hp_ids, heritability=1)
-        pt_sim.run(hps, hp_ids, heritability=0.96)
-        pt_sim.run(hps, hp_ids, heritability=0.5)
-        pt_sim.run(hps, hp_ids, heritability=0.2)
+        pt_sim.run(hps, heritability=1)
+        pt_sim.run(hps, heritability=0.96)
+        pt_sim.run(hps, heritability=0.5)
+        pt_sim.run(hps, heritability=0.2)
 
         phens = pt_sim.phens
 
@@ -292,17 +303,17 @@ class TestSimPhenotype:
     def test_case_control(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
         all_false = np.zeros(expected.data.shape, dtype=np.float64)
         some_true = expected.data[:, 1]
         all_true = (~(all_false.astype(np.bool_))).astype(np.float64)
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        pt_sim.run(hps, hp_ids, heritability=1, prevalence=0.4)
-        pt_sim.run(hps, hp_ids, heritability=1, prevalence=1)
-        pt_sim.run(hps, hp_ids, heritability=1, prevalence=0)
-        pt_sim.run(hps, hp_ids, heritability=0.5, prevalence=0.4)
+        pt_sim.run(hps, heritability=1, prevalence=0.4)
+        pt_sim.run(hps, heritability=1, prevalence=1)
+        pt_sim.run(hps, heritability=1, prevalence=0)
+        pt_sim.run(hps, heritability=0.5, prevalence=0.4)
 
         phens = pt_sim.phens
         assert phens.data.shape == (5, 4)
@@ -316,10 +327,12 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
+        hps.type_ids["H"] = [hp_ids[0]]
+        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], heritability=1, normalize=False)
+        data = pt_sim.run(hps, heritability=1, normalize=False)
 
         data = data[:, np.newaxis]
         phens = pt_sim.phens
@@ -334,13 +347,15 @@ class TestSimPhenotype:
     def test_repeat(self):
         gts = self._get_fake_gens()
         tr_gts = self._get_fake_tr_gens()
+        gts = Genotypes.merge_variants((gts, tr_gts), fname=None)
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
         tr_ids = [tr for tr in hps.type_ids["R"]]
+        hps.type_ids["H"] = [hp_ids[0]]
         expected = self._get_expected_tr_phens()
 
-        pt_sim = PhenoSimulator(gts, tr_gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], tr_ids, heritability=1)
+        pt_sim = PhenoSimulator(gts, seed=42)
+        data = pt_sim.run(hps, heritability=1)
         data = data[:, np.newaxis]
         phens = pt_sim.phens
 
@@ -352,12 +367,14 @@ class TestSimPhenotype:
     def test_repeat_no_normalize(self):
         gts = self._get_fake_gens()
         tr_gts = self._get_fake_tr_gens()
+        gts = Genotypes.merge_variants((gts, tr_gts), fname=None)
         hps = self._get_fake_haps()
         hp_ids = [hp for hp in hps.type_ids["H"]]
         tr_ids = [tr for tr in hps.type_ids["R"]]
+        hps.type_ids["H"] = [hp_ids[0]]
 
-        pt_sim = PhenoSimulator(gts, tr_gts, seed=42)
-        data = pt_sim.run(hps, [hp_ids[0]], tr_ids, heritability=1, normalize=False)
+        pt_sim = PhenoSimulator(gts, seed=42)
+        data = pt_sim.run(hps, heritability=1, normalize=False)
         data = data[:, np.newaxis]
         phens = pt_sim.phens
 
@@ -618,3 +635,14 @@ class TestSimPhenotypeCLI:
         assert result.exit_code == 0
 
         tmp_transform.unlink()
+
+    def test_only_repeat(self, capfd):
+        cmd = (
+            "simphenotype --repeats tests/data/simple_tr.vcf"
+            " tests/data tests/data/only_tr.hap"
+        )
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0

@@ -1094,7 +1094,8 @@ class Haplotypes(Data):
             # fetch region
             for line in haps_file.fetch(region=region_str, multiple_iterators=True):
                 # hap can either be a Repeat or Haplotype
-                hap = self.types[line[0]].from_hap_spec(line, types=line_types)
+                line_type = self._line_type(line)
+                hap = self.types[line_type].from_hap_spec(line, types=line_types[line_type])
                 if haplotypes is not None:
                     if hap.id not in haplotypes:
                         continue
@@ -1110,7 +1111,7 @@ class Haplotypes(Data):
                 # we only want lines that start with an H
                 line_type = self._line_type(line)
                 if line_type == "H" or line_type == "R":
-                    hap = self.types[line_type].from_hap_spec(line, types=line_types)
+                    hap = self.types[line_type].from_hap_spec(line, types=line_types[line_type])
                     if hap.id in haplotypes:
                         count += 1
                         yield hap
@@ -1180,7 +1181,7 @@ class Haplotypes(Data):
             metas, extras = self.check_header(list(haps_file.header))
             types = self._get_field_types(extras, metas.get("order"))
             # query for the variants of each haplotype
-            for hap in self._iter_haps(haps_file, types["H"], region, haplotypes):
+            for hap in self._iter_haps(haps_file, types, region, haplotypes):
                 yield hap
 
                 # If the haplotype is a repeat it will not have variants so continue
