@@ -385,7 +385,6 @@ def ComputeExactLD(candidate_gt, index_gt, log):
 
     # Solve for best roots
     best_Dprime, best_rsquared = _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n)
-    log.debug(f"{best_Dprime}, {best_rsquared}")
     return best_Dprime, best_rsquared
 
 def _FilterGts(candidate_gt, index_gt, log):
