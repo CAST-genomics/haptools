@@ -60,6 +60,7 @@ def GetCanonicalOneStrand(repseq):
                 break
     return canonical
 
+
 def InferRepeatSequence(seq, period):
     """
     TODO change to dynamic programming approach
@@ -102,6 +103,7 @@ def InferRepeatSequence(seq, period):
                 best_copies = current_best_copies
     return GetCanonicalOneStrand(best_kmer)
 
+
 def FabricateAllele(motif, length):
     """
     Fabricate an allele with the given motif and length.
@@ -136,6 +138,7 @@ def FabricateAllele(motif, length):
         idx += 1
 
     return fab
+
 
 class VcfTypes(enum.Enum):
     """The different tr callers that tr_harmonizer supports."""
