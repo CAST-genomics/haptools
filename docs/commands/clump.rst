@@ -39,7 +39,6 @@ Examples
     --clump-id-field ID \
     --clump-chrom-field CHROM \
     --clump-pos-field POS \
-    --verbosity DEBUG \
     --out test_snps.clump
 
 You can use ``--ld [Exact|Pearson]`` to indicate which type of LD calculation you'd like to perform. ``Exact`` utilizes an exact cubic solution adopted from `CubeX <https://github.com/t0mrg/cubex>`_ whereas ``Pearson`` utilizes a Pearson R calculation. Note ``Exact`` only works on SNPs and not any other variant type eg. STRs. The default value is ``Pearson``.
