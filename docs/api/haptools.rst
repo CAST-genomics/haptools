@@ -129,3 +129,11 @@ haptools.index module
    :members:
    :undoc-members:
    :show-inheritance:
+
+haptools.clump module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: haptools.clump
+   :members:
+   :undoc-members:
+   :show-inheritance:

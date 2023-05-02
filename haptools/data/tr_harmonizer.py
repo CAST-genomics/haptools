@@ -1267,7 +1267,6 @@ class TRRecord:
         Find allele indicies corresponding to the unique length alleles.
         Equivalent to calling
         :code:`set(UniqueLengthGenotypeMapping().values())`
-
         Returns
         -------
         Set[int]

@@ -883,6 +883,130 @@ def index(
     index_haps(haplotypes, sort, output, log)
 
 
+@main.command(short_help="Clump summary stat files.")
+@click.option(
+    "--summstats-snps",
+    type=click.Path(path_type=Path),
+    help="File to load snps summary statistics",
+)
+@click.option(
+    "--summstats-strs",
+    type=click.Path(path_type=Path),
+    help="File to load strs summary statistics",
+)
+@click.option(
+    "--gts-snps", type=click.Path(path_type=Path), help="SNP genotypes (VCF or PGEN)"
+)
+@click.option("--gts-strs", type=click.Path(path_type=Path), help="STR genotypes (VCF)")
+@click.option(
+    "--clump-p1", type=float, default=0.0001, help="Max pval to start a new clump"
+)
+@click.option(
+    "--clump-p2", type=float, default=0.01, help="Filter for pvalue less than"
+)
+@click.option(
+    "--clump-id-field", type=str, default="SNP", help="Column header of the variant ID"
+)
+@click.option(
+    "--clump-field", type=str, default="P", help="Column header of the p-values"
+)
+@click.option(
+    "--clump-chrom-field",
+    type=str,
+    default="CHR",
+    help="Column header of the chromosome",
+)
+@click.option(
+    "--clump-pos-field", type=str, default="POS", help="Column header of the position"
+)
+@click.option(
+    "--clump-kb",
+    type=float,
+    default=250,
+    help="clump kb radius",
+)
+@click.option(
+    "--clump-r2",
+    type=float,
+    default=0.5,
+    help="r^2 threshold",
+)
+@click.option(
+    "--ld",
+    type=click.Choice(["Exact", "Pearson"]),
+    default="Pearson",
+    show_default=True,
+    help=(
+        "Calculation type to infer LD, Exact Solution or "
+        "Pearson R. (Exact|Pearson). Note the Exact Solution "
+        "works best when all three genotypes are present (0,1,2) in "
+        "the variants being compared."
+    ),
+)
+@click.option(
+    "--out",
+    type=click.Path(path_type=Path),
+    required=True,
+    help="Output filename",
+)
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="INFO",
+    show_default=True,
+    help="The level of verbosity desired",
+)
+def clump(
+    summstats_snps: Path,
+    summstats_strs: Path,
+    gts_snps: Path,
+    gts_strs: Path,
+    clump_p1: float,
+    clump_p2: float,
+    clump_id_field: str,
+    clump_field: str,
+    clump_chrom_field: str,
+    clump_pos_field: str,
+    clump_kb: float,
+    clump_r2: float,
+    ld: str,
+    out: Path,
+    verbosity: str = "CRITICAL",
+):
+    """
+    Performs clumping on datasets with SNPs, SNPs and STRs, and STRs.
+    Clumping is the process of identifying SNPs or STRs that are highly
+    correlated with one another and concatenating them all together into
+    a single "clump" in order to not repeat the same effect size due to
+    LD.
+    """
+    from .logging import getLogger
+    from .clump import clumpstr
+
+    log = getLogger(name="clump", level=verbosity)
+    log.debug(f"Loading SNPs from {summstats_snps} {gts_snps}")
+    log.debug(f"Loading STRs from {summstats_strs} {gts_strs}")
+
+    clumpstr(
+        summstats_snps,
+        summstats_strs,
+        gts_snps,
+        gts_strs,
+        clump_p1,
+        clump_p2,
+        clump_id_field,
+        clump_field,
+        clump_chrom_field,
+        clump_pos_field,
+        clump_kb,
+        clump_r2,
+        ld,
+        out,
+        log,
+    )
+
+
 if __name__ == "__main__":
     # run the CLI if someone tries 'python -m haptools' on the command line
     main(prog_name="haptools")

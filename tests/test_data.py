@@ -22,6 +22,7 @@ from haptools.data import (
     GenotypesTR,
     GenotypesVCF,
     GenotypesPLINK,
+    GenotypesTR,
 )
 
 
