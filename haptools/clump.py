@@ -8,8 +8,11 @@ import logging
 import math
 import sys
 
-from haptools.data.genotypes import GenotypesVCF
-from haptools.data.genotypes import GenotypesTR
+from haptools.data.genotypes import (
+    Genotypes,
+    GenotypesVCF,
+    GenotypesTR
+)
 
 class Variant:
     def __init__(self, varid, chrom, pos, pval, vartype):
@@ -24,8 +27,27 @@ class Variant:
 
 class SummaryStats:
     """
-    Keep track of summary statistics
-    TODO: add detailed class and methods documentation
+    Load and process summary statistics
+
+    Attributes
+    ----------
+    summstats: list[Variant]
+        list of Variant objects that represent all summary
+        statistics in the file.
+    log: Logger
+        A logging instance for recording debug statements.
+
+    Examples
+    --------
+    Loading a summary stats file, grabbing an index variant, and its 
+    candidate variants to calculate LD. 
+
+    >>> summstats = SummaryStats(log)
+    >>> summstats.Load(summstats_strs, vartype="SNP", pthresh=clump_p2,
+            id_field=clump_id_field, p_field=clump_field,
+            chrom_field=clump_chrom_field, pos_field=clump_pos_field)
+    >>> indexvar = summstats.GetNextIndexVariant(clump_p1)
+    >>> candidates = summstats.QueryWindow(indexvar, clump_kb)
     """
 
     def __init__(self, log: Logger = None):
@@ -33,7 +55,7 @@ class SummaryStats:
         self.log = log or getLogger(self.__class__.__name__)
 
     def Load(self, statsfile, vartype="SNP", pthresh=1.0,
-            snp_field="SNP", p_field="P",
+            id_field="SNP", p_field="P",
             chrom_field="CHR", pos_field="POS"):
         """
         Load summary statistics
@@ -49,9 +71,9 @@ class SummaryStats:
             header = header[1:]
         header_items = [item.strip() for item in header.split()]
         try:
-            snp_col = header_items.index(snp_field)
+            snp_col = header_items.index(id_field)
         except ValueError:
-            self.log.error("Could not find %s in header"%snp_field)
+            self.log.error("Could not find %s in header"%id_field)
             sys.exit(1)
         try:
             p_col = header_items.index(p_field)
@@ -186,22 +208,14 @@ def GetOverlappingSamples(snpgts, strgts):
 
     return snp_match_inds, str_match_inds
 
-def LoadVariant(var, snpgts, strgts, log):
+def LoadVariant(var, gts, log):
     """
     Extract vector of genotypes for this variant
     """
-    # if it's a SNP we should take from data matrix in GenotypesVCF
-    # if it's a STR we should take from data matrix in GenotypesTR
     # Grab variant from snps or strs depending on variant type
-    if var.vartype.lower() == 'snp':
-        var_ind = (snpgts.variants['pos']==int(var.pos)) & \
-                  (snpgts.variants['chrom']==var.chrom)
-        variant_gts = np.sum(snpgts.data[:, var_ind,:], axis=2).flatten()
-    else:
-        var_ind = (strgts.variants['pos']==int(var.pos)) & \
-                  (strgts.variants['chrom']==var.chrom)
-        variant_gts = np.sum(strgts.data[:, var_ind,:], axis=2).flatten()
-    
+    var_ind = (gts.variants['pos']==int(var.pos)) & \
+              (gts.variants['chrom']==var.chrom)
+    variant_gts = np.sum(gts.data[:, var_ind,:], axis=2).flatten()
     return variant_gts
 
 def _CalcChiSQ(f00, f01, f10, f11, gt_counts, n):
@@ -264,7 +278,7 @@ def _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n):
                 best_Dprime = Dprime
                 best_rsquared = r_squared
                 best_chisq = chisq
-        
+
     return best_Dprime, best_rsquared
 
 def ComputeExactLD(candidate_gt, index_gt, log):
@@ -283,6 +297,8 @@ def ComputeExactLD(candidate_gt, index_gt, log):
         array of size (genotypes,) where genotypes is the number of samples
     index_gt: np.array
         array of size (genotypes,) where genotypes is the number of samples
+    log: Logger
+        A logging instance for recording debug statements.
 
     Returns
     -------
@@ -356,7 +372,7 @@ def ComputeExactLD(candidate_gt, index_gt, log):
         # calculate 3 real roots alpha beta and gamma
         h = math.pow(h2, 0.5)
         theta = ((math.acos(-yN/h))/3.0)
-        delta = math.pow(d2,0.5)
+        delta = math.pow(d2, 0.5)
         alpha = xN + 2.0 * delta * math.cos(theta)
         beta = xN + 2.0 * delta * math.cos(2.0 * math.pi/3.0 + theta)
         gamma = xN + 2.0 * delta * math.cos(4.0 * math.pi/3.0 + theta)
@@ -369,15 +385,20 @@ def ComputeExactLD(candidate_gt, index_gt, log):
 
     # Solve for best roots
     best_Dprime, best_rsquared = _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n)
+    log.debug(f"{best_Dprime}, {best_rsquared}")
     return best_Dprime, best_rsquared
 
-def _FilterGts(candidate_gt, index_gt):
+def _FilterGts(candidate_gt, index_gt, log):
     """
     Filter invalid values from gts which is 255 since uint8 encodes -1 as 255
     """
-    valid_gts = (candidate_gt != 255) & (index_gt != 255)
+    valid_gts = (candidate_gt < 255) & (index_gt < 255)
     candidate_gt = candidate_gt[valid_gts]
     index_gt = index_gt[valid_gts]
+
+    log.debug(f"Valid Genotype Indices: {valid_gts}")
+    log.debug(f"Candidate GTs: {candidate_gt}")
+    log.debug(f"Index GTs: {index_gt}")
     return candidate_gt, index_gt
 
 def ComputeLD(candidate_gt, index_gt, LD_type, log):
@@ -385,15 +406,20 @@ def ComputeLD(candidate_gt, index_gt, LD_type, log):
     Compute the LD between two variants
     """
     # Filter invalid gt values
-    candidate_gt, index_gt = _FilterGts(candidate_gt, index_gt)
-    if not (candidate_gt or index_gt):
-        return 0
+    candidate_gt, index_gt = _FilterGts(candidate_gt, index_gt, log)
+    if not (np.size(candidate_gt) and np.size(index_gt)):
+        return None, 0
+
+    # Check if all values in either array are the same
+    if np.unique(candidate_gt).shape[0] == 1 or np.unique(index_gt).shape[0] == 1:
+        log.debug("GTs between one of the variants are constant across all samples.")
+        return None, np.nan
 
     # Compute and Maximum likelihood solution or Pearson r2
     if LD_type == 'Exact':
         return ComputeExactLD(candidate_gt, index_gt, log)
     elif LD_type == 'Pearson':
-        return scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
+        return None, scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
 
 def WriteClump(indexvar, clumped_vars, outf):
     """
@@ -405,18 +431,32 @@ def WriteClump(indexvar, clumped_vars, outf):
         ",".join([str(item) for item in clumped_vars])])+"\n")
 
 def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump_p2,
-    clump_snp_field, clump_field, clump_chrom_field, clump_pos_field,
+    clump_id_field, clump_field, clump_chrom_field, clump_pos_field,
     clump_kb, clump_r2, LD_type, out, log):
     ###### User checks ##########
-    # TODO NEED TO ADD THE LOGGER TO EACH FUNCTION TO TRACK DEBUG AND INFO MESSAGES
     # if summstats_snps, also need gts_snps
+    log.debug(f"Validating SNP files {summstats_snps} or {gts_snps}")
     if summstats_snps or gts_snps:
-        assert gts_snps is not None # TODO check to ensure this check works properly
-        assert summstats_snps is not None
+        try:
+            assert gts_snps
+            assert summstats_snps
+        except:
+            raise Exception(
+                f"One of summstats-snps {summstats_snps} and gts-snps {gts_snps} is "
+                "not present. Please ensure both have been inputted correctly."
+            )
+
     # if summstats_strs, also need gts_strs
+    log.debug(f"Validating STR files {summstats_strs} or {gts_strs}")
     if summstats_strs or gts_strs:
-        assert gts_strs is not None #TODO check to ensure this check works properly
-        assert summstats_strs is not None
+        try:
+            assert gts_strs
+            assert summstats_strs
+        except:
+            raise Exception(
+                f"One of summstats-strs {summstats_strs} and gts-strs {gts_strs} is "
+                "not present. Please ensure both have been inputted correctly."
+            )
 
     if summstats_strs and LD_type == 'Exact':
         raise Exception(
@@ -428,39 +468,51 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     summstats = SummaryStats(log)
     if summstats_snps is not None:
         summstats.Load(summstats_snps, vartype="SNP", pthresh=clump_p2,
-            snp_field=clump_snp_field, p_field=clump_field,
+            id_field=clump_id_field, p_field=clump_field,
             chrom_field=clump_chrom_field, pos_field=clump_pos_field)
     if summstats_strs is not None:
         summstats.Load(summstats_strs, vartype="STR", pthresh=clump_p2,
-            snp_field=clump_snp_field, p_field=clump_field,
+            id_field=clump_id_field, p_field=clump_field,
             chrom_field=clump_chrom_field, pos_field=clump_pos_field)
 
     ###### Set up genotypes ##########
     snpgts = None
     strgts = None
-    if gts_snps is not None:
-        if gts_snps.endswith('pgen'):
+    gts = None
+    if gts_snps:
+        if str(gts_snps).endswith('pgen'):
             log.debug("Loading SNP Genotypes.")
             snpgts = GenotypesPLINK.load(gts_snps)
         else:
             log.debug("Loading SNP Genotypes.")
             snpgts = GenotypesVCF.load(gts_snps)
-    if gts_strs is not None:
+    if gts_strs:
         log.debug("Loading STR Genotypes.")
         strgts = GenotypesTR.load(gts_strs)
+
     if gts_snps and gts_strs:
         log.debug("Calculating set of overlapping samples between STRs and SNPs.")
         # Grab all shared samples between snp list and str list
         # NOTE samples are returned such that resulting data is matching
         snp_samples, str_samples = GetOverlappingSamples(snpgts, strgts)
+        log.debug(f"Shared samples: {snp_samples}")
 
         # NOTE snpgts has data, variants, and samples where data is alleles (samples x variants x alleles)
         #      variants has id, pos, chrom, ref, alt for snps
         #      samples is list of samples corresponding to x-axis of samples
         snpgts.data = snpgts.data[snp_samples,:,:]
-        snpgts.samples = snpgts.samples[snp_samples]
-        strgts.data = snpgts.data[str_samples,:,:]
-        strgts.samples = snpgts.samples[str_samples]
+        snpgts.samples = tuple(np.array(snpgts.samples)[snp_samples])
+        strgts.data = strgts.data[str_samples,:,:]
+        strgts.samples =  tuple(np.array(strgts.samples)[str_samples])
+        
+        # Merge STR and SNP GTs
+        gts = Genotypes.merge_variants((snpgts, strgts), fname=None)
+    elif gts_snps:
+        gts = snpgts
+    elif gts_strs:
+        gts = strgts
+    else:
+        raise Exception("Unable to load valid genotype data.")
 
     ###### Setup output file ##########
     outf = open(out, "w")
@@ -470,7 +522,7 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
     indexvar = summstats.GetNextIndexVariant(clump_p1)
     while indexvar is not None:
         # Load indexvar gts
-        indexvar_gt = LoadVariant(indexvar, snpgts, strgts, log)
+        indexvar_gt = LoadVariant(indexvar, gts, log)
         # Collect candidate variants within range of index variant
         candidates = summstats.QueryWindow(indexvar, clump_kb)
 
@@ -479,12 +531,13 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
         # calculate LD between candidate vars and index var
         clumpvars = []
         for c in candidates:
-            # load candidate variant c genotypes 
-            candidate_gt = LoadVariant(c, snpgts, strgts, log)
+            # load candidate variant c genotypes
+            candidate_gt = LoadVariant(c, gts, log)
             Dprime, r2 = ComputeLD(candidate_gt, indexvar_gt, LD_type, log)
+            # If using pearson Dprime is not calculated
             log.debug(
-                    f"D\' and r2 between {indexvar} with {c}\n" +
-                    f"D\' = {Dprime}, r^2 = {r2}"
+                f"D\' and r2 between {indexvar} with {c}\n"
+                f"D\' = {Dprime}, r^2 = {r2}"
             )
             if r2 > clump_r2:
                 clumpvars.append(c)

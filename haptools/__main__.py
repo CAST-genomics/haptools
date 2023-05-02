@@ -884,10 +884,20 @@ def index(
 
 
 @main.command(short_help="Clump summary stat files.")
-@click.option("--summstats-snps", type=str, help="File to load snps summary statistics")
-@click.option("--summstats-strs", type=str, help="File to load strs summary statistics")
-@click.option("--gts-snps", type=str, help="SNP genotypes (VCF or PGEN)")
-@click.option("--gts-strs", type=str, help="STR genotypes (VCF)")
+@click.option(
+    "--summstats-snps",
+    type=click.Path(path_type=Path),
+    help="File to load snps summary statistics",
+)
+@click.option(
+    "--summstats-strs",
+    type=click.Path(path_type=Path),
+    help="File to load strs summary statistics",
+)
+@click.option(
+    "--gts-snps", type=click.Path(path_type=Path), help="SNP genotypes (VCF or PGEN)"
+)
+@click.option("--gts-strs", type=click.Path(path_type=Path), help="STR genotypes (VCF)")
 @click.option(
     "--clump-p1", type=float, default=0.0001, help="Max pval to start a new clump"
 )
@@ -895,7 +905,7 @@ def index(
     "--clump-p2", type=float, default=0.01, help="Filter for pvalue less than"
 )
 @click.option(
-    "--clump-snp-field", type=str, default="SNP", help="Column header of the variant ID"
+    "--clump-id-field", type=str, default="SNP", help="Column header of the variant ID"
 )
 @click.option(
     "--clump-field", type=str, default="P", help="Column header of the p-values"
@@ -928,12 +938,14 @@ def index(
     show_default=True,
     help=(
         "Calculation type to infer LD, Exact Solution or "
-        "Pearson R. (Exact|Pearson)"
+        "Pearson R. (Exact|Pearson). Note the Exact Solution "
+        "works best when all three genotypes are present (0,1,2) in "
+        "the variants being compared."
     ),
 )
 @click.option(
     "--out",
-    type=str,
+    type=click.Path(path_type=Path),
     required=True,
     help="Output filename",
 )
@@ -952,7 +964,7 @@ def clump(
     gts_strs: Path,
     clump_p1: float,
     clump_p2: float,
-    clump_snp_field: str,
+    clump_id_field: str,
     clump_field: str,
     clump_chrom_field: str,
     clump_pos_field: str,
@@ -973,6 +985,8 @@ def clump(
     from .clump import clumpstr
 
     log = getLogger(name="clump", level=verbosity)
+    log.debug(f"Loading SNPs from {summstats_snps} {gts_snps}")
+    log.debug(f"Loading STRs from {summstats_strs} {gts_strs}")
 
     clumpstr(
         summstats_snps,
@@ -981,7 +995,7 @@ def clump(
         gts_strs,
         clump_p1,
         clump_p2,
-        clump_snp_field,
+        clump_id_field,
         clump_field,
         clump_chrom_field,
         clump_pos_field,
