@@ -2,7 +2,6 @@
 
 # To test: ./clumpSTR.py --summstats-snps tests/eur_gwas_pvalue_chr19.LDL.glm.linear --clump-snp-field ID --clump-field p-value --clump-chrom-field CHROM --clump-pos-field position --clump-p1 0.2 --out test.clump
 from logging import getLogger, Logger
-import scipy.stats
 import numpy as np
 import logging
 import math
@@ -457,7 +456,7 @@ def ComputeLD(candidate_gt, index_gt, LD_type, log):
     if LD_type == "Exact":
         return ComputeExactLD(candidate_gt, index_gt, log)
     elif LD_type == "Pearson":
-        return None, scipy.stats.pearsonr(index_gt, candidate_gt)[0] ** 2
+        return None, np.corrcoef(index_gt, candidate_gt)[0, 1] ** 2
 
 
 def WriteClump(indexvar, clumped_vars, outf):
