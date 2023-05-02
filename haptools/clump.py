@@ -8,11 +8,8 @@ import logging
 import math
 import sys
 
-from haptools.data.genotypes import (
-    Genotypes,
-    GenotypesVCF,
-    GenotypesTR
-)
+from haptools.data.genotypes import Genotypes, GenotypesVCF, GenotypesTR
+
 
 class Variant:
     def __init__(self, varid, chrom, pos, pval, vartype):
@@ -23,7 +20,14 @@ class Variant:
         self.vartype = vartype
 
     def __str__(self):
-        return "%s %s %s %s %s"%(self.varid, self.chrom, self.pos, self.pval, self.vartype)
+        return "%s %s %s %s %s" % (
+            self.varid,
+            self.chrom,
+            self.pos,
+            self.pval,
+            self.vartype,
+        )
+
 
 class SummaryStats:
     """
@@ -39,8 +43,8 @@ class SummaryStats:
 
     Examples
     --------
-    Loading a summary stats file, grabbing an index variant, and its 
-    candidate variants to calculate LD. 
+    Loading a summary stats file, grabbing an index variant, and its
+    candidate variants to calculate LD.
 
     >>> summstats = SummaryStats(log)
     >>> summstats.Load(summstats_strs, vartype="SNP", pthresh=clump_p2,
@@ -54,41 +58,48 @@ class SummaryStats:
         self.summstats = []
         self.log = log or getLogger(self.__class__.__name__)
 
-    def Load(self, statsfile, vartype="SNP", pthresh=1.0,
-            id_field="SNP", p_field="P",
-            chrom_field="CHR", pos_field="POS"):
+    def Load(
+        self,
+        statsfile,
+        vartype="SNP",
+        pthresh=1.0,
+        id_field="SNP",
+        p_field="P",
+        chrom_field="CHR",
+        pos_field="POS",
+    ):
         """
         Load summary statistics
         Ignore variants with pval < pthresh
         Not yet implemented
         """
-        summstats = [] # List of Variants
+        summstats = []  # List of Variants
 
         # First, parse header line to get col. numbers
         f = open(statsfile, "r")
         header = f.readline()
-        if header.startswith('#'):
+        if header.startswith("#"):
             header = header[1:]
         header_items = [item.strip() for item in header.split()]
         try:
             snp_col = header_items.index(id_field)
         except ValueError:
-            self.log.error("Could not find %s in header"%id_field)
+            self.log.error("Could not find %s in header" % id_field)
             sys.exit(1)
         try:
             p_col = header_items.index(p_field)
         except ValueError:
-            self.log.error("Could not find %s in header"%p_field)
+            self.log.error("Could not find %s in header" % p_field)
             sys.exit(1)
         try:
             chrom_col = header_items.index(chrom_field)
         except ValueError:
-            self.log.error("Could not find %s in header"%chrom_field)
+            self.log.error("Could not find %s in header" % chrom_field)
             sys.exit(1)
         try:
             pos_col = header_items.index(pos_field)
         except ValueError:
-            self.log.error("Could not find %s in header"%pos_field)
+            self.log.error("Could not find %s in header" % pos_field)
             sys.exit(1)
 
         # Now, load in stats. Skip things with pval>pthresh
@@ -98,15 +109,22 @@ class SummaryStats:
             if float(items[p_col]) > pthresh:
                 line = f.readline()
                 continue
-            summstats.append(Variant(items[snp_col], items[chrom_col],
-                int(items[pos_col]), float(items[p_col]), vartype))
+            summstats.append(
+                Variant(
+                    items[snp_col],
+                    items[chrom_col],
+                    int(items[pos_col]),
+                    float(items[p_col]),
+                    vartype,
+                )
+            )
             line = f.readline()
         f.close()
         self.summstats.extend(summstats)
 
     def GetNextIndexVariant(self, index_pval_thresh):
         """
-        Get the next index variant, which is the 
+        Get the next index variant, which is the
         variant with the best p-value
         If no more variants below the clump-p1 threshold,
         return None
@@ -115,7 +133,7 @@ class SummaryStats:
         best_var = None
         best_var_p = 1.0
         for variant in self.summstats:
-            if variant.pval < best_var_p and variant.pval<index_pval_thresh:
+            if variant.pval < best_var_p and variant.pval < index_pval_thresh:
                 best_var = variant
                 best_var_p = variant.pval
         return best_var
@@ -133,14 +151,14 @@ class SummaryStats:
         # Find candidates in the window
         candidates = []
         for variant in self.summstats:
-            if variant.chrom == chrom and abs(variant.pos-pos)/1000 < window_kb:
+            if variant.chrom == chrom and abs(variant.pos - pos) / 1000 < window_kb:
                 candidates.append(variant)
 
         return candidates
 
     def RemoveClump(self, clumpvars):
         """
-        Remove the variants from a clump 
+        Remove the variants from a clump
         from further consideration
         """
         keepvars = []
@@ -177,7 +195,7 @@ def GetOverlappingSamples(snpgts, strgts):
         SNP Genotypes object
     strgts: GenotypesTR
         STR Genotypes object
-    
+
     Returns
     -------
     snp_samples: list(int)
@@ -208,39 +226,43 @@ def GetOverlappingSamples(snpgts, strgts):
 
     return snp_match_inds, str_match_inds
 
+
 def LoadVariant(var, gts, log):
     """
     Extract vector of genotypes for this variant
     """
     # Grab variant from snps or strs depending on variant type
-    var_ind = (gts.variants['pos']==int(var.pos)) & \
-              (gts.variants['chrom']==var.chrom)
-    variant_gts = np.sum(gts.data[:, var_ind,:], axis=2).flatten()
+    var_ind = (gts.variants["pos"] == int(var.pos)) & (
+        gts.variants["chrom"] == var.chrom
+    )
+    variant_gts = np.sum(gts.data[:, var_ind, :], axis=2).flatten()
     return variant_gts
+
 
 def _CalcChiSQ(f00, f01, f10, f11, gt_counts, n):
     """
     Calculate Chi-squared test stat for given freqs.
     """
-    chisq_exp = np.zeros((3,3))
-    root_exp = np.zeros((3,3))
+    chisq_exp = np.zeros((3, 3))
+    root_exp = np.zeros((3, 3))
 
     # calculate expected values for a given root
-    root_exp[0,0] = n * f00**2
-    root_exp[0,1] = 2 * n * f00 * f01
-    root_exp[0,2] = n * f01**2
-    root_exp[1,0] = 2 * n * f00 * f10
-    root_exp[1,1] = 2 * n * f01 * f10 + 2 * n * f00 * f11 
-    root_exp[1,2] = 2 * n * f01 * f11
-    root_exp[2,0] = n * f10**2
-    root_exp[2,1] = 2 * n * f10 * f11
-    root_exp[2,2] = n * f11**2
+    root_exp[0, 0] = n * f00**2
+    root_exp[0, 1] = 2 * n * f00 * f01
+    root_exp[0, 2] = n * f01**2
+    root_exp[1, 0] = 2 * n * f00 * f10
+    root_exp[1, 1] = 2 * n * f01 * f10 + 2 * n * f00 * f11
+    root_exp[1, 2] = 2 * n * f01 * f11
+    root_exp[2, 0] = n * f10**2
+    root_exp[2, 1] = 2 * n * f10 * f11
+    root_exp[2, 2] = n * f11**2
     for i in range(3):
         for j in range(3):
-            if root_exp[i,j] > 0.0:
-                chisq_exp = ((gt_counts[i,j] - root_exp[i,j])**2/root_exp[i,j])
+            if root_exp[i, j] > 0.0:
+                chisq_exp = (gt_counts[i, j] - root_exp[i, j]) ** 2 / root_exp[i, j]
 
     return np.sum(chisq_exp)
+
 
 def _CalcLDStats(f00, p, q, gt_counts, n):
     """
@@ -251,15 +273,18 @@ def _CalcLDStats(f00, p, q, gt_counts, n):
     f11 = 1 - (f00 + f01 + f10)
     D = (f00 * f11) - (f01 * f10)
     if D >= 0.0:
-        Dmax = min(p*(1.0-q), q*(1.0-p))
+        Dmax = min(p * (1.0 - q), q * (1.0 - p))
     else:
-        Dmax = min(p*q,(1-p)*(1-q))
-    Dprime = D/Dmax
-    r_squared = (D**2)/(p*(1-p)*q*(1-q))
+        Dmax = min(p * q, (1 - p) * (1 - q))
+    Dprime = D / Dmax
+    r_squared = (D**2) / (p * (1 - p) * q * (1 - q))
 
-    return round(Dprime,6), \
-           round(r_squared,6), \
-           _CalcChiSQ(f00, f01, f10, f11, gt_counts, n)
+    return (
+        round(Dprime, 6),
+        round(r_squared, 6),
+        _CalcChiSQ(f00, f01, f10, f11, gt_counts, n),
+    )
+
 
 def _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n):
     """
@@ -281,14 +306,12 @@ def _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n):
 
     return best_Dprime, best_rsquared
 
+
 def ComputeExactLD(candidate_gt, index_gt, log):
     """
     Compute exact solution of haplotype frequencies to calculate r squared value.
-    # TODO add https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-8-428 to docs
-    # TODO add https://github.com/t0mrg/cubex to docs
-
     NOTE currently this approach only works for biallelic variants since having more variants
-    causes the equation we're solving for to be a cubic but instead to the degree of n where 
+    causes the equation we're solving for to be a cubic but instead to the degree of n where
     n is the total number of alelles which also invalidates STRs.
 
     Parameters
@@ -307,32 +330,36 @@ def ComputeExactLD(candidate_gt, index_gt, log):
     """
     # load in 3x3 array where axes are genotypes (0,1,2) for each variant
     # y-axis = candidate gt, x-axis = index_gt
-    gt_counts = np.zeros((3,3))
+    gt_counts = np.zeros((3, 3))
     for gt1 in range(3):
         # subset candidate gts to genotype gt
         subset_gt1 = candidate_gt == gt1
         for gt2 in range(3):
             subset_index_gt = index_gt[subset_gt1]
-            gt_counts[gt1,gt2] = np.sum(subset_index_gt == gt2)
+            gt_counts[gt1, gt2] = np.sum(subset_index_gt == gt2)
 
     n = np.sum(gt_counts)
-    p = (2.0*np.sum(gt_counts[0,:]) + np.sum(gt_counts[1,:]))/(2.0 * n)
-    q = (2.0*np.sum(gt_counts[:,0]) + np.sum(gt_counts[:,1]))/(2.0 * n)
+    p = (2.0 * np.sum(gt_counts[0, :]) + np.sum(gt_counts[1, :])) / (2.0 * n)
+    q = (2.0 * np.sum(gt_counts[:, 0]) + np.sum(gt_counts[:, 1])) / (2.0 * n)
 
-    num_alt = (2.0*gt_counts[0,0] + gt_counts[0,1] + gt_counts[1,0])
-    a = 4.0*n
-    b = 2.0*n*(1.0 - 2.0*p - 2.0*q) - 2.0*num_alt - gt_counts[1,1]
-    c = -num_alt*(1.0 - 2.0*p - 2.0*q) - gt_counts[1,1]*(1.0 - p - q) + 2.0*n*p*q
-    d = -num_alt*p*q
+    num_alt = 2.0 * gt_counts[0, 0] + gt_counts[0, 1] + gt_counts[1, 0]
+    a = 4.0 * n
+    b = 2.0 * n * (1.0 - 2.0 * p - 2.0 * q) - 2.0 * num_alt - gt_counts[1, 1]
+    c = (
+        -num_alt * (1.0 - 2.0 * p - 2.0 * q)
+        - gt_counts[1, 1] * (1.0 - p - q)
+        + 2.0 * n * p * q
+    )
+    d = -num_alt * p * q
 
     minhap = num_alt / (2.0 * float(n))
-    maxhap = (num_alt + gt_counts[1,1]) / (2.0 * float(n))
-    
-    xN = -b/(3.0*a)
-    d2 = (math.pow(b,2)-3.0*a*c)/(9*math.pow(a,2))
-    yN = a * math.pow(xN,3) + b * math.pow(xN,2) + c * xN + d
-    yN2 = math.pow(yN,2)
-    h2 = 4 * math.pow(a,2) * math.pow(d2,3)
+    maxhap = (num_alt + gt_counts[1, 1]) / (2.0 * float(n))
+
+    xN = -b / (3.0 * a)
+    d2 = (math.pow(b, 2) - 3.0 * a * c) / (9 * math.pow(a, 2))
+    yN = a * math.pow(xN, 3) + b * math.pow(xN, 2) + c * xN + d
+    yN2 = math.pow(yN, 2)
+    h2 = 4 * math.pow(a, 2) * math.pow(d2, 3)
 
     # store all real roots to cubic to iterate over and determine which is best
     real_roots = []
@@ -342,15 +369,23 @@ def ComputeExactLD(candidate_gt, index_gt, log):
         # calculate real root alpha
         number1 = 0.0
         number2 = 0.0
-        if (1.0/(2.0*a)*(-yN + math.pow((yN2 - h2),0.5))) < 0:
-            number1 = -math.pow(-(1.0/(2.0*a)*(-yN + math.pow((yN2 - h2),0.5))),1.0/3.0)
-        else: 
-            number1 = math.pow((1.0/(2.0*a)*(-yN + math.pow((yN2 - h2),0.5))),1.0/3.0)
-        
-        if (1.0/(2.0*a)*(-yN - math.pow((yN2 - h2),0.5))) < 0:
-            number2 = -math.pow(-(1.0/(2.0*a)*(-yN - math.pow((yN2 - h2),0.5))),1.0/3.0)
-        else: 
-            number2 = math.pow((1.0/(2.0*a)*(-yN - math.pow((yN2 - h2),0.5))),1.0/3.0)
+        if (1.0 / (2.0 * a) * (-yN + math.pow((yN2 - h2), 0.5))) < 0:
+            number1 = -math.pow(
+                -(1.0 / (2.0 * a) * (-yN + math.pow((yN2 - h2), 0.5))), 1.0 / 3.0
+            )
+        else:
+            number1 = math.pow(
+                (1.0 / (2.0 * a) * (-yN + math.pow((yN2 - h2), 0.5))), 1.0 / 3.0
+            )
+
+        if (1.0 / (2.0 * a) * (-yN - math.pow((yN2 - h2), 0.5))) < 0:
+            number2 = -math.pow(
+                -(1.0 / (2.0 * a) * (-yN - math.pow((yN2 - h2), 0.5))), 1.0 / 3.0
+            )
+        else:
+            number2 = math.pow(
+                (1.0 / (2.0 * a) * (-yN - math.pow((yN2 - h2), 0.5))), 1.0 / 3.0
+            )
 
         # singular real root
         alpha = xN + number1 + number2
@@ -360,10 +395,10 @@ def ComputeExactLD(candidate_gt, index_gt, log):
 
     elif yN2 == h2:
         # Calculate three real roots alpha beta and gamma
-        delta = math.pow((yN/2.0*a),(1.0/3.0))
+        delta = math.pow((yN / 2.0 * a), (1.0 / 3.0))
         alpha = xN + delta
         beta = xN + delta
-        gamma = xN - 2.0*delta
+        gamma = xN - 2.0 * delta
 
         # store all real roots
         real_roots = [alpha, beta, gamma]
@@ -371,21 +406,24 @@ def ComputeExactLD(candidate_gt, index_gt, log):
     elif yN2 < h2:
         # calculate 3 real roots alpha beta and gamma
         h = math.pow(h2, 0.5)
-        theta = ((math.acos(-yN/h))/3.0)
+        theta = (math.acos(-yN / h)) / 3.0
         delta = math.pow(d2, 0.5)
         alpha = xN + 2.0 * delta * math.cos(theta)
-        beta = xN + 2.0 * delta * math.cos(2.0 * math.pi/3.0 + theta)
-        gamma = xN + 2.0 * delta * math.cos(4.0 * math.pi/3.0 + theta)
+        beta = xN + 2.0 * delta * math.cos(2.0 * math.pi / 3.0 + theta)
+        gamma = xN + 2.0 * delta * math.cos(4.0 * math.pi / 3.0 + theta)
 
         # store all real roots
         real_roots = [alpha, beta, gamma]
 
-    else: 
+    else:
         raise Exception(f"Can't calculate r squared from given values {yN2} and {h2}")
 
     # Solve for best roots
-    best_Dprime, best_rsquared = _CalcBestRoot(real_roots, minhap, maxhap, p, q, gt_counts, n)
+    best_Dprime, best_rsquared = _CalcBestRoot(
+        real_roots, minhap, maxhap, p, q, gt_counts, n
+    )
     return best_Dprime, best_rsquared
+
 
 def _FilterGts(candidate_gt, index_gt, log):
     """
@@ -399,6 +437,7 @@ def _FilterGts(candidate_gt, index_gt, log):
     log.debug(f"Candidate GTs: {candidate_gt}")
     log.debug(f"Index GTs: {index_gt}")
     return candidate_gt, index_gt
+
 
 def ComputeLD(candidate_gt, index_gt, LD_type, log):
     """
@@ -415,23 +454,49 @@ def ComputeLD(candidate_gt, index_gt, LD_type, log):
         return None, np.nan
 
     # Compute and Maximum likelihood solution or Pearson r2
-    if LD_type == 'Exact':
+    if LD_type == "Exact":
         return ComputeExactLD(candidate_gt, index_gt, log)
-    elif LD_type == 'Pearson':
-        return None, scipy.stats.pearsonr(index_gt, candidate_gt)[0]**2
+    elif LD_type == "Pearson":
+        return None, scipy.stats.pearsonr(index_gt, candidate_gt)[0] ** 2
+
 
 def WriteClump(indexvar, clumped_vars, outf):
     """
     Write a clump to the output file
     Not yet implemented
     """
-    outf.write("\t".join([indexvar.varid, indexvar.chrom, str(indexvar.pos),
-        str(indexvar.pval), indexvar.vartype, 
-        ",".join([str(item) for item in clumped_vars])])+"\n")
+    outf.write(
+        "\t".join(
+            [
+                indexvar.varid,
+                indexvar.chrom,
+                str(indexvar.pos),
+                str(indexvar.pval),
+                indexvar.vartype,
+                ",".join([str(item) for item in clumped_vars]),
+            ]
+        )
+        + "\n"
+    )
 
-def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump_p2,
-    clump_id_field, clump_field, clump_chrom_field, clump_pos_field,
-    clump_kb, clump_r2, LD_type, out, log):
+
+def clumpstr(
+    summstats_snps,
+    summstats_strs,
+    gts_snps,
+    gts_strs,
+    clump_p1,
+    clump_p2,
+    clump_id_field,
+    clump_field,
+    clump_chrom_field,
+    clump_pos_field,
+    clump_kb,
+    clump_r2,
+    LD_type,
+    out,
+    log,
+):
     ###### User checks ##########
     # if summstats_snps, also need gts_snps
     log.debug(f"Validating SNP files {summstats_snps} or {gts_snps}")
@@ -457,29 +522,41 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
                 "not present. Please ensure both have been inputted correctly."
             )
 
-    if summstats_strs and LD_type == 'Exact':
+    if summstats_strs and LD_type == "Exact":
         raise Exception(
-            "The exact method of computing LD can only be used with biallelic loci. " +
-            "STRs are not compatible with the exact LD compute method. "
+            "The exact method of computing LD can only be used with biallelic loci. "
+            + "STRs are not compatible with the exact LD compute method. "
         )
 
     ###### Load summary stats ##########
     summstats = SummaryStats(log)
     if summstats_snps is not None:
-        summstats.Load(summstats_snps, vartype="SNP", pthresh=clump_p2,
-            id_field=clump_id_field, p_field=clump_field,
-            chrom_field=clump_chrom_field, pos_field=clump_pos_field)
+        summstats.Load(
+            summstats_snps,
+            vartype="SNP",
+            pthresh=clump_p2,
+            id_field=clump_id_field,
+            p_field=clump_field,
+            chrom_field=clump_chrom_field,
+            pos_field=clump_pos_field,
+        )
     if summstats_strs is not None:
-        summstats.Load(summstats_strs, vartype="STR", pthresh=clump_p2,
-            id_field=clump_id_field, p_field=clump_field,
-            chrom_field=clump_chrom_field, pos_field=clump_pos_field)
+        summstats.Load(
+            summstats_strs,
+            vartype="STR",
+            pthresh=clump_p2,
+            id_field=clump_id_field,
+            p_field=clump_field,
+            chrom_field=clump_chrom_field,
+            pos_field=clump_pos_field,
+        )
 
     ###### Set up genotypes ##########
     snpgts = None
     strgts = None
     gts = None
     if gts_snps:
-        if str(gts_snps).endswith('pgen'):
+        if str(gts_snps).endswith("pgen"):
             log.debug("Loading SNP Genotypes.")
             snpgts = GenotypesPLINK.load(gts_snps)
         else:
@@ -499,11 +576,11 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
         # NOTE snpgts has data, variants, and samples where data is alleles (samples x variants x alleles)
         #      variants has id, pos, chrom, ref, alt for snps
         #      samples is list of samples corresponding to x-axis of samples
-        snpgts.data = snpgts.data[snp_samples,:,:]
+        snpgts.data = snpgts.data[snp_samples, :, :]
         snpgts.samples = tuple(np.array(snpgts.samples)[snp_samples])
-        strgts.data = strgts.data[str_samples,:,:]
-        strgts.samples =  tuple(np.array(strgts.samples)[str_samples])
-        
+        strgts.data = strgts.data[str_samples, :, :]
+        strgts.samples = tuple(np.array(strgts.samples)[str_samples])
+
         # Merge STR and SNP GTs
         gts = Genotypes.merge_variants((snpgts, strgts), fname=None)
     elif gts_snps:
@@ -515,7 +592,7 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
 
     ###### Setup output file ##########
     outf = open(out, "w")
-    outf.write("\t".join(["ID","CHROM","POS","P","VARTYPE","CLUMPVARS"])+"\n")
+    outf.write("\t".join(["ID", "CHROM", "POS", "P", "VARTYPE", "CLUMPVARS"]) + "\n")
 
     ###### Perform clumping ##########
     indexvar = summstats.GetNextIndexVariant(clump_p1)
@@ -535,12 +612,11 @@ def clumpstr(summstats_snps, summstats_strs, gts_snps, gts_strs, clump_p1, clump
             Dprime, r2 = ComputeLD(candidate_gt, indexvar_gt, LD_type, log)
             # If using pearson Dprime is not calculated
             log.debug(
-                f"D\' and r2 between {indexvar} with {c}\n"
-                f"D\' = {Dprime}, r^2 = {r2}"
+                f"D' and r2 between {indexvar} with {c}\nD' = {Dprime}, r^2 = {r2}"
             )
             if r2 > clump_r2:
                 clumpvars.append(c)
         WriteClump(indexvar, clumpvars, outf)
-        summstats.RemoveClump(clumpvars+[indexvar])
+        summstats.RemoveClump(clumpvars + [indexvar])
         indexvar = summstats.GetNextIndexVariant(clump_p1)
     outf.close()
