@@ -22,6 +22,8 @@ Commands
 
 * :doc:`haptools index </commands/index>`: Sort, compress, and index our custom file format for haplotypes.
 
+* :doc:`haptools clump </commands/clump>`: Convert variants in LD with one another into clumps.
+
 * :doc:`haptools ld </commands/ld>`: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
 
 .. figure:: https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_
@@ -91,6 +93,7 @@ There is an option to *Cite this repository* on the right sidebar of `the reposi
    commands/karyogram.rst
    commands/transform.rst
    commands/index.rst
+   commands/clump.rst
    commands/ld.rst
 
 .. toctree::
