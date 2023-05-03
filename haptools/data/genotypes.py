@@ -1329,7 +1329,7 @@ class GenotypesPLINK(GenotypesVCF):
                     # add phase info, then transpose the GT matrix so that samples are
                     # rows and variants are columns
                     self.data[:, start:end, :2] = data.reshape(
-                        (chunks, mat_shape[0], 2)
+                        (size, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
                     self.data[:, start:end, 2] = phasing.transpose()
                 else:
@@ -1340,7 +1340,7 @@ class GenotypesPLINK(GenotypesVCF):
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
                     self.data[:, start:end] = data.reshape(
-                        (chunks, mat_shape[0], 2)
+                        (size, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
                 del data
                 gc.collect()
