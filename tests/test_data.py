@@ -321,10 +321,33 @@ class TestGenotypesPLINK:
         gts.variants = gts_ref_alt.variants
         return gts
 
+    def _get_fake_genotypes_multiallelic(self):
+        pgenlib = pytest.importorskip("pgenlib")
+        gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_multiallelic()
+        gts = GenotypesPLINK(gts_ref_alt.fname)
+        gts.data = gts_ref_alt.data
+        gts.samples = gts_ref_alt.samples
+        gts.variants = gts_ref_alt.variants
+        return gts
+
     def test_load_genotypes(self):
         expected = self._get_fake_genotypes_plink()
 
         gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts.read()
+        gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, expected.data)
+        assert gts.samples == expected.samples
+        for i, x in enumerate(expected.variants):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts.variants[col][i] == expected.variants[col][i]
+
+    def test_load_genotypes_multiallelic(self):
+        expected = self._get_fake_genotypes_multiallelic()
+
+        gts = GenotypesPLINK(DATADIR.joinpath("simple-multiallelic.pgen"))
         gts.read()
         gts.check_phase()
 
