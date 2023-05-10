@@ -653,7 +653,10 @@ class TestSimPhenotypeCLI:
         gt_file = DATADIR / "simple_tr.vcf"
         hp_file = DATADIR / "simple_tr.hap"
 
-        cmd = f"simphenotype --repeats {gt_file} -i 1:10114:GTT -i H1 {tmp_transform} {hp_file}"
+        cmd = (
+            f"simphenotype --repeats {gt_file} -i 1:10114:GTT -i H1"
+            f" {tmp_transform} {hp_file}"
+        )
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
