@@ -58,7 +58,7 @@ class TestGenotypes:
         expected = self._get_expected_genotypes()
 
         # can we load the data from the VCF?
-        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+        gts = Genotypes(DATADIR / "simple.vcf")
         gts.read()
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
@@ -147,7 +147,7 @@ class TestGenotypes:
             "HG00121",
             "HG00122",
         )
-        gts = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts = Genotypes(DATADIR / "example.vcf.gz")
         gts.read()
         assert gts.samples[:25] == samples
 
@@ -155,7 +155,7 @@ class TestGenotypes:
         expected = self._get_fake_genotypes()
 
         # can we load the data from the VCF?
-        gts = Genotypes(DATADIR.joinpath("simple.vcf"))
+        gts = Genotypes(DATADIR / "simple.vcf")
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :2], expected.data[:, idx])
             for col in ("chrom", "pos", "id"):
@@ -185,7 +185,7 @@ class TestGenotypes:
         expected = expected[:, 1:3]
 
         # can we load the data from the VCF?
-        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
         gts.read(region="1:10115-10117")
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
@@ -193,7 +193,7 @@ class TestGenotypes:
         # subset for just the samples we want
         expected = expected[[1, 3]]
 
-        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
         samples = ["HG00097", "HG00100"]
         gts.read(region="1:10115-10117", samples=samples)
         np.testing.assert_allclose(gts.data, expected)
@@ -202,7 +202,7 @@ class TestGenotypes:
         # subset to just one of the variants
         expected = expected[:, [1]]
 
-        gts = Genotypes(DATADIR.joinpath("simple.vcf.gz"))
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
         samples = ["HG00097", "HG00100"]
         variants = {"1:10117:C:A"}
         gts.read(region="1:10115-10117", samples=samples, variants=variants)
@@ -284,7 +284,7 @@ class TestGenotypes:
 
     def test_merge_variants(self):
         gts1 = self._get_fake_genotypes()
-        gts2 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2 = Genotypes(DATADIR / "example.vcf.gz")
         gts2.read()
         gts2.check_phase()
         gts2.subset(samples=gts1.samples, inplace=True)
@@ -298,7 +298,7 @@ class TestGenotypes:
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
         # also try it when the phases are different
-        gts2 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts2 = Genotypes(DATADIR / "example.vcf.gz")
         gts2.read()
         gts2.subset(samples=gts1.samples, inplace=True)
 
@@ -333,7 +333,7 @@ class TestGenotypesPLINK:
     def test_load_genotypes(self):
         expected = self._get_fake_genotypes_plink()
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         gts.read()
         gts.check_phase()
 
@@ -347,7 +347,7 @@ class TestGenotypesPLINK:
     def test_load_genotypes_multiallelic(self):
         expected = self._get_fake_genotypes_multiallelic()
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple-multiallelic.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple-multiallelic.pgen")
         gts.read()
         gts.check_phase()
 
@@ -361,7 +361,7 @@ class TestGenotypesPLINK:
     def test_load_genotypes_chunked(self):
         expected = self._get_fake_genotypes_plink()
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"), chunk_size=1)
+        gts = GenotypesPLINK(DATADIR / "simple.pgen", chunk_size=1)
         gts.read()
         gts.check_phase()
 
@@ -375,7 +375,7 @@ class TestGenotypesPLINK:
     def test_load_genotypes_prephased(self):
         expected = self._get_fake_genotypes_plink()
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         gts._prephased = True
         gts.read()
 
@@ -389,7 +389,7 @@ class TestGenotypesPLINK:
     def test_load_genotypes_iterate(self):
         expected = self._get_fake_genotypes_plink()
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
 
         # check that everything matches what we expected
         for idx, line in enumerate(gts):
@@ -408,7 +408,7 @@ class TestGenotypesPLINK:
         expected_data = expected.data[:, 1:3]
 
         # can we load the data from the VCF?
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         gts.read(region="1:10115-10117")
         gts.check_phase()
         np.testing.assert_allclose(gts.data, expected_data)
@@ -417,7 +417,7 @@ class TestGenotypesPLINK:
         # subset for just the samples we want
         expected_data = expected_data[[1, 3]]
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         samples = [expected.samples[1], expected.samples[3]]
         gts.read(region="1:10115-10117", samples=samples)
         gts.check_phase()
@@ -427,7 +427,7 @@ class TestGenotypesPLINK:
         # subset to just one of the variants
         expected_data = expected_data[:, [1]]
 
-        gts = GenotypesPLINK(DATADIR.joinpath("simple.pgen"))
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         variants = {"1:10117:C:A"}
         gts.read(region="1:10115-10117", samples=samples, variants=variants)
         gts.check_phase()
@@ -437,7 +437,7 @@ class TestGenotypesPLINK:
     def test_write_genotypes_chunked(self):
         gts = self._get_fake_genotypes_plink()
 
-        fname = DATADIR.joinpath("test_write_chunked.pgen")
+        fname = DATADIR / "test_write_chunked.pgen"
         gts.fname = fname
         gts.write()
 
@@ -460,7 +460,7 @@ class TestGenotypesPLINK:
     def test_write_genotypes(self):
         gts = self._get_fake_genotypes_plink()
 
-        fname = DATADIR.joinpath("test_write.pgen")
+        fname = DATADIR / "test_write.pgen"
         gts.fname = fname
         gts.write()
 
@@ -483,7 +483,7 @@ class TestGenotypesPLINK:
     def test_write_genotypes_prephased(self):
         gts = self._get_fake_genotypes_plink()
 
-        fname = DATADIR.joinpath("test_write.pgen")
+        fname = DATADIR / "test_write.pgen"
         gts.fname = fname
         gts._prephased = True
         gts.write()
@@ -510,7 +510,7 @@ class TestGenotypesPLINK:
         gts.data = np.dstack((gts.data, np.ones(gts.data.shape[:2], dtype=np.uint8)))
         gts.data[:2, 1, 2] = 0
 
-        fname = DATADIR.joinpath("test_unphased.pgen")
+        fname = DATADIR / "test_unphased.pgen"
         gts.fname = fname
         gts.write()
 
@@ -554,7 +554,7 @@ class TestPhenotypes:
         expected = expected_phen.data
 
         # can we load the data from the phenotype file?
-        phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
+        phens = Phenotypes(DATADIR / "simple.pheno")
         phens.read()
         np.testing.assert_allclose(phens.data, expected)
         assert phens.samples == expected_phen.samples
@@ -565,7 +565,7 @@ class TestPhenotypes:
         assert len(caplog.records) > 0 and caplog.records[0].levelname == "WARNING"
 
     def test_check_missing(self, caplog):
-        phens = Phenotypes(DATADIR.joinpath("simple.na.pheno"))
+        phens = Phenotypes(DATADIR / "simple.na.pheno")
         caplog.clear()
         phens.read()
 
@@ -591,7 +591,7 @@ class TestPhenotypes:
         samples = expected_phen.samples
 
         # can we load the data from the phenotype file?
-        phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
+        phens = Phenotypes(DATADIR / "simple.pheno")
         for idx, line in enumerate(phens):
             np.testing.assert_allclose(line.data, expected[idx])
             assert line.samples == samples[idx]
@@ -605,7 +605,7 @@ class TestPhenotypes:
         expected = expected[[1, 3]]
 
         # can we load the data from the phenotype file?
-        phens = Phenotypes(DATADIR.joinpath("simple.pheno"))
+        phens = Phenotypes(DATADIR / "simple.pheno")
         phens.read(samples=set(samples))
         np.testing.assert_allclose(phens.data, expected)
         assert phens.samples == tuple(samples)
@@ -634,7 +634,7 @@ class TestPhenotypes:
         exp_phen = self._get_fake_phenotypes()
 
         # first, we write the data
-        exp_phen.fname = DATADIR.joinpath("test.pheno")
+        exp_phen.fname = DATADIR / "test.pheno"
         exp_phen.write()
 
         # now, let's load the data and check that it's what we wrote
@@ -687,7 +687,7 @@ class TestPhenotypes:
         exp_phen = self._get_fake_phenotypes()
 
         # first, we write the data
-        exp_phen.fname = DATADIR.joinpath("test_cc.pheno")
+        exp_phen.fname = DATADIR / "test_cc.pheno"
 
         # also check that plain integers like 0 and 1 get written in a way that PLINK2
         # will recognize them as case/control
@@ -789,7 +789,7 @@ class TestCovariates:
         samples = expected_covar.samples
 
         # can we load the data from the covariates file?
-        covars = Covariates(DATADIR.joinpath("simple.covar"))
+        covars = Covariates(DATADIR / "simple.covar")
         covars.read()
         np.testing.assert_allclose(covars.data, expected)
         assert covars.samples == samples
@@ -807,7 +807,7 @@ class TestCovariates:
         samples = expected_covar.samples
 
         # can we load the data from the covariates file?
-        covars = Covariates(DATADIR.joinpath("simple.covar"))
+        covars = Covariates(DATADIR / "simple.covar")
         for idx, line in enumerate(covars):
             np.testing.assert_allclose(line.data, expected[idx])
             assert line.samples == samples[idx]
@@ -823,7 +823,7 @@ class TestCovariates:
         expected = expected[[1, 3]]
 
         # can we load the data from the covariate file?
-        covars = Covariates(DATADIR.joinpath("simple.covar"))
+        covars = Covariates(DATADIR / "simple.covar")
         covars.read(samples=set(samples))
         np.testing.assert_allclose(covars.data, expected)
         assert covars.samples == tuple(samples)
@@ -943,12 +943,12 @@ class TestHaplotypes:
         expected = self._basic_haps()
 
         # can we load this data from the hap file?
-        haps = Haplotypes.load(DATADIR.joinpath("basic.hap"))
+        haps = Haplotypes.load(DATADIR / "basic.hap")
         assert expected == haps.data
 
         # also check the indexed file
         # it should be the same
-        haps = Haplotypes.load(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes.load(DATADIR / "basic.hap.gz")
         assert expected == haps.data
 
     def test_iterate(self):
@@ -971,14 +971,14 @@ class TestHaplotypes:
                 hap.variants = ()
 
         # can we load this data from the hap file?
-        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        haps = Haplotypes(DATADIR / "basic.hap")
 
         # currently read like repeats after haplotypes which isnt
         for exp_hap, line in zip(expected, haps):
             assert exp_hap == line
 
         # also check whether it works when we pass function params
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps_iter = list(haps.__iter__(region="21:26928472-26941960"))
         assert len(haps_iter) == len(expected)
         assert all(line in expected for line in haps_iter)
@@ -1030,7 +1030,7 @@ class TestHaplotypes:
                 hap.variants = ()
 
         # also check whether it works when we pass function params
-        haps = Haplotypes(DATADIR.joinpath("unordered_first_field.hap.gz"))
+        haps = Haplotypes(DATADIR / "unordered_first_field.hap.gz")
         haps_iter = list(haps.__iter__(region="21:26928472-26941960"))
         assert len(haps_iter) == len(exp_single_hap)
         assert all(line in exp_single_hap for line in haps_iter)
@@ -1067,59 +1067,59 @@ class TestHaplotypes:
         tr_expected = {}
         tr_expected["21_26938989_STR"] = self._basic_haps()["21_26938989_STR"]
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        haps = Haplotypes(DATADIR / "basic.hap")
         # this shouldn't fail anymore as of version 0.1.0
         haps.read(haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        haps = Haplotypes(DATADIR / "basic.hap")
         haps.read(haplotypes={"21_26938989_STR"})
         assert tr_expected == haps.data
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(haplotypes={"21_26938989_STR"})
         assert tr_expected == haps.data
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26928472-26941960", haplotypes={"chr21.q.3365*1"})
         assert expected == haps.data
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26928472-26941960", haplotypes={"21_26938989_STR"})
         assert tr_expected == haps.data
 
         # check that haplotypes that overlap but don't fit perfectly are excluded!
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26928473-26941960", haplotypes={"chr21.q.3365*1"})
         assert {} == haps.data
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26928472-26941959", haplotypes={"chr21.q.3365*1"})
         assert {} == haps.data
 
         # test repeats overlap but don't fit perfectly
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26938273-26938360", haplotypes={"21_26938353_STR"})
         assert {} == haps.data
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26941890-26941959", haplotypes={"21_26941880_STR"})
         assert {} == haps.data
 
         expected = self._basic_haps()
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap.gz"))
+        haps = Haplotypes(DATADIR / "basic.hap.gz")
         haps.read(region="21:26928472-26941960")
         assert len(expected) == len(haps.data)
         assert expected == haps.data
 
     def test_subset(self):
-        expected = Haplotypes(DATADIR.joinpath("basic.hap"))
+        expected = Haplotypes(DATADIR / "basic.hap")
         expected.read(haplotypes={"chr21.q.3365*1"})
 
-        haps = Haplotypes(DATADIR.joinpath("basic.hap"))
+        haps = Haplotypes(DATADIR / "basic.hap")
         haps.read()
         haps = haps.subset(haplotypes=("chr21.q.3365*1",))
 
@@ -1148,7 +1148,7 @@ class TestHaplotypes:
 
         # can we load this data from the hap file?
         haps = Haplotypes(
-            DATADIR.joinpath("simphenotype.hap"),
+            DATADIR / "simphenotype.hap",
             haplotype=HaptoolsHaplotype,
             repeat=HaptoolsRepeat,
         )
@@ -1159,12 +1159,12 @@ class TestHaplotypes:
         """
         try reading a large-ish file
         """
-        haps = Haplotypes(DATADIR.joinpath("example.hap.gz"), HaptoolsHaplotype)
+        haps = Haplotypes(DATADIR / "example.hap.gz", HaptoolsHaplotype)
         haps.read()
         assert len(self._basic_haps().keys() & haps.data.keys())
 
     def test_write(self):
-        haps = Haplotypes(DATADIR.joinpath("test.hap"))
+        haps = Haplotypes(DATADIR / "test.hap")
         haps.data = self._basic_haps()
         haps.write()
 
@@ -1173,7 +1173,7 @@ class TestHaplotypes:
         assert self._basic_haps() == haps.data
 
         # remove the file
-        os.remove("tests/data/test.hap")
+        haps.fname.unlink()
 
     def _get_writable_haplotypes(self):
         expected = {
@@ -1200,7 +1200,7 @@ class TestHaplotypes:
         expected = self._get_writable_haplotypes()
 
         haps = Haplotypes(
-            DATADIR.joinpath("test.hap"),
+            DATADIR / "test.hap",
             haplotype=HaptoolsHaplotype,
             repeat=HaptoolsRepeat,
         )
@@ -1212,7 +1212,7 @@ class TestHaplotypes:
         assert expected == haps.data
 
         # remove the file
-        os.remove("tests/data/test.hap")
+        haps.fname.unlink()
 
     def test_write_plus_extra(self):
         @dataclass
@@ -1271,7 +1271,7 @@ class TestHaplotypes:
                 expected[hap_id].variants = hap.variants
 
         haps = Haplotypes(
-            DATADIR.joinpath("test.hap"),
+            DATADIR / "test.hap",
             haplotype=HaplotypePlusExtra,
             repeat=RepeatPlusExtra,
         )
@@ -1279,7 +1279,7 @@ class TestHaplotypes:
         haps.write()
 
         haps = Haplotypes(
-            DATADIR.joinpath("test.hap"),
+            DATADIR / "test.hap",
             haplotype=HaptoolsHaplotype,
             repeat=HaptoolsRepeat,
         )
@@ -1287,7 +1287,7 @@ class TestHaplotypes:
         assert haps.data == self._get_writable_haplotypes()
 
         # remove the file
-        os.remove("tests/data/test.hap")
+        haps.fname.unlink()
 
     def test_hap_transform(self):
         expected = np.array(
@@ -1330,7 +1330,7 @@ class TestHaplotypes:
             return hap_gt
 
     def test_hap_gt_write(self):
-        fname = DATADIR.joinpath("simple_haps.vcf")
+        fname = DATADIR / "simple_haps.vcf"
 
         hap_gt = self.test_haps_transform(return_also=True)
         hap_gt.fname = fname
@@ -1399,8 +1399,8 @@ class TestHaplotypes:
         assert hap1 <= hap2
 
     def test_sort(self):
-        test_hap1 = Haplotypes("tests/data/test_sort_unordered.hap")
-        test_hap2 = Haplotypes("tests/data/test_sort_ordered.hap")
+        test_hap1 = Haplotypes(DATADIR / "test_sort_unordered.hap")
+        test_hap2 = Haplotypes(DATADIR / "test_sort_ordered.hap")
         test_hap1.read()
         test_hap1.sort()
         test_hap1.fname = Path("test_temp_sort.hap")
@@ -1457,13 +1457,13 @@ class TestGenotypesVCF:
     def test_read_ref_alt(self):
         # simple.vcf
         expected = self._get_fake_genotypes_refalt()
-        gts = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
+        gts = GenotypesVCF(DATADIR / "simple.vcf")
         gts.read()
         for i, x in enumerate(expected.variants["alleles"]):
             assert gts.variants["alleles"][i] == x
 
         # example.vcf.gz
-        gts = GenotypesVCF(DATADIR.joinpath("example.vcf.gz"))
+        gts = GenotypesVCF(DATADIR / "example.vcf.gz")
         gts.read()
         expected = np.array(
             [
@@ -1492,7 +1492,7 @@ class TestGenotypesVCF:
         # simple-multiallelic.vcf
         expected = self._get_fake_genotypes_multiallelic(with_phase=True)
 
-        gts = GenotypesVCF(DATADIR.joinpath("simple-multiallelic.vcf"))
+        gts = GenotypesVCF(DATADIR / "simple-multiallelic.vcf")
         gts.read()
         for i, x in enumerate(expected.variants["alleles"]):
             assert gts.variants["alleles"][i] == x
@@ -1503,15 +1503,15 @@ class TestGenotypesVCF:
         if multiallelic:
             expected = self._get_fake_genotypes_multiallelic()
             # read genotypes
-            gts = GenotypesVCF(DATADIR.joinpath("simple-multiallelic.vcf"))
+            gts = GenotypesVCF(DATADIR / "simple-multiallelic.vcf")
         else:
             expected = self._get_fake_genotypes_refalt()
             # read genotypes
-            gts = GenotypesVCF(DATADIR.joinpath("simple.vcf"))
+            gts = GenotypesVCF(DATADIR / "simple.vcf")
         gts.read()
         gts.check_phase()
         # write file to new file
-        fname = DATADIR.joinpath("test.vcf")
+        fname = DATADIR / "test.vcf"
         gts.fname = fname
         gts.write()
         # read again
@@ -1536,7 +1536,7 @@ class TestGenotypesVCF:
     def test_write_phase(self, prephased=True):
         gts = self._get_fake_genotypes_refalt()
 
-        fname = DATADIR.joinpath("test_write_phase.vcf")
+        fname = DATADIR / "test_write_phase.vcf"
         gts.fname = fname
         if prephased:
             gts._prephased = True
@@ -1567,7 +1567,7 @@ class TestGenotypesVCF:
 
     def test_write_missing(self):
         gts = self._get_fake_genotypes_refalt()
-        gts.fname = DATADIR.joinpath("test_write_missing.vcf")
+        gts.fname = DATADIR / "test_write_missing.vcf"
         vals = len(np.unique(gts.data))
 
         gts.write()
@@ -1600,7 +1600,7 @@ class TestGenotypesVCF:
         gts.fname.unlink()
 
     def test_merge_variants_vcf(self):
-        gts1 = Genotypes(DATADIR.joinpath("example.vcf.gz"))
+        gts1 = Genotypes(DATADIR / "example.vcf.gz")
         gts2 = self._get_fake_genotypes_refalt()
         gts1.read()
         gts1.check_phase()
@@ -1628,7 +1628,7 @@ class TestGenotypesTR:
             ],
             dtype=np.uint8,
         )
-        gts = GenotypesTR(DATADIR.joinpath("simple_tr.vcf"))
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
         gts.read()
 
         # check genotypes
@@ -1681,14 +1681,14 @@ class TestBreakpoints:
         expected = self._get_expected_breakpoints()
 
         # can we load the data from the VCF?
-        bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
+        bps = Breakpoints(DATADIR / "outvcf_test.bp")
         self._compare_bkpt_data(bps, expected.data)
 
     def test_load_breakpoints(self):
         expected = self._get_expected_breakpoints()
 
         # can we load the data from the VCF?
-        bps = Breakpoints(DATADIR.joinpath("outvcf_test.bp"))
+        bps = Breakpoints(DATADIR / "outvcf_test.bp")
         bps.read()
 
         # first, check that the samples appear in the proper order
@@ -1828,7 +1828,7 @@ class TestDocExamples:
 
         # load the genotypes file
         # you can use either a VCF or PGEN file
-        gt = GenotypesVCF("tests/data/apoe.vcf.gz")
+        gt = GenotypesVCF(DATADIR / "apoe.vcf.gz")
         gt.read(variants=variants)
 
         # initialize an empty haplotype file

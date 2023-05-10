@@ -424,8 +424,10 @@ class TestSimPhenotypeCLI:
 
     def test_transform_stdin(self, capfd):
         expected = self._get_transform_stdin()
+        gt_file = DATADIR / "simple.vcf"
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = "transform tests/data/simple.vcf tests/data/simple.hap"
+        cmd = f"transform {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -434,10 +436,10 @@ class TestSimPhenotypeCLI:
 
     def test_transform_ancestry_stdin(self, capfd):
         expected = self._get_transform_ancestry_stdin()
+        gt_file = DATADIR / "simple-ancestry.vcf"
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = (
-            "transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap"
-        )
+        cmd = f"transform --ancestry {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -449,8 +451,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -466,8 +469,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype -o {tmp_file} {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype -o {tmp_file} {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -484,8 +488,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --id H1 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --id H1 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -499,8 +504,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_ancestry_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --id H1 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --id H1 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -513,7 +519,10 @@ class TestSimPhenotypeCLI:
         pytest.importorskip("pgenlib")
         # first, create a temporary file containing the output of transform
         tmp_tsfm = Path("simple-haps.pgen")
-        cmd = f"transform -o {tmp_tsfm} tests/data/simple.pgen tests/data/simple.hap"
+        gt_file = DATADIR / "simple.pgen"
+        hp_file = DATADIR / "simple.hap"
+
+        cmd = f"transform -o {tmp_tsfm} {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -532,7 +541,7 @@ class TestSimPhenotypeCLI:
         gts = GenotypesPLINK.load(tmp_tsfm)
         np.testing.assert_allclose(gts.data[:, 0], transform_data)
 
-        cmd = f"simphenotype --id H1 {tmp_tsfm} tests/data/simple.hap"
+        cmd = f"simphenotype --id H1 {tmp_tsfm} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -548,10 +557,10 @@ class TestSimPhenotypeCLI:
 
         # first, create a temporary file containing the output of transform
         tmp_tsfm = Path("temp-transform.vcf")
-        cmd = (
-            f"transform -o {tmp_tsfm} tests/data/example.vcf.gz"
-            " tests/data/simphenotype.hap"
-        )
+        gt_file = DATADIR / "example.vcf.gz"
+        hp_file = DATADIR / "simphenotype.hap"
+
+        cmd = f"transform -o {tmp_tsfm} {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -567,7 +576,7 @@ class TestSimPhenotypeCLI:
                 "--id chr21.q.3365*10",
                 "--id chr21.q.3365*11",
                 f"--output {tmp_file}",
-                f"{tmp_tsfm} tests/data/simphenotype.hap",
+                f"{tmp_tsfm} {hp_file}",
             ]
         )
         runner = CliRunner()
@@ -585,8 +594,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --no-normalize {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --no-normalize {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -600,8 +610,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --seed 42 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --seed 42 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -610,7 +621,7 @@ class TestSimPhenotypeCLI:
 
         captured1 = captured.out
 
-        cmd = f"simphenotype --seed 42 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --seed 42 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -623,11 +634,10 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_tr_stdin())
+        gt_file = DATADIR / "simple_tr.vcf"
+        hp_file = DATADIR / "simple_tr.hap"
 
-        cmd = (
-            "simphenotype --repeats tests/data/simple_tr.vcf"
-            f" {tmp_transform} tests/data/simple_tr.hap"
-        )
+        cmd = f"simphenotype --repeats {gt_file} {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -640,12 +650,10 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_tr_stdin())
+        gt_file = DATADIR / "simple_tr.vcf"
+        hp_file = DATADIR / "simple_tr.hap"
 
-        cmd = (
-            "simphenotype --repeats tests/data/simple_tr.vcf"
-            f" -i 1:10114:GTT -i H1 {tmp_transform}"
-            " tests/data/simple_tr.hap"
-        )
+        cmd = f"simphenotype --repeats {gt_file} -i 1:10114:GTT -i H1 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -655,10 +663,10 @@ class TestSimPhenotypeCLI:
         tmp_transform.unlink()
 
     def test_only_repeat(self, capfd):
-        cmd = (
-            "simphenotype --repeats tests/data/simple_tr.vcf"
-            " tests/data tests/data/only_tr.hap"
-        )
+        gt_file = DATADIR / "simple_tr.vcf"
+        hp_file = DATADIR / "only_tr.hap"
+
+        cmd = f"simphenotype --repeats {gt_file} {DATADIR} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()

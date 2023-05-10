@@ -11,7 +11,7 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 
 def test_basic(capfd):
-    file = Path("tests/data/basic.hap")
+    file = DATADIR / "basic.hap"
     tmp_file = Path("test.hap")
 
     # copy the file so that we don't affect anything in the tests/data directory
@@ -38,7 +38,7 @@ def test_basic(capfd):
 
 
 def test_basic_w_output(capfd):
-    file = Path("tests/data/basic.hap")
+    file = DATADIR / "basic.hap"
     tmp_file = Path("test.hap")
     tmp_file_out = Path("sorted.test.hap.gz")
 
@@ -66,14 +66,15 @@ def test_basic_w_output(capfd):
 
 
 def test_no_sort(capfd):
-    cmd = f"index --no-sort --output test.hap.gz tests/data/basic.hap.gz"
+    file = DATADIR / "basic.hap.gz"
+    cmd = f"index --no-sort --output test.hap.gz {file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == ""
     # check that the output .hap.gz file is the same as the file in tests/data/
     with Data.hook_compressed("test.hap.gz", mode="rt") as haps:
-        with Data.hook_compressed("tests/data/basic.hap.gz", mode="rt") as expected:
+        with Data.hook_compressed(file, mode="rt") as expected:
             assert haps.read() == expected.read()
     # check that the output .hap.gz.tbi exists
     assert Path("test.hap.gz.tbi").is_file()
