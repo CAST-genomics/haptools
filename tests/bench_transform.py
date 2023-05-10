@@ -11,6 +11,7 @@ import click
 import numpy as np
 import matplotlib.pyplot as plt
 
+from haptools.logging import getLogger
 from haptools.data import GenotypesVCF, Haplotypes, Haplotype, Variant
 
 
@@ -189,11 +190,7 @@ def main(
     }
     NAME = name
     VARIABLES = {"samples": "samps", "alleles_max": "vars", "haplotypes": "haps"}
-    LOG = logging.getLogger("run")
-    logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level="ERROR",
-    )
+    LOG = getLogger("run", "ERROR")
     ALG_NAME = {"hap-loop": "loop over haplotypes", "allele-loop": "loop over alleles"}
 
     # loading results
