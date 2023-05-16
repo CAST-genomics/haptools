@@ -457,8 +457,9 @@ class Genotypes(Data):
             ValueError
         """
         # check: are there any samples that have genotype values that are empty?
-        # A genotype value equal to the max for uint8 indicates the value was missing
-        missing = np.any(self.data[:, :, :2] == np.iinfo(np.uint8).max, axis=2)
+        # A genotype value equal to the max or one less than max for uint8 indicates
+        #   the value was missing
+        missing = np.any(self.data[:, :, :2] >= np.iinfo(np.uint8).max - 1, axis=2)
         if np.any(missing):
             samp_idx, variant_idx = np.nonzero(missing)
             if discard_also:
