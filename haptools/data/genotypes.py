@@ -232,18 +232,18 @@ class Genotypes(Data):
             The cyvcf2.VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
-        
+
         Returns
         -------
         vcffile : cyvcf2.VCF
-            Iterable cyvcf2 instance. 
+            Iterable cyvcf2 instance.
         """
         return vcf(region)
-    
+
     def _return_data(self, variant: Variant):
         """
         Collect genotypes from current variant
-        
+
         Parameters
         ----------
         variant: cyvcf2.Variant
@@ -259,7 +259,7 @@ class Genotypes(Data):
     def _return_id(self, variant: Variant):
         """
         Collect ID from current variant
-        
+
         Parameters
         ----------
         variant: cyvcf2.Variant
@@ -829,6 +829,7 @@ class GenotypesTR(Genotypes):
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
+
     def _variant_arr(self, record: Variant):
         """
         See documentation for :py:meth:`~.Genotypes._variant_arr`
@@ -903,7 +904,7 @@ class GenotypesTR(Genotypes):
         Parameters
         ----------
         variant: tr_harmonizer.TRRecord
-            TRRecord object from tr_harmonizer to collect copy number genotypes using the 
+            TRRecord object from tr_harmonizer to collect copy number genotypes using the
             GetLengthGenotypes function.
 
         Returns
@@ -923,9 +924,9 @@ class GenotypesTR(Genotypes):
             data = []
             # Only one GT so phase will always be 0
             zeros = np.zeros((gts.shape[0], 1))
-            missing = -1*np.ones((gts.shape[0], ))
+            missing = -1 * np.ones((gts.shape[0],))
             gts = np.concatenate((gts, zeros), axis=1)
-            gts[:,1] = missing
+            gts[:, 1] = missing
 
         data = np.array(gts, dtype=np.uint8)
         return data
@@ -933,7 +934,7 @@ class GenotypesTR(Genotypes):
     def _return_id(self, variant: trh.TRRecord):
         """
         Collect ID from current variant
-        
+
         Parameters
         ----------
         variant: TRRecord
@@ -945,6 +946,7 @@ class GenotypesTR(Genotypes):
             ID of variant
         """
         return variant.record_id
+
 
 class GenotypesPLINK(GenotypesVCF):
     """
