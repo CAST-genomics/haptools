@@ -426,9 +426,9 @@ def ComputeExactLD(candidate_gt, index_gt, log):
 
 def _FilterGts(candidate_gt, index_gt, log):
     """
-    Filter invalid values from gts which is 255 since uint8 encodes -1 as 255
+    Filter invalid values from gts which is 254 since uint8 encodes -2 as 254
     """
-    valid_gts = (candidate_gt < 255) & (index_gt < 255)
+    valid_gts = (candidate_gt < 254) & (index_gt < 254)
     candidate_gt = candidate_gt[valid_gts]
     index_gt = index_gt[valid_gts]
 
