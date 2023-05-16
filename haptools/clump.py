@@ -234,8 +234,9 @@ def LoadVariant(var, gts, log):
     var_ind = (gts.variants["pos"] == int(var.pos)) & (
         gts.variants["chrom"] == var.chrom
     )
-    variant_gts = np.sum(gts.data[:, var_ind, :], axis=2).flatten()
-    return variant_gts
+    data = gts.data[:, var_ind, :]
+    data = data.reshape(data.shape[0], data.shape[2])
+    return data
 
 
 def _CalcChiSQ(f00, f01, f10, f11, gt_counts, n):
@@ -426,15 +427,20 @@ def ComputeExactLD(candidate_gt, index_gt, log):
 
 def _FilterGts(candidate_gt, index_gt, log):
     """
-    Filter invalid values from gts which is 254 since uint8 encodes -2 as 254
+    Filter invalid values from gts, 254 and 255 since -2 and -1 encode for these
+    once converted to uint8 and sum alleles together.
     """
-    valid_gts = (candidate_gt < 254) & (index_gt < 254)
-    candidate_gt = candidate_gt[valid_gts]
-    index_gt = index_gt[valid_gts]
-
+    # Check Alleles for invalid values and remove samples from both sets of alleles
+    valid_gts = np.all(candidate_gt < 254, axis=1) & np.all(index_gt < 254, axis=1)
+    candidate_gt = candidate_gt[valid_gts, :]
+    index_gt = index_gt[valid_gts, :]
     log.debug(f"Valid Genotype Indices: {valid_gts}")
     log.debug(f"Candidate GTs: {candidate_gt}")
     log.debug(f"Index GTs: {index_gt}")
+
+    # Sum alleles
+    candidate_gt = np.sum(candidate_gt, axis=1).flatten()
+    index_gt = np.sum(index_gt, axis=1).flatten()
     return candidate_gt, index_gt
 
 

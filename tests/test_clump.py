@@ -46,6 +46,7 @@ class TestClump:
 
         for var, answer in zip(snpvars, answers):
             vargts = LoadVariant(var, snpgts, log)
+            vargts = np.sum(vargts, axis=1).flatten()
             assert len(vargts) == snpgts.data.shape[0]
             assert np.array_equal(vargts, answer)
 
@@ -94,13 +95,15 @@ class TestClump:
         assert snp_inds == [0, 3] and str_inds == [1, 2]
 
     def test_gt_filter(self):
-        gt1 = np.array([255, 1, 256, 3, 4, 7])
-        gt2 = np.array([0, 510, 258, 1, 3, 8])
+        gt1 = np.array(
+            [[254, 0], [1, 2], [1, 255], [255, 1], [125, 160], [2, 2], [3, 4]]
+        )
+        gt2 = np.array([[0, 0], [255, 255], [4, 254], [0, 0], [1, 0], [2, 1], [4, 4]])
         gt1, gt2 = _FilterGts(gt1, gt2, log)
-        assert np.array_equal(gt1, [3, 4, 7]) and np.array_equal(gt2, [1, 3, 8])
+        assert np.array_equal(gt1, [285, 4, 7]) and np.array_equal(gt2, [1, 3, 8])
 
-        gt1 = np.array([255])
-        gt2 = np.array([255])
+        gt1 = np.array([[255, 0]])
+        gt2 = np.array([[254, 1]])
         gt1, gt2 = _FilterGts(gt1, gt2, log)
         assert np.array_equal(gt1, []) and np.array_equal(gt2, [])
 
@@ -109,10 +112,18 @@ class TestClump:
         expected = self._ld_expected()
 
         # create snp/str variants to compare
-        snp1_gt = np.array([1, 0, 0, 0, 1, 0, 1, 2, 1])
-        snp2_gt = np.array([1, 0, 0, 0, 1, 0, 1, 1, 2])
-        str1_gt = np.array([3, 1, 0, 2, 7, 0, 4, 5, 6])
-        str2_gt = np.array([3, 1, 1, 0, 4, 2, 3, 6, 8])
+        snp1_gt = np.array(
+            [[1, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0], [1, 0], [1, 1], [1, 0]]
+        )
+        snp2_gt = np.array(
+            [[1, 0], [0, 0], [0, 0], [0, 0], [1, 0], [0, 0], [1, 0], [1, 0], [1, 1]]
+        )
+        str1_gt = np.array(
+            [[1, 2], [1, 0], [0, 0], [0, 2], [5, 2], [0, 0], [3, 1], [4, 1], [6, 0]]
+        )
+        str2_gt = np.array(
+            [[2, 1], [0, 1], [1, 0], [0, 0], [3, 1], [1, 1], [2, 1], [6, 0], [7, 1]]
+        )
 
         # Calculate expected
         r1 = np.round(ComputeLD(snp1_gt, snp2_gt, "Pearson", log)[1], 4)
