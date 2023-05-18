@@ -178,7 +178,6 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 	genotypes = data.GenotypesTR.load('tests/data/simple_tr.vcf')
 	# make the first sample have 4 and 7 repeats for the alleles of the fourth variant
 	genotypes.data[0, 3] = (4, 7)
-	genotypes.write()
 
 .. _api-data-genotypestr:
 

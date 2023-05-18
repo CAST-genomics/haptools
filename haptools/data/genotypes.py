@@ -829,7 +829,14 @@ class GenotypesTR(Genotypes):
             3. POS
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
+    vcftype: str
+        TR vcf type currently being read.
+        {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
     """
+
+    def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto"):
+        super().__init__(fname, log)
+        self.vcftype = vcftype
 
     def _variant_arr(self, record: Variant):
         """
@@ -851,6 +858,7 @@ class GenotypesTR(Genotypes):
         region: str = None,
         samples: list[str] = None,
         variants: set[str] = None,
+        vcftype: str = "auto",
     ) -> Genotypes:
         """
         Load STR genotypes from a VCF file
@@ -873,7 +881,7 @@ class GenotypesTR(Genotypes):
         Genotypes
             A Genotypes object with the data loaded into its properties
         """
-        genotypes = cls(fname)
+        genotypes = cls(fname, vcftype=vcftype)
         genotypes.read(region, samples, variants)
         genotypes.check_phase()
         return genotypes
@@ -895,7 +903,9 @@ class GenotypesTR(Genotypes):
             TRRecord objects yielded from TRRecordHarmonizer.
         """
         vcfiter = vcf(region)
-        tr_records = trh.TRRecordHarmonizer(vcffile=vcf, vcfiter=vcfiter, region=region)
+        tr_records = trh.TRRecordHarmonizer(
+            vcffile=vcf, vcfiter=vcfiter, region=region, vcftype=self.vcftype
+        )
         return tr_records
 
     def _return_data(self, variant: trh.TRRecord):
