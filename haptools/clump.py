@@ -587,6 +587,8 @@ def clumpstr(
         strgts.samples = tuple(np.array(strgts.samples)[str_samples])
 
         # Merge STR and SNP GTs
+        # NOTE if Genotypes is not used and GenotypesVCF is instead it will error because
+        #      GenotypesVCF requires alleles to be present and Genotypes does not
         gts = Genotypes.merge_variants((snpgts, strgts), fname=None)
     elif gts_snps:
         gts = snpgts
