@@ -7,7 +7,7 @@ import logging
 import math
 import sys
 
-from haptools.data.genotypes import Genotypes, GenotypesVCF, GenotypesTR
+from haptools.data.genotypes import Genotypes, GenotypesPLINK, GenotypesVCF, GenotypesTR
 
 
 class Variant:
