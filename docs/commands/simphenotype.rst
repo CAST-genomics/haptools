@@ -16,6 +16,7 @@ Usage
    --replications INT \
    --heritability FLOAT \
    --prevalence FLOAT \
+   --normalize \
    --region TEXT \
    --sample SAMPLE --sample SAMPLE \
    --samples-file FILENAME \
@@ -23,6 +24,7 @@ Usage
    --ids-file FILENAME \
    --chunk-size INT \
    --repeats PATH \
+   --seed INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
    GENOTYPES HAPLOTYPES
