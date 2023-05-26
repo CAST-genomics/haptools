@@ -497,7 +497,7 @@ class Haplotype:
         )
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
-        return np.all(allele_arr == gts.data, axis=1)
+        return np.all(allele_arr == gts.data[:, :, :2], axis=1)
 
     def __lt__(self, other: Haplotype):
         """
@@ -1372,7 +1372,7 @@ class Haplotypes(Data):
         )[np.newaxis, :, np.newaxis]
         # finally, obtain and merge the haplotype genotypes
         self.log.info(f"Transforming genotypes for {len(haps)} haplotypes")
-        equality_arr = np.equal(allele_arr, gts.data)
+        equality_arr = np.equal(allele_arr, gts.data[:, :, :2])
         self.log.debug(
             f"Allocating array with dtype {gts.data.dtype} and size "
             f"{(len(gts.samples), len(haps), 2)}"
