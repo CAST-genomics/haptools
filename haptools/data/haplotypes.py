@@ -763,7 +763,7 @@ class Haplotypes(Data):
         # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.type_ids = None
-        self.version = "0.1.0"
+        self.version = "0.2.0"
 
     @classmethod
     def load(
