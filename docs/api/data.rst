@@ -283,7 +283,7 @@ Both the ``load()`` and ``read()`` methods support `region` and `haplotypes` par
 
 The file must be indexed if you wish to use these parameters, since in that case, the ``read()`` method can take advantage of the indexing to parse the file a bit faster. Otherwise, if the file isn't indexed, the ``read()`` method will assume the file could be unsorted and simply reads each line one-by-one. Although I haven't tested it yet, streams like stdin should be supported by this case.
 
-The **.hap** file also supports the :class:`Repeat` line which is loaded identically to the :class:`Haplotype` class, except it cannot store :class:`Variant` classes. 
+The **.hap** file also supports the :class:`Repeat` line which is loaded identically to the :class:`Haplotype` class, except it cannot store :class:`Variant` classes.
 
 .. code-block:: python
 

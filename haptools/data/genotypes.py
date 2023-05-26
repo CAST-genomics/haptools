@@ -11,7 +11,11 @@ import numpy as np
 import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
-from . import tr_harmonizer as trh
+
+try:
+    import trtools.utils.tr_harmonizer as trh
+except ModuleNotFoundError:
+    from . import tr_harmonizer as trh
 
 from .data import Data
 
