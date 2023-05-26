@@ -83,23 +83,19 @@ class SummaryStats:
         try:
             snp_col = header_items.index(id_field)
         except ValueError:
-            self.log.error("Could not find %s in header" % id_field)
-            sys.exit(1)
+            raise ValueError("Could not find %s in header" % id_field)
         try:
             p_col = header_items.index(p_field)
         except ValueError:
-            self.log.error("Could not find %s in header" % p_field)
-            sys.exit(1)
+            raise ValueError("Could not find %s in header" % p_field)
         try:
             chrom_col = header_items.index(chrom_field)
         except ValueError:
-            self.log.error("Could not find %s in header" % chrom_field)
-            sys.exit(1)
+            raise ValueError("Could not find %s in header" % chrom_field)
         try:
             pos_col = header_items.index(pos_field)
         except ValueError:
-            self.log.error("Could not find %s in header" % pos_field)
-            sys.exit(1)
+            raise ValueError("Could not find %s in header" % pos_field)
 
         # Now, load in stats. Skip things with pval>pthresh
         line = f.readline()
