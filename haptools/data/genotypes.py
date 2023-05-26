@@ -255,7 +255,7 @@ class Genotypes(Data):
 
         Returns
         -------
-        data: np.array[np.uint8]
+        data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
         return np.array(variant.genotypes, dtype=np.uint8)
@@ -703,7 +703,7 @@ class GenotypesVCF(Genotypes):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.Genotypes.data`
     fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
@@ -804,7 +804,7 @@ class GenotypesTR(Genotypes):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.Genotypes.data`
     fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
@@ -897,7 +897,7 @@ class GenotypesTR(Genotypes):
 
         Returns
         -------
-        data: np.array[np.uint8]
+        data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
         # Grab GT Lengths and round to lowest integer
@@ -936,7 +936,7 @@ class GenotypesPLINK(GenotypesVCF):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.GenotypesVCF.data`
     samples : tuple
         See documentation for :py:attr:`~.GenotypesVCF.data`
