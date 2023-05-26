@@ -917,21 +917,17 @@ class GenotypesTR(Genotypes):
 
         return gts.astype(np.uint8)
 
-    def _return_id(self, variant: trh.TRRecord):
+    def check_biallelic(self):
         """
-        Collect ID from current variant
-
-        Parameters
-        ----------
-        variant: TRRecord
-            A tr_harmonizer.TRRecord object from which to fetch metadata
-
-        Returns
-        -------
-        ID: str
-            ID of variant
+        See documentation for :py:meth:`~.Genotypes.check_biallelic`
         """
-        return variant.record_id
+        raise NotImplementedError
+
+    def check_maf(self):
+        """
+        See documentation for :py:meth:`~.Genotypes.check_maf`
+        """
+        raise NotImplementedError
 
 
 class GenotypesPLINK(GenotypesVCF):
