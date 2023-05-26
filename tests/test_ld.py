@@ -11,7 +11,7 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 def test_basic(capfd):
     expected = """#\torderH\tld
-#\tversion\t0.1.0
+#\tversion\t0.2.0
 #H\tld\t.3f\tLinkage-disequilibrium
 H\t21\t26938353\t26938989\tchr21.q.3365*11\t0.995
 H\t21\t26938989\t26941960\tchr21.q.3365*10\t-0.012
@@ -34,7 +34,7 @@ V\tchr21.q.3365*11\t26938989\t26938989\t21_26938989_G_A\tA
 
 def test_basic_variant(capfd):
     expected = """#\torderH\tld
-#\tversion\t0.1.0
+#\tversion\t0.2.0
 #H\tld\t.3f\tLinkage-disequilibrium
 H\t19\t45411941\t45412079\tAPOe4\t0.999
 V\tAPOe4\t45411941\t45411941\trs429358\tC
