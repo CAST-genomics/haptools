@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 # To test: ./clumpSTR.py --summstats-snps tests/eur_gwas_pvalue_chr19.LDL.glm.linear --clump-snp-field ID --clump-field p-value --clump-chrom-field CHROM --clump-pos-field position --clump-p1 0.2 --out test.clump
-from logging import getLogger, Logger
-import numpy as np
-import logging
-import math
 import sys
+import math
+from logging import Logger, getLogger
 
-from haptools.data.genotypes import Genotypes, GenotypesPLINK, GenotypesVCF, GenotypesTR
+import numpy as np
+
+from .data import Genotypes, GenotypesVCF, GenotypesTR
 
 
 class Variant:
