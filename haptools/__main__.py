@@ -973,7 +973,7 @@ def clump(
     clump_r2: float,
     ld: str,
     out: Path,
-    verbosity: str = "CRITICAL",
+    verbosity: str = "INFO",
 ):
     """
     Performs clumping on datasets with SNPs, SNPs and STRs, and STRs.
