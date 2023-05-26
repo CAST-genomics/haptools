@@ -32,13 +32,12 @@ The abstract class requires that all classes contain methods for...
 	from haptools import data
 	data.Data
 
-All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. When not provided, Logger instances are initialized with the following settings.
+All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. You can create your own Logger instance as follows.
 
 .. code-block:: python
 
-	import logging
-	log = logging.getLogger("haptools command")
-	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="ERROR")
+	from haptools import logging
+	log = logging.getLogger(name="name", level="ERROR")
 
 genotypes.py
 ~~~~~~~~~~~~
@@ -225,9 +224,8 @@ Unfortunately, reading from PGEN files can require a lot of memory, at least ini
 
 .. code-block:: python
 
-	import logging
-	log = logging.getLogger("debug_plink_mem")
-	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="DEBUG")
+	from haptools import logging
+	log = logging.getLogger(name="debug_plink_mem", level="DEBUG")
 
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', log=log)
 	genotypes.read()
