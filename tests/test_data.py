@@ -7,7 +7,7 @@ import numpy as np
 import numpy.lib.recfunctions as rfn
 
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
-from haptools.sim_phenotype import RepeatBeta as HaptoolsRepeat
+from haptools.sim_phenotype import Repeat as HaptoolsRepeat
 from haptools.data import (
     Extra,
     Repeat,

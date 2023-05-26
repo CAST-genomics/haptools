@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -8,15 +7,15 @@ import numpy as np
 import numpy.typing as npt
 
 from .logging import getLogger
-from .data import Haplotype as HaplotypeBase
 from .data import (
     Extra,
-    Repeat,
     Genotypes,
     Phenotypes,
     Haplotypes,
     GenotypesTR,
     GenotypesPLINK,
+    Repeat as RepeatBase,
+    Haplotype as HaplotypeBase,
 )
 
 
@@ -37,11 +36,11 @@ class Haplotype(HaplotypeBase):
 
 
 @dataclass
-class RepeatBeta(Repeat):
+class Repeat(RepeatBase):
     """
     A repeat with sufficient fields for simphenotype
 
-    Properties and functions are shared with the base Repeat object, "Repeat"
+    Properties and functions are shared with the base Repeat object, "RepeatBeta"
     """
 
     beta: float
@@ -113,7 +112,7 @@ class PhenoSimulator:
 
     def run(
         self,
-        hap: Haplotypes,
+        effects: list[Haplotype|Repeat],
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
@@ -126,9 +125,8 @@ class PhenoSimulator:
 
         Parameters
         ----------
-        hap: Haplotypes
-            Haplotypes object storing all data from given .hap file.
-            Used to grab Haplotype and Repeat object data.
+        effects: list[Haplotype]
+            A list of Haplotypes to use in an additive fashion within the simulations
         heritability: float, optional
             The simulated heritability of the trait
 
@@ -147,10 +145,9 @@ class PhenoSimulator:
         npt.NDArray
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
-        # extract the relevant haplotype info from the Haplotype objects and GTs
-        # Collect betas, ids, and genotypes
-        ids = [hid for key in hap.type_ids.keys() for hid in hap.type_ids[key]]
-        betas = [hap.data[hid].beta for hid in ids]
+        # extract the relevant haplotype info from the Haplotype objects
+        ids = [effect.id for effect in effects]
+        betas = np.array([effect.beta for effect in effects])
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
 
         self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
@@ -337,11 +334,11 @@ def simulate_pt(
         log = getLogger(name="simphenotype", level="ERROR")
 
     log.info("Loading haplotypes")
-    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
+    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
     # check if a file path was given
-    if os.path.isfile(genotypes):
+    if genotypes.is_file():
         if genotypes.suffix == ".pgen":
             log.info("Loading genotypes from PGEN file")
             gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
@@ -364,7 +361,7 @@ def simulate_pt(
         tr_gt.read(region=region, samples=samples, variants=hp.type_ids["R"])
 
     if not gt and not tr_gt:
-        raise Exception("No valid vcf file given.")
+        raise Exception("No valid genotypes file given.")
 
     if gt and tr_gt:
         gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
@@ -373,7 +370,7 @@ def simulate_pt(
         gt = tr_gt
 
     # check that all of the genotypes were loaded successfully and warn otherwise
-    all_ids = [hid for key in hp.type_ids.keys() for hid in hp.type_ids[key]]
+    all_ids = set(hp.data.keys())
     if len(all_ids) < len(gt.variants):
         diff = list(all_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
@@ -387,6 +384,6 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp, heritability, prevalence, normalize)
+        pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
     log.info("Writing phenotypes")
     pt_sim.write()
