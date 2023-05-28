@@ -597,20 +597,15 @@ class TestSimPhenotypeCLI:
         tmp_transform.unlink()
 
     def test_repeat(self, capfd):
-        tmp_transform = Path("temp-transform.vcf")
-        with open(tmp_transform, "w") as file:
-            file.write(self._get_tr_stdin())
         gt_file = DATADIR / "simple_tr.vcf"
         hp_file = DATADIR / "simple_tr.hap"
 
-        cmd = f"simphenotype --repeats {gt_file} {tmp_transform} {hp_file}"
+        cmd = f"simphenotype --id 1:10114:GTT {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
         assert captured.out
         assert result.exit_code == 0
-
-        tmp_transform.unlink()
 
     def test_mix_ids_repeat(self, capfd):
         tmp_transform = Path("temp-transform.vcf")
@@ -620,7 +615,7 @@ class TestSimPhenotypeCLI:
         hp_file = DATADIR / "simple_tr.hap"
 
         cmd = (
-            f"simphenotype --repeats {gt_file} -i 1:10114:GTT -i H1"
+            f"simphenotype --repeats {gt_file} --id 1:10114:GTT --id H1"
             f" {tmp_transform} {hp_file}"
         )
         runner = CliRunner()
@@ -630,14 +625,3 @@ class TestSimPhenotypeCLI:
         assert result.exit_code == 0
 
         tmp_transform.unlink()
-
-    def test_only_repeat(self, capfd):
-        gt_file = DATADIR / "simple_tr.vcf"
-        hp_file = DATADIR / "only_tr.hap"
-
-        cmd = f"simphenotype --repeats {gt_file} {DATADIR} {hp_file}"
-        runner = CliRunner()
-        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
-        captured = capfd.readouterr()
-        assert captured.out
-        assert result.exit_code == 0
