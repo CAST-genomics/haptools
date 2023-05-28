@@ -525,7 +525,7 @@ class GenotypesAncestry(data.GenotypesVCF):
         """
         See documentation for :py:meth:`~.data.Genotypes.merge_variants`
         """
-        raise ValueError("Not implemented yet")
+        raise NotImplementedError
 
 
 def transform_haps(

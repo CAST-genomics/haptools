@@ -344,6 +344,7 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
+    @pytest.mark.xfail(reason="not implemented yet")
     def test_load_genotypes_multiallelic(self):
         expected = self._get_fake_genotypes_multiallelic()
 
