@@ -416,7 +416,10 @@ def simgenotype(
     "--repeats",
     type=click.Path(exists=True, path_type=Path),
     default=None,
-    help="VCF file for genotypes of repeats",
+    help=(
+        "Path to a genotypes file containing tandem repeats. This is only necessary "
+        "when simulating both haplotypes *and* repeats as causal effects"
+    ),
 )
 @click.option(
     "--seed",

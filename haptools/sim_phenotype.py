@@ -322,7 +322,8 @@ def simulate_pt(
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
     repeats: Path, optional
-        The path to a VCF file for repeat genotypes
+        The path to a genotypes file containing tandem repeats. This is only necessary
+        when simulating both haplotypes *and* repeats as causal effects
     seed: int, optional
         Seed for random processes
     output : Path, optional
@@ -337,42 +338,45 @@ def simulate_pt(
     hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
     hp.read(region=region, haplotypes=haplotype_ids)
 
-    # check if a file path was given
-    if genotypes.is_file():
+    if haplotype_ids is None:
+        haplotype_ids = set(hp.data.keys())
+
+    # check if these are all repeat IDs, haplotype IDs, or a mix of them
+    if len(hp.type_ids["R"]) >= len(haplotype_ids):
+        # if they're all repeat IDs...
+        log.info("Loading TR genotypes")
+        gt = GenotypesTR(fname=genotypes, log=log)
+    else:
+        # the genotypes variable must contain haplotype genotypes
+        # but first, check if they're a mix but --repeats wasn't specified
+        if len(hp.type_ids["H"]) < len(haplotype_ids) and repeats is None:
+            raise ValueError(
+                "The --repeats option must be specified when simulating a mix of both "
+                "haplotypes and repeats as causal effects."
+            )
+        # load these as haplotype pseudo-genotypes
         if genotypes.suffix == ".pgen":
-            log.info("Loading genotypes from PGEN file")
+            log.info("Loading haplotype genotypes from PGEN file")
             gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
         else:
-            log.info("Loading genotypes from VCF/BCF file")
+            log.info("Loading haplotype genotypes from VCF/BCF file")
             gt = Genotypes(fname=genotypes, log=log)
 
-        # gt._prephased = True
-        gt.read(region=region, samples=samples, variants=hp.type_ids["H"])
-        log.info("QC-ing genotypes")
-        gt.check_missing()
-        gt.check_biallelic()
-    else:
-        gt = None
+    # gt._prephased = True
+    gt.read(region=region, samples=samples, variants=haplotype_ids)
+    log.info("QC-ing genotypes")
+    gt.check_missing()
 
-    tr_gt = None
     if repeats:
-        log.info("Loading TR genotypes")
+        log.info("Merging with TR genotypes")
         tr_gt = GenotypesTR(fname=repeats, log=log)
-        tr_gt.read(region=region, samples=samples, variants=hp.type_ids["R"])
-
-    if not gt and not tr_gt:
-        raise Exception("No valid genotypes file given.")
-
-    if gt and tr_gt:
+        tr_gt.read(region=region, samples=samples, variants=set(hp.type_ids["R"]))
+        tr_gt.check_missing()
         gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
-    # should only have repeats in the hap file in this case
-    elif tr_gt and not gt:
-        gt = tr_gt
 
     # check that all of the genotypes were loaded successfully and warn otherwise
-    all_ids = set(hp.data.keys())
-    if len(all_ids) < len(gt.variants):
-        diff = list(all_ids.difference(gt.variants["id"]))
+    if len(haplotype_ids) < len(gt.variants):
+        diff = list(haplotype_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
         log.warning(
             f"{len(diff)} haplotypes could not be found in the genotypes file. Check "
