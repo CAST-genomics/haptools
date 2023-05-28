@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 from haptools import logging
 from haptools.data import GenotypesVCF, GenotypesPLINK
@@ -259,7 +259,11 @@ def main(
             genotype_dir = sample_dir
         results[arg] = {}
         intervals = INTERVALS_SAMPLES if arg == "samples" else INTERVALS_VARIANTS
-        item_iter = progressbar(intervals, prefix=f"{arg}, {file_type}: ", out=sys.stderr) if progress else intervals
+        item_iter = (
+            progressbar(intervals, prefix=f"{arg}, {file_type}: ", out=sys.stderr)
+            if progress
+            else intervals
+        )
         for file_type in FILE_TYPES.keys():
             results[arg][file_type] = []
             for val in item_iter:

@@ -112,7 +112,7 @@ class PhenoSimulator:
 
     def run(
         self,
-        effects: list[Haplotype|Repeat],
+        effects: list[Haplotype | Repeat],
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,

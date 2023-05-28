@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 from haptools.logging import getLogger
 from haptools.data import GenotypesVCF, Haplotypes, Haplotype, Variant
