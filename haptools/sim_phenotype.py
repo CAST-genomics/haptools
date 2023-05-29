@@ -342,8 +342,8 @@ def simulate_pt(
         haplotype_ids = set(hp.data.keys())
 
     # check if these are all repeat IDs, haplotype IDs, or a mix of them
-    if len(hp.type_ids["R"]) >= len(haplotype_ids):
-        # if they're all repeat IDs...
+    if len(hp.type_ids["R"]) >= len(haplotype_ids) and repeats is None:
+        # if they're all repeat IDs or --repeats was specified
         log.info("Loading TR genotypes")
         gt = GenotypesTR(fname=genotypes, log=log)
     else:
