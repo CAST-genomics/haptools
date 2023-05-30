@@ -1,8 +1,8 @@
 .. _formats-linear:
 
 
-Linear
-======
+Summary Statistics
+==================
 
 Linear files (``.linear`` files) store summary statistics from a linear model. We follow the `PLINK2 .glm.linear file format <https://www.cog-genomics.org/plink/2.0/formats#glm_linear>`_ and use the following columns.
 
