@@ -116,6 +116,7 @@ class PhenoSimulator:
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
+        environment: float = None,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
@@ -139,6 +140,9 @@ class PhenoSimulator:
         normalize: bool, optional
             If True, normalize the genotypes before using them to simulate the
             phenotypes. Otherwise, use the raw values.
+        environment: float, optional
+            The variance (aka strength) of the environmental contribution to the trait.
+            This is inferred from the betas if it isn't specified.
 
         Returns
         -------
@@ -161,7 +165,7 @@ class PhenoSimulator:
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
-        if heritability is None:
+        if heritability is None and environment is None:
             self.log.debug("Computing heritability as the sum of the squared betas")
             heritability = np.power(betas, 2).sum()
             if heritability > 1:
@@ -169,13 +173,17 @@ class PhenoSimulator:
             # compute the environmental effect
             noise = 1 - heritability
         else:
-            # compute the environmental effect
-            noise = np.var(pt)
-            if noise == 0:
-                self.log.warning(
-                    "Your genotypes have a variance of 0. Creating artificial noise..."
-                )
-                noise = 1
+            noise = environment
+            if environment is None:
+                # compute the environmental effect
+                noise = np.var(pt)
+                if noise == 0:
+                    self.log.warning(
+                        "Your genotypes have 0 variance. Creating artificial noise..."
+                    )
+                    noise = 1
+            elif heritability is None:
+                heritability = 0.5
             # TODO: handle a heritability of 0 somehow
             noise *= np.reciprocal(heritability) - 1
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
@@ -259,6 +267,7 @@ def simulate_pt(
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
     repeats: Path = None,
+    environment: float = None,
     seed: int = None,
     output: Path = Path("-"),
     log: logging.Logger = None,
@@ -324,6 +333,9 @@ def simulate_pt(
     repeats: Path, optional
         The path to a genotypes file containing tandem repeats. This is only necessary
         when simulating both haplotypes *and* repeats as causal effects
+    environment: float, optional
+        The variance (aka strength) of the environmental term. This will be inferred if
+        it isn't specified.
     seed: int, optional
         Seed for random processes
     output : Path, optional
@@ -388,6 +400,6 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp.data.values(), heritability, prevalence, normalize)
+        pt_sim.run(hp.data.values(), heritability, prevalence, normalize, environment)
     log.info("Writing phenotypes")
     pt_sim.write()

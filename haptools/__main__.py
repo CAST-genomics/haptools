@@ -422,6 +422,13 @@ def simgenotype(
     ),
 )
 @click.option(
+    "--environment",
+    type=click.FloatRange(min=0, max=1),
+    default=None,
+    show_default=True,
+    help="Variance of environmental term; inferred if not specified",
+)
+@click.option(
     "--seed",
     type=int,
     default=None,
@@ -459,6 +466,7 @@ def simphenotype(
     chunk_size: int = None,
     repeats: Path = None,
     seed: int = None,
+    environment: float = None,
     output: Path = Path("-"),
     verbosity: str = "INFO",
 ):
@@ -511,6 +519,7 @@ def simphenotype(
         ids,
         chunk_size,
         repeats,
+        environment,
         seed,
         output,
         log,
