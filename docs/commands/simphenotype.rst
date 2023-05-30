@@ -14,6 +14,7 @@ Usage
 
    haptools simphenotype \
    --replications INT \
+   --environment FLOAT \
    --heritability FLOAT \
    --prevalence FLOAT \
    --normalize \
@@ -24,7 +25,6 @@ Usage
    --ids-file FILENAME \
    --chunk-size INT \
    --repeats PATH \
-   --environment FLOAT \
    --seed INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \

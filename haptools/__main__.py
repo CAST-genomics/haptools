@@ -327,6 +327,13 @@ def simgenotype(
     help="Number of rounds of simulation to perform",
 )
 @click.option(
+    "--environment",
+    type=click.FloatRange(min=0, max=1),
+    default=None,
+    show_default=True,
+    help="Variance of environmental term; inferred if not specified",
+)
+@click.option(
     "-h",
     "--heritability",
     type=click.FloatRange(min=0.5, max=1),
@@ -422,13 +429,6 @@ def simgenotype(
     ),
 )
 @click.option(
-    "--environment",
-    type=click.FloatRange(min=0, max=1),
-    default=None,
-    show_default=True,
-    help="Variance of environmental term; inferred if not specified",
-)
-@click.option(
     "--seed",
     type=int,
     default=None,
@@ -455,6 +455,7 @@ def simphenotype(
     genotypes: Path,
     haplotypes: Path,
     replications: int = 1,
+    environment: float = None,
     heritability: float = None,
     prevalence: float = None,
     normalize: bool = True,
@@ -466,7 +467,6 @@ def simphenotype(
     chunk_size: int = None,
     repeats: Path = None,
     seed: int = None,
-    environment: float = None,
     output: Path = Path("-"),
     verbosity: str = "INFO",
 ):
@@ -511,6 +511,7 @@ def simphenotype(
         genotypes,
         haplotypes,
         replications,
+        environment,
         heritability,
         prevalence,
         normalize,
@@ -519,7 +520,6 @@ def simphenotype(
         ids,
         chunk_size,
         repeats,
-        environment,
         seed,
         output,
         log,
