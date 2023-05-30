@@ -24,6 +24,7 @@ Usage
    --ids-file FILENAME \
    --chunk-size INT \
    --repeats PATH \
+   --environment FLOAT \
    --seed INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
@@ -45,15 +46,23 @@ where
 
 .. math::
 
-   \sigma^2 = Var[\sum_j \beta_j \vec{Z_j}] * (\frac 1 {h^2} - 1)
+   \sigma^2 = v (\frac 1 {h^2} - 1)
 
-The heritability :math:`h^2` is user-specified, but if it is not provided, then :math:`\sigma^2` will be computed purely from the effect sizes, instead:
+The variable :math:`v` can be specified via the ``--environment`` parameter. When not provided, :math:`v` is inferred from the variance of the genotypes:
+
+.. math::
+
+   v = Var[\sum_j \beta_j \vec{Z_j}]
+
+The heritability :math:`h^2` can be specified via the ``--heritability`` parameter and defaults to 0.5 when not provided.
+
+When both :math:`v` and :math:`h^2` aren't provided, :math:`\sigma^2` is computed purely from the effect sizes, instead:
 
 .. math::
 
    \sigma^2 = \Biggl \lbrace {1 - \sum \beta_j^2 \quad \quad {\sum \beta_j^2 \le 1} \atop 0 \quad \quad \quad \quad \quad \text{ otherwise }}
 
-If a prevalence for the disease is specified, the final :math:`\vec{y}` value will be thresholded to produce a binary case/control trait with the desired fraction of diseased individuals.
+If a prevalence for the disease is specified via the ``--prevalence`` parameter, the final :math:`\vec{y}` is thresholded to produce a binary case/control trait with the desired fraction of diseased individuals.
 
 Input
 ~~~~~
