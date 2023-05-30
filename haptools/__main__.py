@@ -507,6 +507,8 @@ def simphenotype(
         ids = None
 
     if heritability is None and environment is None and not normalize:
+        # in this case, the assumptions of the model break
+        # The variances of both sides of the equation will no longer properly sum to 1
         log.error("A --heritability value should be specified with --no-normalize")
 
     # Run simulation
