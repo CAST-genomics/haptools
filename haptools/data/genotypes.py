@@ -11,7 +11,11 @@ import numpy as np
 import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
-from . import tr_harmonizer as trh
+
+try:
+    import trtools.utils.tr_harmonizer as trh
+except ModuleNotFoundError:
+    from . import tr_harmonizer as trh
 
 from .data import Data
 
@@ -222,7 +226,7 @@ class Genotypes(Data):
             dtype=self.variants.dtype,
         )
 
-    def _return_vcf_iter(self, vcf: cyvcf2.VCF, region: str):
+    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str):
         """
         Yield all variants within a region in the VCF file.
 
@@ -251,26 +255,10 @@ class Genotypes(Data):
 
         Returns
         -------
-        data: np.array(np.uint8)
+        data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
         return np.array(variant.genotypes, dtype=np.uint8)
-
-    def _return_id(self, variant: Variant):
-        """
-        Collect ID from current variant
-
-        Parameters
-        ----------
-        variant: cyvcf2.Variant
-            A cyvcf2.Variant object from which to fetch metadata
-
-        Returns
-        -------
-        ID: str
-            ID of variant
-        """
-        return variant.ID
 
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
@@ -298,8 +286,8 @@ class Genotypes(Data):
         num_seen = 0
         # iterate over each line in the VCF
         # note, this can take a lot of time if there are many samples
-        for variant in self._return_vcf_iter(vcf, region):
-            if variants is not None and self._return_id(variant) not in variants:
+        for variant in self._vcf_iter(vcf, region):
+            if variants is not None and variant.ID not in variants:
                 if num_seen >= len(variants):
                     # exit early if we've already found all the variants
                     break
@@ -715,7 +703,7 @@ class GenotypesVCF(Genotypes):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.Genotypes.data`
     fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
@@ -816,7 +804,7 @@ class GenotypesTR(Genotypes):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.Genotypes.data`
     fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
@@ -837,19 +825,6 @@ class GenotypesTR(Genotypes):
     def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto"):
         super().__init__(fname, log)
         self.vcftype = vcftype
-
-    def _variant_arr(self, record: Variant):
-        """
-        See documentation for :py:meth:`~.Genotypes._variant_arr`
-        """
-        return np.array(
-            (
-                record.record_id,
-                record.chrom,
-                record.pos,
-            ),
-            dtype=self.variants.dtype,
-        )
 
     @classmethod
     def load(
@@ -886,9 +861,9 @@ class GenotypesTR(Genotypes):
         genotypes.check_phase()
         return genotypes
 
-    def _return_vcf_iter(self, vcf: cyvcf2.VCF, region: str):
+    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str = None):
         """
-        Collect GTs to iterate over which in this case  are TRRecords.
+        Collect GTs (trh.TRRecord objects) to iterate over
 
         Parameters
         ----------
@@ -899,14 +874,16 @@ class GenotypesTR(Genotypes):
 
         Returns
         -------
-        tr_records: tr_harmonizer.TRRecord
-            TRRecord objects yielded from TRRecordHarmonizer.
+        tr_records: trh.TRRecord
+            TRRecord objects yielded from TRRecordHarmonizer
         """
-        vcfiter = vcf(region)
-        tr_records = trh.TRRecordHarmonizer(
-            vcffile=vcf, vcfiter=vcfiter, region=region, vcftype=self.vcftype
-        )
-        return tr_records
+        for record in trh.TRRecordHarmonizer(
+            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype
+        ):
+            record.ID = record.record_id
+            record.CHROM = record.chrom
+            record.POS = record.pos
+            yield record
 
     def _return_data(self, variant: trh.TRRecord):
         """
@@ -914,18 +891,17 @@ class GenotypesTR(Genotypes):
 
         Parameters
         ----------
-        variant: tr_harmonizer.TRRecord
-            TRRecord object from tr_harmonizer to collect copy number genotypes using the
-            GetLengthGenotypes function.
+        variant: trh.TRRecord
+            A trh.TRRecord object from which to collect copy number genotypes using the
+            GetLengthGenotypes() function
 
         Returns
         -------
-        data: np.array(np.uint8)
+        data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
         # Grab GT Lengths and round to lowest integer
-        gts = variant.GetLengthGenotypes()
-        gts = np.rint(gts)
+        gts = np.rint(variant.GetLengthGenotypes())
 
         # If only one GT present fill rest with empty gts (-1)
         if gts.shape[1] == 2:
@@ -939,24 +915,19 @@ class GenotypesTR(Genotypes):
             gts = np.concatenate((gts, zeros), axis=1)
             gts[:, 1] = missing
 
-        data = np.array(gts, dtype=np.uint8)
-        return data
+        return gts.astype(np.uint8)
 
-    def _return_id(self, variant: trh.TRRecord):
+    def check_biallelic(self):
         """
-        Collect ID from current variant
-
-        Parameters
-        ----------
-        variant: TRRecord
-            A tr_harmonizer.TRRecord object from which to fetch metadata
-
-        Returns
-        -------
-        ID: str
-            ID of variant
+        See documentation for :py:meth:`~.Genotypes.check_biallelic`
         """
-        return variant.record_id
+        raise NotImplementedError
+
+    def check_maf(self):
+        """
+        See documentation for :py:meth:`~.Genotypes.check_maf`
+        """
+        raise NotImplementedError
 
 
 class GenotypesPLINK(GenotypesVCF):
@@ -965,7 +936,7 @@ class GenotypesPLINK(GenotypesVCF):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.GenotypesVCF.data`
     samples : tuple
         See documentation for :py:attr:`~.GenotypesVCF.data`
@@ -1329,7 +1300,7 @@ class GenotypesPLINK(GenotypesVCF):
                     # add phase info, then transpose the GT matrix so that samples are
                     # rows and variants are columns
                     self.data[:, start:end, :2] = data.reshape(
-                        (chunks, mat_shape[0], 2)
+                        (size, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
                     self.data[:, start:end, 2] = phasing.transpose()
                 else:
@@ -1340,7 +1311,7 @@ class GenotypesPLINK(GenotypesVCF):
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
                     self.data[:, start:end] = data.reshape(
-                        (chunks, mat_shape[0], 2)
+                        (size, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
                 del data
                 gc.collect()

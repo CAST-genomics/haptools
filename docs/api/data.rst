@@ -32,13 +32,12 @@ The abstract class requires that all classes contain methods for...
 	from haptools import data
 	data.Data
 
-All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. When not provided, Logger instances are initialized with the following settings.
+All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. You can create your own Logger instance as follows.
 
 .. code-block:: python
 
-	import logging
-	log = logging.getLogger("haptools command")
-	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="ERROR")
+	from haptools import logging
+	log = logging.getLogger(name="name", level="ERROR")
 
 genotypes.py
 ~~~~~~~~~~~~
@@ -225,9 +224,8 @@ Unfortunately, reading from PGEN files can require a lot of memory, at least ini
 
 .. code-block:: python
 
-	import logging
-	log = logging.getLogger("debug_plink_mem")
-	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="DEBUG")
+	from haptools import logging
+	log = logging.getLogger(name="debug_plink_mem", level="DEBUG")
 
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', log=log)
 	genotypes.read()
@@ -285,7 +283,7 @@ Both the ``load()`` and ``read()`` methods support `region` and `haplotypes` par
 
 The file must be indexed if you wish to use these parameters, since in that case, the ``read()`` method can take advantage of the indexing to parse the file a bit faster. Otherwise, if the file isn't indexed, the ``read()`` method will assume the file could be unsorted and simply reads each line one-by-one. Although I haven't tested it yet, streams like stdin should be supported by this case.
 
-The **.hap** file also supports the :class:`Repeat` line which is loaded identically to the :class:`Haplotype` class, except it cannot store :class:`Variant` classes. 
+The **.hap** file also supports the :class:`Repeat` line which is loaded identically to the :class:`Haplotype` class, except it cannot store :class:`Variant` classes.
 
 .. code-block:: python
 

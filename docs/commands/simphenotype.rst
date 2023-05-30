@@ -16,6 +16,7 @@ Usage
    --replications INT \
    --heritability FLOAT \
    --prevalence FLOAT \
+   --normalize \
    --region TEXT \
    --sample SAMPLE --sample SAMPLE \
    --samples-file FILENAME \
@@ -23,6 +24,7 @@ Usage
    --ids-file FILENAME \
    --chunk-size INT \
    --repeats PATH \
+   --seed INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
    GENOTYPES HAPLOTYPES
@@ -90,25 +92,21 @@ To simulate ancestry-specific effects from a genotypes file with population labe
    haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
    haptools simphenotype --id 'H1' /dev/stdin tests/data/simple.hap
 
-To simulate tandem repeat effects we require a R line in the **.hap** file and a VCF file with repeats passed to ``simphenotype`` using the ``--repeats`` option.
-
-.. code-block:: bash
-
-   haptools transform tests/data/simple.vcf tests/data/simple.hap | \
-   haptools simphenotype --repeats tests/data/simple_tr.vcf /dev/stdin tests/data/simple_tr.hap
-
-To perform simphenotype on only repeats it requires the ``--repeats`` option for the repeats VCF, but we can pass an empty path where normally the SNP VCF would be located. Please note the empty path MUST be a valid path otherwise simphenotype will error. 
-
-.. code-block:: bash
-
-   haptools simphenotype --repeats tests/data/simple_tr.vcf tests/data tests/data/only_tr.hap
-
 If speed is important, it's generally faster to use PGEN files than VCFs.
 
 .. code-block:: bash
 
    haptools transform -o simple-haps.pgen tests/data/simple.pgen tests/data/simple.hap
    haptools simphenotype --id 'H1' simple-haps.pgen tests/data/simple.hap
+
+To simulate causal tandem repeats we require an 'R' line in the **.hap** file and a genotypes file with repeats instead of haplotypes.
+
+.. code-block:: bash
+
+   haptools simphenotype --id 1:10114:GTT tests/data/simple_tr.vcf tests/data/simple_tr.hap
+
+.. note::
+   If you would like to simulate from a mix of both haplotypes and repeats, you should specify your repeats in a separate file via the ``--repeats`` argument.
 
 Let's simulate two replicates of a case/control trait that occurs in 60% of samples with a heritability of 0.8. We'll encode only two of the haplotypes in ``tests/data/simphenotype.hap`` as independent causal variables.
 

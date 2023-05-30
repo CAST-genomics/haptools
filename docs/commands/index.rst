@@ -15,6 +15,7 @@ Usage
 .. code-block:: bash
 
   haptools index \
+  --sort \
   --output PATH \
   --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
   HAPLOTYPES

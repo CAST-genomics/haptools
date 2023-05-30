@@ -20,7 +20,7 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 
 class TestGenotypesAncestry:
-    file = DATADIR.joinpath("simple-ancestry.vcf")
+    file = DATADIR / "simple-ancestry.vcf"
 
     def _get_expected_ancestry(self):
         # create a matrix with shape: samples x SNPs x strands
@@ -223,8 +223,10 @@ def test_basic(capfd):
 1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
 1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
 """
+    gt_file = DATADIR / "simple.vcf.gz"
+    hp_file = DATADIR / "simple.hap"
 
-    cmd = "transform tests/data/simple.vcf.gz tests/data/simple.hap"
+    cmd = f"transform {gt_file} {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
@@ -240,14 +242,15 @@ def test_basic_subset(capfd):
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
 1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|1\t0|1\t1|1\t1|1\t0|0
 """
+    hp_file = DATADIR / "simple.hap"
 
     # first, remove the last two variants in the genotypes file
-    gts = GenotypesVCF.load("tests/data/simple.vcf")
+    gts = GenotypesVCF.load(DATADIR / "simple.vcf")
     gts.fname = Path("simple_minus_two.vcf")
     gts.subset(variants=tuple(gts.variants["id"][:-2]), inplace=True)
     gts.write()
 
-    cmd = "transform simple_minus_two.vcf tests/data/simple.hap"
+    cmd = f"transform simple_minus_two.vcf {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
@@ -268,8 +271,10 @@ def test_basic_pgen_input(capfd):
 1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
 1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
 """
+    gt_file = DATADIR / "simple.pgen"
+    hp_file = DATADIR / "simple.hap"
 
-    cmd = "transform tests/data/simple.pgen tests/data/simple.hap"
+    cmd = f"transform {gt_file} {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
@@ -286,11 +291,10 @@ def test_pgen_two_samples(capfd):
         ],
         dtype=np.uint8,
     )
+    gt_file = DATADIR / "apoe.vcf.gz"
+    hp_file = DATADIR / "apoe4.hap"
 
-    cmd = (
-        "transform -o output.pgen -s HG00097 -s NA12878 tests/data/apoe.vcf.gz"
-        " tests/data/apoe4.hap"
-    )
+    cmd = f"transform -o output.pgen -s HG00097 -s NA12878 {gt_file} {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
@@ -319,7 +323,10 @@ ancestry_results = """##fileformat=VCFv4.2
 
 
 def test_ancestry_from_vcf(capfd):
-    cmd = "transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap"
+    gt_file = DATADIR / "simple-ancestry.vcf"
+    hp_file = DATADIR / "simple.hap"
+
+    cmd = f"transform --ancestry {gt_file} {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
@@ -328,7 +335,10 @@ def test_ancestry_from_vcf(capfd):
 
 
 def test_ancestry_from_bp(capfd):
-    cmd = "transform --ancestry tests/data/simple.vcf tests/data/simple.hap"
+    gt_file = DATADIR / "simple.vcf"
+    hp_file = DATADIR / "simple.hap"
+
+    cmd = f"transform --ancestry {gt_file} {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()

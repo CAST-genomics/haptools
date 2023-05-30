@@ -23,22 +23,22 @@ def _get_files(plink_input=False, plink_output=False):
     log = getLogger(name="test")
     if plink_input or plink_output:
         pytest.importorskip("pgenlib")
-    bkp_file = DATADIR.joinpath("outvcf_test.bp")
-    model_file = DATADIR.joinpath("outvcf_gen.dat")
-    vcf_file = DATADIR.joinpath("outvcf_test" + (".pgen" if plink_input else ".vcf.gz"))
-    sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
-    out_file = DATADIR.joinpath("outvcf_out" + (".pgen" if plink_output else ".vcf.gz"))
+    bkp_file = DATADIR / "outvcf_test.bp"
+    model_file = DATADIR / "outvcf_gen.dat"
+    vcf_file = DATADIR / ("outvcf_test" + (".pgen" if plink_input else ".vcf.gz"))
+    sampleinfo_file = DATADIR / "outvcf_info.tab"
+    out_file = DATADIR / ("outvcf_out" + (".pgen" if plink_output else ".vcf.gz"))
     return bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log
 
 
 def _get_random_files():
     log = getLogger(name="test")
-    model_file = DATADIR.joinpath("outvcf_gen_random.dat")
-    vcf_file = DATADIR.joinpath("outvcf_test_random.vcf.gz")
-    sampleinfo_file = DATADIR.joinpath("outvcf_info_random.tab")
-    out_file = DATADIR.joinpath("outvcf_out_random.vcf.gz")
-    out_prefix = DATADIR.joinpath("outvcf_out_random")
-    coords_dir = DATADIR.joinpath("map")
+    model_file = DATADIR / "outvcf_gen_random.dat"
+    vcf_file = DATADIR / "outvcf_test_random.vcf.gz"
+    sampleinfo_file = DATADIR / "outvcf_info_random.tab"
+    out_file = DATADIR / "outvcf_out_random.vcf.gz"
+    out_prefix = DATADIR / "outvcf_out_random"
+    coords_dir = DATADIR / "map"
     return model_file, vcf_file, sampleinfo_file, coords_dir, out_prefix, out_file, log
 
 
@@ -104,8 +104,8 @@ def test_alt_chrom_name():
     # Test when the ref VCF has chr{X|\d+} form
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
-    bkp_file = DATADIR.joinpath("outvcf_test_chr.bp")
-    vcf_file = DATADIR.joinpath("outvcf_test_chr.vcf")
+    bkp_file = DATADIR / "outvcf_test_chr.bp"
+    vcf_file = DATADIR / "outvcf_test_chr.vcf"
     chroms = ["1", "2", "X"]
     bkps = _get_breakpoints(bkp_file, model_file)
 
@@ -163,8 +163,8 @@ def test_no_replace():
     # Test too few samples to generate a VCF when sampling without replacement
     # read in all files and breakpoints
     bkp_file, model_file, vcf_file, sampleinfo_file, out_file, log = _get_files()
-    bkp_file = DATADIR.joinpath("outvcf_test_no_replace.bp")
-    vcf_file = DATADIR.joinpath("outvcf_test_no_replace.vcf")
+    bkp_file = DATADIR / "outvcf_test_no_replace.bp"
+    vcf_file = DATADIR / "outvcf_test_no_replace.vcf"
     chroms = ["1", "2", "X"]
     bkps = _get_breakpoints(bkp_file, model_file)
 
@@ -216,8 +216,8 @@ def test_no_replace():
     # generate output vcf file should fail due to lack of CEU samples
     # this info file has only one CEU individual
     with pytest.raises(Exception, match="No available sample"):
-        one_ceu_sampleinfo_file = DATADIR.joinpath("outvcf_info-one_CEU.tab")
-        bkp_file = DATADIR.joinpath("outvcf_test_no_replace2.bp")
+        one_ceu_sampleinfo_file = DATADIR / "outvcf_info-one_CEU.tab"
+        bkp_file = DATADIR / "outvcf_test_no_replace2.bp"
         bkps = _get_breakpoints(bkp_file, model_file)
         output_vcf(
             bkps,
@@ -543,10 +543,10 @@ def test_pgen_input():
 
 
 def test_region_bkp():
-    modelfile = DATADIR.joinpath("outvcf_gen.dat")
+    modelfile = DATADIR / "outvcf_gen.dat"
     popsize = 100000
     region = {"chr": "22", "start": 16000, "end": 18000}
-    coords_dir = DATADIR.joinpath("map")
+    coords_dir = DATADIR / "map"
     chroms = ["22"]
     seed = 100
     log = getLogger(name="test")
@@ -622,21 +622,21 @@ def test_region_pgen():
 
 # model_file exception validation
 def test_model_files():
-    mapdir = DATADIR.joinpath("map")
+    mapdir = DATADIR / "map"
     chroms = ["50"]
 
     popsize = 1000
-    vcf_file = str(DATADIR.joinpath("outvcf_test.vcf"))
-    sampleinfo_file = DATADIR.joinpath("outvcf_info.tab")
+    vcf_file = str(DATADIR / "outvcf_test.vcf")
+    sampleinfo_file = DATADIR / "outvcf_info.tab"
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_number_to_int.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_sample_number_to_int.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Can't convert samples number to an integer."
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_num_pops.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_num_pops.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -645,7 +645,7 @@ def test_model_files():
         str(e.value)
     ) == "Invalid number of populations given: 1. We require at least 2."
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_less_than_1.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_less_than_1.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -653,21 +653,21 @@ def test_model_files():
     assert (str(e.value)) == "Number of samples is less than 1."
 
     # validate exception number of pops = number in pop_fracs
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_pop_fracs.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_pop_fracs.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Can't convert generation to integer."
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_frac.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_frac.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (str(e.value)) == "Can't convert population fractions to type float."
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_pop_header.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_pop_header.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -678,7 +678,7 @@ def test_model_files():
         " the header."
     )
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_cur_gen.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_cur_gen.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -690,7 +690,7 @@ def test_model_files():
         " are correct."
     )
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_sum_frac.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_sum_frac.dat"
     with pytest.raises(Exception) as e:
         validate_params(
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -698,8 +698,8 @@ def test_model_files():
     assert (str(e.value)) == "Population fractions for generation 1 do not sum to 1."
 
     # Validate mapdir exceptions
-    model = DATADIR.joinpath("dat_files/correct_model.dat")
-    faulty_mapdir = DATADIR.joinpath("maps")
+    model = DATADIR / "dat_files/correct_model.dat"
+    faulty_mapdir = DATADIR / "maps"
     with pytest.raises(Exception) as e:
         validate_params(
             model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -713,7 +713,7 @@ def test_model_files():
     assert (str(e.value)) == f"Chromosome {chroms[0]} in the list given is not valid."
 
     chroms = ["1"]
-    faulty_mapdir = DATADIR.joinpath("test_map")
+    faulty_mapdir = DATADIR / "test_map"
     with pytest.raises(Exception) as e:
         validate_params(
             model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -724,7 +724,7 @@ def test_model_files():
         " and end in .map"
     )
 
-    faulty_mapdir = DATADIR.joinpath("test_map_2")
+    faulty_mapdir = DATADIR / "test_map_2"
     with pytest.raises(Exception) as e:
         validate_params(
             model, faulty_mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
@@ -751,7 +751,7 @@ def test_model_files():
     assert (str(e.value)) == "Popsize must be greater than 0."
 
     # validate vcf sample collection exception
-    faulty_vcf_file = DATADIR.joinpath("faulty_vcf.vcf")
+    faulty_vcf_file = DATADIR / "faulty_vcf.vcf"
     with pytest.raises(Exception) as e:
         validate_params(
             model, mapdir, chroms, popsize, faulty_vcf_file, sampleinfo_file, False
@@ -759,7 +759,7 @@ def test_model_files():
     assert (str(e.value)) == "Unable to collect vcf samples."
 
     # validate sample_info file exception
-    faulty_sampleinfo_file = DATADIR.joinpath("faulty_info.tab")
+    faulty_sampleinfo_file = DATADIR / "faulty_info.tab"
     with pytest.raises(Exception) as e:
         validate_params(
             model, mapdir, chroms, popsize, vcf_file, faulty_sampleinfo_file, False
@@ -770,7 +770,7 @@ def test_model_files():
     )
     assert (str(e.value)) == msg
 
-    faulty_model = DATADIR.joinpath("dat_files/faulty_model_sample_info.dat")
+    faulty_model = DATADIR / "dat_files/faulty_model_sample_info.dat"
     mfile = open(faulty_model, "r")
     num_samples, *pops = mfile.readline().strip().split()
     with pytest.raises(Exception) as e:

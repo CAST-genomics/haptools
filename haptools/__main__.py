@@ -10,6 +10,7 @@ import click
 # any imports we put here will make it slower to use the command line client
 # a basic "haptools --help" should be quick and require very few imports, for example
 
+
 ################### Haptools ##################
 @click.group()
 @click.version_option(message="%(version)s")
@@ -415,7 +416,10 @@ def simgenotype(
     "--repeats",
     type=click.Path(exists=True, path_type=Path),
     default=None,
-    help="VCF file for genotypes of repeats",
+    help=(
+        "Path to a genotypes file containing tandem repeats. This is only necessary "
+        "when simulating both haplotypes *and* repeats as causal effects"
+    ),
 )
 @click.option(
     "--seed",
@@ -972,7 +976,7 @@ def clump(
     clump_r2: float,
     ld: str,
     out: Path,
-    verbosity: str = "CRITICAL",
+    verbosity: str = "INFO",
 ):
     """
     Performs clumping on datasets with SNPs, SNPs and STRs, and STRs.
