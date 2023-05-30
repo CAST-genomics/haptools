@@ -278,9 +278,8 @@ class TestSimPhenotype:
 
     def test_user_noise(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
+        hps = self._get_fake_haps()[:2]
         expected = self._get_expected_phens()
-        hps.type_ids["R"] = []
 
         pt_sim = PhenoSimulator(gts, seed=42)
         pt_sim.run(hps, environment=0)
