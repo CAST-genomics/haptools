@@ -506,6 +506,9 @@ def simphenotype(
     else:
         ids = None
 
+    if heritability is None and environment is None and not normalize:
+        log.error("A --heritability value should be specified with --no-normalize")
+
     # Run simulation
     simulate_pt(
         genotypes,
