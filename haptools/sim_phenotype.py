@@ -31,6 +31,7 @@ class Effect:
     beta : float
         The effect size of the variable
     """
+
     id: str
     beta: float
 
@@ -51,6 +52,7 @@ class Effect:
         """
         ID, beta = line.split("\t")[:2]
         return cls(id=ID, beta=float(beta))
+
 
 @dataclass
 class Haplotype(HaplotypeBase):
@@ -145,7 +147,7 @@ class PhenoSimulator:
 
     def run(
         self,
-        effects: list[Effect|Haplotype|Repeat],
+        effects: list[Effect | Haplotype | Repeat],
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
@@ -398,8 +400,8 @@ def simulate_pt(
             # but first, check if they're a mix but --repeats wasn't specified
             if len(hp.type_ids["H"]) < len(haplotype_ids) and repeats is None:
                 raise ValueError(
-                    "The --repeats option must be specified when simulating a mix of both "
-                    "haplotypes and repeats as causal effects."
+                    "The --repeats option must be specified when simulating a mix of"
+                    " both haplotypes and repeats as causal effects."
                 )
 
     if load_as_haps:

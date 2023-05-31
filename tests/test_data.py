@@ -1847,7 +1847,9 @@ class TestDocExamples:
             end = pos + len(allele)
 
             # create a haplotype line in the .hap file
-            hp.data[ID] = HaptoolsHaplotype(chrom=chrom, start=pos, end=end, id=ID, beta=variants[ID])
+            hp.data[ID] = HaptoolsHaplotype(
+                chrom=chrom, start=pos, end=end, id=ID, beta=variants[ID]
+            )
 
             # create a variant line for each haplotype
             hp.data[ID].variants = (Variant(start=pos, end=end, id=ID, allele=allele),)
