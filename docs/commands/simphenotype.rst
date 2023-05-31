@@ -4,7 +4,7 @@
 simphenotype
 ============
 
-Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal haplotypes or variants by specifying them in a :doc:`.snplist file </formats/snplist>` or :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
+Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variants or haplotypes by specifying them in a :doc:`.snplist file </formats/snplist>` or :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
 
@@ -73,7 +73,7 @@ Phenotypes are output in the PLINK2-style ``.pheno`` file format. If ``--replica
 
 Examples
 ~~~~~~~~
-In its simplest usage, ``simphenotype`` can be used to simulate traits arising from variants in a :doc:`.snplist file </formats/snplist>`.
+In its simplest usage, ``simphenotype`` can be used to simulate traits arising from SNPs in a :doc:`.snplist file </formats/snplist>`.
 
 .. code-block:: bash
 

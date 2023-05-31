@@ -1,10 +1,10 @@
 .. _formats-snplist:
 
 
-Causal Effects
-==============
+Causal SNPs
+===========
 
-You can specify causal effects in a tab-delimited ``.snplist`` file. We follow `GCTA's .snplist format <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ for this type of file. It has just two columns:
+You can specify causal SNPs in a tab-delimited ``.snplist`` file. We follow `GCTA's .snplist format <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ for this type of file. It has just two columns:
 
 .. list-table::
    :widths: 15 15 25
