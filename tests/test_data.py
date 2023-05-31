@@ -1843,7 +1843,7 @@ class TestDocExamples:
         for variant in gt.variants:
             ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]
             # we arbitrarily choose to use the ALT allele but alleles[0] will give you REF
-            alleles = alleles[1]
+            allele = alleles[1]
             end = pos + len(allele)
 
             # create a haplotype line in the .hap file
