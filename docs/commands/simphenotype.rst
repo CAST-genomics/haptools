@@ -4,7 +4,7 @@
 simphenotype
 ============
 
-Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal haplotypes or variants by specifying them in a :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
+Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal haplotypes or variants by specifying them in a :doc:`.snplist file </formats/snplist>` or :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
 
@@ -57,7 +57,7 @@ If a prevalence for the disease is specified, the final :math:`\vec{y}` value wi
 
 Input
 ~~~~~
-Genotypes must be specified in VCF and haplotypes must be specified in the :doc:`.hap file format </formats/haplotypes>`. If you'd like to encode simple SNPs as causal variants within a ``.hap`` file, use the haptools API like in :ref:`this example <api-examples-snps2hap>`.
+Genotypes must be specified in VCF and haplotypes must be specified in the :doc:`.snplist </formats/snplist>` or :doc:`.hap file format </formats/haplotypes>`.
 
 .. note::
    Your ``.hap`` files must contain a "beta" extra field. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
@@ -73,12 +73,20 @@ Phenotypes are output in the PLINK2-style ``.pheno`` file format. If ``--replica
 
 Examples
 ~~~~~~~~
+In its simplest usage, ``simphenotype`` can be used to simulate traits arising from variants in a :doc:`.snplist file </formats/snplist>`.
+
+.. code-block:: bash
+
+   haptools simphenotype tests/data/apoe.vcf.gz tests/data/apoe.snplist
+
+However, if you want to simulate haplotype-based effects, you will need to ``transform`` your SNPs into haplotypes first. You can pass the same ``.hap`` file to both commands.
+
 .. code-block:: bash
 
    haptools transform tests/data/simple.vcf tests/data/simple.hap | \
    haptools simphenotype -o simulated.pheno /dev/stdin tests/data/simple.hap
 
-By default, all of the haplotypes in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
+By default, all of the effects in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
 
 .. code-block:: bash
 
