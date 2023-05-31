@@ -1824,32 +1824,38 @@ class TestBreakpoints:
 
 class TestDocExamples:
     def test_gts2hap(self):
-        # which variants do we want to write to the haplotype file?
-        variants = {"rs429358", "rs7412"}
+        # load variants from the snplist file
+        variants = {}
+        with open(DATADIR / "apoe.snplist") as snplist_file:
+            for line in snplist_file.readlines():
+                # parse variant ID and beta from file
+                ID, beta = line.split("\t")
+                variants[ID] = float(beta)
 
         # load the genotypes file
-        # you can use either a VCF or PGEN file
         gt = GenotypesVCF(DATADIR / "apoe.vcf.gz")
-        gt.read(variants=variants)
+        gt.read(variants=variants.keys())
 
         # initialize an empty haplotype file
-        hp = Haplotypes("output.hap", haplotype=Haplotype)
+        hp = Haplotypes("output.hap", haplotype=HaptoolsHaplotype)
         hp.data = {}
 
         for variant in gt.variants:
             ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]
-            end = pos + len(alleles[1])
+            # we arbitrarily choose to use the ALT allele but alleles[0] will give you REF
+            alleles = alleles[1]
+            end = pos + len(allele)
 
             # create a haplotype line in the .hap file
-            # you should fill out "beta" with your own value
-            hp.data[ID] = HaptoolsHaplotype(
-                chrom=chrom, start=pos, end=end, id=ID, beta=0.5
-            )
+            hp.data[ID] = HaptoolsHaplotype(chrom=chrom, start=pos, end=end, id=ID, beta=variants[ID])
 
-            # create variant lines for each haplotype
-            hp.data[ID].variants = (
-                Variant(start=pos, end=end, id=ID, allele=alleles[1]),
-            )
+            # create a variant line for each haplotype
+            hp.data[ID].variants = (Variant(start=pos, end=end, id=ID, allele=allele),)
 
         hp.write()
+
+        # validate the output and clean up afterwards
+        with open("output.hap") as hp_file:
+            with open(DATADIR / "apoe.hap") as expected:
+                assert hp_file.read() == expected.read()
         hp.fname.unlink()
