@@ -328,7 +328,7 @@ def simgenotype(
 )
 @click.option(
     "--environment",
-    type=click.FloatRange(min=0, max=1),
+    type=click.FloatRange(min=0),
     default=None,
     show_default=True,
     help="Variance of environmental term; inferred if not specified",
