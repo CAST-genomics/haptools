@@ -173,7 +173,7 @@ class TestSimPhenotype:
         expected.data = np.zeros((gts_shape[0], 1), dtype=expected.data.dtype)
 
         previous_std = np.inf
-        for h2 in (0, 0.5, 1):
+        for h2 in (0, 0.8, 1):
             pt_sim = PhenoSimulator(gts, seed=42)
             data = pt_sim.run(hps, heritability=h2)
             data = data[:, np.newaxis]
