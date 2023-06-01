@@ -186,8 +186,8 @@ class PhenoSimulator:
         """
         # extract the relevant haplotype info from the Haplotype objects
         ids = [effect.id for effect in effects]
-        self.log.debug(f"Beta values are {betas}")
         betas = np.array([effect.beta for effect in effects])
+        self.log.debug(f"Beta values are {betas}")
         self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
         gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
 
