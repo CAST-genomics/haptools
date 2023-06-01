@@ -186,11 +186,10 @@ class PhenoSimulator:
         """
         # extract the relevant haplotype info from the Haplotype objects
         ids = [effect.id for effect in effects]
-        betas = np.array([effect.beta for effect in effects])
-        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
-
-        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
         self.log.debug(f"Beta values are {betas}")
+        betas = np.array([effect.beta for effect in effects])
+        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
+        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
 
         if normalize:
             gts = self.normalize_gts(gts, ids)
@@ -384,7 +383,7 @@ def simulate_pt(
     load_as_haps = True
     # either load SNPs from the snplist file or load haps/repeats from the hap file
     if haplotypes.suffix == ".snplist":
-        log.info("Loading SNP effects")
+        log.info("Loading from .snplist")
         with open(haplotypes) as snplist_file:
             effects = map(Effect.from_hap_spec, snplist_file.readlines())
         if haplotype_ids is None:
@@ -393,7 +392,7 @@ def simulate_pt(
         else:
             effects = list(filter(lambda e: e.id in haplotype_ids, effects))
     else:
-        log.info("Loading haplotypes")
+        log.info("Loading from .hap")
         hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
         hp.read(region=region, haplotypes=haplotype_ids)
         effects = hp.data.values()
