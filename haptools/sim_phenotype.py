@@ -203,6 +203,10 @@ class PhenoSimulator:
             self.log.debug("Computing heritability as the sum of the squared betas")
             heritability = np.power(betas, 2).sum()
             if heritability > 1:
+                self.log.warning(
+                    "Variance of error term exceeds 1. Check your betas! Capping at 1 "
+                    "for now."
+                )
                 heritability = 1
             # compute the environmental effect
             noise = 1 - heritability
@@ -218,8 +222,13 @@ class PhenoSimulator:
                     noise = 1
             elif heritability is None:
                 heritability = 0.5
-            # TODO: handle a heritability of 0 somehow
             noise *= np.reciprocal(heritability) - 1
+            if noise > 1 or heritability == 0:
+                self.log.warning(
+                    "Variance of error term exceeds 1. Consider increasing the "
+                    "provided heritability! Capping at 1 for now."
+                )
+                noise = 1
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
         pt_noise = self.rng.normal(0, np.sqrt(noise), size=pt.shape)

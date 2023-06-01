@@ -336,7 +336,7 @@ def simgenotype(
 @click.option(
     "-h",
     "--heritability",
-    type=click.FloatRange(min=0.5, max=1),
+    type=click.FloatRange(min=0, max=1),
     default=None,
     show_default="0.5",
     help="Trait heritability",
