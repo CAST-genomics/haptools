@@ -414,6 +414,24 @@ class TestSimPhenotypeCLI:
 """
         return expected
 
+    def test_snplist(self, capfd):
+        gt_file = DATADIR / "apoe.vcf.gz"
+        hp_file = DATADIR / "apoe.snplist"
+
+        cmd = f"simphenotype {gt_file} {hp_file}"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+        lines = captured.out.split("\n")
+        assert lines[0] == "#IID\trs429358-rs7412"
+        sample1, phen1 = lines[1].split("\t")
+        assert sample1 == "HG00096"
+        # try to convert it to a float
+        float(phen1)
+        assert len(lines) == 2506
+
     def test_transform_stdin(self, capfd):
         expected = self._get_transform_stdin()
         gt_file = DATADIR / "simple.vcf"
@@ -621,6 +639,26 @@ class TestSimPhenotypeCLI:
         assert result.exit_code == 0
 
         tmp_transform.unlink()
+
+    def test_seed_snplist(self, capfd):
+        gt_file = DATADIR / "apoe.vcf.gz"
+        hp_file = DATADIR / "apoe.snplist"
+
+        cmd = f"simphenotype --seed 42 {gt_file} {hp_file}"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured1 = capfd.readouterr()
+        assert captured1.out
+        assert result.exit_code == 0
+
+        hp_file = DATADIR / "apoe.hap"
+        cmd = f"simphenotype --seed 42 {gt_file} {hp_file}"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured2 = capfd.readouterr()
+        # we should get the same output from snplist as we do from the equivalent .hap
+        assert captured1.out == captured2.out
+        assert result.exit_code == 0
 
     def test_repeat(self, capfd):
         gt_file = DATADIR / "simple_tr.vcf"

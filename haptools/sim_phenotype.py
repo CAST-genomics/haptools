@@ -20,6 +20,41 @@ from .data import (
 
 
 @dataclass
+class Effect:
+    """
+    A variable in the simphenotype linear model
+
+    Attributes
+    ----------
+    id : str
+        The ID of the variable; corresponds to a variant in a Genotypes object
+    beta : float
+        The effect size of the variable
+    """
+
+    id: str
+    beta: float
+
+    @classmethod
+    def from_hap_spec(cls: Effect, line: str) -> Effect:
+        """
+        Convert a .snplist line into an Effect object
+
+        Parameters
+        ----------
+        line: str
+            A line from a .snplist file
+
+        Returns
+        -------
+        Effect
+            The converted Effect instance
+        """
+        ID, beta = line.split("\t")[:2]
+        return cls(id=ID, beta=float(beta))
+
+
+@dataclass
 class Haplotype(HaplotypeBase):
     """
     A haplotype with sufficient fields for simphenotype
@@ -112,7 +147,7 @@ class PhenoSimulator:
 
     def run(
         self,
-        effects: list[Haplotype | Repeat],
+        effects: list[Effect | Haplotype | Repeat],
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
@@ -126,7 +161,7 @@ class PhenoSimulator:
 
         Parameters
         ----------
-        effects: list[Haplotype]
+        effects: list[Effect|Haplotype|Repeat]
             A list of Haplotypes to use in an additive fashion within the simulations
         heritability: float, optional
             The simulated heritability of the trait
@@ -346,26 +381,42 @@ def simulate_pt(
     if log is None:
         log = getLogger(name="simphenotype", level="ERROR")
 
-    log.info("Loading haplotypes")
-    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
-    hp.read(region=region, haplotypes=haplotype_ids)
-
-    if haplotype_ids is None:
-        haplotype_ids = set(hp.data.keys())
-
-    # check if these are all repeat IDs, haplotype IDs, or a mix of them
-    if len(hp.type_ids["R"]) >= len(haplotype_ids) and repeats is None:
-        # if they're all repeat IDs or --repeats was specified
-        log.info("Loading TR genotypes")
-        gt = GenotypesTR(fname=genotypes, log=log)
+    load_as_haps = True
+    # either load SNPs from the snplist file or load haps/repeats from the hap file
+    if haplotypes.suffix == ".snplist":
+        log.info("Loading SNP effects")
+        with open(haplotypes) as snplist_file:
+            effects = map(Effect.from_hap_spec, snplist_file.readlines())
+        if haplotype_ids is None:
+            effects = list(effects)
+            haplotype_ids = set(effect.id for effect in effects)
+        else:
+            effects = list(filter(lambda e: e.id in haplotype_ids, effects))
     else:
-        # the genotypes variable must contain haplotype genotypes
-        # but first, check if they're a mix but --repeats wasn't specified
-        if len(hp.type_ids["H"]) < len(haplotype_ids) and repeats is None:
-            raise ValueError(
-                "The --repeats option must be specified when simulating a mix of both "
-                "haplotypes and repeats as causal effects."
-            )
+        log.info("Loading haplotypes")
+        hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
+        hp.read(region=region, haplotypes=haplotype_ids)
+        effects = hp.data.values()
+
+        if haplotype_ids is None:
+            haplotype_ids = set(hp.data.keys())
+
+        # check if these are all repeat IDs, haplotype IDs, or a mix of them
+        if len(hp.type_ids["R"]) >= len(haplotype_ids) and repeats is None:
+            # if they're all repeat IDs or --repeats was specified
+            log.info("Loading TR genotypes")
+            gt = GenotypesTR(fname=genotypes, log=log)
+            load_as_haps = False
+        else:
+            # the genotypes variable must contain haplotype genotypes
+            # but first, check if they're a mix but --repeats wasn't specified
+            if len(hp.type_ids["H"]) < len(haplotype_ids) and repeats is None:
+                raise ValueError(
+                    "The --repeats option must be specified when simulating a mix of"
+                    " both haplotypes and repeats as causal effects."
+                )
+
+    if load_as_haps:
         # load these as haplotype pseudo-genotypes
         if genotypes.suffix == ".pgen":
             log.info("Loading haplotype genotypes from PGEN file")
@@ -382,7 +433,7 @@ def simulate_pt(
     if repeats:
         log.info("Merging with TR genotypes")
         tr_gt = GenotypesTR(fname=repeats, log=log)
-        tr_gt.read(region=region, samples=samples, variants=set(hp.type_ids["R"]))
+        tr_gt.read(region=region, samples=samples, variants=haplotype_ids)
         tr_gt.check_missing()
         gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
 
@@ -391,15 +442,16 @@ def simulate_pt(
         diff = list(haplotype_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
         log.warning(
-            f"{len(diff)} haplotypes could not be found in the genotypes file. Check "
-            "that the hap IDs in your .hap file correspond with those in the genotypes"
-            f" file. Here are the first few missing variants: {diff[:first_few]}"
+            f"{len(diff)} effects could not be found in the genotypes file. Check "
+            "that the IDs in your .snplist or .hap file correspond with those in the "
+            "genotypes file. Here are the first few missing variants: "
+            f"{diff[:first_few]}"
         )
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp.data.values(), heritability, prevalence, normalize, environment)
+        pt_sim.run(effects, heritability, prevalence, normalize, environment)
     log.info("Writing phenotypes")
     pt_sim.write()
