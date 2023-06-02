@@ -16,6 +16,7 @@ from .genotypes import GenotypesVCF
 # the current version of the hap format spec
 HAP_VERSION = "0.2.0"
 
+
 @dataclass
 class Extra:
     """
@@ -750,6 +751,7 @@ class Haplotypes(Data):
     >>> haplotypes.read()
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
     """
+
     version = HAP_VERSION
 
     def __init__(
