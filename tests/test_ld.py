@@ -32,6 +32,29 @@ V\tchr21.q.3365*11\t26938989\t26938989\t21_26938989_G_A\tA
     assert result.exit_code == 0
 
 
+def test_simple_with_repeat(capfd):
+    gt_file = DATADIR / "simple.vcf"
+    hp_file = DATADIR / "simple.hap"
+
+    cmd = f"ld H1 {gt_file} {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    assert captured.out
+    expected = captured.out
+    assert result.exit_code == 0
+
+    # now try again. The result should be the same because it ignores repeats
+    hp_file = DATADIR / "simple_tr.hap"
+
+    cmd = f"ld H1 {gt_file} {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    assert expected == captured.out
+    assert result.exit_code == 0
+
+
 def test_basic_variant(capfd):
     expected = """#\torderH\tld
 #\tversion\t0.2.0
