@@ -8,7 +8,10 @@ Compute the pair-wise LD (`Pearson's correlation coefficient <https://numpy.org/
 
 The ``ld`` command takes as input a set of genotypes in VCF and a list of haplotypes (specified as a :doc:`.hap file </formats/haplotypes>`) and outputs a new :doc:`.hap file </formats/haplotypes>` with the computed LD values in an extra field.
 
-By default, LD is computed with each haplotype in the **.hap** file. To compute LD with the variants in the genotypes file instead, you should use the `--from-gts <#cmdoption-haptools-ld-from-gts>`_ switch. When this mode is enabled, the **.hap** output will be replaced by an :doc:`.ld file </formats/ld>`.
+By default, LD is computed with each haplotype in the ``.hap`` file. To compute LD with the variants in the genotypes file instead, you should use the `--from-gts <#cmdoption-haptools-ld-from-gts>`_ switch. When this mode is enabled, the ``.hap`` output will be replaced by an :doc:`.ld file </formats/ld>`.
+
+.. note::
+	Repeats are not currently supported by the ``ld`` command. Any repeats in your ``.hap`` file will be ignored.
 
 You may also specify genotypes in PLINK2 PGEN format instead of VCF format. See the documentation for genotypes in :ref:`the format docs <formats-genotypesplink>` for more information.
 

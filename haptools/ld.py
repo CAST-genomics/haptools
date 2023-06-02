@@ -112,6 +112,14 @@ def calc_ld(
             haplotype_ids.add(target)
     hp.read(region=region, haplotypes=haplotype_ids)
 
+    # remove all repeats from the haplotypes object since we don't yet support them
+    for repeat_id in hp.type_ids["R"]:
+        del hp.data[repeat_id]
+    num_repeats = len(hp.type_ids["R"])
+    if num_repeats:
+        log.info(f"Ignoring {num_repeats} repeats in .hap file")
+        hp.type_ids["R"] = []
+
     if from_gts:
         variants = None
         if target in hp.data and ids:
@@ -123,18 +131,19 @@ def calc_ld(
         variants = {var.id for h in hp.type_ids["H"] for var in hp.data[h].variants}
 
     # check to see whether the target was a haplotype
-    if target in hp.type_ids["H"]:
-        log.info(f"Identified target '{target}' as a haplotype")
+    try:
         target = hp.data.pop(target)
+    except:
+        # the target is a variant, instead
+        pass
+    else:
+        log.info(f"Identified target '{target}' as a haplotype")
         hp.index(force=True)
         if len(hp.data) == 0 and not from_gts:
             log.error(
                 "There must be at least one more haplotype in the .hap file "
                 "than the TARGET haplotype specified."
             )
-    else:
-        # TODO: handle other line types
-        pass
 
     # check that all of the haplotypes were loaded successfully and warn otherwise
     if ids is not None and not from_gts and len(ids) > len(hp.data):
