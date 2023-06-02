@@ -201,7 +201,7 @@ class Genotypes(Data):
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
         # transpose the GT matrix so that samples are rows and variants are columns
-        self.log.info(f"Transposing genotype matrix of size {self.data.shape}.")
+        self.log.info(f"Transposing genotype matrix of size {self.data.shape}")
         self.data = self.data.transpose((1, 0, 2))
 
     def _variant_arr(self, record: Variant):
@@ -1455,7 +1455,7 @@ class GenotypesPLINK(GenotypesVCF):
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
-        self.log.debug(f"Transposing genotype matrix of size {self.data.shape}.")
+        self.log.debug(f"Transposing genotype matrix of size {self.data.shape}")
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
         data = self.data.transpose((1, 0, 2))[:, :, :2]

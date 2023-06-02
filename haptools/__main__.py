@@ -327,11 +327,18 @@ def simgenotype(
     help="Number of rounds of simulation to perform",
 )
 @click.option(
+    "--environment",
+    type=click.FloatRange(min=0),
+    default=None,
+    show_default=True,
+    help="Variance of environmental term; inferred if not specified",
+)
+@click.option(
     "-h",
     "--heritability",
     type=click.FloatRange(min=0, max=1),
     default=None,
-    show_default=True,
+    show_default="0.5",
     help="Trait heritability",
 )
 @click.option(
@@ -448,6 +455,7 @@ def simphenotype(
     genotypes: Path,
     haplotypes: Path,
     replications: int = 1,
+    environment: float = None,
     heritability: float = None,
     prevalence: float = None,
     normalize: bool = True,
@@ -498,11 +506,17 @@ def simphenotype(
     else:
         ids = None
 
+    if heritability is None and environment is None and not normalize:
+        # in this case, the assumptions of the model break
+        # The variances of both sides of the equation will no longer properly sum to 1
+        log.error("A --heritability value should be specified with --no-normalize")
+
     # Run simulation
     simulate_pt(
         genotypes,
         haplotypes,
         replications,
+        environment,
         heritability,
         prevalence,
         normalize,

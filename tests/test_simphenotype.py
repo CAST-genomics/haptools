@@ -173,7 +173,7 @@ class TestSimPhenotype:
         expected.data = np.zeros((gts_shape[0], 1), dtype=expected.data.dtype)
 
         previous_std = np.inf
-        for h2 in (0, 0.5, 1):
+        for h2 in (0, 0.8, 1):
             pt_sim = PhenoSimulator(gts, seed=42)
             data = pt_sim.run(hps, heritability=h2)
             data = data[:, np.newaxis]
@@ -275,6 +275,32 @@ class TestSimPhenotype:
         assert diff2 > diff1
         diff3 = np.abs(phens.data[:, 3] - phens.data[:, 0]).sum()
         assert diff3 > diff2
+
+    def test_user_noise(self):
+        gts = self._get_fake_gens()
+        hps = self._get_fake_haps()[:2]
+        expected = self._get_expected_phens()
+
+        pt_sim = PhenoSimulator(gts, seed=42)
+        pt_sim.run(hps, environment=0)
+        pt_sim.run(hps, environment=0.04)
+        pt_sim.run(hps, environment=0.5)
+        pt_sim.run(hps, environment=0.7)
+        pt_sim.run(hps, environment=0.7, heritability=0.7)
+
+        phens = pt_sim.phens
+
+        # check the data and the generated phenotype object
+        assert phens.data.shape == (5, 5)
+        np.testing.assert_allclose(phens.data[:, 0], expected.data[:, 0])
+        diff1 = np.abs(phens.data[:, 1] - phens.data[:, 0]).sum()
+        assert diff1 > 0
+        diff2 = np.abs(phens.data[:, 2] - phens.data[:, 0]).sum()
+        assert diff2 > diff1
+        diff3 = np.abs(phens.data[:, 3] - phens.data[:, 0]).sum()
+        assert diff3 > diff2
+        diff4 = np.abs(phens.data[:, 4] - phens.data[:, 0]).sum()
+        assert diff4 < diff3
 
     def test_case_control(self):
         gts = self._get_fake_gens()

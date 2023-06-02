@@ -13,6 +13,10 @@ from .data import Data
 from .genotypes import GenotypesVCF
 
 
+# the current version of the hap format spec
+HAP_VERSION = "0.2.0"
+
+
 @dataclass
 class Extra:
     """
@@ -748,6 +752,8 @@ class Haplotypes(Data):
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
     """
 
+    version = HAP_VERSION
+
     def __init__(
         self,
         fname: Path | str,
@@ -762,7 +768,6 @@ class Haplotypes(Data):
         # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.type_ids = None
-        self.version = "0.2.0"
 
     @classmethod
     def load(

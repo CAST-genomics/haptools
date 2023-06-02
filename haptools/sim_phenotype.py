@@ -151,6 +151,7 @@ class PhenoSimulator:
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
+        environment: float = None,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
@@ -174,6 +175,9 @@ class PhenoSimulator:
         normalize: bool, optional
             If True, normalize the genotypes before using them to simulate the
             phenotypes. Otherwise, use the raw values.
+        environment: float, optional
+            The variance (aka strength) of the environmental contribution to the trait.
+            This is inferred from the betas if it isn't specified.
 
         Returns
         -------
@@ -183,10 +187,9 @@ class PhenoSimulator:
         # extract the relevant haplotype info from the Haplotype objects
         ids = [effect.id for effect in effects]
         betas = np.array([effect.beta for effect in effects])
-        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
-
-        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
         self.log.debug(f"Beta values are {betas}")
+        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
+        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
 
         if normalize:
             gts = self.normalize_gts(gts, ids)
@@ -196,22 +199,30 @@ class PhenoSimulator:
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
-        if heritability is None:
+        if heritability is None and environment is None:
             self.log.debug("Computing heritability as the sum of the squared betas")
             heritability = np.power(betas, 2).sum()
             if heritability > 1:
+                self.log.warning(
+                    "Variance of error term exceeds 1. Check your betas! Capping at 1 "
+                    "for now."
+                )
                 heritability = 1
             # compute the environmental effect
             noise = 1 - heritability
         else:
-            # compute the environmental effect
-            noise = np.var(pt)
-            if noise == 0:
-                self.log.warning(
-                    "Your genotypes have a variance of 0. Creating artificial noise..."
-                )
-                noise = 1
-            # TODO: handle a heritability of 0 somehow
+            noise = environment
+            if environment is None:
+                # compute the environmental effect
+                noise = np.var(pt)
+                if noise == 0:
+                    self.log.warning(
+                        "Your genotypes have 0 variance. Creating artificial noise..."
+                    )
+                    noise = 1
+            elif heritability is None:
+                heritability = 0.5
+            # TODO: handle a heritability of 0 somehow?
             noise *= np.reciprocal(heritability) - 1
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
@@ -286,6 +297,7 @@ def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
     num_replications: int = 1,
+    environment: float = None,
     heritability: float = None,
     prevalence: float = None,
     normalize: bool = True,
@@ -359,6 +371,9 @@ def simulate_pt(
     repeats: Path, optional
         The path to a genotypes file containing tandem repeats. This is only necessary
         when simulating both haplotypes *and* repeats as causal effects
+    environment: float, optional
+        The variance (aka strength) of the environmental term. This will be inferred if
+        it isn't specified.
     seed: int, optional
         Seed for random processes
     output : Path, optional
@@ -372,7 +387,7 @@ def simulate_pt(
     load_as_haps = True
     # either load SNPs from the snplist file or load haps/repeats from the hap file
     if haplotypes.suffix == ".snplist":
-        log.info("Loading SNP effects")
+        log.info("Loading from .snplist")
         with open(haplotypes) as snplist_file:
             effects = map(Effect.from_hap_spec, snplist_file.readlines())
         if haplotype_ids is None:
@@ -381,7 +396,7 @@ def simulate_pt(
         else:
             effects = list(filter(lambda e: e.id in haplotype_ids, effects))
     else:
-        log.info("Loading haplotypes")
+        log.info("Loading from .hap")
         hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
         hp.read(region=region, haplotypes=haplotype_ids)
         effects = hp.data.values()
@@ -440,6 +455,6 @@ def simulate_pt(
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(effects, heritability, prevalence, normalize)
+        pt_sim.run(effects, heritability, prevalence, normalize, environment)
     log.info("Writing phenotypes")
     pt_sim.write()
