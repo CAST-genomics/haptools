@@ -9,7 +9,7 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 
 def test_GetHaplotypeBlocks():
-    test_file = DATADIR.joinpath("test.bp")
+    test_file = DATADIR / "test.bp"
     sample_blocks = GetHaplotypeBlocks(test_file, "Sample_1")
     assert sample_blocks[0][0]["pop"] == "YRI"
     assert sample_blocks[0][0]["chrom"] == 1
@@ -35,14 +35,16 @@ def test_GetHaplotypeBlocks():
 
 def test_basic(capfd):
     tmp_file = Path("test_karyogram.png")
+    tmp_bp_file = DATADIR / "5gen.bp"
+    tmp_centromeres_file = DATADIR / "centromeres_hg19.txt"
 
     cmd = " ".join(
         [
             "karyogram",
-            "--bp tests/data/5gen.bp",
+            f"--bp {tmp_bp_file}",
             "--sample Sample_1",
             f"--out {tmp_file}",
-            "--centromeres tests/data/centromeres_hg19.txt",
+            f"--centromeres {tmp_centromeres_file}",
             "--title 5_Generation_Karyogram",
             "--colors CEU:blue,YRI:red",
         ]

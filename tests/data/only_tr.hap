@@ -1,0 +1,6 @@
+#	orderH	ancestry	beta
+#	version	0.2.0
+#R	beta	.2f	Effect size in linear model
+R	1	10114	10999	1:10114:GTT	1
+R	1	11000	11016	1:10116:ACACAC	0.75
+R	1	12117	12143	1:10117:AAA	0.5

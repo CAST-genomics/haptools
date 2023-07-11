@@ -1,8 +1,10 @@
 #	orderH	ancestry	beta
-#	version	0.1.0
+#	version	0.2.0
 #H	ancestry	s	Local ancestry
 #H	beta	.2f	Effect size in linear model
+#R	beta	.2f	Effect size in linear model
 H	21	26928472	26941960	chr21.q.3365*1	ASW	0.73
+R	21	26938353	26938400	21_26938353_STR	0.45
 H	21	26938989	26941960	chr21.q.3365*10	CEU	0.30
 H	21	26938353	26938989	chr21.q.3365*11	MXL	0.49
 V	chr21.q.3365*1	26928472	26928472	21_26928472_C_A	C

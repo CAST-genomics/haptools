@@ -2,7 +2,6 @@
 
 import sys
 import pickle
-import logging
 from pathlib import Path
 from time import process_time
 from datetime import datetime
@@ -11,6 +10,10 @@ import click
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use("Agg")
+
+from haptools.logging import getLogger
 from haptools.data import GenotypesVCF, Haplotypes, Haplotype, Variant
 
 
@@ -174,7 +177,7 @@ def main(
     skip_bench,
 ):
     """
-    Benchmarks classes in the data.genotypes module
+    Benchmarks transform() in the data.haplotypes module
     """
     INTERVALS_VALS = {
         "vars": range(*intervals_variants),
@@ -189,11 +192,7 @@ def main(
     }
     NAME = name
     VARIABLES = {"samples": "samps", "alleles_max": "vars", "haplotypes": "haps"}
-    LOG = logging.getLogger("run")
-    logging.basicConfig(
-        format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)",
-        level="ERROR",
-    )
+    LOG = getLogger("run", "ERROR")
     ALG_NAME = {"hap-loop": "loop over haplotypes", "allele-loop": "loop over alleles"}
 
     # loading results
