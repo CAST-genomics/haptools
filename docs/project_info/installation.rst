@@ -23,11 +23,11 @@ You can install ``haptools`` from PyPI using ``pip``.
 Installing ``haptools`` with the "files" extra requirements enables automatic support for a variety of additional file formats, like PLINK2 PGEN files.
 
 .. note::
-   The "files" extra requirement requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. To install with conda, for example, please execute the following:
+   The "files" extra requirement sometimes requires ``gcc`` and a few other compiler tools. Please make sure that they are installed first. To install with conda, for example, please execute the following:
 
    .. code-block:: bash
 
-      conda install -c conda-forge gxx_linux-64
+      conda install -c conda-forge gcc_linux-64
 
    Alternatively, you can use the following on Ubuntu:
 
