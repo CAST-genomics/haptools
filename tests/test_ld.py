@@ -124,6 +124,7 @@ def test_from_gts_ids(capfd):
     assert captured.out == expected
     assert result.exit_code == 0
 
+
 def test_missing_haplotypes(caplog):
     gt_file = DATADIR / "apoe.vcf.gz"
     hp_file = DATADIR / "apoe4.hap"
@@ -146,4 +147,3 @@ def test_missing_haplotypes(caplog):
 
     # Verificar que el código de salida sea 0 (sin errores)
     assert result.exit_code == 0
-
