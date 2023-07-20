@@ -254,6 +254,15 @@ class HapFile:
             lambda line : search(r"#[H|R|V]", line[0]) != None,
             self.meta_lines))
 
+        invalid_lines = [x for x in self.meta_lines if x not in additions and len(x[0]) > 1]
+
+        for ln in invalid_lines:
+            self.lwexfl("Invalid column addition type.",
+                        "A column addition for 'H', 'R', or 'V'",
+                        f"A column addition for '{ln[0][1]}', whose type doesn't exist",
+                        ln)
+
+
         return additions
 
 
