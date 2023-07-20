@@ -615,14 +615,26 @@ class HapFile:
                                     line)
 
 
-    def determine_if_is_convertible(self, what : str, tp : type):
+    def determine_if_is_convertible(self, what : str, tp : type) -> bool:
         if tp == int:
             return what.isdigit()
 
         if tp == float:
-            return what.isnumeric()
+            return search(r"\d*\.?\d+$", what) != None
 
         return tp == str
+
+    #
+    # Extra field reordering
+    #
+
+    def reorder_extra_fields(self):
+        reordering_metalns = list(filter(
+            lambda line : line.count > 1 and search("order[H|R|V]", line[1]) != None,
+            self.meta_lines))
+
+        for line in reordering_metalns:
+            print(line.content)
 
 
     #
