@@ -580,7 +580,49 @@ class HapFile:
                 self.logger.warn(f"{TRAIL} Define haplotype '{haplotype}' or fix the variant haplotype reference")
 
 
+    #
+    # Extra field validation
+    #
+    
 
+    def validate_extra_fields(self):
+        for tp in range(HapFile.KEY_HAPLOTYPE, HapFile.KEY_VARIANT + 1):
+            excol_count = len(self.types_ex[tp])
+            lines = self.data[tp]
+
+            for line in lines:
+                rs = (5 if tp != HapFile.KEY_VARIANT else 6)
+                extras = line.count - rs
+                if extras != excol_count:
+                    self.lwexfl("Invalid amount of extra columns in line.",
+                        excol_count,
+                        extras,
+                        line)
+
+                    if extras < 0:
+                        self.lefl("There aren't even enough mandatory columns", line)
+
+                    self.warnskip(line)
+                    continue
+
+                for ptp, col in zip(self.types_ex[tp], line.columns[rs:]):
+                    conv = self.determine_if_is_convertible(col, ptp)
+
+                    if not conv:
+                        self.leexfl("Value in extra column is not convertible to the associated type",
+                                    f"A value that can be converted to a(n) {str(ptp)[8:-2]}",
+                                    col,
+                                    line)
+
+
+    def determine_if_is_convertible(self, what : str, tp : type):
+        if tp == int:
+            return what.isdigit()
+
+        if tp == float:
+            return what.isnumeric()
+
+        return tp == str
 
 
     #
@@ -625,10 +667,9 @@ def is_hapfile_valid(filename : str, sorted = True) -> bool:
     hapfile.validate_columns_fulfill_minreqs()
     hapfile.validate_variant_ids()
 
+    hapfile.validate_extra_fields()
+
     hapfile.validate_version_declarations()
-
-
-    
 
     return True
 
