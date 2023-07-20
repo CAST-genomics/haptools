@@ -11,6 +11,7 @@ TRAIL = "\n>>>"
 def tmpex(expectation : object, received : object) -> str:
     return f"Expected: {expectation}\nReceived: {received}"
 
+
 class Line:
 
 
@@ -497,6 +498,8 @@ class HapFile:
             self.warnskip(line)
             return
 
+        self.referenced_chromosomes.add(line[1])
+
         if line[4] in self.hrids[tp]:
             self.lwexfl("Duplicate ID.",
                         "A unique ID",
@@ -506,6 +509,13 @@ class HapFile:
 
             self.warnskip(line)
             return
+
+        if line[4] in self.referenced_chromosomes:
+            self.lefl(f"ID '{line[4]}' is already registered as a chromosome.",
+                      line)
+            self.warnskip(line)
+            return
+
 
         self.hrids[tp].update({line[4] : line})
 
@@ -527,6 +537,12 @@ class HapFile:
                         line)
             self.logger.warn(f"Originally defined at: line #{self.vrids[line[1]][line[4]].number}")
 
+            self.warnskip(line)
+            return
+
+        if line[4] in self.referenced_chromosomes:
+            self.lefl(f"ID '{line[4]}' is already registered as a chromosome.",
+                      line)
             self.warnskip(line)
             return
 
