@@ -1,463 +1,609 @@
-
-from pathlib import Path
-import re
-from sys import stderr, argv
-from os import R_OK, access
+import os
+from logging import Logger, getLogger
+from re import search
 
 
-def error_expected(what : str, got : str, linen : int) -> None:
-    print(f">>> Expected {what} but got {got}", file = stderr)
-    print(f">>> At line {linen}\n", file = stderr)
+VALHAP_LOGGER_NAME = "Hapfile Validation"
+LTS_SPEC = "0.2.0"
+TRAIL = "\n>>>"
 
 
-def error_expecting_cols(cols : list[str]) -> None:
-    print(f">>>>> Expecting: {cols}\n", file = stderr)
-
-
-def is_line_meta(line : str) -> bool:
-    return line.startswith("#")
-
-
-def is_line_regular(line : str) -> bool:
-    return not is_line_meta(line)
-
-
-def is_convertible_to_type(tp : type, what : str) -> bool:
-    if tp == int:
-        return what.isdigit()
-
-    elif tp == float:
-        return what.isdigit()
-
-    elif tp == str:
-        return True
-
-    return False
-
-
-
-def assert_file_exists(path : Path) -> None:
-    if (path.exists()):
-        return
-
-    print(f">>> Could not open {path}: The file does not exist", file = stderr)
-
-
-def assert_file_is_regular(path : Path) -> None:
-    if path.is_file():
-        return
-
-    print(f">>> Failed to read {path}: It is not a regular file.")
-    quit(1)
-
-
-def assert_file_is_readable(path : Path) -> None:
-    if access(path, R_OK):
-        return
-
-    print(f">>> Failed to read {path}:Not enough permissions.")
-    quit(1)
-
-
-def read_file_lines_protected(filename : str) -> list[str]:
-    content : list[str]
-    path : Path = Path(filename)
-
-    assert_file_exists(path)
-    assert_file_is_regular(path)
-    assert_file_is_readable(path)
-
-    buffer = open(path)
-
-    content = buffer.readlines()
-
-    buffer.close()
-
-    return content
-
-
-class Columns:
-
-
-    def __init__(self, content : list[str]):
-        self.content : list[str] = content
-        self.count   : int       = len(content)
-
-
-    def assert_length_eq(self, length : int) -> bool:
-        if self.count == length:
-            return True
-
-        return False
-
-
-    def assert_length_gte(self, length : int) -> bool:
-        if self.count >= length:
-            return True
-
-        return False
-
-
-    def get(self, index : int) -> str:
-        if index >= self.count:
-            return ""
-
-        return self.content[index]
-
+def tmpex(expectation : object, received : object) -> str:
+    return f"Expected: {expectation}\nReceived: {received}"
 
 class Line:
 
 
-    def __init__(self, number : int, content : str):
-        self.number  : int            = number
-        self.content : str            = content
-        self.columns : Columns | None = None
+    def __init__(self, content : str, number : int):
+        self.content : str       = content
+        self.number  : int       = number
 
-        self.fatal   : int = 0
-        self.warning : int = 0
-
-
-    def split_and_save(self) -> None:
-        self.columns = Columns(self.content.split())
+        self.columns : list[str] = content.split()
+        self.count   : int       = len(self.columns)
 
 
-    def as_columns(self) -> Columns:
-        if (self.columns == None):
-            self.split_and_save()
-            assert self.columns != None
-
-        return self.columns
+    def is_empty(self) -> bool:
+        return self.count == 0
 
 
-    def is_flawed(self) -> bool:
-        return self.is_wrong() or self.is_ill_formed()
+    def __getitem__(self, index : int) -> str:
+        return self.columns[index]
 
 
-    def is_wrong(self) -> bool:
-        return self.fatal > 0
+    def __str__(self) -> str:
+        return self.content
 
 
-    def is_ill_formed(self) -> bool:
-        return self.warning > 0
+class HapFileIO:
 
 
-    def err(self) -> None:
-        self.fatal += 1
+    def __init__(self, filename : str, logger : Logger = getLogger(VALHAP_LOGGER_NAME)):
+        self.filename = filename
+        self.logger = logger
 
-    
-    def warn(self) -> None:
-        self.warning += 1
 
-    def display_flaws_if_present(self) -> None:
-        if not self.is_flawed():
-            return
+    def lines(self, sorted : bool = True) -> list[Line]:
+        buffer  = open(self.filename)
 
-        print(f">>>>>>> {self.fatal} error(s) and {self.warning} warning(s) emmited for line #{self.number}", file = stderr)
-        print(f">>>>>>> {self.content}", file = stderr)
+        content = [Line(line.strip(), i + 1) for i, line in enumerate(buffer.readlines())]
+        content = list(filter(lambda line : not line.is_empty(), content))
+
+        buffer.close()
+
+        if not sorted:
+            meta_limit = next(idx  for idx, line in enumerate(content) if  not line[0].startswith('#'))
+            content    =     [line for idx, line in enumerate(content) if (not line[0].startswith('#')) or idx < meta_limit]
+
+        # lol
+        content.sort(key = lambda line : ord(line[0][0]))
+
+        return content
+
+
+    def validate_existence(self) -> bool:
+        if not self.exists():
+            self.logger.error(f"The file {self.filename} does not exist.")
+            return False
+
+        is_ok = True
+
+        if not self.is_regular():
+            self.logger.error(f"Cannot read {self.filename}: Is not a regular file.")
+            is_ok = False
+
+        if not self.is_readable():
+            self.logger.error(f"Cannot read {self.filename}: Insufficient permissions.")
+            is_ok = False
+
+        return is_ok
+
+
+    def exists(self) -> bool:
+        return os.path.exists(self.filename)
+
+
+    def is_regular(self):
+        return os.path.isfile(self.filename)
+
+
+    def is_readable(self) -> bool:
+        return os.access(self.filename, os.R_OK)
 
 
 class HapFile:
 
 
-    KEYWORD_VERSION       = r"version"
-    KEYWORD_VERSION_REGEX = r"\d+\.\d+\.\d+"
-    KEYWORD_ORDER_REGEX   = r"order."
+    # H CHROM START END ID
+    MANDATORY_HAPLOTYPE_COLUMN_COUNT : int = 5
 
-    NONE      : int = 0
-    HAPLOTYPE : int = 1
-    REPEAT    : int = 2
-    VARIANT   : int = 3
+    # R CHROM START END ID LN
+    MANDATORY_REPEAT_COLUMN_COUNT    : int = 5
 
-    MANDATORY_COLUMNS_HAPLOTYPE   : int = 5
-    MANDATORY_COLUMNS_REPEAT      : int = 5
-    MANDATORY_COLUMNS_VARIANT     : int = 6
-    MANDATORY_COLUMNS_FIELD_DEF   : int = 3
-    MANDATORY_COLUMNS_VERSION_DEF : int = 3
+    # V CHROM START END ID CHROM LN
+    MANDATORY_VARIANT_COLUMN_COUNT   : int = 6
 
-    KEY_LINE_TYPE      = "HT_LINE_TYPE"
-    KEY_CHROMOSOME_ID  = "HT_CHROMOSOME_ID"
-    KEY_START_POSITION = "HT_START_POSITION"
-    KEY_END_POSITION   = "HT_END_POSITION"
-    KEY_ID             = "HT_ID"
-    KEY_ALLELE         = "HT_ALLELE"
+    # # version <version>
+    MANDATORY_VERSION_COLUMNS        : int = 3
 
+    # #X Name Type [Description]
+    MANDATORY_DEFINITION_COLUMNS = 3
 
-    CHARACTER_TYPE_ASSOCIATIONS : dict[str, int] = {
-        "H" : HAPLOTYPE,
-        "R" : REPEAT,
-        "V" : VARIANT
+    KEY_HAPLOTYPE   : int = 0
+    KEY_REPEAT      : int = 1
+    KEY_VARIANT     : int = 2
+    KEY_VARIANT_SRC : int = 9
+
+    NAME_HAPLOTYPE = "Haplotype"
+    NAME_REPEAT    = "Repeat"
+    NAME_VARIANT   = "Variant"
+
+    KEY_KEY        : str = "HT::Key"
+    KEY_CHROMOSOME : str = "HT::Chromosome"
+    KEY_START      : str = "HT::Start"
+    KEY_END        : str = "HT::End"
+    KEY_ID         : str = "HT::ID"
+    KEY_ALLELE     : str = "HT::Allele"
+
+    DEFAULT_HEADER : dict[int, dict[str, type]] = {
+        KEY_HAPLOTYPE : {},
+        KEY_REPEAT    : {},
+        KEY_VARIANT   : {}
     }
 
-    CHARACTER_PYTYPE_ASSOCIATIONS : dict[str, type] = {
-        "d" : int,
-        "f" : float,
-        "s" : str,
+    EMPTY_TYPES : dict[int, list[type]] = {
+        KEY_HAPLOTYPE : [],
+        KEY_REPEAT    : [],
+        KEY_VARIANT   : []
     }
 
-
-    DEFAULT_HEADER : dict[int, list[tuple[str, type]]] = {
-        HAPLOTYPE: [
-            (KEY_LINE_TYPE,      str),
-            (KEY_CHROMOSOME_ID,  str),
-            (KEY_START_POSITION, int),
-            (KEY_END_POSITION,   int),
-            (KEY_ID,             str)
-        ],
-
-        REPEAT: [
-            (KEY_LINE_TYPE,      str),
-            (KEY_CHROMOSOME_ID,  str),
-            (KEY_START_POSITION, int),
-            (KEY_END_POSITION,   int),
-            (KEY_ID,             str)
-        ],
-
-        VARIANT: [
-            (KEY_LINE_TYPE,      str),
-            (KEY_CHROMOSOME_ID,  str),
-            (KEY_START_POSITION, int),
-            (KEY_END_POSITION,   int),
-            (KEY_ID,             str),
-            (KEY_ALLELE,         str)
-        ]
+    EMPTY_DATA : dict[int, list[Line]] = {
+            KEY_HAPLOTYPE : [],
+            KEY_REPEAT    : [],
+            KEY_VARIANT   : []
     }
 
-    DEFAULT_TABLE : dict[int, list[list[str]]] = {
-        HAPLOTYPE : [],
-        REPEAT    : [],
-        VARIANT   : []
+    EMPTY_HRIDS : dict[int, dict[str, Line]] = {
+            KEY_HAPLOTYPE   : {},
+            KEY_REPEAT      : {},
     }
 
-    @staticmethod
-    def get_associated_hapfile_type_from_str(s : str) -> int | None:
-        return HapFile.CHARACTER_TYPE_ASSOCIATIONS.get(s.upper())
+    EMPTY_VRIDS : dict[str, dict[str, Line]] = {
+    }
 
-    @staticmethod
-    def get_associated_pytype_from_str(s : str) -> type | None:
-        return HapFile.CHARACTER_PYTYPE_ASSOCIATIONS.get(s[len(s) - 1])
+    EMPTY_META : list[Line] = []
 
 
-    def __init__(self):
-        self.header  : dict[int, list[tuple[str, type]]] = HapFile.DEFAULT_HEADER
-        self.tensor  : dict[int, list[list[str]]]        = HapFile.DEFAULT_TABLE
-        self.version : str | None = None
+    def __init__(self, logger : Logger = getLogger(VALHAP_LOGGER_NAME)):
+        self.logger : Logger = logger
 
-        self.fatal_errors : int = 0
-        self.warnings     : int = 0
+        self.vars_ex  : dict[int, dict[str, type]] = HapFile.DEFAULT_HEADER
+        self.types_ex : dict[int, list[type]]      = HapFile.EMPTY_TYPES
 
+        self.meta : list[Line]            = HapFile.EMPTY_META
+        self.data : dict[int, list[Line]] = HapFile.EMPTY_DATA
 
-    #
-    # Reading
-    #
+        self.hrids : dict[int, dict[str, Line]] = HapFile.EMPTY_HRIDS
+        self.vrids : dict[str, dict[str, Line]] = HapFile.EMPTY_VRIDS
 
-
-    def read_file(self, filename : str) -> None:
-        file_content = read_file_lines_protected(filename)
-
-        header_lines : list[Line] = []
-        data_lines   : list[Line] = []
-
-        linen = 0
-
-        for line in file_content:
-            linen += 1
-
-            if line.isspace(): continue
-
-            if is_line_meta(line):
-                header_lines.append(Line(linen, line))
-            else:
-                data_lines.append(Line(linen, line))
+        self.referenced_chromosomes : set[str] = set()
 
 
-        self.read_into_header(header_lines)
-        self.read_into_matrix(data_lines)
+    def extract_and_store_content(self, file : HapFileIO, sorted : bool = True):
+        lines = file.lines(sorted = sorted)
+
+        self.extract_meta_lines(lines)
+        self.extract_data_lines(lines)
+
+
+    def extract_meta_lines(self, lines : list[Line]):
+        header_limit    = next(i for i, line in enumerate(lines) if not line[0].startswith('#'))
+        self.meta_lines = lines[:header_limit]
+
+
+    def extract_data_lines(self, lines : list[Line]):
+        limits = [0, 0, 0]
+        for i, char in enumerate(['H', 'R', 'V']):
+            limits[i] = next(i for i, line in enumerate(lines) if line[0].startswith(char))
+
+        ln = [lines[limits[0] : limits[1]], lines[limits[1] : limits[2]], lines[limits[2] : ]]
+
+        for i in range(HapFile.KEY_HAPLOTYPE, HapFile.KEY_VARIANT + 1):
+            self.data[i] = ln[i]
 
 
     #
-    # Header
+    # Version Validation
     #
+    
+    def validate_version_declarations(self):
+        versions = self.extract_version_declarations()
+        if len(versions) == 0:
+            self.logger.warn(f"{TRAIL} No version declaration found. Assuming to use the latest version.")
+
+        for version in versions:
+            self.validate_version_format(version)
 
 
-    def read_into_header(self, values : list[Line]) -> None:
-        for line in values:
-            self.parse_meta_line(line)
-            line.display_flaws_if_present()
+    def extract_version_declarations(self) -> list[Line]:
+        decls = list(filter(lambda x : x.count > 1 and x[1] == "version", self.meta_lines))
+
+        if len(decls) > 1:
+            self.logger.warn(f"{TRAIL} Found more than one "
+                             "version declaration.")
+
+            for decl in decls:
+                self.lwfl("", decl, sep = "")
+
+        return decls
 
 
-    def parse_meta_line(self, line : Line):
-        columns : Columns = line.as_columns()
+    def validate_version_format(self, version : Line):
+        if version.count < 3:
+            self.leexfl("Not enough columns in version declaration",
+                        HapFile.MANDATORY_DEFINITION_COLUMNS,
+                        version.count,
+                        version)
+            self.logger.warning(f"Skipping line #{version.number}")
 
-        if len(columns.get(0)) < 2:
-            self.parse_comment_or_meta(line)
-
-        else:
-            self.parse_column_addition(line)
-
-    #
-    # C1 Is Just "#"
-    #
-
-
-    def parse_comment_or_meta(self, line : Line) -> None:
-        columns : Columns = line.as_columns()
-
-        if columns.count < 2: return
-        metatype_column = columns.get(1)
-
-        if metatype_column == HapFile.KEYWORD_VERSION:
-            self.parse_version(line)
-
-        elif re.search(HapFile.KEYWORD_ORDER_REGEX, metatype_column):
-            self.set_column_order(line)
-
-
-    #
-    # Version Key Present
-    #
-
-
-    def parse_version(self, line: Line) -> None:
-        columns = line.as_columns()
-
-        s = columns.assert_length_eq(HapFile.MANDATORY_COLUMNS_VERSION_DEF)
-        if not s:
-            line.err()
-            error_expected(f"{HapFile.MANDATORY_COLUMNS_VERSION_DEF} columns for version definition", str(columns.count), line.number)
-            error_expecting_cols(["Hash (#)", "version", "<x.x.x>"])
-            self.skip_due_to_errors_emmited(line)
             return
 
-        version = line.as_columns().get(2)
-        if (re.search(HapFile.KEYWORD_VERSION_REGEX, version)) == None:
-            error_expected("a version whose format conforms to \"x.x.x\" where \"x\" is an integer", f"\"{version}\"", line.number)
-            line.warn()
-
-        self.version = version
-
-    #
-    # orderX present
-    #
-
-
-    def set_column_order(self, line : Line) -> None:
-        columns : Columns = line.as_columns()
-
-        order_x          = columns.get(1)
-        hapfile_type_str = order_x[5:]
-
-        tp = HapFile.CHARACTER_TYPE_ASSOCIATIONS.get(hapfile_type_str)
-
-        if (tp == None):
-            error_expected(f"one of {list(HapFile.CHARACTER_TYPE_ASSOCIATIONS.keys())} as the type for an order definition", f"\"{hapfile_type_str}\"", line.number)
-
-        print("CALL set_column_order <UNIMPLEMENTED>")
+        if search(r"\d+\.\d+\.\d+", version[2]) == None:
+            self.lwexfl("Version is incorrectly formatted",
+                        "'x.x.x' where 'x' is an integer",
+                        version[2],
+                        version)
 
 
     #
-    # C1 is #[...]
+    # Column additions
     #
 
 
-    def parse_column_addition(self, line: Line) -> None:
-        columns : Columns = line.as_columns()
+    def validate_column_additions(self):
+        additions = self.find_column_additions()
 
-        success = columns.assert_length_gte(HapFile.MANDATORY_COLUMNS_FIELD_DEF)
-        if not success:
-            line.err()
-            error_expected(f"{HapFile.MANDATORY_COLUMNS_FIELD_DEF} columns for extra field definition", str(columns.count), line.number)
-            error_expecting_cols(["Hash & Type (#X)", "Name", "Data Type Format (s, d, .xf)", "Optional Description"])
-            self.skip_due_to_errors_emmited(line)
+        for i, k in enumerate(["#H", "#R", "#V"]):
+            self.add_column_additions_to_header(i, list(filter(
+                lambda line: line[0] == k,
+                additions)))
+
+
+    def find_column_additions(self) -> list[Line]:
+        additions = list(filter(
+            lambda line : search(r"#[H|R|V]", line[0]) != None,
+            self.meta_lines))
+
+        return additions
+
+
+    def add_column_additions_to_header(self, tp : int, additions : list[Line]):
+        for addition in additions:
+            if addition.count < 3:
+                self.lwexfl("Insufficient columns for extra column definition",
+                            HapFile.MANDATORY_DEFINITION_COLUMNS,
+                            addition.count,
+                            addition)
+                self.warnskip(addition)
+                return
+
+            ptp = self.retrieve_column_addition_data_type(addition)
+
+            if ptp == object:
+                self.warnskip(addition)
+                continue
+
+            self.vars_ex[tp].update({addition[1] : ptp})
+            self.types_ex[tp].append(ptp)
+
+
+    def retrieve_column_addition_data_type(self, addition : Line) -> type:
+        tp = addition[2]
+
+        if tp == "d":
+            return int
+
+        if search(r"\.\d+f", addition.content) != None:
+            return float
+
+        if tp == "s":
+            return str
+
+        self.lwexfl("Could not parse type for column addition",
+                    "One of: 'd', 's', '.xf' (where 'x' is an integer)",
+                    f"{addition[2]}",
+                    addition)
+
+        return object
+            
+
+    #
+    # Minimum Requirements
+    #
+
+
+    def validate_columns_fulfill_minreqs(self):
+        self.validate_haplotypes()
+        self.validate_repeats()
+        self.validate_variants()
+
+
+    def validate_haplotypes(self):
+        for line in self.data[HapFile.KEY_HAPLOTYPE]:
+            has_min_cols = self.check_has_min_cols(line,
+                HapFile.MANDATORY_HAPLOTYPE_COLUMN_COUNT)
+
+            self.check_start_and_end_positions(line)
+
+            if not has_min_cols:
+                self.lwexfl("Cannot check for variant references: Insufficient columns",
+                            "A mandatory 5 columns for haplotyes",
+                            line.count,
+                            line)
+                self.warnskip(line)
+
+                return
+
+            variant_refs = self.vrids.get(line[4])
+
+            if variant_refs == None:
+                self.lwexfl(f"Haplotype ID '{line[4]}' is not associated to any variants",
+                            f"A variant association for Haplotype ID '{line[4]}'",
+                            "No association",
+                            line)
+                return
+
+
+    def validate_repeats(self):
+        for line in self.data[HapFile.KEY_REPEAT]:
+            self.check_has_min_cols(line,
+                HapFile.MANDATORY_REPEAT_COLUMN_COUNT)
+
+            self.check_start_and_end_positions(line)
+
+
+    def validate_variants(self):
+        for line in self.data[HapFile.KEY_VARIANT]:
+            self.check_has_min_cols(line,
+                HapFile.MANDATORY_VARIANT_COLUMN_COUNT)
+
+            self.check_start_and_end_positions(line)
+            self.check_variant_alleles(line)
+    
+
+    def check_has_min_cols(self, line : Line, min : int) -> bool:
+        if line.count < min:
+            self.lwexfl("Invalid amount of mandatory columns in definition.",
+                        f"At least {min}",
+                        line.count,
+                        line)
+            return False
+
+        return True
+
+
+    def check_start_and_end_positions(self, line : Line):
+        if line.count < 3:
+            self.lefl("Cannot validate start and end positions: Insufficient columns",
+                      line)
+            self.warnskip(line)
             return
 
-        hapfile_type_str = columns.get(0)[1:]
-        hapfile_type     = HapFile.get_associated_hapfile_type_from_str(hapfile_type_str)
+        f = False
 
-        if (hapfile_type == None):
-            line.warn()
-            error_expected(f"one of {list(HapFile.CHARACTER_TYPE_ASSOCIATIONS.keys())} for the line type when adding an extra field", f"\"{hapfile_type_str}\"", line.number)
+        if not line[2].isdigit():
+            self.leexfl("Cannot convert start position to integer",
+                        "Integer values for the start position",
+                        line[2],
+                        line)
+            f = True
 
-        python_type = HapFile.get_associated_pytype_from_str(columns.get(2))
+        if not line[3].isdigit():
+            self.leexfl("Cannot convert end position to integer",
+                        "Integer values for the end position",
+                        line[3],
+                        line)
+            f = True
 
-        if python_type == None:
-            line.warn()
-            error_expected(f"one of {list(HapFile.CHARACTER_PYTYPE_ASSOCIATIONS.keys())} for the data type when adding an extra field", f"\"{columns.get(2)}\"", line.number)
-
-        if (line.is_flawed()):
-            self.skip_due_to_errors_emmited(line)
+        if f:
+            self.lwfl("Cannot test for correct position order due to previous errors (Inconvertible integers)",
+                      line)
+            self.warnskip(line)
             return
 
-        assert hapfile_type != None
-        assert python_type  != None
+        start = int(line[2])
+        end   = int(line[3])
 
-        self.header[hapfile_type].append((columns.get(1), python_type))
+        if start > end:
+            self.lwexfl("Start position is greater than the end position",
+                        f"Start to be positioned at or before the end",
+                        f"{start} > {end} | Difference of {start - end}",
+                        line)
+
+        if line.count < 5:
+            self.lwexfl("Cannot perform position validations against variant definitions: Insufficient columns.",
+                5,
+                line.count,
+                line)
+            self.warnskip(line)
+            return
+        
+        variant_refs = self.vrids.get(line[4])
+
+        if variant_refs == None:
+            return
+
+        for id, ln in variant_refs.items():
+            if not ln[2].isdigit():
+                self.lwexfl("Variant start position cannot be converted to an integer.",
+                            "An integer",
+                            ln[2],
+                            ln)
+                self.warnskip(line)
+                return
+
+            if not ln[3].isdigit():
+                self.lwexfl("Variant end position cannot be converted to an integer.",
+                            "An integer",
+                            ln[3],
+                            ln)
+                self.warnskip(line)
+                return
+
+            vstart = int(ln[2])
+            vend = int(ln[3])
+
+            if vstart < start:
+                self.lwexfl("Variant start position cannot be prior to the start position of its haplotype.",
+                    "The variant to start after or when the haplotype does",
+                    f"[Variant] {vstart} < [Haplotype] {start} | Difference of {start - vstart}",
+                    line)
+                self.logger.warn(f"At Line #{ln.number}: {ln}")
+
+            if vend > end:
+                self.lwexfl("Variant end position cannot be after than the end position of its haplotype.",
+                    "The variant to end before or when the haplotype does",
+                    f"[Variant] {vend} > [Haplotype] {end} | Difference of {vend - end}",
+                    line)
+                self.logger.warn(f"At Line #{ln.number}: {ln}")
+
+
+    def check_variant_alleles(self, line : Line):
+        if line.count < HapFile.MANDATORY_VARIANT_COLUMN_COUNT:
+            self.lwexfl("Cannot test for variant allele type: Not enough columns.",
+                        HapFile.MANDATORY_VARIANT_COLUMN_COUNT,
+                        line.count,
+                        line)
+            self.warnskip(line)
+            return
+
+        if line[5].upper() not in ["A", "C", "G", "T"]:
+            self.lwexfl("Invalid allele type in variant.",
+                        "One of 'A', 'C', 'G', 'T'",
+                        f"'{line[5]}'",
+                        line)
 
 
     #
-    # Matrix
+    # ID Storage
     #
+
+
+    def store_ids(self):
+        for tp in range(2):
+            for line in self.data[tp]:
+                self.store_hrid(tp, line)
+
+        for line in self.data[HapFile.KEY_VARIANT]:
+            self.store_variant_id(line)
+
+
+    def store_hrid(self, tp : int, line : Line):
+        should_skip = False
+        if line.count < 2:
+            self.lwexfl("Cannot extract chromosome ID: Insufficient columns.",
+                        "At least 1 column",
+                        line.count,
+                        line)
+            should_skip = True
+
+        if line.count < 5:
+            self.lwexfl("Cannot extract ID: Insufficient columns.",
+                f"At least 5 for ID extraction",
+                line.count,
+                line)
+            should_skip = True
+
+        if should_skip:
+            self.warnskip(line)
+            return
+
+        if line[4] in self.hrids[tp]:
+            self.lwexfl("Duplicate ID.",
+                        "A unique ID",
+                        f"'{line[4]}'",
+                        line)
+            self.logger.warn(f"Originally defined at: line #{self.hrids[tp][line[4]].number}")
+
+            self.warnskip(line)
+            return
+
+        self.hrids[tp].update({line[4] : line})
+
+
+    def store_variant_id(self, line : Line):
+        if line.count < 5:
+            self.lwexfl("Cannot extract ID: Insufficient columns.",
+                f"At least 5 for ID extraction",
+                line.count,
+                line)
+
+        if not line[1] in self.vrids.keys():
+            self.vrids.update({line[1] : {}})
+
+        if line[4] in self.vrids[line[1]].keys():
+            self.lwexfl("Duplicate variant in for a same haplotype ID.",
+                        "A unique ID per haplotype",
+                        f"'{line[4]}'",
+                        line)
+            self.logger.warn(f"Originally defined at: line #{self.vrids[line[1]][line[4]].number}")
+
+            self.warnskip(line)
+            return
+
+        self.vrids[line[1]].update({line[4] : line})
+
+
+    #
+    # Variant Validation
+    #
+
+
+    def validate_variants_against_haplotypes(self):
+        self.validate_variant_ids()
+
+
+    def validate_variant_ids(self):
+        for haplotype, ids in self.vrids.items():
+            no_haplotype = False
+            for id, line in ids.items():
+                if haplotype not in self.hrids[HapFile.KEY_HAPLOTYPE].keys():
+                    self.lefl(f"Cannot link variant '{id}' to non-exisent haplotype '{haplotype}'", line)
+                    no_haplotype = True
+                    continue
+
+            if no_haplotype:
+                self.logger.warn(f"{TRAIL} Define haplotype '{haplotype}' or fix the variant haplotype reference")
+
+
+
+
+
+    #
+    # Logging
+    #
+
+    def lefl(self, msg : str, line : Line, sep : str = "\n"):
+        self.logger.error(f"{TRAIL} {msg}{sep}At line #{line.number}: {line}")
+
+
+    def lwfl(self, msg : str, line : Line, sep : str = "\n"):
+        self.logger.warn(f"{TRAIL} {msg}{sep}At line #{line.number}: {line}")
+
+
+    def lwexfl(self, msg : str, exp : object, rec : object, line : Line, sep : str = "\n"):
+        self.logger.warning(
+            f"{TRAIL} {msg}{sep}{tmpex(exp, rec)}{sep}At line #{line.number}: {line}")
+
+    def leexfl(self, msg : str, exp : object, rec : object, line : Line, sep : str = "\n"):
+        self.logger.error(
+            f"{TRAIL} {msg}{sep}{tmpex(exp, rec)}{sep}At line #{line.number}: {line}")
+
+
+    def warnskip(self, line : Line):
+        self.logger.warning(f"Skipping line #{line.number}")
+
+
+def is_hapfile_valid(filename : str, sorted = True) -> bool:
+    file = HapFileIO(filename)
+    is_readable = file.validate_existence()
+
+    if not is_readable:
+        return False
+
+    hapfile = HapFile()
+    hapfile.extract_and_store_content(file, sorted = sorted)
+
+    hapfile.store_ids()
+
+    hapfile.validate_column_additions()
+
+    hapfile.validate_columns_fulfill_minreqs()
+    hapfile.validate_variant_ids()
+
+    hapfile.validate_version_declarations()
+
 
     
-    def read_into_matrix(self, values : list[Line]) -> None:
-        for line in values:
-            self.parse_data_line(line)
-            line.display_flaws_if_present()
 
-
-    def parse_data_line(self, line : Line) -> None:
-        columns = line.as_columns()
-
-        hapfile_type_str : str | None = columns.get(0)
-        hapfile_type                  = self.get_associated_hapfile_type_from_str(hapfile_type_str)
-
-        if hapfile_type == None:
-            line.err()
-            error_expected(f"one of {list(HapFile.CHARACTER_TYPE_ASSOCIATIONS.keys())} when defining data", hapfile_type_str, line.number)
-            return
-
-        self.store_line_into_matrix(hapfile_type, line)
-        self.validate_line_in_matrix(hapfile_type, line)
-
-
-    def store_line_into_matrix(self, hftp : int, line : Line):
-        columns     : Columns                = line.as_columns()
-        type_header : list[tuple[str, type]] = self.header[hftp]
-
-        if (columns.count != len(type_header)):
-            line.warn()
-
-            hftpci : int = list(HapFile.CHARACTER_TYPE_ASSOCIATIONS.values()).index(hftp)
-            hftpc  : str = list(HapFile.CHARACTER_TYPE_ASSOCIATIONS.keys())[hftpci]
-
-            error_expected(f"{len(type_header)} columns for \"{hftpc}\" entry", str(columns.count), line.number)
-
-        matrix = self.tensor[hftp]
-        matrix.append(columns.content)
-
-
-    def validate_line_in_matrix(self, hftp : int, line : Line):
-        columns     : Columns                = line.as_columns()
-        type_header : list[tuple[str, type]] = self.header[hftp]
-
-        if line.is_flawed():
-            self.skip_due_to_errors_emmited(line)
-            return
-
-        for i, col in enumerate(type_header):
-            entry = columns.content[i]
-
-            if not is_convertible_to_type(col[1], entry):
-                error_expected(f"a(n) {str(col[1])[7:-1]} for column \"{col[0]}\"", entry, line.number)
-                line.warn()
-
-
-
-    #
-    # Extra
-    #
-
-
-    def skip_due_to_errors_emmited(self, line : Line) -> None:
-        print(f">>>>> Skipping line #{line.number}.", file = stderr)
-
+    return True
 
