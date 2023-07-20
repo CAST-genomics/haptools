@@ -46,10 +46,7 @@ def test_getLogger_with_exact_time():
 
     logger = getLogger()
     formatter = logger.handlers[0].formatter
-    if sys.version_info >= (3, 8):
-        assert "%(msecs)" in formatter._fmt
-    else:
-        assert "%(msecs)" not in formatter._fmt
+    assert "%(msecs)" not in formatter._fmt
 
 
 def test_getLogger_with_index_name():
