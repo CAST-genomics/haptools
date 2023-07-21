@@ -200,17 +200,16 @@ class HapFile:
         versions = self.extract_version_declarations()
         if len(versions) == 0:
             self.logger.warn(f"{TRAIL} No version declaration found. Assuming to use the latest version.")
+            return
 
-        for version in versions:
-            self.validate_version_format(version)
+        self.validate_version_format(versions[-1])
 
 
     def extract_version_declarations(self) -> list[Line]:
         decls = list(filter(lambda x : x.count > 1 and x[1] == "version", self.meta_lines))
 
         if len(decls) > 1:
-            self.logger.warn(f"{TRAIL} Found more than one "
-                             "version declaration.")
+            self.logger.warn(f"{TRAIL} Found more than one version declaration. Using the last instance.")
 
             for decl in decls:
                 self.lwfl("", decl, sep = "")
@@ -633,8 +632,45 @@ class HapFile:
             lambda line : line.count > 1 and search("order[H|R|V]", line[1]) != None,
             self.meta_lines))
 
-        for line in reordering_metalns:
-            print(line.content)
+        for i, c in enumerate(['H', 'R', 'V']):
+            relevant = list(filter(lambda line : line[1][5] == c, reordering_metalns))
+
+            if len(relevant) == 0:
+                continue
+
+            if len(relevant) > 1:
+                self.logger.warn(f"Found multiple order{c} definition lines. Using the last available one.")
+
+            ln = relevant[-1]
+
+            self.reorder_field_types(i, ln)
+
+
+    def reorder_field_types(self, tp : int, line : Line):
+        extpc = len(self.vars_ex[tp].keys())
+        exclc = line.count - 2
+
+        if (extpc != exclc):
+            self.leexfl("Not enough columns in extra column reordering",
+                extpc,
+                exclc,
+                line)
+            self.warnskip(line)
+            return
+
+        s = False
+        for col in line.columns[2:]:
+            if not col in self.vars_ex[tp]:
+                self.lefl(f"{col} has not been defined as an extra colunm", line)
+                s = True
+
+        if s:
+            self.warnskip(line)
+            return
+
+        self.types_ex[tp].clear()
+        for col in line.columns[2:]:
+            self.types_ex[tp].append(self.vars_ex[tp][col])
 
 
     #
@@ -678,6 +714,8 @@ def is_hapfile_valid(filename : str, sorted = True) -> bool:
 
     hapfile.validate_columns_fulfill_minreqs()
     hapfile.validate_variant_ids()
+
+    hapfile.reorder_extra_fields()
 
     hapfile.validate_extra_fields()
 
