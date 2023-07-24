@@ -1040,7 +1040,9 @@ def clump(
     type=click.Path(path_type=Path),
     default=None,
     show_default="optional .pvar file to compare against",
-    help="A .pvar file containing variant IDs in order to compare them to the .hap file",
+    help=(
+        "A .pvar file containing variant IDs in order to compare them to the .hap file"
+    ),
 )
 @click.option(
     "-v",
@@ -1056,13 +1058,14 @@ def validate_hapfile(
     genotypes: Path | None = None,
     verbosity: str = "DEBUG",
 ):
-
     from haptools import val_hapfile
     from .logging import getLogger
 
-    log = getLogger(name="validate-hapfile", level = verbosity)
+    log = getLogger(name="validate-hapfile", level=verbosity)
 
-    is_valid = val_hapfile.is_hapfile_valid(filename, sorted=sort, logger=log, pgen=genotypes)
+    is_valid = val_hapfile.is_hapfile_valid(
+        filename, sorted=sort, logger=log, pgen=genotypes
+    )
 
     if not is_valid:
         log.warn("Found several warnings and / or errors in the hapfile")

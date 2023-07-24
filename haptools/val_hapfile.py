@@ -96,8 +96,8 @@ class HapFileIO:
 
 
 class HapFileValidator:
-    errc : int = 0
-    warc : int = 0
+    errc: int = 0
+    warc: int = 0
 
     # H CHROM START END ID
     MANDATORY_HAPLOTYPE_COLUMN_COUNT: int = 5
@@ -130,37 +130,37 @@ class HapFileValidator:
     KEY_ID: str = "HT::ID"
     KEY_ALLELE: str = "HT::Allele"
 
-    #DEFAULT_HEADER: dict[int, dict[str, type]] = {
+    # DEFAULT_HEADER: dict[int, dict[str, type]] = {
     DEFAULT_HEADER: dict = {
         KEY_HAPLOTYPE: {},
         KEY_REPEAT: {},
         KEY_VARIANT: {},
     }
 
-    #EMPTY_TYPES: dict[int, list[type]] = {
+    # EMPTY_TYPES: dict[int, list[type]] = {
     EMPTY_TYPES: dict = {
         KEY_HAPLOTYPE: [],
         KEY_REPEAT: [],
         KEY_VARIANT: [],
     }
 
-    #EMPTY_DATA: dict[int, list[Line]] = {
+    # EMPTY_DATA: dict[int, list[Line]] = {
     EMPTY_DATA: dict = {
         KEY_HAPLOTYPE: [],
         KEY_REPEAT: [],
         KEY_VARIANT: [],
     }
 
-    #EMPTY_HRIDS: dict[int, dict[str, Line]] = {
+    # EMPTY_HRIDS: dict[int, dict[str, Line]] = {
     EMPTY_HRIDS: dict = {
         KEY_HAPLOTYPE: {},
         KEY_REPEAT: {},
     }
 
-    #EMPTY_VRIDS: dict[str, dict[str, Line]] = {}
+    # EMPTY_VRIDS: dict[str, dict[str, Line]] = {}
     EMPTY_VRIDS: dict = {}
 
-    #EMPTY_META: list[Line] = []
+    # EMPTY_META: list[Line] = []
     EMPTY_META: list = []
 
     def __init__(self, logger=None):
@@ -193,10 +193,12 @@ class HapFileValidator:
         ln = [
             [ln for ln in lines if ln[0].startswith("H")],
             [ln for ln in lines if ln[0].startswith("R")],
-            [ln for ln in lines if ln[0].startswith("V")]
+            [ln for ln in lines if ln[0].startswith("V")],
         ]
 
-        for i in range(HapFileValidator.KEY_HAPLOTYPE, HapFileValidator.KEY_VARIANT + 1):
+        for i in range(
+            HapFileValidator.KEY_HAPLOTYPE, HapFileValidator.KEY_VARIANT + 1
+        ):
             self.data[i] = ln[i]
 
     #
@@ -207,8 +209,7 @@ class HapFileValidator:
         versions = self.extract_version_declarations()
         if len(versions) == 0:
             self.log.warn(
-                f"No version declaration found. Assuming to use the latest"
-                " version."
+                f"No version declaration found. Assuming to use the latest version."
             )
             HapFileValidator.warc += 1
             return
@@ -223,7 +224,7 @@ class HapFileValidator:
         if len(decls) > 1:
             self.log.warn(
                 f"Found more than one version declaration. Using the last"
-                " instance. Each is its own warning."
+                f" instance. Each is its own warning."
             )
 
             for decl in decls:
@@ -328,7 +329,7 @@ class HapFileValidator:
             f"{addition[2]}",
             addition,
         )
-        
+
         HapFileValidator.errc += 1
         return object
 
@@ -376,13 +377,17 @@ class HapFileValidator:
 
     def validate_repeats(self):
         for line in self.data[HapFileValidator.KEY_REPEAT]:
-            self.check_has_min_cols(line, HapFileValidator.MANDATORY_REPEAT_COLUMN_COUNT)
+            self.check_has_min_cols(
+                line, HapFileValidator.MANDATORY_REPEAT_COLUMN_COUNT
+            )
 
             self.check_start_and_end_positions(line)
 
     def validate_variants(self):
         for line in self.data[HapFileValidator.KEY_VARIANT]:
-            self.check_has_min_cols(line, HapFileValidator.MANDATORY_VARIANT_COLUMN_COUNT)
+            self.check_has_min_cols(
+                line, HapFileValidator.MANDATORY_VARIANT_COLUMN_COUNT
+            )
 
             self.check_start_and_end_positions(line)
             self.check_variant_alleles(line)
@@ -686,7 +691,9 @@ class HapFileValidator:
     #
 
     def validate_extra_fields(self):
-        for tp in range(HapFileValidator.KEY_HAPLOTYPE, HapFileValidator.KEY_VARIANT + 1):
+        for tp in range(
+            HapFileValidator.KEY_HAPLOTYPE, HapFileValidator.KEY_VARIANT + 1
+        ):
             excol_count = len(self.types_ex[tp])
             lines = self.data[tp]
 
@@ -784,18 +791,21 @@ class HapFileValidator:
 
         if s:
             self.warnskip(line)
-            return 
+            return
 
         self.types_ex[tp].clear()
         for col in line.columns[2:]:
             self.types_ex[tp].append(self.vars_ex[tp][col])
 
-
-    def compare_haps_to_pvar(self, var_ids : list[str], underscores_to_semicolons : bool = False):
-        ids : set[tuple[str, Line]] = set()
+    def compare_haps_to_pvar(
+        self, var_ids: list[str], underscores_to_semicolons: bool = False
+    ):
+        ids: set[tuple[str, Line]] = set()
         for chrom, dt in self.vrids.items():
             for k, l in dt.items():
-                ids.add((k if not underscores_to_semicolons else k.replace("_", ":"), l))
+                ids.add(
+                    (k if not underscores_to_semicolons else k.replace("_", ":"), l)
+                )
 
         for id, l in ids:
             if id not in var_ids:
@@ -827,12 +837,17 @@ class HapFileValidator:
         self.log.warning(f"Skipping line #{line.number}")
 
 
-def is_hapfile_valid(filename: Path, sorted : bool = True,  pgen : Path | None = None, max_variants : int = 10000, logger = None) -> bool:
+def is_hapfile_valid(
+    filename: Path,
+    sorted: bool = True,
+    pgen: Path | None = None,
+    max_variants: int = 10000,
+    logger=None,
+) -> bool:
     log = logger
 
     if log == None:
         log = logging.getLogger(LOGGER_NAME)
-
 
     file = HapFileIO(filename, logger=log)
     errc = 0
@@ -860,12 +875,14 @@ def is_hapfile_valid(filename: Path, sorted : bool = True,  pgen : Path | None =
 
     if pgen != None:
         varfile = GenotypesPLINK(pgen)
-        varfile.read_variants(max_variants = 1000)
+        varfile.read_variants(max_variants=1000)
 
-        ids = list(map(lambda v : v[0], varfile.variants))
+        ids = list(map(lambda v: v[0], varfile.variants))
         hapfile.compare_haps_to_pvar(ids)
 
-    log.info(f"Completed HapFile validation with {HapFileValidator.errc} errors and {HapFileValidator.warc} warnings.")
+    log.info(
+        f"Completed HapFile validation with {HapFileValidator.errc} errors and"
+        f" {HapFileValidator.warc} warnings."
+    )
 
     return HapFileValidator.errc == 0 and HapFileValidator.warc == 0
-
