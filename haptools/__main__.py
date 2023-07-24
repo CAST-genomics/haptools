@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
+from enum import Flag
 import sys
 from pathlib import Path
 
@@ -1023,6 +1024,48 @@ def clump(
         out,
         log,
     )
+
+
+@main.command(short_help="Validate the structure of a .hap file")
+@click.argument("filename", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--sort/--no-sort",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Sorting of the file will not be performed",
+)
+@click.option(
+    "--pvar",
+    type=click.Path(path_type=Path),
+    default=None,
+    show_default="input file",
+    help="A .hap file containing sorted and indexed haplotypes and variants",
+)
+@click.option(
+    "-v",
+    "--verbosity",
+    type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
+    default="INFO",
+    show_default=True,
+    help="The level of verbosity desired",
+)
+def validate_hapfile(
+    filename: Path,
+    sort: bool,
+    pvar: Path,
+    verbosity: str = "DEBUG",
+):
+
+    from haptools import val_hapfile
+    from .logging import getLogger
+
+    log = getLogger(name="validate-hapfile", level = verbosity)
+
+    is_valid = val_hapfile.is_hapfile_valid(filename, sorted=sort, logger=log)
+
+    if not is_valid:
+        log.warn("Found several warnings and / or errors in the hapfile")
 
 
 if __name__ == "__main__":
