@@ -11,7 +11,7 @@ from haptools import logging
 
 LOGGER_NAME = "valhap"
 LTS_SPEC = "0.2.0"
-TRAIL = "\n>>>"
+TRAIL = ">>>"
 
 
 def tmpex(expectation: object, received: object) -> str:
@@ -188,16 +188,10 @@ class HapFileValidator:
         self.meta_lines = lines[:header_limit]
 
     def extract_data_lines(self, lines: list[Line]):
-        limits = [0, 0, 0]
-        for i, char in enumerate(["H", "R", "V"]):
-            limits[i] = next(
-                i for i, line in enumerate(lines) if line[0].startswith(char)
-            )
-
         ln = [
-            lines[limits[0] : limits[1]],
-            lines[limits[1] : limits[2]],
-            lines[limits[2] :],
+            [ln for ln in lines if ln[0].startswith("H")],
+            [ln for ln in lines if ln[0].startswith("R")],
+            [ln for ln in lines if ln[0].startswith("V")]
         ]
 
         for i in range(HapFileValidator.KEY_HAPLOTYPE, HapFileValidator.KEY_VARIANT + 1):
