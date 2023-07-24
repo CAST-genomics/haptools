@@ -6,12 +6,14 @@ from haptools import logging
 from re import search
 from pathlib import Path
 
-from haptools import logging
+from pysam import VariantFile
+
+from .logging import logging
+from .data import GenotypesPLINK
 
 
 LOGGER_NAME = "valhap"
 LTS_SPEC = "0.2.0"
-TRAIL = ">>>"
 
 
 def tmpex(expectation: object, received: object) -> str:
@@ -205,7 +207,7 @@ class HapFileValidator:
         versions = self.extract_version_declarations()
         if len(versions) == 0:
             self.log.warn(
-                f"{TRAIL} No version declaration found. Assuming to use the latest"
+                f"No version declaration found. Assuming to use the latest"
                 " version."
             )
             HapFileValidator.warc += 1
@@ -220,7 +222,7 @@ class HapFileValidator:
 
         if len(decls) > 1:
             self.log.warn(
-                f"{TRAIL} Found more than one version declaration. Using the last"
+                f"Found more than one version declaration. Using the last"
                 " instance. Each is its own warning."
             )
 
@@ -675,7 +677,7 @@ class HapFileValidator:
 
             if no_haplotype:
                 self.log.warn(
-                    f"{TRAIL} Define haplotype '{haplotype}' or fix the variant"
+                    f"Define haplotype '{haplotype}' or fix the variant"
                     " haplotype reference"
                 )
 
@@ -782,37 +784,50 @@ class HapFileValidator:
 
         if s:
             self.warnskip(line)
-            return
+            return 
 
         self.types_ex[tp].clear()
         for col in line.columns[2:]:
             self.types_ex[tp].append(self.vars_ex[tp][col])
+
+
+    def compare_haps_to_pvar(self, var_ids : list[str], underscores_to_semicolons : bool = False):
+        ids : set[tuple[str, Line]] = set()
+        for chrom, dt in self.vrids.items():
+            for k, l in dt.items():
+                ids.add((k if not underscores_to_semicolons else k.replace("_", ":"), l))
+
+        for id, l in ids:
+            if id not in var_ids:
+                self.lefl(f"Could not find variant id {id} in the .pvar file!", l)
+
+                HapFileValidator.errc += 1
 
     #
     # Logging
     #
 
     def lefl(self, msg: str, line: Line, sep: str = "\n"):
-        self.log.error(f"{TRAIL} {msg}{sep}At line #{line.number}: {line}")
+        self.log.error(f"{msg}{sep}At line #{line.number}: {line}")
 
     def lwfl(self, msg: str, line: Line, sep: str = "\n"):
-        self.log.warn(f"{TRAIL} {msg}{sep}At line #{line.number}: {line}")
+        self.log.warn(f"{msg}{sep}At line #{line.number}: {line}")
 
     def lwexfl(self, msg: str, exp: object, rec: object, line: Line, sep: str = "\n"):
         self.log.warning(
-            f"{TRAIL} {msg}{sep}{tmpex(exp, rec)}{sep}At line #{line.number}: {line}"
+            f"{msg}{sep}{tmpex(exp, rec)}{sep}At line #{line.number}: {line}"
         )
 
     def leexfl(self, msg: str, exp: object, rec: object, line: Line, sep: str = "\n"):
         self.log.error(
-            f"{TRAIL} {msg}{sep}{tmpex(exp, rec)}{sep}At line #{line.number}: {line}"
+            f"{msg}{sep}{tmpex(exp, rec)}{sep}At line #{line.number}: {line}"
         )
 
     def warnskip(self, line: Line):
         self.log.warning(f"Skipping line #{line.number}")
 
 
-def is_hapfile_valid(filename: Path, sorted=True, logger=None) -> bool:
+def is_hapfile_valid(filename: Path, sorted : bool = True,  pgen : Path | None = None, max_variants : int = 10000, logger = None) -> bool:
     log = logger
 
     if log == None:
@@ -842,6 +857,13 @@ def is_hapfile_valid(filename: Path, sorted=True, logger=None) -> bool:
     hapfile.validate_extra_fields()
 
     hapfile.validate_version_declarations()
+
+    if pgen != None:
+        varfile = GenotypesPLINK(pgen)
+        varfile.read_variants(max_variants = 1000)
+
+        ids = list(map(lambda v : v[0], varfile.variants))
+        hapfile.compare_haps_to_pvar(ids)
 
     log.info(f"Completed HapFile validation with {HapFileValidator.errc} errors and {HapFileValidator.warc} warnings.")
 

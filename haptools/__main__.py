@@ -1036,11 +1036,11 @@ def clump(
     help="Sorting of the file will not be performed",
 )
 @click.option(
-    "--pvar",
+    "--genotypes",
     type=click.Path(path_type=Path),
     default=None,
-    show_default="input file",
-    help="A .hap file containing sorted and indexed haplotypes and variants",
+    show_default="optional .pvar file to compare against",
+    help="A .pvar file containing variant IDs in order to compare them to the .hap file",
 )
 @click.option(
     "-v",
@@ -1053,7 +1053,7 @@ def clump(
 def validate_hapfile(
     filename: Path,
     sort: bool,
-    pvar: Path,
+    genotypes: Path | None = None,
     verbosity: str = "DEBUG",
 ):
 
@@ -1062,7 +1062,7 @@ def validate_hapfile(
 
     log = getLogger(name="validate-hapfile", level = verbosity)
 
-    is_valid = val_hapfile.is_hapfile_valid(filename, sorted=sort, logger=log)
+    is_valid = val_hapfile.is_hapfile_valid(filename, sorted=sort, logger=log, pgen=genotypes)
 
     if not is_valid:
         log.warn("Found several warnings and / or errors in the hapfile")
