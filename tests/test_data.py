@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
-
+import pgenlib
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.sim_phenotype import Repeat as HaptoolsRepeat
 from haptools.data import (
@@ -344,7 +344,7 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
-    @pytest.mark.xfail(reason="not implemented yet")
+    
     def test_load_genotypes_multiallelic(self):
         expected = self._get_fake_genotypes_multiallelic()
 
@@ -530,6 +530,33 @@ class TestGenotypesPLINK:
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
 
+
+    def test_write_multiallelic(self):
+        # Create fake multi-allelic genotype data to write to the PLINK file
+        gts_multiallelic = self._get_fake_genotypes_multiallelic()
+        #  Name of the PLINK file where the data will be written
+        fname = DATADIR / "test_write_multiallelic.pgen"
+
+        # Write multiallelic genotype data to the PLINK file
+        gts_multiallelic.fname = fname
+        gts_multiallelic.write()
+
+        #Read the data from the newly created PLINK file
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+        new_gts.check_phase()
+
+        # Verify tqhat the uploaded data matches the original data
+        np.testing.assert_allclose(gts_multiallelic.data, new_gts.data)
+        assert gts_multiallelic.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts_multiallelic.variants[col][i] == new_gts.variants[col][i]
+
+        #clean the files created after the test
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
 
 class TestPhenotypes:
     def _get_expected_phenotypes(self):
