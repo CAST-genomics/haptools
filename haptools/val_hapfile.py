@@ -28,9 +28,6 @@ class Line:
         self.columns: list[str] = content.split()
         self.count: int = len(self.columns)
 
-    def is_empty(self) -> bool:
-        return self.count == 0
-
     def __getitem__(self, index: int) -> str:
         return self.columns[index]
 
@@ -182,7 +179,7 @@ class HapFileValidator:
             [ln for ln in lines if ln[0].startswith("H")],
             [ln for ln in lines if ln[0].startswith("R")],
             [ln for ln in lines if ln[0].startswith("V")],
-            [ln for ln in lines if ln[0][0] not in ['H', 'R', 'V', '#']],
+            [ln for ln in lines if ln[0][0] not in ["H", "R", "V", "#"]],
         ]
 
         for l in ln[3]:
@@ -400,7 +397,7 @@ class HapFileValidator:
         return True
 
     def check_start_and_end_positions(self, line: Line):
-        if line.count < 3:
+        if line.count < 4:
             self.lwfl(
                 "Cannot validate start and end positions: Insufficient columns", line
             )
@@ -575,7 +572,8 @@ class HapFileValidator:
             )
 
             self.warc += 1
-            should_skip = True
+            self.warnskip(line)
+            return
 
         if line.count < 5:
             self.lwexfl(
@@ -585,11 +583,9 @@ class HapFileValidator:
                 line,
             )
 
-            self.warc += 1
-            should_skip = True
-
-        if should_skip:
             self.warnskip(line)
+
+            self.warc += 1
             return
 
         self.referenced_chromosomes.add(line[1])
@@ -627,7 +623,11 @@ class HapFileValidator:
                 line.count,
                 line,
             )
+
+            self.warnskip(line)
+
             self.warc += 1
+            return
 
         if not line[1] in self.vrids.keys():
             self.vrids.update({line[1]: {}})
@@ -661,9 +661,6 @@ class HapFileValidator:
     #
     # Variant Validation
     #
-
-    def validate_variants_against_haplotypes(self):
-        self.validate_variant_ids()
 
     def validate_variant_ids(self):
         for haplotype, ids in self.vrids.items():
@@ -773,9 +770,12 @@ class HapFileValidator:
         extpc = len(self.vars_ex[tp].keys())
         exclc = line.count - 2
 
-        if extpc != exclc:
+        if extpc > exclc:
             self.leexfl(
-                "Not enough columns in extra column reordering", extpc, exclc, line
+                "Not enough columns in extra column reordering",
+                extpc + 2,
+                exclc + 2,
+                line,
             )
             self.warnskip(line)
 
