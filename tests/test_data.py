@@ -21,8 +21,9 @@ from haptools.data import (
     Breakpoints,
     GenotypesTR,
     GenotypesVCF,
-    GenotypesPLINK,
     GenotypesTR,
+    GenotypesPLINK,
+    GenotypesPLINKTR,
 )
 
 
@@ -556,6 +557,43 @@ class TestGenotypesPLINK:
         fname.with_suffix(".psam").unlink()
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
+
+
+class TestGenotypesPLINKTR:
+    def _get_fake_genotypes_multiallelic(self):
+        # define the code for an empty allele
+        empty = np.iinfo(np.uint8).max
+
+        # fill out the class with the same variants and samples as GenotypesPLINK
+        gts_plink = TestGenotypesPLINK()._get_fake_genotypes_multiallelic()
+        gts = GenotypesPLINKTR(gts_plink.fname)
+        gts.variants = gts_plink.variants
+        gts.samples = gts_plink.samples
+
+        # fill out the data array with the repeat unit counts
+        data = np.array(
+            [
+                [[1, 2], [3, 4], [5, 6], [7, 8], [9, 9]],
+                [[3, 1], [3, 1], [1, 1], [1, 1], [3, 3]],
+                [[3, 3], [3, 3], [3, 3], [3, 3], [3, 3]],
+                [[11, 11], [empty, empty], [7, 2], [3, 4], [11, empty]],
+                [[5, empty], [empty, empty], [3, empty], [empty, empty], [empty, empty]],
+            ],
+            dtype=np.uint8,
+        )
+
+        # append the phasing info, transpose, and clean up
+        phasing = np.ones(data.shape[:2] + (1,)).astype(np.uint8)
+        gts.data = np.concatenate((data, phasing), axis=-1).transpose((1, 0, 2))
+
+        # handle half-calls and chrX according to the flag:
+        # --vcf-half-call m
+        gts.data[4, 3, 0] = empty
+        gts.data[:, 4, 1] = gts.data[:, 4, 0]
+        # TODO: figure out whether this is the correct way to handle half-calls and try
+        # to see if we can change chrX representations to properly simulate from it
+
+        return gts
 
 class TestPhenotypes:
     def _get_expected_phenotypes(self):
