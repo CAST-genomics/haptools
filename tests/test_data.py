@@ -530,7 +530,6 @@ class TestGenotypesPLINK:
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
 
-
     def test_write_multiallelic(self):
         # Create fake multi-allelic genotype data to write to the PLINK file
         gts_multiallelic = self._get_fake_genotypes_multiallelic()
@@ -1655,14 +1654,13 @@ class TestGenotypesTR:
                 [[5, 255, 0], [255, 255, 0], [3, 255, 0], [255, 255, 0], [255, 255, 0]],
             ],
             dtype=np.uint8,
-        )
+        ).transpose((1, 0, 2))
+
         gts = GenotypesTR(DATADIR / "simple_tr.vcf")
         gts.read()
 
         # check genotypes
-        for i, variants in enumerate(expected_alleles):
-            for j, sample_var in enumerate(variants):
-                assert tuple(sample_var) == tuple(gts.data[j, i])
+        np.testing.assert_allclose(expected_alleles, gts.data)
 
 
 class TestBreakpoints:
@@ -1822,25 +1820,6 @@ class TestBreakpoints:
             [("chr1", 59423086), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
             dtype=[("chrom", "U10"), ("pos", np.uint32)],
         )
-        expected_pop_arr = np.array(
-            [
-                [
-                    [0, 0],
-                    [1, 0],
-                    [1, 0],
-                    [0, 1],
-                ],
-                [
-                    [1, 1],
-                    [0, 1],
-                    [0, 1],
-                    [1, 0],
-                ],
-            ],
-            dtype=np.uint8,
-        )
-        labels = {"YRI": 0, "CEU": 1}
-        labels_map = np.vectorize({v: k for k, v in labels.items()}.get)
 
         expected = self._get_expected_breakpoints()
 
