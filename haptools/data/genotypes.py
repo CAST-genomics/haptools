@@ -908,7 +908,6 @@ class GenotypesTR(Genotypes):
             self.log.warning(
                 "The current variant in the VCF only has one allele per sample."
             )
-            data = []
             # Only one GT so phase will always be 0
             zeros = np.zeros((gts.shape[0], 1))
             missing = -1 * np.ones((gts.shape[0],))
@@ -1515,3 +1514,8 @@ class GenotypesPLINK(GenotypesVCF):
             del subset_data
             del missing
             gc.collect()
+
+
+class GenotypesPLINKTR(GenotypesPLINK):
+    # TODO: implement this class
+    pass
