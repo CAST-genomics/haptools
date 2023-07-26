@@ -47,9 +47,10 @@ class HapFileIO:
         buffer = open(self.filename)
 
         content = [
-            Line(line.strip(), i + 1) for i, line in enumerate(buffer.readlines())
+            Line(line.strip(), i + 1)
+            for i, line in enumerate(buffer.readlines())
+            if line and (not line.isspace())
         ]
-        content = list(filter(lambda line: not line.is_empty(), content))
 
         buffer.close()
 
@@ -96,9 +97,6 @@ class HapFileIO:
 
 
 class HapFileValidator:
-    errc: int = 0
-    warc: int = 0
-
     # H CHROM START END ID
     MANDATORY_HAPLOTYPE_COLUMN_COUNT: int = 5
 
@@ -130,55 +128,45 @@ class HapFileValidator:
     KEY_ID: str = "HT::ID"
     KEY_ALLELE: str = "HT::Allele"
 
-    # DEFAULT_HEADER: dict[int, dict[str, type]] = {
-    DEFAULT_HEADER: dict = {
-        KEY_HAPLOTYPE: {},
-        KEY_REPEAT: {},
-        KEY_VARIANT: {},
-    }
-
-    # EMPTY_TYPES: dict[int, list[type]] = {
-    EMPTY_TYPES: dict = {
-        KEY_HAPLOTYPE: [],
-        KEY_REPEAT: [],
-        KEY_VARIANT: [],
-    }
-
-    # EMPTY_DATA: dict[int, list[Line]] = {
-    EMPTY_DATA: dict = {
-        KEY_HAPLOTYPE: [],
-        KEY_REPEAT: [],
-        KEY_VARIANT: [],
-    }
-
-    # EMPTY_HRIDS: dict[int, dict[str, Line]] = {
-    EMPTY_HRIDS: dict = {
-        KEY_HAPLOTYPE: {},
-        KEY_REPEAT: {},
-    }
-
-    # EMPTY_VRIDS: dict[str, dict[str, Line]] = {}
-    EMPTY_VRIDS: dict = {}
-
-    # EMPTY_META: list[Line] = []
-    EMPTY_META: list = []
-
     def __init__(self, logger=None):
         self.log = logger or logging.getLogger(LOGGER_NAME)
 
-        self.vars_ex: dict[int, dict[str, type]] = HapFileValidator.DEFAULT_HEADER
-        self.types_ex: dict[int, list[type]] = HapFileValidator.EMPTY_TYPES
+        self.vars_ex: dict[int, dict[str, type]] = {
+            HapFileValidator.KEY_HAPLOTYPE: {},
+            HapFileValidator.KEY_REPEAT: {},
+            HapFileValidator.KEY_VARIANT: {},
+        }
 
-        self.meta: list[Line] = HapFileValidator.EMPTY_META
-        self.data: dict[int, list[Line]] = HapFileValidator.EMPTY_DATA
+        self.types_ex: dict[int, list[type]] = {
+            HapFileValidator.KEY_HAPLOTYPE: [],
+            HapFileValidator.KEY_REPEAT: [],
+            HapFileValidator.KEY_VARIANT: [],
+        }
 
-        self.hrids: dict[int, dict[str, Line]] = HapFileValidator.EMPTY_HRIDS
-        self.vrids: dict[str, dict[str, Line]] = HapFileValidator.EMPTY_VRIDS
+        self.meta: list[Line] = []
+        self.data: dict[int, list[Line]] = {
+            HapFileValidator.KEY_HAPLOTYPE: [],
+            HapFileValidator.KEY_REPEAT: [],
+            HapFileValidator.KEY_VARIANT: [],
+        }
+
+        self.hrids: dict[int, dict[str, Line]] = {
+            HapFileValidator.KEY_HAPLOTYPE: {},
+            HapFileValidator.KEY_REPEAT: {},
+        }
+
+        self.vrids: dict[str, dict[str, Line]] = {}
 
         self.referenced_chromosomes: set[str] = set()
 
+        self.errc: int = 0
+        self.warc: int = 0
+
     def extract_and_store_content(self, file: HapFileIO, sorted: bool = True):
         lines = file.lines(sorted=sorted)
+
+        for line in lines:
+            print(line.content)
 
         self.extract_meta_lines(lines)
         self.extract_data_lines(lines)
@@ -194,7 +182,12 @@ class HapFileValidator:
             [ln for ln in lines if ln[0].startswith("H")],
             [ln for ln in lines if ln[0].startswith("R")],
             [ln for ln in lines if ln[0].startswith("V")],
+            [ln for ln in lines if ln[0][0] not in ['H', 'R', 'V', '#']],
         ]
+
+        for l in ln[3]:
+            self.lefl("Unrecognized field type. Must be one of 'H', 'R' or 'V'.", l)
+            self.errc += 1
 
         for i in range(
             HapFileValidator.KEY_HAPLOTYPE, HapFileValidator.KEY_VARIANT + 1
@@ -208,10 +201,10 @@ class HapFileValidator:
     def validate_version_declarations(self):
         versions = self.extract_version_declarations()
         if len(versions) == 0:
-            self.log.warn(
+            self.log.warning(
                 f"No version declaration found. Assuming to use the latest version."
             )
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         self.validate_version_format(versions[-1])
@@ -222,13 +215,13 @@ class HapFileValidator:
         )
 
         if len(decls) > 1:
-            self.log.warn(
+            self.log.warning(
                 f"Found more than one version declaration. Using the last"
                 f" instance. Each is its own warning."
             )
 
             for decl in decls:
-                HapFileValidator.warc += 1
+                self.warc += 1
                 self.lwfl("", decl, sep="")
 
         return decls
@@ -243,7 +236,7 @@ class HapFileValidator:
             )
             self.warnskip(version)
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             return
 
         if search(r"\d+\.\d+\.\d+", version[2]) == None:
@@ -254,7 +247,7 @@ class HapFileValidator:
                 version,
             )
 
-            HapFileValidator.errc += 1
+            self.errc += 1
 
     #
     # Column additions
@@ -284,7 +277,7 @@ class HapFileValidator:
                 f"A column addition for '{ln[0][1]}', whose type doesn't exist",
                 ln,
             )
-            HapFileValidator.errc += 1
+            self.errc += 1
 
         return additions
 
@@ -299,7 +292,7 @@ class HapFileValidator:
                 )
                 self.warnskip(addition)
 
-                HapFileValidator.errc += 1
+                self.errc += 1
                 return
 
             ptp = self.retrieve_column_addition_data_type(addition)
@@ -330,7 +323,7 @@ class HapFileValidator:
             addition,
         )
 
-        HapFileValidator.errc += 1
+        self.errc += 1
         return object
 
     #
@@ -359,7 +352,7 @@ class HapFileValidator:
                 )
                 self.warnskip(line)
 
-                HapFileValidator.warc += 1
+                self.warc += 1
                 return
 
             variant_refs = self.vrids.get(line[4])
@@ -372,7 +365,7 @@ class HapFileValidator:
                     line,
                 )
 
-                HapFileValidator.errc += 1
+                self.errc += 1
                 return
 
     def validate_repeats(self):
@@ -401,7 +394,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             return False
 
         return True
@@ -413,7 +406,7 @@ class HapFileValidator:
             )
             self.warnskip(line)
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         f = False
@@ -426,7 +419,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             f = True
 
         if not line[3].isdigit():
@@ -437,7 +430,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             f = True
 
         if f:
@@ -448,7 +441,7 @@ class HapFileValidator:
             )
             self.warnskip(line)
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         start = int(line[2])
@@ -462,7 +455,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.errc += 1
+            self.errc += 1
 
         if line.count < 5:
             self.lwexfl(
@@ -474,7 +467,7 @@ class HapFileValidator:
             )
             self.warnskip(line)
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         variant_refs = self.vrids.get(line[4])
@@ -492,7 +485,7 @@ class HapFileValidator:
                 )
                 self.warnskip(line)
 
-                HapFileValidator.errc += 1
+                self.errc += 1
                 return
 
             if not ln[3].isdigit():
@@ -504,7 +497,7 @@ class HapFileValidator:
                 )
                 self.warnskip(line)
 
-                HapFileValidator.errc += 1
+                self.errc += 1
                 return
 
             vstart = int(ln[2])
@@ -519,9 +512,9 @@ class HapFileValidator:
                     f" {start - vstart}",
                     line,
                 )
-                self.log.warn(f"At Line #{ln.number}: {ln}")
+                self.log.warning(f"At Line #{ln.number}: {ln}")
 
-                HapFileValidator.errc += 1
+                self.errc += 1
 
             if vend > end:
                 self.leexfl(
@@ -532,9 +525,9 @@ class HapFileValidator:
                     f" {vend - end}",
                     line,
                 )
-                self.log.warn(f"At Line #{ln.number}: {ln}")
+                self.log.warning(f"At Line #{ln.number}: {ln}")
 
-                HapFileValidator.errc += 1
+                self.errc += 1
 
     def check_variant_alleles(self, line: Line):
         if line.count < HapFileValidator.MANDATORY_VARIANT_COLUMN_COUNT:
@@ -546,7 +539,7 @@ class HapFileValidator:
             )
             self.warnskip(line)
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         if line[5].upper() not in ["A", "C", "G", "T"]:
@@ -557,7 +550,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.errc += 1
+            self.errc += 1
 
     #
     # ID Storage
@@ -581,7 +574,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             should_skip = True
 
         if line.count < 5:
@@ -592,7 +585,7 @@ class HapFileValidator:
                 line,
             )
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             should_skip = True
 
         if should_skip:
@@ -603,20 +596,25 @@ class HapFileValidator:
 
         if line[4] in self.hrids[tp]:
             self.leexfl("Duplicate ID.", "A unique ID", f"'{line[4]}'", line)
-            self.log.warn(
+            self.log.warning(
                 f"Originally defined at: line #{self.hrids[tp][line[4]].number}"
+                f"\n:: {self.hrids[tp][line[4]].content}"
             )
+
+            for k1, v1 in self.hrids.items():
+                for k2, v2 in v1.items():
+                    print(k2, ":", v2.content)
 
             self.warnskip(line)
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             return
 
         if line[4] in self.referenced_chromosomes:
             self.lwfl(f"ID '{line[4]}' is already registered as a chromosome.", line)
             self.warnskip(line)
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         self.hrids[tp].update({line[4]: line})
@@ -629,7 +627,7 @@ class HapFileValidator:
                 line.count,
                 line,
             )
-            HapFileValidator.warc += 1
+            self.warc += 1
 
         if not line[1] in self.vrids.keys():
             self.vrids.update({line[1]: {}})
@@ -641,19 +639,21 @@ class HapFileValidator:
                 f"'{line[4]}'",
                 line,
             )
-            self.log.warn(
+            self.log.warning(
                 f"Originally defined at: line #{self.vrids[line[1]][line[4]].number}"
+                f"\n{self.vrids[line[1]][line[4]].content}"
             )
+
             self.warnskip(line)
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             return
 
         if line[4] in self.referenced_chromosomes:
             self.lwfl(f"ID '{line[4]}' is already registered as a chromosome.", line)
             self.warnskip(line)
 
-            HapFileValidator.warc += 1
+            self.warc += 1
             return
 
         self.vrids[line[1]].update({line[4]: line})
@@ -677,11 +677,11 @@ class HapFileValidator:
                     )
                     no_haplotype = True
 
-                    HapFileValidator.errc += 1
+                    self.errc += 1
                     continue
 
             if no_haplotype:
-                self.log.warn(
+                self.log.warning(
                     f"Define haplotype '{haplotype}' or fix the variant"
                     " haplotype reference"
                 )
@@ -710,11 +710,11 @@ class HapFileValidator:
 
                     if extras < 0:
                         self.lefl("There aren't even enough mandatory columns", line)
-                        HapFileValidator.warc += 1
+                        self.warc += 1
 
                     self.warnskip(line)
 
-                    HapFileValidator.warc += 1
+                    self.warc += 1
                     continue
 
                 for ptp, col in zip(self.types_ex[tp], line.columns[rs:]):
@@ -729,7 +729,7 @@ class HapFileValidator:
                             line,
                         )
 
-                        HapFileValidator.errc += 1
+                        self.errc += 1
 
     def determine_if_is_convertible(self, what: str, tp: type) -> bool:
         if tp == int:
@@ -759,11 +759,11 @@ class HapFileValidator:
                 continue
 
             if len(relevant) > 1:
-                self.log.warn(
+                self.log.warning(
                     f"Found multiple order{c} definition lines. Using the last"
                     " available one."
                 )
-                HapFileValidator.warc += 1
+                self.warc += 1
 
             ln = relevant[-1]
 
@@ -779,14 +779,14 @@ class HapFileValidator:
             )
             self.warnskip(line)
 
-            HapFileValidator.errc += 1
+            self.errc += 1
             return
 
         s = False
         for col in line.columns[2:]:
             if not col in self.vars_ex[tp]:
                 self.lefl(f"{col} has not been defined as an extra colunm", line)
-                HapFileValidator.errc += 1
+                self.errc += 1
                 s = True
 
         if s:
@@ -811,7 +811,7 @@ class HapFileValidator:
             if id not in var_ids:
                 self.lefl(f"Could not find variant id {id} in the .pvar file!", l)
 
-                HapFileValidator.errc += 1
+                self.errc += 1
 
     #
     # Logging
@@ -821,7 +821,7 @@ class HapFileValidator:
         self.log.error(f"{msg}{sep}At line #{line.number}: {line}")
 
     def lwfl(self, msg: str, line: Line, sep: str = "\n"):
-        self.log.warn(f"{msg}{sep}At line #{line.number}: {line}")
+        self.log.warning(f"{msg}{sep}At line #{line.number}: {line}")
 
     def lwexfl(self, msg: str, exp: object, rec: object, line: Line, sep: str = "\n"):
         self.log.warning(
@@ -850,7 +850,6 @@ def is_hapfile_valid(
         log = logging.getLogger(LOGGER_NAME)
 
     file = HapFileIO(filename, logger=log)
-    errc = 0
 
     is_readable = file.validate_existence()
 
@@ -875,14 +874,14 @@ def is_hapfile_valid(
 
     if pgen != None:
         varfile = GenotypesPLINK(pgen)
-        varfile.read_variants(max_variants=1000)
+        varfile.read_variants(max_variants=max_variants)
 
         ids = list(map(lambda v: v[0], varfile.variants))
         hapfile.compare_haps_to_pvar(ids)
 
     log.info(
-        f"Completed HapFile validation with {HapFileValidator.errc} errors and"
-        f" {HapFileValidator.warc} warnings."
+        f"Completed HapFile validation with {hapfile.errc} errors and"
+        f" {hapfile.warc} warnings."
     )
 
-    return HapFileValidator.errc == 0 and HapFileValidator.warc == 0
+    return hapfile.errc == 0 and hapfile.warc == 0
