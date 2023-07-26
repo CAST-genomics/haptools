@@ -1074,12 +1074,16 @@ class GenotypesPLINK(GenotypesVCF):
         npt.NDArray
             A row from the :py:attr:`~.GenotypesPLINK.variants` array
         """
+        # Parse the REF and ALT alleles from the PVAR record
+        ref_allele = record[cid["REF"]]
+        alt_alleles = record[cid["ALT"]].split(",")
+        alleles = [ref_allele] + alt_alleles
         return np.array(
             (
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                (record[cid["REF"]], record[cid["ALT"]]),
+                tuple(alleles),
             ),
             dtype=self.variants.dtype,
         )
@@ -1240,10 +1244,12 @@ class GenotypesPLINK(GenotypesVCF):
         """
         super(Genotypes, self).read()
         import pgenlib
-
+    
         sample_idxs = self.read_samples(samples)
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+    
         with pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar= pv
         ) as pgen:
             # how many variants to load?
             if variants is not None:
@@ -1465,10 +1471,13 @@ class GenotypesPLINK(GenotypesVCF):
             chunks = len(self.variants)
 
         # write the pgen file
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
         with pgenlib.PgenWriter(
+
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
+            allele_ct_limit = pv.get_max_allele_ct(),
             nonref_flags=False,
             hardcall_phase_present=True,
         ) as pgen:
