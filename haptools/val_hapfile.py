@@ -162,9 +162,6 @@ class HapFileValidator:
     def extract_and_store_content(self, file: HapFileIO, sorted: bool = True):
         lines = file.lines(sorted=sorted)
 
-        for line in lines:
-            print(line.content)
-
         self.extract_meta_lines(lines)
         self.extract_data_lines(lines)
 
@@ -596,10 +593,6 @@ class HapFileValidator:
                 f"Originally defined at: line #{self.hrids[tp][line[4]].number}"
                 f"\n:: {self.hrids[tp][line[4]].content}"
             )
-
-            for k1, v1 in self.hrids.items():
-                for k2, v2 in v1.items():
-                    print(k2, ":", v2.content)
 
             self.warnskip(line)
 

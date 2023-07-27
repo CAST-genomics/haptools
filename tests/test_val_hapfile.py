@@ -159,7 +159,7 @@ def test_with_inconvertible_ends():
     )
 
 
-def test_with_inconvertible_starts():
+def test_with_inconvertible_starts_var():
     assert (
         val_hapfile.is_hapfile_valid(
             DATADIR / "valhap_with_inconvertible_starts_var.hap"
@@ -168,7 +168,7 @@ def test_with_inconvertible_starts():
     )
 
 
-def test_with_inconvertible_ends():
+def test_with_inconvertible_ends_var():
     assert (
         val_hapfile.is_hapfile_valid(DATADIR / "valhap_with_inconvertible_ends_var.hap")
         == False
