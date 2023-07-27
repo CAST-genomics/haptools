@@ -98,6 +98,7 @@ There is an option to *Cite this repository* on the right sidebar of `the reposi
    commands/index.rst
    commands/clump.rst
    commands/ld.rst
+   commands/val_hapfile.rst
 
 .. toctree::
    :caption: API
