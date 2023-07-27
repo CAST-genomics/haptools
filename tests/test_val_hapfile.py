@@ -273,6 +273,7 @@ def test_with_variant_inexistent_haplotype_id():
 
 
 def test_with_missing_variant_in_pvar():
+    pgenlib = pytest.importorskip("pgenlib")
     assert (
         val_hapfile.is_hapfile_valid(
             DATADIR / "simple.hap", pgen=DATADIR / "basic_missing_ids.pvar"
