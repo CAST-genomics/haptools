@@ -2,7 +2,7 @@
 
 
 validate-hapfile
-=====
+================
 
 Validate the structure of a ``.hap`` file.
 
@@ -28,7 +28,7 @@ Examples
 
 Outputs a message specifying the amount of errors and warnings
 
-.. code-block::
+.. code-block:: c
     [    INFO] Completed HapFile validation with 0 errors and 0 warnings. (val_hapfile.py:876)
 
 All warnings and errors will be logged if there are any
@@ -37,7 +37,7 @@ All warnings and errors will be logged if there are any
 
   haptools validate-hapfile tests/data/hapfiles/valhap_with_no_version.hap
 
-.. code-block::
+.. code-block:: c
     [ WARNING] No version declaration found. Assuming to use the latest version. (val_hapfile.py:199)
     [    INFO] Completed HapFile validation with 0 errors and 1 warnings. (val_hapfile.py:876)
     [ WARNING] Found several warnings and / or errors in the hapfile (__main__.py:1071)
@@ -51,7 +51,7 @@ This will make it so that all unordered files will get removed, such as out-of-h
 
 Will turn:
 
-.. code-block::
+.. code-block:: bash
     #   orderH	ancestry	beta
     #	version	0.2.0
     #H	ancestry	s	Local ancestry
@@ -75,7 +75,7 @@ Will turn:
 
 Into
 
- .. code-block::
+.. code-block:: bash
     #	orderH	ancestry	beta
     #	version	0.2.0
     #H	ancestry	s	Local ancestry
@@ -98,6 +98,15 @@ Into
 .. warning::
    If the previous example were to be sorted then there would be several errors in the ``.hap`` file.
    All sorted files parse the meta information lines first, thus the ``H`` and ``R`` lines would be incomplete
+
+As mentioned before, one can use the ``--genotypes`` flag to provide a ``.pgen`` file with which to compare the existence of variant IDs
+The following will check if all of the variant IDs in the ``.hap`` appear in the ``.pvar`` associated to the ``.pgen``
+
+.. code-block:: bash
+    haptools validate-hapfile --genotypes tests/data/hapfiles/valhap_test_data.pgen tests/data/hapfiles/valhap_test_data.hap
+
+.. warning::
+    You must generate a ``.pvar`` from your ``.pgen`` file. This is done in order to avoid reading heavy amounts of information which is not relevant to the validation process.
 
 Detailed Usage
 ~~~~~~~~~~~~~~
