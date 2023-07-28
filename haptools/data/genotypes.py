@@ -1517,5 +1517,11 @@ class GenotypesPLINK(GenotypesVCF):
 
 
 class GenotypesPLINKTR(GenotypesPLINK):
+    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None , vcftype: str = "auto"):
+        super().__init__(fname, log, chunk_size)
+        self.vcftype = vcftype
+        
+
+
     # TODO: implement this class
     pass

@@ -653,6 +653,27 @@ class TestGenotypesPLINKTR:
         # to see if we can change chrX representations to properly simulate from it
 
         return gts
+    
+    def test_iter(self):
+        # Get the expected data
+        expected = self. _get_fake_genotypes_multiallelic()
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
+        # Check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
+            for col in ("chrom", "pos", "id"):
+                assert line.variants[col] == expected.variants[col][idx]
+            assert line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+
+        # Check samples
+        assert gts.samples == expected.samples
+
+    def test_read_plinktr(self):
+        expected_alleles =self._get_fake_genotypes_multiallelic().data
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.vcf")
+        gts.read()
+        # check genotypes
+        np.testing.assert_allclose(expected_alleles, gts.data)
 
 
 class TestPhenotypes:
