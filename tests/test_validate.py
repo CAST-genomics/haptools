@@ -1,11 +1,9 @@
-import os
 from pathlib import Path
 
 import pytest
 
 from . import test_data
-from haptools import val_hapfile
-from haptools import data
+from haptools import validate as val_hapfile
 
 DATADIR = Path(__file__).parent.joinpath("data").joinpath("hapfiles")
 

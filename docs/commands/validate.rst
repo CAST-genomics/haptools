@@ -1,8 +1,8 @@
-.. _commands-valhap:
+.. _commands-validate:
 
 
-validate-hapfile
-================
+validate
+========
 
 Validate the structure of a ``.hap`` file.
 
@@ -14,7 +14,7 @@ Usage
 ~~~~~
 .. code-block:: bash
 
-  haptools validate-hapfile \
+  haptools validate \
   --sort \
   --genotypes PATH \
   --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
@@ -24,32 +24,32 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-  haptools index tests/data/hapfiles/basic.hap
+  haptools validate tests/data/hapfiles/basic.hap
 
 Outputs a message specifying the amount of errors and warnings.
 
 .. code-block::
 
-  [    INFO] Completed HapFile validation with 0 errors and 0 warnings. (val_hapfile.py:876)
+  [    INFO] Completed HapFile validation with 0 errors and 0 warnings.
 
-All warnings and errors will be logged if there are any
+All warnings and errors will be logged if there are any.
 
 .. code-block:: bash
 
-  haptools validate-hapfile tests/data/hapfiles/valhap_with_no_version.hap
+  haptools validate tests/data/hapfiles/valhap_with_no_version.hap
 
 .. code-block::
 
-  [ WARNING] No version declaration found. Assuming to use the latest version. (val_hapfile.py:199)
-  [    INFO] Completed HapFile validation with 0 errors and 1 warnings. (val_hapfile.py:876)
-  [ WARNING] Found several warnings and / or errors in the hapfile (__main__.py:1071)
+  [ WARNING] No version declaration found. Assuming to use the latest version.
+  [    INFO] Completed HapFile validation with 0 errors and 1 warnings.
+  [ WARNING] Found several warnings and / or errors in the hapfile
 
 One can use ``--no-sort`` to avoid sorting the file.
 This will make it so that all unordered files will get removed, such as out-of-header lines with meta information.
 
 .. code-block:: bash
 
-  haptools validate-hapfile --no-sort tests/data/hapfiles/valhap_with_out_of_header_metas.hap
+  haptools validate --no-sort tests/data/hapfiles/valhap_with_out_of_header_metas.hap
 
 Will turn:
 
@@ -108,7 +108,7 @@ The following will check if all of the variant IDs in the ``.hap`` appear in the
 
 .. code-block:: bash
 
-  haptools validate-hapfile --genotypes tests/data/hapfiles/valhap_test_data.pgen tests/data/hapfiles/valhap_test_data.hap
+  haptools validate --genotypes tests/data/hapfiles/valhap_test_data.pgen tests/data/hapfiles/valhap_test_data.hap
 
 .. warning::
 
@@ -122,4 +122,4 @@ Detailed Usage
 .. click:: haptools.__main__:main
   :prog: haptools
   :show-nested:
-  :commands: validate_hapfile
+  :commands: validate

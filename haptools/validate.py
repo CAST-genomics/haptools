@@ -6,13 +6,11 @@ from haptools import logging
 from re import search
 from pathlib import Path
 
-from pysam import VariantFile
-
 from .logging import logging
 from .data import GenotypesPLINK
 
 
-LOGGER_NAME = "valhap"
+LOGGER_NAME = "validate"
 LTS_SPEC = "0.2.0"
 
 

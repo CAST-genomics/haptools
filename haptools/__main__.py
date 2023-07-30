@@ -1052,20 +1052,18 @@ def clump(
     show_default=True,
     help="The level of verbosity desired",
 )
-def validate_hapfile(
+def validate(
     filename: Path,
     sort: bool,
     genotypes: Path | None = None,
     verbosity: str = "DEBUG",
 ):
-    from haptools import val_hapfile
     from .logging import getLogger
+    from .validate import is_hapfile_valid
 
-    log = getLogger(name="validate-hapfile", level=verbosity)
+    log = getLogger(name="validate", level=verbosity)
 
-    is_valid = val_hapfile.is_hapfile_valid(
-        filename, sorted=sort, logger=log, pgen=genotypes
-    )
+    is_valid = is_hapfile_valid(filename, sorted=sort, logger=log, pgen=genotypes)
 
     if not is_valid:
         log.warn("Found several warnings and / or errors in the hapfile")
