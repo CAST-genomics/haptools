@@ -1520,7 +1520,45 @@ class GenotypesPLINKTR(GenotypesPLINK):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None , vcftype: str = "auto"):
         super().__init__(fname, log, chunk_size)
         self.vcftype = vcftype
-        
+
+    @classmethod
+    def load(
+        cls: GenotypesPLINKTR,
+        fname: Path | str,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        vcftype: str = "auto",
+    ) -> Genotypes:
+        """
+        Load STR genotypes from a VCF file
+
+        Read the file contents, check the genotype phase, and create the MAC matrix
+
+        Parameters
+        ----------
+        fname
+            See documentation for :py:attr:`~.Data.fname`
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        samples : list[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read
+        vcftype : str, optional
+        The type of TR VCF currently being read. Options are:
+        {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
+`
+
+        Returns
+        -------
+        Genotypes
+            A Genotypes object with the data loaded into its properties
+        """
+        genotypes = cls(fname, log=None, chunk_size=None, vcftype=vcftype)
+        genotypes.read(region, samples, variants)
+        genotypes.check_phase()
+        return genotypes
 
 
     # TODO: implement this class
