@@ -1,6 +1,7 @@
 from __future__ import annotations
 import re
 import gc
+import importlib.util
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -1520,6 +1521,22 @@ class GenotypesPLINKTR(GenotypesPLINK):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None , vcftype: str = "auto"):
         super().__init__(fname, log, chunk_size)
         self.vcftype = vcftype
+        self._import_copy_trh_module()
+    
+    def _import_copy_trh_module(self):
+        """
+        Import a copy of the tr_harmonizer module into the "trh" property of this class
+        Subsequent edits to the module will remain scoped to the class, only
+        
+        This code is adapted from https://stackoverflow.com/a/11285504/16815703
+        """
+        try:
+            SPEC = importlib.util.find_spec("trtools.utils.tr_harmonizer")
+        except ModuleNotFoundError:
+            SPEC = trh.__spec__
+        self.trh = importlib.util.module_from_spec(SPEC)
+        SPEC.loader.exec_module(self.trh)
+        
 
     @classmethod
     def load(
@@ -1559,7 +1576,89 @@ class GenotypesPLINKTR(GenotypesPLINK):
         genotypes.read(region, samples, variants)
         genotypes.check_phase()
         return genotypes
+    
+    
+    
+    def _iter_TRRecords(self,region: str = None):
+        gts_obj = self
+        def GetGenotypeIndicies(self):
+            n = np.argmax(self.vcfrecord.ID == gts_obj.variants["id"])
+            return gts_obj.data[:, n]
+    
+        self.trh.TRRecord.GetGenotypeIndicies = GetGenotypeIndicies
+        vcf = VCF(self.fname.with_suffix(".pvar"))
+        yield from self.trh.TRRecordHarmonizer(
+            vcffile = vcf, vcfiter= vcf(region), region =region , vcftype =self.vcftype
+            )
 
 
-    # TODO: implement this class
-    pass
+    def read(
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
+        """
+        Read genotypes from a PGEN file into a numpy matrix stored in
+        :py:attr:`~.GenotypesPLINK.data`
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        samples : list[str], optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        variants : set[str], optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        max_variants : int, optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        """
+        super().read(region,samples,variants,max_variants)
+        for idx, record in enumerate(self._iter_TRRecords(region)):
+            self.data[:, idx] = record.GetLengthGenotypes()
+
+    def _iterate(
+        self,
+        pgen: pgenlib.PgenReader,
+        region: str = None,
+        variants: set[str] = None,
+    ):
+        """
+        A generator over the lines of a PGEN-PVAR file pair
+
+        This is a helper function for :py:meth:`~.GenotypesPLINK.__iter__`
+
+        Parameters
+        ----------
+        pgen: pgenlib.PgenReader
+            The pgenlib.PgenReader object from which to fetch variant records
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        variants = super()._iterate(pgen,region,variants) 
+        for variant, record in zip(variants, self._iter_TRRecords(region)):
+            variant.data = record.GetLengthGenotypes()
+            yield variant
+
+    def write(self):
+        raise NotImplementedError
+
+    def write_variants(self):
+        raise NotImplementedError
+
+    def check_biallelic(self):
+        raise NotImplementedError
+
+    def check_maf(self):
+        raise NotImplementedError
+
+

@@ -642,7 +642,7 @@ class TestGenotypesPLINKTR:
         )
 
         # append the phasing info, transpose, and clean up
-        phasing = gts_plink.data[:, :, 2]
+        phasing = gts_plink.data[:, :, 2][:, :, np.newaxis]
         gts.data = np.concatenate((data, phasing), axis=-1).transpose((1, 0, 2))
 
         # handle half-calls and chrX according to the flag:
@@ -670,8 +670,9 @@ class TestGenotypesPLINKTR:
 
     def test_read_plinktr(self):
         expected_alleles =self._get_fake_genotypes_multiallelic().data
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.vcf")
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
         gts.read()
+        breakpoint()
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
 
