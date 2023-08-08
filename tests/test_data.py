@@ -643,6 +643,8 @@ class TestGenotypesPLINKTR:
 
         # append the phasing info, transpose, and clean up
         phasing = gts_plink.data[:, :, 2][:, :, np.newaxis]
+        phasing[[3,4], 1] = 0
+        phasing[1, [3,4]] = 1
         gts.data = np.concatenate((data, phasing), axis=-1).transpose((1, 0, 2))
 
         # handle half-calls and chrX according to the flag:

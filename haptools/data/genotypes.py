@@ -1583,8 +1583,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         gts_obj = self
         def GetGenotypeIndicies(self):
             n = np.argmax(self.vcfrecord.ID == gts_obj.variants["id"])
-            return gts_obj.data[:, n]
-    
+            gts_data = gts_obj.data[:, n].astype(np.int8)
+            gts_data[gts_data == np.iinfo(np.uint8).max] = -1
+            return gts_data
         self.trh.TRRecord.GetGenotypeIndicies = GetGenotypeIndicies
         vcf = VCF(self.fname.with_suffix(".pvar"))
         yield from self.trh.TRRecordHarmonizer(
