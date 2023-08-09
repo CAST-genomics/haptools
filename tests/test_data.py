@@ -674,7 +674,6 @@ class TestGenotypesPLINKTR:
         expected_alleles =self._get_fake_genotypes_multiallelic().data
         gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
         gts.read()
-        breakpoint()
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
 
