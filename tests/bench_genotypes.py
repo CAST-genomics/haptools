@@ -3,19 +3,26 @@
 import sys
 import pickle
 import shutil
+import subprocess
 from pathlib import Path
 from time import process_time
 
 import click
 import matplotlib
 import numpy as np
+from pysam import VariantFile
 import matplotlib.pyplot as plt
 
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use("Agg")
 
 from haptools import logging
-from haptools.data import GenotypesVCF, GenotypesPLINK
+from haptools.data import (
+    GenotypesTR,
+    GenotypesVCF,
+    GenotypesPLINK,
+    GenotypesPLINKTR,
+)
 
 
 # COMMAND FOR GENERATING UKB PLOT:
@@ -26,41 +33,168 @@ from haptools.data import GenotypesVCF, GenotypesPLINK
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
-def create_variant_files(gts, intervals, num_samps):
+class GenotypesVCFTR(GenotypesVCF):
+    def write(self):
+        """
+        Write the variants in this class to a VCF at :py:attr:`~.GenotypesTR.fname`
+
+        Output the VCF in HipSTR format
+        """
+        vcf = VariantFile(str(self.fname), mode="w")
+        # make sure the header is properly structured
+        for contig in set(self.variants["chrom"]):
+            vcf.header.contigs.add(contig)
+        d = "Inclusive {} coodinate for the repetitive portion of the reference allele"
+        vcf.header.add_meta(
+            "INFO",
+            items=[
+                ("ID", "START"),
+                ("Number", 1),
+                ("Type", "Integer"),
+                ("Description", d.format("start")),
+            ],
+        )
+        vcf.header.add_meta(
+            "INFO",
+            items=[
+                ("ID", "END"),
+                ("Number", 1),
+                ("Type", "Integer"),
+                ("Description", d.format("end")),
+            ],
+        )
+        vcf.header.add_meta(
+            "INFO",
+            items=[
+                ("ID", "PERIOD"),
+                ("Number", 1),
+                ("Type", "Integer"),
+                ("Description", "Length of STR motif"),
+            ],
+        )
+        vcf.header.add_meta(
+            "FORMAT",
+            items=[
+                ("ID", "GT"),
+                ("Number", 1),
+                ("Type", "String"),
+                ("Description", "Genotype"),
+            ],
+        )
+        try:
+            vcf.header.add_samples(self.samples)
+        except AttributeError:
+            self.log.warning(
+                "Upgrade to pysam >=0.19.1 to reduce the time required to create "
+                "VCFs. See https://github.com/pysam-developers/pysam/issues/1104"
+            )
+            for sample in self.samples:
+                vcf.header.add_sample(sample)
+        self.log.info("Writing VCF records")
+        phased = self._prephased or (self.data.shape[2] < 3)
+        missing_val = np.iinfo(np.uint8).max
+        for var_idx, var in enumerate(self.variants):
+            rec = {
+                "contig": var["chrom"],
+                "start": var["pos"],
+                "stop": var["pos"] + len(var["alleles"][0]),
+                "qual": None,
+                "alleles": var["alleles"],
+                "id": var["id"],
+                "filter": None,
+            }
+            # handle pysam increasing the start site by 1
+            rec["start"] -= 1
+            # parse the record into a pysam.VariantRecord
+            record = vcf.new_record(**rec)
+            # add INFO flags expected of HipSTR
+            # Note: this is only possible because we guarantee that the REF allele
+            # is a single copy of a dinucleotide repeat
+            record.info["START"] = int(rec["start"])
+            record.stop = int(rec["stop"])
+            record.info["PERIOD"] = len(var["alleles"][0])
+            for samp_idx, sample in enumerate(self.samples):
+                record.samples[sample]["GT"] = tuple(
+                    None if val == missing_val else val
+                    for val in self.data[samp_idx, var_idx, :2]
+                )
+                # add proper phasing info
+                if phased:
+                    record.samples[sample].phased = True
+                else:
+                    record.samples[sample].phased = self.data[samp_idx, var_idx, 2]
+            # write the record to a file
+            vcf.write(record)
+        vcf.close()
+
+
+def write_tr_files(plink2: Path, vcf: Path, pgen: Path):
+    # first, add "HipSTR" to the header so that we can trick TRTools
+    subprocess.call(["sed", "-i", "2i##command=HipSTR-v0.7 --test/", vcf])
+    subprocess.call(
+        [
+            plink2,
+            "--vcf-half-call",
+            "m",
+            "--make-pgen",
+            "pvar-cols=vcfheader,qual,filter,info",
+            "--vcf",
+            vcf,
+            "--out",
+            pgen.with_suffix(""),
+        ],
+        stderr=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+    )
+
+
+def create_variant_files(gts, intervals, num_samps, plink2: Path = None):
     samples = gts.samples[:num_samps]
     variant_dir = gts.fname / "variant"
     variant_dir.mkdir(parents=True, exist_ok=True)
     for val in intervals:
         variants = tuple(gts.variants["id"][:val])
         sub = gts.subset(samples=samples, variants=variants)
-        # write PLINK2 files
         sub.fname = variant_dir / f"{val}.pgen"
-        sub.write()
         # write VCF files
-        vcf = GenotypesVCF(sub.fname.with_suffix(".vcf"))
+        if plink2:
+            vcf = GenotypesVCFTR(sub.fname.with_suffix(".vcf"))
+        else:
+            vcf = GenotypesVCF(sub.fname.with_suffix(".vcf"))
         vcf.data = sub.data
         vcf.samples = sub.samples
         vcf.variants = sub.variants
         vcf.write()
+        # write PLINK2 files
+        if plink2:
+            write_tr_files(plink2, vcf.fname, sub.fname)
+        else:
+            sub.write()
     return variant_dir
 
 
-def create_sample_files(gts, intervals, num_vars):
+def create_sample_files(gts, intervals, num_vars, plink2: Path = None):
     variants = tuple(gts.variants["id"][:num_vars])
     sample_dir = gts.fname / "sample"
     sample_dir.mkdir(parents=True, exist_ok=True)
     for val in intervals:
         samples = gts.samples[:val]
         sub = gts.subset(samples=samples, variants=variants)
-        # write PLINK2 files
         sub.fname = sample_dir / f"{val}.pgen"
-        sub.write()
         # write VCF files
-        vcf = GenotypesVCF(sub.fname.with_suffix(".vcf"))
+        if plink2:
+            vcf = GenotypesVCFTR(sub.fname.with_suffix(".vcf"))
+        else:
+            vcf = GenotypesVCF(sub.fname.with_suffix(".vcf"))
         vcf.data = sub.data
         vcf.samples = sub.samples
         vcf.variants = sub.variants
         vcf.write()
+        # write PLINK2 files
+        if plink2:
+            write_tr_files(plink2, vcf.fname, sub.fname)
+        else:
+            sub.write()
     return sample_dir
 
 
@@ -68,12 +202,26 @@ def time_vcf(vcf, max_variants, chunk_size=500):
     GenotypesVCF(vcf).read(max_variants=max_variants)
 
 
+def time_vcf_tr(vcf, max_variants, chunk_size=500):
+    GenotypesTR(vcf, vcftype="hipstr").read(max_variants=max_variants)
+
+
 def time_plink(pgen, max_variants, chunk_size=500):
     GenotypesPLINK(pgen).read(max_variants=max_variants)
 
 
+def time_plink_tr(pgen, max_variants, chunk_size=500):
+    GenotypesPLINKTR(pgen, vcftype="hipstr").read(max_variants=max_variants)
+
+
 def time_plink_chunk(pgen, max_variants, chunk_size=500):
     GenotypesPLINK(pgen, chunk_size=chunk_size).read(max_variants=max_variants)
+
+
+def time_plink_chunk_tr(pgen, max_variants, chunk_size=500):
+    GenotypesPLINKTR(pgen, chunk_size=chunk_size, vcftype="hipstr").read(
+        max_variants=max_variants
+    )
 
 
 def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
@@ -93,6 +241,10 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
         yield item
         show(i + 1)
     print("\n", flush=True, file=out)
+
+
+def create_tr_alleles():
+    return tuple("AT" * j for j in range(1, np.random.randint(2, 11) + 1))
 
 
 @click.command()
@@ -173,6 +325,13 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
     show_default="do not save generated results",
     help="A python pickle file into which to store results",
 )
+@click.option(
+    "--plink2",
+    type=click.Path(path_type=Path, exists=True),
+    default=None,
+    show_default="do not benchmark repeats",
+    help="Benchmark repeats in addition to SNPs. Create PGENs with this plink2 binary",
+)
 def main(
     temp,
     default_variants,
@@ -184,6 +343,7 @@ def main(
     progress=False,
     silent=False,
     archive=None,
+    plink2=None,
 ):
     """
     Benchmarks classes in the data.genotypes module
@@ -200,16 +360,29 @@ def main(
     num_variants = max(DEFAULT_VARIANTS, INTERVALS_VARIANTS.stop)
     sample_size = max(DEFAULT_SAMPLES, INTERVALS_SAMPLES.stop)
     gts.samples = tuple(f"sample{i}" for i in range(sample_size))
-    gts.variants = np.array(
-        [(f"id{i}", "chr0", i, ("A", "T")) for i in range(1, num_variants + 1)],
-        dtype=gts.variants.dtype,
-    )
+    if plink2:
+        gts.variants = np.array(
+            [
+                (f"id{i}", "chr0", i, create_tr_alleles())
+                for i in range(1, num_variants + 1)
+            ],
+            dtype=gts.variants.dtype,
+        )
+    else:
+        gts.variants = np.array(
+            [(f"id{i}", "chr0", i, ("A", "T")) for i in range(1, num_variants + 1)],
+            dtype=gts.variants.dtype,
+        )
     np.random.seed(12345)
     if not temp.exists():
         LOG.info("Generating fake genotypes")
-        gts.data = np.random.choice(
-            [True, False], size=sample_size * num_variants * 2
-        ).reshape((sample_size, num_variants, 2))
+        gts.data = np.empty(
+            (sample_size, num_variants, 2), dtype=(np.uint8 if plink2 else np.bool_)
+        )
+        for i in range(num_variants):
+            gts.data[:, i] = np.random.choice(
+                range(len(gts.variants[i]["alleles"])), size=sample_size * 2
+            ).reshape((sample_size, 2))
     gts.fname = temp
     # set initial variables
     SAMPLES = gts.samples
@@ -238,8 +411,12 @@ def main(
     # create the files we will try to load if they haven't been created already
     if not gts.fname.exists():
         LOG.info("Creating VCF and PGEN files that we can load")
-        variant_dir = create_variant_files(gts, INTERVALS_VARIANTS, DEFAULT_SAMPLES)
-        sample_dir = create_sample_files(gts, INTERVALS_SAMPLES, DEFAULT_VARIANTS)
+        variant_dir = create_variant_files(
+            gts, INTERVALS_VARIANTS, DEFAULT_SAMPLES, plink2
+        )
+        sample_dir = create_sample_files(
+            gts, INTERVALS_SAMPLES, DEFAULT_VARIANTS, plink2
+        )
     else:
         variant_dir = gts.fname / "variant"
         sample_dir = gts.fname / "sample"
@@ -269,10 +446,13 @@ def main(
             for val in item_iter:
                 chunk_size = 500
                 if file_type == "vcf":
-                    func = time_vcf
+                    func = time_vcf_tr if plink2 else time_vcf
                     file = genotype_dir / f"{val}.vcf"
                 elif file_type == "pgen" or file_type.startswith("chunked"):
-                    func = time_plink if file_type == "pgen" else time_plink_chunk
+                    if file_type == "pgen":
+                        func = time_plink_tr if plink2 else time_plink
+                    else:
+                        funct = time_plink_chunk_tr if plink2 else time_plink_chunk
                     file = genotype_dir / f"{val}.pgen"
                     if file_type.startswith("chunked"):
                         chunk_size = int(file_type[len("chunked") :])
