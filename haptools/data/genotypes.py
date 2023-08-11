@@ -1249,7 +1249,7 @@ class GenotypesPLINK(GenotypesVCF):
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
     
         with pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar= pv
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar = pv
         ) as pgen:
             # how many variants to load?
             if variants is not None:
@@ -1402,9 +1402,11 @@ class GenotypesPLINK(GenotypesVCF):
         super(Genotypes, self).read()
         import pgenlib
 
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+
         sample_idxs = self.read_samples(samples)
         pgen = pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar = pv
         )
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
@@ -1595,7 +1597,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
     ):
         """
         Read genotypes from a PGEN file into a numpy matrix stored in
-        :py:attr:`~.GenotypesPLINK.data`
+        :py:attr:`~.GenotypesPLINKTR.data`
 
         Parameters
         ----------
@@ -1645,7 +1647,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         """
         A generator over the lines of a PGEN-PVAR file pair
 
-        This is a helper function for :py:meth:`~.GenotypesPLINK.__iter__`
+        This is a helper function for :py:meth:`~.GenotypesPLINKTR.__iter__`
 
         Parameters
         ----------

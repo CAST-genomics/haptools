@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
-import pgenlib
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.sim_phenotype import Repeat as HaptoolsRepeat
 from haptools.data import (
@@ -658,7 +657,7 @@ class TestGenotypesPLINKTR:
     
     def test_iter(self):
         # Get the expected data
-        expected = self. _get_fake_genotypes_multiallelic()
+        expected = self._get_fake_genotypes_multiallelic()
         gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
         # Check that everything matches what we expected
         for idx, line in enumerate(gts):
@@ -671,7 +670,7 @@ class TestGenotypesPLINKTR:
         assert gts.samples == expected.samples
 
     def test_read_plinktr(self):
-        expected_alleles =self._get_fake_genotypes_multiallelic().data
+        expected_alleles = self._get_fake_genotypes_multiallelic().data
         gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
         gts.read()
         # check genotypes
