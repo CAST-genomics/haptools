@@ -1616,8 +1616,39 @@ class GenotypesPLINKTR(GenotypesPLINK):
             See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super().read(region,samples,variants,max_variants)
-        for idx, record in enumerate(self._iter_TRRecords(region)):
-            self.data[:, idx] = record.GetLengthGenotypes()
+        num_variants = len(self.variants)
+        vcf = VCF(self.fname.with_suffix(".pvar"))
+        tr_records = self.trh.TRRecordHarmonizer(
+            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype,
+        )
+        # filter out TRs that we didn't want
+        if variants is not None:
+            tr_records = filter(lambda rec: rec.record_id in variants, tr_records)
+        # initialize a jagged array of allele lengths
+        max_num_alleles = max(map(len, self.variants["alleles"]))
+        allele_lens = np.empty((len(self.variants), max_num_alleles), dtype=self.data.dtype)
+        # iterate through each TR and extract the REF and ALT allele lengths
+        for idx, record in enumerate(tr_records):
+            if idx > num_variants:
+                # exit early if we've already found all the variants
+                break
+            # extract allele lengths from TRRecord object
+            allele_lens[idx, 0] = record.ref_allele_length
+            num_alleles = len(record.alt_allele_lengths) + 1
+            allele_lens[idx, 1:num_alleles] = record.alt_allele_lengths
+        # record missing entries and then set them all to REF
+        missing = self.data[:, :, :2] == np.iinfo(np.uint8).max
+        self.data[:, :, :2][missing] = 0
+        # TODO: use broadcasting instead of this for loop
+        for idx in range(num_variants):
+            # convert from genotype indices to allele lengths
+            self.data[:, idx, :2] = allele_lens[idx, self.data[:, idx, :2]]
+        # restore missing entries
+        self.data[:, :, :2][missing] = np.iinfo(np.uint8).max
+        # clean up memory
+        del missing
+        del allele_lens
+        gc.collect()
 
     def _iterate(
         self,
