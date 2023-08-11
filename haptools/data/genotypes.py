@@ -1666,7 +1666,15 @@ class GenotypesPLINKTR(GenotypesPLINK):
         tr_records = self._iter_TRRecords(region, variants)
         variants = super()._iterate(pgen, region, variants)
         for variant, record in zip(variants, tr_records):
-            variant.data = record.GetLengthGenotypes()
+            # extract the REF and ALT allele lengths
+            allele_lens = np.array([record.ref_allele_length, *record.alt_allele_lengths], dtype=variant.data.dtype)
+            # record missing entries and then set them all to REF
+            missing = variant.data[:, :2] == np.iinfo(np.uint8).max
+            variant.data[:, :2][missing] = 0
+            # convert from genotype indices to allele lengths
+            variant.data[:, :2] = allele_lens[variant.data[:, :2]]
+            # restore missing entries
+            variant.data[:, :2][missing] = np.iinfo(np.uint8).max
             yield variant
 
     def write(self):
