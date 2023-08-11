@@ -436,12 +436,12 @@ def main(
             genotype_dir = sample_dir
         results[arg] = {}
         intervals = INTERVALS_SAMPLES if arg == "samples" else INTERVALS_VARIANTS
-        item_iter = (
-            progressbar(intervals, prefix=f"{arg}, {file_type}: ", out=sys.stderr)
-            if progress
-            else intervals
-        )
         for file_type in FILE_TYPES.keys():
+            item_iter = (
+                progressbar(intervals, prefix=f"{arg}, {file_type}: ", out=sys.stderr)
+                if progress
+                else intervals
+            )
             results[arg][file_type] = []
             for val in item_iter:
                 chunk_size = 500
