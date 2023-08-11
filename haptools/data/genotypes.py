@@ -1627,10 +1627,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         # record missing entries and then set them all to REF
         missing = self.data[:, :, :2] == np.iinfo(np.uint8).max
         self.data[:, :, :2][missing] = 0
-        # TODO: use broadcasting instead of this for loop
-        for idx in range(num_variants):
-            # convert from genotype indices to allele lengths
-            self.data[:, idx, :2] = allele_lens[idx, self.data[:, idx, :2]]
+        # convert from genotype indices to allele lengths
+        variant_coords = np.arange(num_variants)[:, np.newaxis]
+        self.data[:, :, :2] = allele_lens[variant_coords, self.data[:, :, :2]]
         # restore missing entries
         self.data[:, :, :2][missing] = np.iinfo(np.uint8).max
         # clean up memory
