@@ -1521,22 +1521,6 @@ class GenotypesPLINKTR(GenotypesPLINK):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None , vcftype: str = "auto"):
         super().__init__(fname, log, chunk_size)
         self.vcftype = vcftype
-        self._import_copy_trh_module()
-    
-    def _import_copy_trh_module(self):
-        """
-        Import a copy of the tr_harmonizer module into the "trh" property of this class
-        Subsequent edits to the module will remain scoped to the class, only
-        
-        This code is adapted from https://stackoverflow.com/a/11285504/16815703
-        """
-        try:
-            SPEC = importlib.util.find_spec("trtools.utils.tr_harmonizer")
-        except ModuleNotFoundError:
-            SPEC = trh.__spec__
-        self.trh = importlib.util.module_from_spec(SPEC)
-        SPEC.loader.exec_module(self.trh)
-        
 
     @classmethod
     def load(
@@ -1577,21 +1561,30 @@ class GenotypesPLINKTR(GenotypesPLINK):
         genotypes.check_phase()
         return genotypes
     
-    
-    
-    def _iter_TRRecords(self,region: str = None):
-        gts_obj = self
-        def GetGenotypeIndicies(self):
-            n = np.argmax(self.vcfrecord.ID == gts_obj.variants["id"])
-            gts_data = gts_obj.data[:, n].astype(np.int8)
-            gts_data[gts_data == np.iinfo(np.uint8).max] = -1
-            return gts_data
-        self.trh.TRRecord.GetGenotypeIndicies = GetGenotypeIndicies
-        vcf = VCF(self.fname.with_suffix(".pvar"))
-        yield from self.trh.TRRecordHarmonizer(
-            vcffile = vcf, vcfiter= vcf(region), region =region , vcftype =self.vcftype
-            )
+    def _iter_TRRecords(self, region: str = None, variants: set[str] = None):
+        """
+        Yield TRRecord objects from the PVAR file
 
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        variants : set[str], optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+
+        Yields
+        ------
+        Iterator[trh.TRRecord]
+            An iterator over each line of the PVAR file
+        """
+        vcf = VCF(self.fname.with_suffix(".pvar"))
+        tr_records = trh.TRRecordHarmonizer(
+            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype,
+        )
+        # filter out TRs that we didn't want
+        if variants is not None:
+            tr_records = filter(lambda rec: rec.record_id in variants, tr_records)
+        yield from tr_records
 
     def read(
         self,
@@ -1617,18 +1610,11 @@ class GenotypesPLINKTR(GenotypesPLINK):
         """
         super().read(region,samples,variants,max_variants)
         num_variants = len(self.variants)
-        vcf = VCF(self.fname.with_suffix(".pvar"))
-        tr_records = self.trh.TRRecordHarmonizer(
-            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype,
-        )
-        # filter out TRs that we didn't want
-        if variants is not None:
-            tr_records = filter(lambda rec: rec.record_id in variants, tr_records)
         # initialize a jagged array of allele lengths
         max_num_alleles = max(map(len, self.variants["alleles"]))
         allele_lens = np.empty((len(self.variants), max_num_alleles), dtype=self.data.dtype)
         # iterate through each TR and extract the REF and ALT allele lengths
-        for idx, record in enumerate(tr_records):
+        for idx, record in enumerate(self._iter_TRRecords(region, variants)):
             if idx > num_variants:
                 # exit early if we've already found all the variants
                 break
@@ -1676,8 +1662,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
             An iterator over each line in the file, where each line is encoded as a
             namedtuple containing each of the class properties
         """
-        variants = super()._iterate(pgen,region,variants) 
-        for variant, record in zip(variants, self._iter_TRRecords(region)):
+        tr_records = self._iter_TRRecords(region, variants)
+        variants = super()._iterate(pgen, region, variants)
+        for variant, record in zip(variants, tr_records):
             variant.data = record.GetLengthGenotypes()
             yield variant
 
