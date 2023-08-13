@@ -6,9 +6,8 @@ from pathlib import Path
 
 from pysam import tabix_index
 
-from haptools import data
+from . import data
 from .logging import getLogger
-from haptools.data.haplotypes import Haplotypes
 
 
 def append_suffix(

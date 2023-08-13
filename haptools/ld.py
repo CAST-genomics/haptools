@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
-from haptools import data
+from . import data
 from .logging import getLogger
 from .data import Haplotype as HaplotypeBase
 
