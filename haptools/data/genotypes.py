@@ -259,7 +259,7 @@ class Genotypes(Data):
         data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
-        return np.array(variant.genotypes, dtype=np.uint8)
+        return variant.genotype.array().astype(np.uint8)
 
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
