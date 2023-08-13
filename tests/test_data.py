@@ -333,7 +333,7 @@ class TestGenotypesPLINK:
     def _get_fake_genotypes_multiallelic_tr(self):
         pgenlib = pytest.importorskip("pgenlib")
 
-        gts_tr = GenotypesTR(DATADIR / "simple_tr.vcf")
+        gts_tr = GenotypesTR(DATADIR / "simple-tr-valid.vcf")
         gts_tr.read()
 
         gts = GenotypesPLINK(fname="")
@@ -459,6 +459,21 @@ class TestGenotypesPLINK:
             assert (
                 line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
             )
+        assert gts.samples == expected.samples
+
+    def test_iter_multiallelic_tr(self):
+        expected = self._get_fake_genotypes_multiallelic_tr()
+
+        gts = GenotypesPLINK(DATADIR / "simple-tr-valid.pgen")
+
+        # Check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
+            for col in ("chrom", "pos", "id"):
+                assert line.variants[col] == expected.variants[col][idx]
+            assert line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+
+        # Check samples
         assert gts.samples == expected.samples
 
     def test_load_genotypes_subset(self):
@@ -604,7 +619,33 @@ class TestGenotypesPLINK:
         new_gts.read()
         new_gts.check_phase()
 
-        # Verify tqhat the uploaded data matches the original data
+        # Verify that the uploaded data matches the original data
+        np.testing.assert_allclose(gts_multiallelic.data, new_gts.data)
+        assert gts_multiallelic.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts_multiallelic.variants[col][i] == new_gts.variants[col][i]
+
+        #clean the files created after the test
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+    def test_write_multiallelic_tr(self):
+        # Create fake multi-allelic genotype data to write to the PLINK file
+        gts_multiallelic = self._get_fake_genotypes_multiallelic_tr()
+        #  Name of the PLINK file where the data will be written
+        fname = DATADIR / "test_write_multiallelic_tr.pgen"
+
+        # Write multiallelic genotype data to the PLINK file
+        gts_multiallelic.fname = fname
+        gts_multiallelic.write()
+
+        #Read the data from the newly created PLINK file
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+
+        # Verify that the uploaded data matches the original data
         np.testing.assert_allclose(gts_multiallelic.data, new_gts.data)
         assert gts_multiallelic.samples == new_gts.samples
         for i in range(len(new_gts.variants)):
@@ -669,7 +710,7 @@ class TestGenotypesPLINKTR:
         # Check samples
         assert gts.samples == expected.samples
 
-    def test_read_plinktr(self):
+    def test_read(self):
         expected_alleles = self._get_fake_genotypes_multiallelic().data
         gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
         gts.read()
@@ -1764,8 +1805,8 @@ class TestGenotypesVCF:
 
 
 class TestGenotypesTR:
-    def test_read_tr(self):
-        expected_alleles = np.array(
+    def _get_fake_tr_alleles(self):
+        return np.array(
             [
                 [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
                 [[3, 1, 1], [3, 1, 1], [1, 1, 1], [1, 1, 1], [3, 3, 1]],
@@ -1776,11 +1817,23 @@ class TestGenotypesTR:
             dtype=np.uint8,
         ).transpose((1, 0, 2))
 
+    def test_read(self):
+        expected_alleles = self._get_fake_tr_alleles()
+
         gts = GenotypesTR(DATADIR / "simple_tr.vcf")
         gts.read()
 
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
+
+    def test_iter(self):
+        # Get the expected data
+        expected = self._get_fake_tr_alleles()
+
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        # Check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
 
 
 class TestBreakpoints:
