@@ -367,7 +367,7 @@ class TestGenotypesPLINK:
             tuple("GTT" * i for i in range(1, 10)),
             ("ACACAC", "AC"),
             ("AAA", "AAAA"),
-            ("GTGT", "GTGTGT", "GTGTGTGT", "GTGTGTGTGTGTGT", "GTGTGTGTGTGTGTGTGTGTGT"),
+            ("GTGT", "GTGTGT", "GTGTGTGT", "GTGTGTGTGTGTGT", "GTGTGTGTGTGTGTGTGTGTGT", "GT"),
             ("GGG", "GGGGG"),
         ]
         gts.variants = np.array(
