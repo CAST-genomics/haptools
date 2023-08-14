@@ -333,7 +333,7 @@ class TestGenotypesPLINK:
     def _get_fake_genotypes_multiallelic_tr(self):
         pgenlib = pytest.importorskip("pgenlib")
 
-        gts_tr = GenotypesTR(DATADIR / "simple-tr-valid.vcf")
+        gts_tr = GenotypesTR(DATADIR / "simple-tr.vcf")
         gts_tr.read()
 
         gts = GenotypesPLINK(fname="")
@@ -408,7 +408,7 @@ class TestGenotypesPLINK:
     def test_load_genotypes_multiallelic_tr(self):
         expected = self._get_fake_genotypes_multiallelic_tr()
 
-        gts = GenotypesPLINK(DATADIR / "simple-tr-valid.pgen")
+        gts = GenotypesPLINK(DATADIR / "simple-tr.pgen")
         gts.read()
 
         # check that everything matches what we expected
@@ -464,7 +464,7 @@ class TestGenotypesPLINK:
     def test_iter_multiallelic_tr(self):
         expected = self._get_fake_genotypes_multiallelic_tr()
 
-        gts = GenotypesPLINK(DATADIR / "simple-tr-valid.pgen")
+        gts = GenotypesPLINK(DATADIR / "simple-tr.pgen")
 
         # Check that everything matches what we expected
         for idx, line in enumerate(gts):
@@ -697,7 +697,7 @@ class TestGenotypesPLINKTR:
     def test_iter(self):
         # Get the expected data
         expected = self._get_fake_genotypes_multiallelic()
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
         # Check that everything matches what we expected
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
@@ -710,7 +710,7 @@ class TestGenotypesPLINKTR:
 
     def test_read(self):
         expected_alleles = self._get_fake_genotypes_multiallelic().data
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr-valid.pgen")
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
         gts.read()
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
