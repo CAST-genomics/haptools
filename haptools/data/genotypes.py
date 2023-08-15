@@ -1,7 +1,6 @@
 from __future__ import annotations
 import re
 import gc
-import importlib.util
 from csv import reader
 from pathlib import Path
 from typing import Iterator
@@ -819,7 +818,7 @@ class GenotypesTR(Genotypes):
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     vcftype: str
-        TR vcf type currently being read.
+        TR vcf type currently being read. Options are
         {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
     """
 
@@ -939,19 +938,17 @@ class GenotypesPLINK(GenotypesVCF):
     data : npt.NDArray
         See documentation for :py:attr:`~.GenotypesVCF.data`
     samples : tuple
-        See documentation for :py:attr:`~.GenotypesVCF.data`
+        See documentation for :py:attr:`~.GenotypesVCF.samples`
     variants : np.array
-        See documentation for :py:attr:`~.GenotypesVCF.data`
+        See documentation for :py:attr:`~.GenotypesVCF.variants`
     log: Logger
-        See documentation for :py:attr:`~.GenotypesVCF.data`
+        See documentation for :py:attr:`~.GenotypesVCF.log`
     chunk_size: int, optional
         The max number of variants to fetch from and write to the PGEN file at any
         given time
 
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory
-    _prephased: bool
-        See documentation for :py:attr:`~.GenotypesVCF.data`
 
     Examples
     --------
@@ -1555,6 +1552,29 @@ class GenotypesPLINK(GenotypesVCF):
 
 
 class GenotypesPLINKTR(GenotypesPLINK):
+    """
+    A class for processing repeat genotypes from a PLINK ``.pgen`` file
+
+    Attributes
+    ----------
+    data : npt.NDArray
+        See documentation for :py:attr:`~.GenotypesPLINK.data`
+    samples : tuple
+        See documentation for :py:attr:`~.GenotypesPLINK.samples`
+    variants : np.array
+        See documentation for :py:attr:`~.GenotypesPLINK.variants`
+    log: Logger
+        See documentation for :py:attr:`~.GenotypesPLINK.log`
+    chunk_size: int, optional
+        See documentation for :py:attr:`~.GenotypesPLINK.chunk_size`
+    vcftype: str, optional
+        See documentation for :py:attr:`~.GenotypesTR.vcftype`
+
+    Examples
+    --------
+    >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
+    """
+
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None , vcftype: str = "auto"):
         super().__init__(fname, log, chunk_size)
         self.vcftype = vcftype
@@ -1582,11 +1602,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         samples : list[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
-            See documentation for :py:meth:`~.Genotypes.read
+            See documentation for :py:meth:`~.Genotypes.read`
         vcftype : str, optional
-        The type of TR VCF currently being read. Options are:
-        {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
-`
+            See documentation for :py:meth:`~.GenotypesTR.vcftype`
 
         Returns
         -------
@@ -1723,5 +1741,3 @@ class GenotypesPLINKTR(GenotypesPLINK):
 
     def check_maf(self):
         raise NotImplementedError
-
-
