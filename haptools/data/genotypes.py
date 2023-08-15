@@ -1436,7 +1436,7 @@ class GenotypesPLINK(GenotypesVCF):
             for contig in set(self.variants["chrom"]):
                 vcf.header.contigs.add(contig)
             self.log.info("Writing PVAR records")
-            for var_idx, var in enumerate(self.variants):
+            for var in self.variants:
                 rec = {
                     "contig": var["chrom"],
                     "start": var["pos"],
@@ -1452,6 +1452,34 @@ class GenotypesPLINK(GenotypesVCF):
                 record = vcf.new_record(**rec)
                 # write the record to a file
                 vcf.write(record)
+
+    def _num_unique_alleles(self, arr: npt.NDArray):
+        """
+        Obtain the number of unique elements in each row of a genotype matrix
+        Needed by https://groups.google.com/g/plink2-users/c/Sn5qVCyDlDw/m/GOWScY6tAQAJ
+
+        Adapted from https://stackoverflow.com/a/46575580
+
+        Parameters
+        ----------
+        arr : npt.NDArray
+            A genotype matrix of shape (num_variants, num_samples, 2) and type np.uint8
+
+        Returns
+        -------
+        npt.NDArray
+            An array of shape (num_variants,) and type np.uint32 containing allele
+            counts for each variant
+        """
+        nrows = arr.shape[0]
+        row_coords = np.arange(nrows)[:, np.newaxis, np.newaxis]
+        allele_cts = np.zeros((nrows, np.iinfo(np.uint8).max+1, 2), dtype=np.bool_)
+        # mark whichever allele indices appear in arr then sum them to obtain counts
+        allele_cts[row_coords, arr, np.arange(2)] = 1
+        allele_cts = allele_cts.any(axis=2).sum(axis=1, dtype=np.uint32)
+        # there are always at least two alleles
+        allele_cts[allele_cts < 2] = 2
+        return allele_cts
 
     def write(self):
         """
@@ -1475,7 +1503,6 @@ class GenotypesPLINK(GenotypesVCF):
         # write the pgen file
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
         with pgenlib.PgenWriter(
-
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
@@ -1497,6 +1524,9 @@ class GenotypesPLINK(GenotypesVCF):
                     missing = np.ascontiguousarray(
                         data[start:end] == np.iinfo(np.uint8).max
                     )
+                    # obtain the number of unique alleles for each variant
+                    # https://stackoverflow.com/a/46575580
+                    allele_cts = self._num_unique_alleles(data[start:end])
                     subset_data = np.ascontiguousarray(data[start:end], dtype=np.int32)
                 except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
@@ -1507,12 +1537,17 @@ class GenotypesPLINK(GenotypesVCF):
                 missing.resize((len(self.variants), len(self.samples) * 2))
                 # convert any missing genotypes to -9
                 subset_data[missing] = -9
+                # finally, append the genotypes to the PGEN file
                 if self._prephased or self.data.shape[2] < 3:
-                    pgen.append_alleles_batch(subset_data, all_phased=True)
+                    pgen.append_alleles_batch(
+                        subset_data, all_phased=True, allele_cts=allele_cts,
+                    )
                 else:
                     # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
-                    pgen.append_partially_phased_batch(subset_data, subset_phase)
+                    pgen.append_partially_phased_batch(
+                        subset_data, subset_phase, allele_cts=allele_cts,
+                    )
                     del subset_phase
             del subset_data
             del missing
