@@ -1666,8 +1666,8 @@ class GenotypesPLINKTR(GenotypesPLINK):
         super().read(region,samples,variants,max_variants)
         num_variants = len(self.variants)
         # initialize a jagged array of allele lengths
-        num_alleles = np.fromiter(map(len, self.variants["alleles"]), dtype=np.uint8, count=num_variants)
-        allele_lens = np.empty((num_variants, num_alleles.max()+1), dtype=self.data.dtype)
+        max_num_alleles = max(map(len, self.variants["alleles"]))
+        allele_lens = np.empty((len(self.variants), max_num_alleles), dtype=self.data.dtype)
         # iterate through each TR and extract the REF and ALT allele lengths
         for idx, record in enumerate(self._iter_TRRecords(region, variants)):
             if idx > num_variants:
@@ -1675,16 +1675,16 @@ class GenotypesPLINKTR(GenotypesPLINK):
                 break
             # extract allele lengths from TRRecord object
             allele_lens[idx, 0] = record.ref_allele_length
-            num_alleles_rec = num_alleles[idx]
-            allele_lens[idx, 1:num_alleles_rec] = record.alt_allele_lengths
-            allele_lens[idx, num_alleles_rec] = np.iinfo(np.uint8).max
+            num_alleles = len(record.alt_allele_lengths) + 1
+            allele_lens[idx, 1:num_alleles] = record.alt_allele_lengths
         # record missing entries and then set them all to REF
         missing = self.data[:, :, :2] == np.iinfo(np.uint8).max
-        breakpoint()
-        np.putmask(self.data[:, :, :2], missing, num_alleles)
+        self.data[:, :, :2][missing] = 0
         # convert from genotype indices to allele lengths
         variant_coords = np.arange(num_variants)[:, np.newaxis]
         self.data[:, :, :2] = allele_lens[variant_coords, self.data[:, :, :2]]
+        # restore missing entries
+        self.data[:, :, :2][missing] = np.iinfo(np.uint8).max
         # clean up memory
         del missing
         del allele_lens
