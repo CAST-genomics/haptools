@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
-from haptools import logging
+import logging
 
 from re import search
 from pathlib import Path
 
-from .logging import logging
+from .logging import getLogger
 from .data import GenotypesPLINK
 
 
@@ -36,7 +36,7 @@ class Line:
 class HapFileIO:
     def __init__(self, filename: Path, logger=None):
         self.filename = filename
-        self.log = logger or logging.getLogger(LOGGER_NAME)
+        self.log = logger or logging.getLogger(self.__class__.__name__)
 
     def lines(self, sorted: bool = True) -> list[Line]:
         buffer = open(self.filename)
@@ -124,7 +124,7 @@ class HapFileValidator:
     KEY_ALLELE: str = "HT::Allele"
 
     def __init__(self, logger=None):
-        self.log = logger or logging.getLogger(LOGGER_NAME)
+        self.log = logger or logging.getLogger(self.__class__.__name__)
 
         self.vars_ex: dict[int, dict[str, type]] = {
             HapFileValidator.KEY_HAPLOTYPE: {},
@@ -833,12 +833,11 @@ def is_hapfile_valid(
     sorted: bool = True,
     pgen: Path | None = None,
     max_variants: int = 10000,
-    logger=None,
+    log: logging.Logger = None,
 ) -> bool:
-    log = logger
 
     if log == None:
-        log = logging.getLogger(LOGGER_NAME)
+        log = getLogger(LOGGER_NAME)
 
     file = HapFileIO(filename, logger=log)
 
