@@ -8,7 +8,7 @@ Validate the structure of a ``.hap`` file.
 
 When a ``.hap`` file contains any errors, they will be logged accordingly.
 
-Optionally, the haplotypes present in the ``.hap`` file can be compared against a ``.pgen`` file.
+Optionally, the SNPs and TRs present in the ``.hap`` file can be compared against a ``.pgen`` file.
 
 Usage
 ~~~~~
@@ -103,18 +103,19 @@ Into
 If the previous example were to be sorted then there would be several errors in the ``.hap`` file.
 All sorted files parse the meta information lines first, thus the ``V`` lines would be incomplete.
 
-As mentioned before, one can use the ``--genotypes`` flag to provide a ``.pgen`` file with which to compare the existence of variant IDs.
-The following will check if all of the variant IDs in the ``.hap`` appear in the ``.pvar`` associated to the ``.pgen``.
+As mentioned before, one can use the ``--genotypes`` flag to provide a ``.pvar`` file with which to compare the existence of variant IDs.
+The following will check if all of the variant IDs in the ``.hap`` appear in the ``.pvar`` file.
 
 .. code-block:: bash
 
-  haptools validate --genotypes tests/data/hapfiles/valhap_test_data.pgen tests/data/hapfiles/valhap_test_data.hap
+  haptools validate --genotypes tests/data/hapfiles/valhap_test_data.pvar tests/data/hapfiles/valhap_test_data.hap
 
-.. warning::
+.. note::
 
-  You must generate a ``.pvar`` from your ``.pgen`` file.
-  This is done in order to avoid reading heavy amounts of
-  information which is not relevant to the validation process.
+  We accept a PVAR file instead of a VCF in order to avoid reading lots of
+  information which is not relevant to the validation process. However, any
+  VCF wihtout a FORMAT field is a valid PVAR file. So you can easily create a PVAR file
+  using the ``cut`` command or ``plink2 --make-just-pvar``.
 
 Detailed Usage
 ~~~~~~~~~~~~~~

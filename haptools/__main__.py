@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
-from enum import Flag
 import sys
 from pathlib import Path
 
