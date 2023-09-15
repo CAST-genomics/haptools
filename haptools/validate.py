@@ -831,11 +831,10 @@ class HapFileValidator:
 def is_hapfile_valid(
     filename: Path,
     sorted: bool = True,
-    pgen: Path | None = None,
+    pvar: Path | None = None,
     max_variants: int = 10000,
     log: logging.Logger = None,
 ) -> bool:
-
     if log == None:
         log = getLogger(LOGGER_NAME)
 
@@ -862,8 +861,8 @@ def is_hapfile_valid(
 
     hapfile.validate_version_declarations()
 
-    if pgen != None:
-        varfile = GenotypesPLINK(pgen)
+    if pvar is not None:
+        varfile = GenotypesPLINK(pvar.with_suffix(".pgen"))
         varfile.read_variants(max_variants=max_variants)
 
         ids = list(map(lambda v: v[0], varfile.variants))

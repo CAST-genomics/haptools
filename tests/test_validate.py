@@ -5,7 +5,7 @@ import pytest
 from . import test_data
 from haptools import validate as val_hapfile
 
-DATADIR = Path(__file__).parent.joinpath("data").joinpath("hapfiles")
+DATADIR = Path(__file__).parent.joinpath("data") / "hapfiles"
 
 
 def _generate_fake_haps():
@@ -28,7 +28,7 @@ def test_generated_haplotypes():
 
     assert (
         val_hapfile.is_hapfile_valid(
-            DATADIR / "valhap_test_data.hap", pgen=DATADIR / "valhap_test_data.pvar"
+            DATADIR / "valhap_test_data.hap", pvar=DATADIR / "valhap_test_data.pvar"
         )
         == True
     )
@@ -274,7 +274,7 @@ def test_with_missing_variant_in_pvar():
     pgenlib = pytest.importorskip("pgenlib")
     assert (
         val_hapfile.is_hapfile_valid(
-            DATADIR / "simple.hap", pgen=DATADIR / "basic_missing_ids.pvar"
+            DATADIR / "simple.hap", pvar=DATADIR / "basic_missing_ids.pvar"
         )
         == False
     )

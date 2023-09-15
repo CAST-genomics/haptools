@@ -8,7 +8,7 @@ Validate the structure of a ``.hap`` file.
 
 When a ``.hap`` file contains any errors, they will be logged accordingly.
 
-Optionally, the SNPs and TRs present in the ``.hap`` file can be compared against a ``.pgen`` file.
+If provided, the SNPs and TRs present in the ``.hap`` file will be confirmed to exist in a ``.pvar`` file.
 
 Usage
 ~~~~~
