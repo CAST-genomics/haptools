@@ -1469,8 +1469,11 @@ class GenotypesPLINK(GenotypesVCF):
         nrows = arr.shape[0]
         row_coords = np.arange(nrows)[:, np.newaxis, np.newaxis]
         allele_cts = np.zeros((nrows, np.iinfo(np.uint8).max + 1, 2), dtype=np.bool_)
+        # ensure the arr values are interpreted as uint8's
+        if arr.dtype != np.uint8:
+            arr = arr.view("uint8")
         # mark whichever allele indices appear in arr then sum them to obtain counts
-        allele_cts[row_coords, arr, np.arange(2)] = 1
+        allele_cts[row_coords, arr] = 1
         allele_cts = allele_cts.any(axis=2).sum(axis=1, dtype=np.uint32)
         # there are always at least two alleles
         allele_cts[allele_cts < 2] = 2
