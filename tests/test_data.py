@@ -367,7 +367,14 @@ class TestGenotypesPLINK:
             tuple("GTT" * i for i in range(1, 10)),
             ("ACACAC", "AC"),
             ("AAA", "AAAA"),
-            ("GTGT", "GTGTGT", "GTGTGTGT", "GTGTGTGTGTGTGT", "GTGTGTGTGTGTGTGTGTGTGT", "GT"),
+            (
+                "GTGT",
+                "GTGTGT",
+                "GTGTGTGT",
+                "GTGTGTGTGTGTGT",
+                "GTGTGTGTGTGTGTGTGTGTGT",
+                "GT",
+            ),
             ("GGG", "GGGGG"),
         ]
         gts.variants = np.array(
@@ -471,7 +478,9 @@ class TestGenotypesPLINK:
             np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
             for col in ("chrom", "pos", "id"):
                 assert line.variants[col] == expected.variants[col][idx]
-            assert line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            assert (
+                line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            )
 
         # Check samples
         assert gts.samples == expected.samples
@@ -614,7 +623,7 @@ class TestGenotypesPLINK:
         gts_multiallelic.fname = fname
         gts_multiallelic.write()
 
-        #Read the data from the newly created PLINK file
+        # Read the data from the newly created PLINK file
         new_gts = GenotypesPLINK(fname)
         new_gts.read()
         new_gts.check_phase()
@@ -626,7 +635,7 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "alleles"):
                 assert gts_multiallelic.variants[col][i] == new_gts.variants[col][i]
 
-        #clean the files created after the test
+        # clean the files created after the test
         fname.with_suffix(".psam").unlink()
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
@@ -641,7 +650,7 @@ class TestGenotypesPLINK:
         gts_multiallelic.fname = fname
         gts_multiallelic.write()
 
-        #Read the data from the newly created PLINK file
+        # Read the data from the newly created PLINK file
         new_gts = GenotypesPLINK(fname)
         new_gts.read()
 
@@ -652,7 +661,7 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "alleles"):
                 assert gts_multiallelic.variants[col][i] == new_gts.variants[col][i]
 
-        #clean the files created after the test
+        # clean the files created after the test
         fname.with_suffix(".psam").unlink()
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
@@ -693,7 +702,7 @@ class TestGenotypesPLINKTR:
         # to see if we can change chrX representations to properly simulate from it
 
         return gts
-    
+
     def test_iter(self):
         # Get the expected data
         expected = self._get_fake_genotypes_multiallelic()
@@ -703,7 +712,9 @@ class TestGenotypesPLINKTR:
             np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
             for col in ("chrom", "pos", "id"):
                 assert line.variants[col] == expected.variants[col][idx]
-            assert line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            assert (
+                line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            )
 
         # Check samples
         assert gts.samples == expected.samples
