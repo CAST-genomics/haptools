@@ -1072,15 +1072,13 @@ class GenotypesPLINK(GenotypesVCF):
             A row from the :py:attr:`~.GenotypesPLINK.variants` array
         """
         # Parse the REF and ALT alleles from the PVAR record
-        ref_allele = record[cid["REF"]]
-        alt_alleles = record[cid["ALT"]].split(",")
-        alleles = [ref_allele] + alt_alleles
+        alleles = (record[cid["REF"]], *record[cid["ALT"]].split(","))
         return np.array(
             (
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                tuple(alleles),
+                alleles,
             ),
             dtype=self.variants.dtype,
         )
