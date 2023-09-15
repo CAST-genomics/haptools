@@ -1072,15 +1072,13 @@ class GenotypesPLINK(GenotypesVCF):
             A row from the :py:attr:`~.GenotypesPLINK.variants` array
         """
         # Parse the REF and ALT alleles from the PVAR record
-        ref_allele = record[cid["REF"]]
-        alt_alleles = record[cid["ALT"]].split(",")
-        alleles = [ref_allele] + alt_alleles
+        alleles = (record[cid["REF"]], *record[cid["ALT"]].split(","))
         return np.array(
             (
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                tuple(alleles),
+                alleles,
             ),
             dtype=self.variants.dtype,
         )
@@ -1241,12 +1239,12 @@ class GenotypesPLINK(GenotypesVCF):
         """
         super(Genotypes, self).read()
         import pgenlib
-    
+
         sample_idxs = self.read_samples(samples)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
-    
+
         with pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar = pv
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         ) as pgen:
             # how many variants to load?
             if variants is not None:
@@ -1403,7 +1401,7 @@ class GenotypesPLINK(GenotypesVCF):
 
         sample_idxs = self.read_samples(samples)
         pgen = pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar = pv
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         )
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
@@ -1470,7 +1468,7 @@ class GenotypesPLINK(GenotypesVCF):
         """
         nrows = arr.shape[0]
         row_coords = np.arange(nrows)[:, np.newaxis, np.newaxis]
-        allele_cts = np.zeros((nrows, np.iinfo(np.uint8).max+1, 2), dtype=np.bool_)
+        allele_cts = np.zeros((nrows, np.iinfo(np.uint8).max + 1, 2), dtype=np.bool_)
         # mark whichever allele indices appear in arr then sum them to obtain counts
         allele_cts[row_coords, arr, np.arange(2)] = 1
         allele_cts = allele_cts.any(axis=2).sum(axis=1, dtype=np.uint32)
@@ -1503,7 +1501,7 @@ class GenotypesPLINK(GenotypesVCF):
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
-            allele_ct_limit = pv.get_max_allele_ct(),
+            allele_ct_limit=pv.get_max_allele_ct(),
             nonref_flags=False,
             hardcall_phase_present=True,
         ) as pgen:
@@ -1537,13 +1535,17 @@ class GenotypesPLINK(GenotypesVCF):
                 # finally, append the genotypes to the PGEN file
                 if self._prephased or self.data.shape[2] < 3:
                     pgen.append_alleles_batch(
-                        subset_data, all_phased=True, allele_cts=allele_cts,
+                        subset_data,
+                        all_phased=True,
+                        allele_cts=allele_cts,
                     )
                 else:
                     # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
                     pgen.append_partially_phased_batch(
-                        subset_data, subset_phase, allele_cts=allele_cts,
+                        subset_data,
+                        subset_phase,
+                        allele_cts=allele_cts,
                     )
                     del subset_phase
             del subset_data
@@ -1575,7 +1577,13 @@ class GenotypesPLINKTR(GenotypesPLINK):
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None , vcftype: str = "auto"):
+    def __init__(
+        self,
+        fname: Path | str,
+        log: Logger = None,
+        chunk_size: int = None,
+        vcftype: str = "auto",
+    ):
         super().__init__(fname, log, chunk_size)
         self.vcftype = vcftype
 
@@ -1615,7 +1623,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         genotypes.read(region, samples, variants)
         genotypes.check_phase()
         return genotypes
-    
+
     def _iter_TRRecords(self, region: str = None, variants: set[str] = None):
         """
         Yield TRRecord objects from the PVAR file
@@ -1634,7 +1642,10 @@ class GenotypesPLINKTR(GenotypesPLINK):
         """
         vcf = VCF(self.fname.with_suffix(".pvar"))
         tr_records = trh.TRRecordHarmonizer(
-            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype,
+            vcffile=vcf,
+            vcfiter=vcf(region),
+            region=region,
+            vcftype=self.vcftype,
         )
         # filter out TRs that we didn't want
         if variants is not None:
@@ -1663,11 +1674,13 @@ class GenotypesPLINKTR(GenotypesPLINK):
         max_variants : int, optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
         """
-        super().read(region,samples,variants,max_variants)
+        super().read(region, samples, variants, max_variants)
         num_variants = len(self.variants)
         # initialize a jagged array of allele lengths
         max_num_alleles = max(map(len, self.variants["alleles"]))
-        allele_lens = np.empty((len(self.variants), max_num_alleles), dtype=self.data.dtype)
+        allele_lens = np.empty(
+            (len(self.variants), max_num_alleles), dtype=self.data.dtype
+        )
         # iterate through each TR and extract the REF and ALT allele lengths
         for idx, record in enumerate(self._iter_TRRecords(region, variants)):
             if idx > num_variants:
@@ -1720,7 +1733,10 @@ class GenotypesPLINKTR(GenotypesPLINK):
         variants = super()._iterate(pgen, region, variants)
         for variant, record in zip(variants, tr_records):
             # extract the REF and ALT allele lengths
-            allele_lens = np.array([record.ref_allele_length, *record.alt_allele_lengths], dtype=variant.data.dtype)
+            allele_lens = np.array(
+                [record.ref_allele_length, *record.alt_allele_lengths],
+                dtype=variant.data.dtype,
+            )
             # record missing entries and then set them all to REF
             missing = variant.data[:, :2] == np.iinfo(np.uint8).max
             variant.data[:, :2][missing] = 0
