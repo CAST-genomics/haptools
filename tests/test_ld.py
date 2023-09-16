@@ -1,11 +1,9 @@
 from pathlib import Path
 
-import numpy as np
 from click.testing import CliRunner
 
 from haptools.data import Data
 from haptools.__main__ import main
-import pytest
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -122,28 +120,4 @@ def test_from_gts_ids(capfd):
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     captured = capfd.readouterr()
     assert captured.out == expected
-    assert result.exit_code == 0
-
-
-def test_missing_haplotypes(caplog):
-    gt_file = DATADIR / "apoe.vcf.gz"
-    hp_file = DATADIR / "apoe4.hap"
-
-    # IDs de haplotipos que no existen en el archivo .hap
-    missing_ids = {"H100", "H200", "H300"}
-
-    # Filtrar los IDs de haplotipos inexistentes
-    existing_ids = [id for id in missing_ids if id in hp_file.read_text()]
-
-    # Verificar si existen IDs de haplotipos existentes
-    if len(existing_ids) == 0:
-        pytest.skip("Todos los IDs de haplotipos son inexistentes")
-
-    # Comando con los IDs de haplotipos existentes
-    cmd = f"ld {' '.join(existing_ids)} {gt_file} {hp_file}"
-
-    runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
-
-    # Verificar que el código de salida sea 0 (sin errores)
     assert result.exit_code == 0
