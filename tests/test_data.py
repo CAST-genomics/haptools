@@ -354,6 +354,8 @@ class TestGenotypesPLINK:
         phasing = np.ones(data.shape[:2] + (1,)).astype(np.uint8)
         phasing[4, [1, 3, 4]] = 0
         phasing[3, [1, 4]] = 0
+        phasing[:2, 1:3] = 0
+        phasing[1, 2] = 1 # since homozygous unphased variants are marked as phased
         gts.data = np.concatenate((data, phasing), axis=-1).transpose((1, 0, 2))
         # handle half-calls and chrX according to the flag:
         # --vcf-half-call m
