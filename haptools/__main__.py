@@ -1055,14 +1055,14 @@ def validate(
     filename: Path,
     sort: bool,
     genotypes: Path | None = None,
-    verbosity: str = "DEBUG",
+    verbosity: str = "INFO",
 ):
     from .logging import getLogger
     from .validate import is_hapfile_valid
 
     log = getLogger(name="validate", level=verbosity)
 
-    is_valid = is_hapfile_valid(filename, sorted=sort, logger=log, pgen=genotypes)
+    is_valid = is_hapfile_valid(filename, sorted=sort, log=log, pgen=genotypes)
 
     if not is_valid:
         log.warn("Found several warnings and / or errors in the hapfile")

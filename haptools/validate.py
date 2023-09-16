@@ -11,7 +11,6 @@ from .data import GenotypesPLINK
 
 
 LOGGER_NAME = "validate"
-LTS_SPEC = "0.2.0"
 
 
 def tmpex(expectation: object, received: object) -> str:
@@ -836,7 +835,7 @@ def is_hapfile_valid(
     log: logging.Logger = None,
 ) -> bool:
     if log == None:
-        log = getLogger(LOGGER_NAME)
+        log = getLogger(name=LOGGER_NAME, level="CRITICAL")
 
     file = HapFileIO(filename, logger=log)
 
