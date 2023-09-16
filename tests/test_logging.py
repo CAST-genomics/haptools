@@ -1,4 +1,4 @@
-import logging 
+import logging
 
 from haptools.logging import getLogger
 
@@ -27,9 +27,9 @@ def test_getLogger_with_name():
 
 
 def test_getLogger_with_level():
-    logger = getLogger(level = "DEBUG")
+    logger = getLogger(level="DEBUG")
     assert logger.level == logging.DEBUG
-    logger = getLogger(level = logging.DEBUG)
+    logger = getLogger(level=logging.DEBUG)
     assert logger.level == logging.DEBUG
 
 
