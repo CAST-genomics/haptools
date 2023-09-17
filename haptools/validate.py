@@ -868,7 +868,7 @@ def is_hapfile_valid(
         hapfile.compare_haps_to_pvar(ids)
 
     log.info(
-        f"Completed HapFile validation with {hapfile.errc} errors and"
+        f"Completed .hap file validation with {hapfile.errc} errors and"
         f" {hapfile.warc} warnings."
     )
 

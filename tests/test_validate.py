@@ -1,16 +1,18 @@
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 
+from haptools.__main__ import main
 from haptools.validate import is_hapfile_valid
 
+PARENT_DATADIR = Path(__file__).parent.joinpath("data")
 DATADIR = Path(__file__).parent.joinpath("data") / "valhap"
 
 
 def test_generated_haplotypes():
-    datadir = Path(__file__).parent.joinpath("data")
-    hapfile = Path(datadir / "simple.hap")
-    pvarfile = Path(datadir / "simple.pvar")
+    hapfile = Path(PARENT_DATADIR / "simple.hap")
+    pvarfile = Path(PARENT_DATADIR / "simple.pvar")
 
     assert is_hapfile_valid(hapfile, pvar=pvarfile)
 
@@ -148,3 +150,54 @@ def test_with_missing_variant_in_pvar():
 
 def test_unreadable_hapfile():
     assert not is_hapfile_valid(Path("NON_EXISTENT_FILENAME.hap"))
+
+
+def test_basic(capfd):
+    hp_file = DATADIR / "basic.hap"
+
+    cmd = f"validate {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    assert result.exit_code == 0
+
+
+def test_no_version(capfd):
+    hp_file = DATADIR / "no_version.hap"
+
+    cmd = f"validate {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    assert result.exit_code != 0
+
+
+def test_no_version(capfd):
+    hp_file = DATADIR / "no_version.hap"
+
+    cmd = f"validate {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    assert result.exit_code != 0
+
+
+def test_sorted(capfd):
+    hp_file = DATADIR / "out_of_header_metas.hap"
+
+    cmd = f"validate --sorted {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    assert result.exit_code != 0
+
+    cmd = f"validate --no-sorted {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    assert result.exit_code == 0
+
+
+def test_with_pvar(capfd):
+    gt_file = PARENT_DATADIR / "simple.pvar"
+    hp_file = PARENT_DATADIR / "simple.hap"
+
+    cmd = f"validate --genotypes {gt_file} {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    assert result.exit_code == 0

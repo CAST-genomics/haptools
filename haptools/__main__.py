@@ -1062,10 +1062,10 @@ def validate(
 
     log = getLogger(name="validate", level=verbosity)
 
-    is_valid = is_hapfile_valid(filename, sorted=sort, log=log, pgen=genotypes)
+    is_valid = is_hapfile_valid(filename, sorted=sort, log=log, pvar=genotypes)
 
     if not is_valid:
-        log.warn("Found several warnings and / or errors in the hapfile")
+        raise click.ClickException("Found several warnings and / or errors in the .hap file")
 
 
 if __name__ == "__main__":

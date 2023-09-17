@@ -30,7 +30,7 @@ Outputs a message specifying the amount of errors and warnings.
 
 .. code-block::
 
-  [    INFO] Completed HapFile validation with 0 errors and 0 warnings.
+  [    INFO] Completed .hap file validation with 0 errors and 0 warnings.
 
 All warnings and errors will be logged if there are any.
 
@@ -41,8 +41,8 @@ All warnings and errors will be logged if there are any.
 .. code-block::
 
   [ WARNING] No version declaration found. Assuming to use the latest version.
-  [    INFO] Completed HapFile validation with 0 errors and 1 warnings.
-  [ WARNING] Found several warnings and / or errors in the hapfile
+  [    INFO] Completed .hap file validation with 0 errors and 1 warnings.
+  Error: Found several warnings and / or errors in the .hap file
 
 One can use ``--no-sort`` to avoid sorting the file.
 This will make it so that all unordered files will get removed, such as out-of-header lines with meta information.
@@ -104,11 +104,11 @@ If the previous example were to be sorted then there would be several errors in 
 All sorted files parse the meta information lines first, thus the ``V`` lines would be incomplete.
 
 As mentioned before, one can use the ``--genotypes`` flag to provide a ``.pvar`` file with which to compare the existence of variant IDs.
-The following will check if all of the variant IDs in the ``.hap`` appear in the ``.pvar`` file.
+The following will check if all of the variant IDs in the ``.hap`` file appear in the ``.pvar`` file.
 
 .. code-block:: bash
 
-  haptools validate --genotypes tests/data/valhap/test_data.pvar tests/data/valhap/test_data.hap
+  haptools validate --genotypes tests/data/simple.pvar tests/data/simple.hap
 
 .. note::
 
