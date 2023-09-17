@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 # To test: ./clumpSTR.py --summstats-snps tests/eur_gwas_pvalue_chr19.LDL.glm.linear --clump-snp-field ID --clump-field p-value --clump-chrom-field CHROM --clump-pos-field position --clump-p1 0.2 --out test.clump
-import sys
 import math
 from logging import Logger, getLogger
 
 import numpy as np
 
-from .data import Genotypes, GenotypesVCF, GenotypesTR
+from .data import Genotypes, GenotypesVCF, GenotypesTR, GenotypesPLINKTR
 
 
 class Variant:
@@ -557,15 +556,17 @@ def clumpstr(
     strgts = None
     gts = None
     if gts_snps:
+        log.debug("Loading SNP Genotypes.")
         if str(gts_snps).endswith("pgen"):
-            log.debug("Loading SNP Genotypes.")
             snpgts = GenotypesPLINK.load(gts_snps)
         else:
-            log.debug("Loading SNP Genotypes.")
             snpgts = GenotypesVCF.load(gts_snps)
     if gts_strs:
         log.debug("Loading STR Genotypes.")
-        strgts = GenotypesTR.load(gts_strs)
+        if str(gts_strs).endswith("pgen"):
+            strgts = GenotypesPLINKTR.load(gts_strs)
+        else:
+            strgts = GenotypesTR.load(gts_strs)
 
     if gts_snps and gts_strs:
         log.debug("Calculating set of overlapping samples between STRs and SNPs.")
