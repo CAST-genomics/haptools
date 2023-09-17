@@ -14,6 +14,7 @@ from .data import (
     Haplotypes,
     GenotypesTR,
     GenotypesPLINK,
+    GenotypesPLINKTR,
     Repeat as RepeatBase,
     Haplotype as HaplotypeBase,
 )
@@ -435,7 +436,12 @@ def simulate_pt(
 
     if repeats:
         log.info("Merging with TR genotypes")
-        tr_gt = GenotypesTR(fname=repeats, log=log)
+        if repeats.suffix == ".pgen":
+            log.info("Loading repeat genotypes from PGEN file")
+            tr_gt = GenotypesPLINKTR(fname=repeats, log=log, chunk_size=chunk_size)
+        else:
+            log.info("Loading repeat genotypes from VCF/BCF file")
+            tr_gt = GenotypesTR(fname=repeats, log=log)
         tr_gt.read(region=region, samples=samples, variants=haplotype_ids)
         tr_gt.check_missing()
         gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
