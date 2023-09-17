@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 import pytest
 import numpy as np
 import numpy.lib.recfunctions as rfn
-
 from haptools.sim_phenotype import Haplotype as HaptoolsHaplotype
 from haptools.sim_phenotype import Repeat as HaptoolsRepeat
 from haptools.data import (
@@ -21,8 +20,9 @@ from haptools.data import (
     Breakpoints,
     GenotypesTR,
     GenotypesVCF,
-    GenotypesPLINK,
     GenotypesTR,
+    GenotypesPLINK,
+    GenotypesPLINKTR,
 )
 
 
@@ -330,6 +330,62 @@ class TestGenotypesPLINK:
         gts.variants = gts_ref_alt.variants
         return gts
 
+    def _get_fake_genotypes_multiallelic_tr(self):
+        pgenlib = pytest.importorskip("pgenlib")
+
+        gts_tr = GenotypesTR(DATADIR / "simple-tr.vcf")
+        gts_tr.read()
+
+        gts = GenotypesPLINK(fname="")
+        gts.samples = ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+
+        na = np.iinfo(np.uint8).max
+        data = np.array(
+            [
+                [[0, 1], [2, 3], [4, 5], [6, 7], [8, 8]],
+                [[0, 1], [0, 1], [1, 1], [1, 1], [0, 0]],
+                [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+                [[4, 4], [na, na], [3, 0], [1, 2], [4, na]],
+                [[1, na], [na, na], [0, na], [na, na], [na, na]],
+            ],
+            dtype=np.uint8,
+        )
+        # append the phasing info, transpose, and clean up
+        phasing = np.ones(data.shape[:2] + (1,)).astype(np.uint8)
+        phasing[4, [1, 3, 4]] = 0
+        phasing[3, [1, 4]] = 0
+        phasing[:2, 1:3] = 0
+        phasing[1, 2] = 1  # since homozygous unphased variants are marked as phased
+        gts.data = np.concatenate((data, phasing), axis=-1).transpose((1, 0, 2))
+        # handle half-calls and chrX according to the flag:
+        # --vcf-half-call m
+        gts.data[4, 3, 0] = na
+        gts.data[:, 4, 1] = gts.data[:, 4, 0]
+        # TODO: figure out whether this is the correct way to handle half-calls and try
+        # to see if we can change chrX representations to properly simulate from it
+
+        # add the appropriate alleles
+        ref_alt = [
+            tuple("GTT" * i for i in range(1, 10)),
+            ("ACACAC", "AC"),
+            ("AAA", "AAAA"),
+            (
+                "GTGT",
+                "GTGTGT",
+                "GTGTGTGT",
+                "GTGTGTGTGTGTGT",
+                "GTGTGTGTGTGTGTGTGTGTGT",
+                "GT",
+            ),
+            ("GGG", "GGGGG"),
+        ]
+        gts.variants = np.array(
+            [tuple(rec) + (ref_alt[idx],) for idx, rec in enumerate(gts_tr.variants)],
+            dtype=gts.variants.dtype,
+        )
+
+        return gts
+
     def test_load_genotypes(self):
         expected = self._get_fake_genotypes_plink()
 
@@ -344,7 +400,6 @@ class TestGenotypesPLINK:
             for col in ("chrom", "pos", "id", "alleles"):
                 assert gts.variants[col][i] == expected.variants[col][i]
 
-    @pytest.mark.xfail(reason="not implemented yet")
     def test_load_genotypes_multiallelic(self):
         expected = self._get_fake_genotypes_multiallelic()
 
@@ -354,6 +409,19 @@ class TestGenotypesPLINK:
 
         # check that everything matches what we expected
         np.testing.assert_allclose(gts.data, expected.data)
+        assert gts.samples == expected.samples
+        for i, x in enumerate(expected.variants):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts.variants[col][i] == expected.variants[col][i]
+
+    def test_load_genotypes_multiallelic_tr(self):
+        expected = self._get_fake_genotypes_multiallelic_tr()
+
+        gts = GenotypesPLINK(DATADIR / "simple-tr.pgen")
+        gts.read()
+
+        # check that everything matches what we expected
+        np.testing.assert_array_equal(gts.data, expected.data)
         assert gts.samples == expected.samples
         for i, x in enumerate(expected.variants):
             for col in ("chrom", "pos", "id", "alleles"):
@@ -400,6 +468,23 @@ class TestGenotypesPLINK:
             assert (
                 line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
             )
+        assert gts.samples == expected.samples
+
+    def test_iter_multiallelic_tr(self):
+        expected = self._get_fake_genotypes_multiallelic_tr()
+
+        gts = GenotypesPLINK(DATADIR / "simple-tr.pgen")
+
+        # Check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
+            for col in ("chrom", "pos", "id"):
+                assert line.variants[col] == expected.variants[col][idx]
+            assert (
+                line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            )
+
+        # Check samples
         assert gts.samples == expected.samples
 
     def test_load_genotypes_subset(self):
@@ -529,6 +614,145 @@ class TestGenotypesPLINK:
         fname.with_suffix(".psam").unlink()
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
+
+    def test_write_genotypes_biallelic(self):
+        gts = self._get_fake_genotypes_plink()
+
+        # convert to bool - we should be able to handle both
+        gts.data = gts.data.astype(np.bool_)
+
+        fname = DATADIR / "test_write.pgen"
+        gts.fname = fname
+        gts.write()
+
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+        new_gts.check_phase()
+
+        # check that everything matches what we expected
+        np.testing.assert_allclose(gts.data, new_gts.data)
+        assert gts.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts.variants[col][i] == new_gts.variants[col][i]
+
+        # clean up afterwards: delete the files we created
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+    def test_write_multiallelic(self):
+        # Create fake multi-allelic genotype data to write to the PLINK file
+        gts_multiallelic = self._get_fake_genotypes_multiallelic()
+        #  Name of the PLINK file where the data will be written
+        fname = DATADIR / "test_write_multiallelic.pgen"
+
+        # Write multiallelic genotype data to the PLINK file
+        gts_multiallelic.fname = fname
+        gts_multiallelic.write()
+
+        # Read the data from the newly created PLINK file
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+        new_gts.check_phase()
+
+        # Verify that the uploaded data matches the original data
+        np.testing.assert_allclose(gts_multiallelic.data, new_gts.data)
+        assert gts_multiallelic.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts_multiallelic.variants[col][i] == new_gts.variants[col][i]
+
+        # clean the files created after the test
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+    def test_write_multiallelic_tr(self):
+        # Create fake multi-allelic genotype data to write to the PLINK file
+        gts_multiallelic = self._get_fake_genotypes_multiallelic_tr()
+        #  Name of the PLINK file where the data will be written
+        fname = DATADIR / "test_write_multiallelic_tr.pgen"
+
+        # Write multiallelic genotype data to the PLINK file
+        gts_multiallelic.fname = fname
+        gts_multiallelic.write()
+
+        # Read the data from the newly created PLINK file
+        new_gts = GenotypesPLINK(fname)
+        new_gts.read()
+
+        # Verify that the uploaded data matches the original data
+        np.testing.assert_allclose(gts_multiallelic.data, new_gts.data)
+        assert gts_multiallelic.samples == new_gts.samples
+        for i in range(len(new_gts.variants)):
+            for col in ("chrom", "pos", "id", "alleles"):
+                assert gts_multiallelic.variants[col][i] == new_gts.variants[col][i]
+
+        # clean the files created after the test
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
+
+class TestGenotypesPLINKTR:
+    def _get_fake_genotypes_multiallelic(self):
+        # define the code for an empty allele
+        na = np.iinfo(np.uint8).max
+
+        # fill out the class with the same variants and samples as GenotypesPLINK
+        gts_plink = TestGenotypesPLINK()._get_fake_genotypes_multiallelic_tr()
+        gts = GenotypesPLINKTR(gts_plink.fname)
+        gts.variants = gts_plink.variants
+        gts.samples = gts_plink.samples
+
+        # fill out the data array with the repeat unit counts
+        data = np.array(
+            [
+                [[1, 2], [3, 4], [5, 6], [7, 8], [9, 9]],
+                [[3, 1], [3, 1], [1, 1], [1, 1], [3, 3]],
+                [[3, 3], [3, 3], [3, 3], [3, 3], [3, 3]],
+                [[11, 11], [na, na], [7, 2], [3, 4], [11, na]],
+                [[5, na], [na, na], [3, na], [na, na], [na, na]],
+            ],
+            dtype=np.uint8,
+        ).transpose((1, 0, 2))
+
+        # append the phasing info, transpose, and clean up
+        phasing = gts_plink.data[:, :, 2][:, :, np.newaxis]
+        gts.data = np.concatenate((data, phasing), axis=-1)
+
+        # handle half-calls and chrX according to the flag:
+        # --vcf-half-call m
+        gts.data[4, 3, 0] = na
+        gts.data[:, 4, 1] = gts.data[:, 4, 0]
+        # TODO: figure out whether this is the correct way to handle half-calls and try
+        # to see if we can change chrX representations to properly simulate from it
+
+        return gts
+
+    def test_iter(self):
+        # Get the expected data
+        expected = self._get_fake_genotypes_multiallelic()
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        # Check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :3], expected.data[:, idx])
+            for col in ("chrom", "pos", "id"):
+                assert line.variants[col] == expected.variants[col][idx]
+            assert (
+                line.variants["alleles"].tolist() == expected.variants["alleles"][idx]
+            )
+
+        # Check samples
+        assert gts.samples == expected.samples
+
+    def test_read(self):
+        expected_alleles = self._get_fake_genotypes_multiallelic().data
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts.read()
+        # check genotypes
+        np.testing.assert_allclose(expected_alleles, gts.data)
 
 
 class TestPhenotypes:
@@ -1618,8 +1842,8 @@ class TestGenotypesVCF:
 
 
 class TestGenotypesTR:
-    def test_read_tr(self):
-        expected_alleles = np.array(
+    def _get_fake_tr_alleles(self):
+        return np.array(
             [
                 [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
                 [[3, 1, 1], [3, 1, 1], [1, 1, 1], [1, 1, 1], [3, 3, 1]],
@@ -1628,14 +1852,25 @@ class TestGenotypesTR:
                 [[5, 255, 0], [255, 255, 0], [3, 255, 0], [255, 255, 0], [255, 255, 0]],
             ],
             dtype=np.uint8,
-        )
+        ).transpose((1, 0, 2))
+
+    def test_read(self):
+        expected_alleles = self._get_fake_tr_alleles()
+
         gts = GenotypesTR(DATADIR / "simple_tr.vcf")
         gts.read()
 
         # check genotypes
-        for i, variants in enumerate(expected_alleles):
-            for j, sample_var in enumerate(variants):
-                assert tuple(sample_var) == tuple(gts.data[j, i])
+        np.testing.assert_allclose(expected_alleles, gts.data)
+
+    def test_iter(self):
+        # Get the expected data
+        expected = self._get_fake_tr_alleles()
+
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        # Check that everything matches what we expected
+        for idx, line in enumerate(gts):
+            np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
 
 
 class TestBreakpoints:
@@ -1795,25 +2030,6 @@ class TestBreakpoints:
             [("chr1", 59423086), ("1", 59423090), ("1", 239403770), ("2", 229668150)],
             dtype=[("chrom", "U10"), ("pos", np.uint32)],
         )
-        expected_pop_arr = np.array(
-            [
-                [
-                    [0, 0],
-                    [1, 0],
-                    [1, 0],
-                    [0, 1],
-                ],
-                [
-                    [1, 1],
-                    [0, 1],
-                    [0, 1],
-                    [1, 0],
-                ],
-            ],
-            dtype=np.uint8,
-        )
-        labels = {"YRI": 0, "CEU": 1}
-        labels_map = np.vectorize({v: k for k, v in labels.items()}.get)
 
         expected = self._get_expected_breakpoints()
 
