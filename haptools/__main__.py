@@ -1028,11 +1028,11 @@ def clump(
 @main.command(short_help="Validate the structure of a .hap file")
 @click.argument("filename", type=click.Path(exists=True, path_type=Path))
 @click.option(
-    "--sort/--no-sort",
+    "--sorted/--not-sorted",
     is_flag=True,
-    default=True,
+    default=False,
     show_default=True,
-    help="Sorting of the file will not be performed",
+    help="Has the file been sorted already?",
 )
 @click.option(
     "--genotypes",
@@ -1053,7 +1053,7 @@ def clump(
 )
 def validate(
     filename: Path,
-    sort: bool,
+    sorted: bool = False,
     genotypes: Path | None = None,
     verbosity: str = "INFO",
 ):
@@ -1062,7 +1062,7 @@ def validate(
 
     log = getLogger(name="validate", level=verbosity)
 
-    is_valid = is_hapfile_valid(filename, sorted=sort, log=log, pvar=genotypes)
+    is_valid = is_hapfile_valid(filename, sorted=(not sorted), log=log, pvar=genotypes)
 
     if not is_valid:
         raise click.ClickException("Found several warnings and / or errors in the .hap file")

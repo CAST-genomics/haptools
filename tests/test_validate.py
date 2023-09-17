@@ -182,12 +182,12 @@ def test_no_version(capfd):
 def test_sorted(capfd):
     hp_file = DATADIR / "out_of_header_metas.hap"
 
-    cmd = f"validate --sorted {hp_file}"
+    cmd = f"validate --not-sorted {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     assert result.exit_code != 0
 
-    cmd = f"validate --no-sorted {hp_file}"
+    cmd = f"validate --sorted {hp_file}"
     runner = CliRunner()
     result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
     assert result.exit_code == 0
