@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import numpy as np
 from click.testing import CliRunner
 
 from haptools.data import Data
