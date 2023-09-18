@@ -22,7 +22,7 @@ def test_with_empty_lines():
 
 
 def test_with_out_of_header_metas_sorted():
-    assert not is_hapfile_valid(DATADIR / "out_of_header_metas.hap", sorted=True)
+    assert is_hapfile_valid(DATADIR / "out_of_header_metas.hap", sorted=True)
 
 
 def test_with_out_of_header_metas_unsorted():
@@ -180,12 +180,7 @@ def test_no_version(capfd):
 
 
 def test_sorted(capfd):
-    hp_file = DATADIR / "out_of_header_metas.hap"
-
-    cmd = f"validate --not-sorted {hp_file}"
-    runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
-    assert result.exit_code != 0
+    hp_file = PARENT_DATADIR / "simple.hap"
 
     cmd = f"validate --sorted {hp_file}"
     runner = CliRunner()

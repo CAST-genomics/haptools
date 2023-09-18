@@ -37,7 +37,7 @@ class HapFileIO:
         self.filename = filename
         self.log = logger or logging.getLogger(self.__class__.__name__)
 
-    def lines(self, sorted: bool = True) -> list[Line]:
+    def lines(self, sorted: bool = False) -> list[Line]:
         buffer = open(self.filename)
 
         content = [
@@ -49,6 +49,7 @@ class HapFileIO:
         buffer.close()
 
         if not sorted:
+            self.log.debug("Assuming .hap file is unsorted. Attempting to sort.")
             meta_limit = next(
                 idx for idx, line in enumerate(content) if not line[0].startswith("#")
             )
@@ -57,9 +58,8 @@ class HapFileIO:
                 for idx, line in enumerate(content)
                 if (not line[0].startswith("#")) or idx < meta_limit
             ]
-
-        # lol
-        content.sort(key=lambda line: ord(line[0][0]))
+            content.sort(key=lambda line: ord(line[0][0]))
+            self.log.debug("Finished sorting .hap file")
 
         return content
 
@@ -156,7 +156,7 @@ class HapFileValidator:
         self.errc: int = 0
         self.warc: int = 0
 
-    def extract_and_store_content(self, file: HapFileIO, sorted: bool = True):
+    def extract_and_store_content(self, file: HapFileIO, sorted: bool = False):
         lines = file.lines(sorted=sorted)
 
         self.extract_meta_lines(lines)
@@ -829,7 +829,7 @@ class HapFileValidator:
 
 def is_hapfile_valid(
     filename: Path,
-    sorted: bool = True,
+    sorted: bool = False,
     pvar: Path | None = None,
     max_variants: int = 10000,
     log: logging.Logger = None,

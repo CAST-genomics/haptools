@@ -4,9 +4,13 @@
 validate
 ========
 
-Validate the formatting of a sorted ``.hap`` file. Output warnings/errors for a ``.hap`` that is improperly formatted.
+Validate the formatting of a sorted :doc:`.hap file </formats/haplotypes>`. Output warnings/errors explaining how the formatting of your ``.hap`` file may be improved.
 
-If a ``.pvar`` file is provided, the SNPs and TRs present in the ``.hap`` file will be checked for existence in the ``.pvar`` file.
+If a :ref:`.pvar file <formats-genotypesplink>` file is provided, the SNPs and TRs present in the ``.hap`` file will be checked for existence in the ``.pvar`` file.
+
+.. note::
+
+  This command will not check that your ``.hap`` file is properly sorted. It only checks formatting.
 
 Usage
 ~~~~~
@@ -42,12 +46,12 @@ All warnings and errors will be logged if there are any.
   [    INFO] Completed .hap file validation with 0 errors and 1 warnings.
   Error: Found several warnings and / or errors in the .hap file
 
-All ``.hap`` files must be sorted before they can be validated. By default, we try our best to sort your ``.hap`` file internally before performing any validation checks, but the sorting can fail in certain cases.
+All ``.hap`` files must be sorted before they can be validated. By default, we try our best to sort your ``.hap`` file internally before performing any validation checks.
 If your ``.hap`` file is already sorted, you should use the ``--sorted`` parameter. It will speed things up a bit by skipping the sorting step. If your ``.hap`` file is indexed, it will be assumed to be sorted.
 
 .. code-block:: bash
 
-  haptools validate --sorted tests/data/valhap/out_of_header_metas.hap
+  haptools validate --sorted tests/data/simple.hap
 
 As mentioned before, one can use the ``--genotypes`` flag to provide a ``.pvar`` file with which to compare the existence of variant IDs.
 The following will check if all of the variant IDs in the ``.hap`` file appear in the ``.pvar`` file.

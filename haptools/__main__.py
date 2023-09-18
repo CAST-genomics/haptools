@@ -1062,7 +1062,11 @@ def validate(
 
     log = getLogger(name="validate", level=verbosity)
 
-    is_valid = is_hapfile_valid(filename, sorted=(not sorted), log=log, pvar=genotypes)
+    # if the hap file is compressed and a .tbi index exists for it, assume it is sorted
+    if filename.suffix == ".gz" and filename.with_suffix(".gz.tbi").exists():
+        sorted = True
+
+    is_valid = is_hapfile_valid(filename, sorted=sorted, log=log, pvar=genotypes)
 
     if not is_valid:
         raise click.ClickException("Found several warnings and / or errors in the .hap file")
