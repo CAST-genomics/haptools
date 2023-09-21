@@ -3,7 +3,7 @@ import re
 import gc
 from csv import reader
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Union
 from logging import getLogger, Logger
 from collections import namedtuple, Counter
 
@@ -12,7 +12,11 @@ import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
 
-from . import tr_harmonizer as trh
+try:
+    import trtools.utils.tr_harmonizer as trh
+except ModuleNotFoundError:
+    from . import tr_harmonizer as trh
+
 from .data import Data
 
 
@@ -792,6 +796,37 @@ class GenotypesVCF(Genotypes):
         vcf.close()
 
 
+class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
+    """
+    Parameters
+    ----------
+    vcffile : cyvcf2.VCF instance
+    vcftype : {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}, optional
+       Type of the VCF file. Default='auto'.
+       If vcftype=='auto', attempts to infer the type.
+    Attributes
+    ----------
+    vcffile : cyvcf2.VCF instance
+    vcfiter : cyvcf2.VCF iterable
+        Region to grab strs from within the VCF file.
+    vcftype : enum
+       Type of the VCF file. Must be included in VcfTypes
+    """
+
+    def __init__(
+        self,
+        vcffile: cyvcf2.VCF,
+        vcfiter: object,
+        vcftype: Union[str, trh.VcfTypes] = "auto",
+    ):
+        super().__init__(vcffile, vcftype)
+        self.vcfiter = vcfiter
+
+    def __next__(self) -> trh.TRRecord:
+        """Iterate over TRRecord produced from the underlying vcf."""
+        return trh.HarmonizeRecord(self.vcftype, next(self.vcfiter))
+
+
 class GenotypesTR(Genotypes):
     """
     A class for processing TR genotypes from a file
@@ -873,8 +908,8 @@ class GenotypesTR(Genotypes):
         tr_records: trh.TRRecord
             TRRecord objects yielded from TRRecordHarmonizer
         """
-        for record in trh.TRRecordHarmonizer(
-            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype
+        for record in TRRecordHarmonizerRegion(
+            vcffile=vcf, vcfiter=vcf(region), vcftype=self.vcftype
         ):
             record.ID = record.record_id
             record.CHROM = record.chrom
