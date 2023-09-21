@@ -1675,12 +1675,12 @@ class GenotypesPLINKTR(GenotypesPLINK):
             An iterator over each line of the PVAR file
         """
         vcf = VCF(self.fname.with_suffix(".pvar"))
-        tr_records = trh.TRRecordHarmonizer(
+        tr_records = TRRecordHarmonizerRegion(
             vcffile=vcf,
             vcfiter=vcf(region),
-            region=region,
             vcftype=self.vcftype,
         )
+
         # filter out TRs that we didn't want
         if variants is not None:
             tr_records = filter(lambda rec: rec.record_id in variants, tr_records)
