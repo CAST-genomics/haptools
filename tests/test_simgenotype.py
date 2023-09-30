@@ -43,7 +43,6 @@ def test_basic(capfd):
 
 
 def test_pgen_output(capfd):
-    pytest.importorskip("pgenlib")
     prefix = DATADIR / "example_simgenotype.pgen"
     dat_file = DATADIR / "outvcf_gen.dat"
     map_dir = DATADIR / "map"

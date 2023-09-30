@@ -313,7 +313,6 @@ class TestGenotypes:
 
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
-        pgenlib = pytest.importorskip("pgenlib")
         gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_refalt()
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
@@ -322,7 +321,6 @@ class TestGenotypesPLINK:
         return gts
 
     def _get_fake_genotypes_multiallelic(self):
-        pgenlib = pytest.importorskip("pgenlib")
         gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_multiallelic()
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
@@ -331,7 +329,6 @@ class TestGenotypesPLINK:
         return gts
 
     def _get_fake_genotypes_multiallelic_tr(self):
-        pgenlib = pytest.importorskip("pgenlib")
 
         gts_tr = GenotypesTR(DATADIR / "simple-tr.vcf")
         gts_tr.read()
