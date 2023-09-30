@@ -329,7 +329,6 @@ class TestGenotypesPLINK:
         return gts
 
     def _get_fake_genotypes_multiallelic_tr(self):
-
         gts_tr = GenotypesTR(DATADIR / "simple-tr.vcf")
         gts_tr.read()
 
