@@ -16,7 +16,7 @@ click = ">=8.0.3"
 pysam = ">=0.19.0"
 cyvcf2 = ">=0.30.14"
 matplotlib = ">=3.5.1"
-Pgenlib = {version = ">=0.90.1", optional = true, extras = ["files"]}
+Pgenlib = ">=0.90.1"
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
@@ -59,10 +59,6 @@ tests = [
     "coverage",
     "nox",
     "nox-poetry"
-]
-
-files = [
-    "Pgenlib"
 ]
 
 [tool.poetry.scripts]
