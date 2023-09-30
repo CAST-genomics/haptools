@@ -13,7 +13,7 @@ Types of Contributions
 ~~~~~~~~~~~~
 Report a bug
 ~~~~~~~~~~~~
-If you have found a bug, please report it on `our issues page <https://github.com/aryarm/haptools/issues>`_ rather than emailing us directly. Others may have the same issue and this helps us get that information to them.
+If you have found a bug, please report it on `our issues page <https://github.com/CAST-genomics/haptools/issues>`_ rather than emailing us directly. Others may have the same issue and this helps us get that information to them.
 
 Before you submit a bug, please search through our issues to ensure it hasn't already been reported. If you encounter an issue that has already been reported, please upvote it by reacting with a thumbs-up emoji. This helps us prioritize the issue.
 
@@ -80,7 +80,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        poetry install -E docs -E tests -E files
+        poetry install -E docs -E tests
 
 Now, try importing ``haptools`` or running it on the command line.
 
