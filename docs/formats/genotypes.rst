@@ -22,13 +22,6 @@ There is also experimental support for `PLINK2 PGEN <https://github.com/chrchang
 
 If you run out memory when using PGEN files, consider reading/writing variants from the file in chunks via the ``--chunk-size`` parameter.
 
-.. note::
-	PLINK2 support depends on the ``Pgenlib`` python library. This can be installed automatically with ``haptools`` if you specify the "files" extra requirements during installation.
-
-	.. code-block:: bash
-
-		pip install haptools[files]
-
 Converting from VCF to PGEN
 ---------------------------
 To convert a VCF containing only biallelic SNPs to PGEN, use the following command.
