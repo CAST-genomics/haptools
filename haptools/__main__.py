@@ -1069,7 +1069,9 @@ def validate(
     is_valid = is_hapfile_valid(filename, sorted=sorted, log=log, pvar=genotypes)
 
     if not is_valid:
-        raise click.ClickException("Found several warnings and / or errors in the .hap file")
+        raise click.ClickException(
+            "Found several warnings and / or errors in the .hap file"
+        )
 
 
 if __name__ == "__main__":
