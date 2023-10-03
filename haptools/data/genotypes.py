@@ -598,8 +598,8 @@ class Genotypes(Data):
                 self.variants = np.delete(self.variants, idx)
                 maf = np.delete(maf, idx)
                 self.log.info(
-                    "Ignoring missing genotypes from "
-                    f"{original_num_variants - len(self.variants)} samples"
+                    f"Ignoring {original_num_variants - len(self.variants)} variants "
+                    f"with MAF < {threshold}"
                 )
                 self._var_idx = None
             else:
