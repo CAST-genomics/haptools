@@ -40,6 +40,9 @@ class Genotypes(Data):
             3. POS
     log: Logger
         A logging instance for recording debug statements
+    lazy: bool, optional
+        If true load samples lazily (same order as in the VCF) otherwise load
+        in the same order as the tuple in samples.
     _prephased : bool
         If True, assume that the genotypes are phased. Otherwise, extract their phase
         when reading from the VCF.
@@ -57,7 +60,7 @@ class Genotypes(Data):
     >>> genotypes.data
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None):
+    def __init__(self, fname: Path | str, log: Logger = None, lazy = False):
         super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array(
@@ -71,6 +74,7 @@ class Genotypes(Data):
         self._prephased = False
         self._samp_idx = None
         self._var_idx = None
+        self.lazy = lazy
 
     @classmethod
     def load(
@@ -155,6 +159,11 @@ class Genotypes(Data):
             Note that this value is ignored if the variants argument is provided.
         """
         super().read()
+        if self.lazy and samples:
+            self.log.warning(
+                "Loading genotypes lazily. Output samples and data may not be in the"
+                " same order as the given samples array."
+            )
         records = self.__iter__(region=region, samples=samples, variants=variants)
         if variants is not None:
             max_variants = len(variants)
@@ -204,6 +213,9 @@ class Genotypes(Data):
         # transpose the GT matrix so that samples are rows and variants are columns
         self.log.info(f"Transposing genotype matrix of size {self.data.shape}")
         self.data = self.data.transpose((1, 0, 2))
+
+        if samples and not self.lazy:
+            self.subset(samples=samples, variants=variants, inplace=True)
 
     def _variant_arr(self, record: Variant):
         """
@@ -718,10 +730,13 @@ class GenotypesVCF(Genotypes):
             4. [REF, ALT1, ALT2, ...]
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
+    lazy: bool, optional
+        If true load samples lazily (same order as in the VCF) otherwise load
+        in the same order as the tuple in samples.
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None):
-        super().__init__(fname, log)
+    def __init__(self, fname: Path | str, log: Logger = None, lazy = False):
+        super().__init__(fname, log, lazy)
         dtype = {k: v[0] for k, v in self.variants.dtype.fields.items()}
         self.variants = np.array([], dtype=list(dtype.items()) + [("alleles", object)])
 
@@ -852,10 +867,13 @@ class GenotypesTR(Genotypes):
     vcftype: str
         TR vcf type currently being read. Options are
         {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
+    lazy: bool, optional
+        If true load samples lazily (same order as in the VCF) otherwise load
+        in the same order as the tuple in samples.
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto"):
-        super().__init__(fname, log)
+    def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto", lazy = False):
+        super().__init__(fname, log, lazy)
         self.vcftype = vcftype
 
     @classmethod
@@ -981,14 +999,17 @@ class GenotypesPLINK(GenotypesVCF):
 
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory
+    lazy: bool, optional
+        If true load samples lazily (same order as in the VCF) otherwise load
+        in the same order as the tuple in samples.
 
     Examples
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
-        super().__init__(fname, log)
+    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None, lazy = False):
+        super().__init__(fname, log, lazy)
         self.chunk_size = chunk_size
 
     def read_samples(self, samples: list[str] = None):
@@ -1262,6 +1283,12 @@ class GenotypesPLINK(GenotypesVCF):
         """
         super(Genotypes, self).read()
 
+        if self.lazy and samples:
+            self.log.warning(
+                "Loading genotypes lazily. Output samples and data may not be in the"
+                " same order as the given samples array."
+            )
+
         sample_idxs = self.read_samples(samples)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
@@ -1338,6 +1365,9 @@ class GenotypesPLINK(GenotypesVCF):
                     ).transpose((1, 0, 2))
                 del data
                 gc.collect()
+
+        if samples and not self.lazy:
+            self.subset(samples=samples, variants=variants, inplace=True)
 
     def _iterate(
         self,
@@ -1593,7 +1623,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         See documentation for :py:attr:`~.GenotypesPLINK.chunk_size`
     vcftype: str, optional
         See documentation for :py:attr:`~.GenotypesTR.vcftype`
-
+    lazy: bool, optional
+        If true load samples lazily (same order as in the VCF) otherwise load
+        in the same order as the tuple in samples.
     Examples
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
@@ -1605,8 +1637,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         log: Logger = None,
         chunk_size: int = None,
         vcftype: str = "auto",
+        lazy: bool = False,
     ):
-        super().__init__(fname, log, chunk_size)
+        super().__init__(fname, log, chunk_size, lazy)
         self.vcftype = vcftype
 
     @classmethod
@@ -1697,6 +1730,13 @@ class GenotypesPLINKTR(GenotypesPLINK):
             See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super().read(region, samples, variants, max_variants)
+
+        if self.lazy and samples:
+            self.log.warning(
+                "Loading genotypes lazily. Output samples and data may not be in the"
+                " same order as the given samples array."
+            )
+
         num_variants = len(self.variants)
         # initialize a jagged array of allele lengths
         max_num_alleles = max(map(len, self.variants["alleles"]))
@@ -1724,6 +1764,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         del missing
         del allele_lens
         gc.collect()
+
+        if samples and not self.lazy:
+            self.subset(samples=samples, variants=variants, inplace=True)
 
     def _iterate(
         self,

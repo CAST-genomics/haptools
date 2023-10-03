@@ -20,7 +20,6 @@ from haptools.data import (
     Breakpoints,
     GenotypesTR,
     GenotypesVCF,
-    GenotypesTR,
     GenotypesPLINK,
     GenotypesPLINKTR,
 )
@@ -309,6 +308,16 @@ class TestGenotypes:
         assert gts.data.shape[0] == gts1.data.shape[0]
         assert gts.data.shape[2] == gts2.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
+
+    def test_lazy(self):
+        # can we load the data from the VCF?
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+
+        gts = Genotypes(DATADIR / "simple.vcf.gz", lazy=True)
+        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
 
 class TestGenotypesPLINK:
@@ -690,6 +699,16 @@ class TestGenotypesPLINK:
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
 
+    def test_lazy(self):
+        # can we load the data from the VCF?
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+
+        gts = GenotypesPLINK(DATADIR / "simple.pgen", lazy=True)
+        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
 
 class TestGenotypesPLINKTR:
     def _get_fake_genotypes_multiallelic(self):
@@ -749,6 +768,16 @@ class TestGenotypesPLINKTR:
         gts.read()
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
+
+    def test_lazy(self):
+        # can we load the data from the VCF?
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts.read(samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", lazy=True)
+        gts.read(samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
 
 class TestPhenotypes:
@@ -1836,6 +1865,15 @@ class TestGenotypesVCF:
         assert gts.data.shape[2] == gts1.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
+    def test_lazy(self):
+        gts = GenotypesVCF(DATADIR / "simple.vcf.gz")
+        gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+
+        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", lazy=True)
+        gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
 
 class TestGenotypesTR:
     def _get_fake_tr_alleles(self):
@@ -1867,6 +1905,15 @@ class TestGenotypesTR:
         # Check that everything matches what we expected
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
+
+    def test_lazy(self):
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        gts.read(samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf", lazy=True)
+        gts.read(samples=["HG00097", "HG00096", "HG00099"])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
 
 class TestBreakpoints:
