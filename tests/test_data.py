@@ -989,6 +989,18 @@ class TestPhenotypes:
         np.testing.assert_allclose(pts_sub.data, expected_data)
         assert np.array_equal(pts_sub.names, expected_names)
 
+        # also try in-place
+        expected_data = pts.data[[3, 4], [1]]
+        expected_data = expected_data[:, np.newaxis]
+        assert len(expected_data.shape) == 2
+        expected_names = (pts.names[1],)
+        samples = ("HG00100", "HG00101")
+        names = ("bmi",)
+        pts.subset(samples=samples, names=names, inplace=True)
+        assert pts_sub.samples == samples
+        np.testing.assert_allclose(pts_sub.data, expected_data)
+        assert np.array_equal(pts_sub.names, expected_names)
+
 
 class TestCovariates:
     def _get_expected_covariates(self):
