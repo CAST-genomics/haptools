@@ -60,7 +60,7 @@ class Genotypes(Data):
     >>> genotypes.data
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, lazy = False):
+    def __init__(self, fname: Path | str, log: Logger = None, lazy=False):
         super().__init__(fname, log)
         self.samples = tuple()
         self.variants = np.array(
@@ -735,7 +735,7 @@ class GenotypesVCF(Genotypes):
         in the same order as the tuple in samples.
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, lazy = False):
+    def __init__(self, fname: Path | str, log: Logger = None, lazy=False):
         super().__init__(fname, log, lazy)
         dtype = {k: v[0] for k, v in self.variants.dtype.fields.items()}
         self.variants = np.array([], dtype=list(dtype.items()) + [("alleles", object)])
@@ -872,7 +872,9 @@ class GenotypesTR(Genotypes):
         in the same order as the tuple in samples.
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto", lazy = False):
+    def __init__(
+        self, fname: Path | str, log: Logger = None, vcftype: str = "auto", lazy=False
+    ):
         super().__init__(fname, log, lazy)
         self.vcftype = vcftype
 
@@ -1008,7 +1010,9 @@ class GenotypesPLINK(GenotypesVCF):
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None, lazy = False):
+    def __init__(
+        self, fname: Path | str, log: Logger = None, chunk_size: int = None, lazy=False
+    ):
         super().__init__(fname, log, lazy)
         self.chunk_size = chunk_size
 
