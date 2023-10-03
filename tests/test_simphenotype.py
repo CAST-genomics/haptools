@@ -526,7 +526,6 @@ class TestSimPhenotypeCLI:
         tmp_transform.unlink()
 
     def test_pgen(self, capfd):
-        pytest.importorskip("pgenlib")
         # first, create a temporary file containing the output of transform
         tmp_tsfm = Path("simple-haps.pgen")
         gt_file = DATADIR / "simple.pgen"
