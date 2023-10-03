@@ -997,7 +997,6 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 
 [extras]
 docs = ["Sphinx", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "numpydoc", "sphinx-click"]
-files = ["Pgenlib"]
 tests = []
 
 [metadata]

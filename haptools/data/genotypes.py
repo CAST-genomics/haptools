@@ -7,6 +7,7 @@ from typing import Iterator, Union
 from logging import getLogger, Logger
 from collections import namedtuple, Counter
 
+import pgenlib
 import numpy as np
 import numpy.typing as npt
 from cyvcf2 import VCF, Variant
@@ -989,15 +990,6 @@ class GenotypesPLINK(GenotypesVCF):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
-        try:
-            global pgenlib
-            import pgenlib
-        except ImportError:
-            raise ImportError(
-                f"We cannot read PGEN files without the pgenlib library. Please "
-                f"reinstall haptools with the 'files' extra requirement via\n"
-                f"pip install haptools[files]"
-            )
 
     def read_samples(self, samples: list[str] = None):
         """
@@ -1269,7 +1261,6 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super(Genotypes, self).read()
-        import pgenlib
 
         sample_idxs = self.read_samples(samples)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
@@ -1426,7 +1417,6 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:meth:`~.GenotypesPLINK._iterate`
         """
         super(Genotypes, self).read()
-        import pgenlib
 
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
@@ -1515,8 +1505,6 @@ class GenotypesPLINK(GenotypesVCF):
         Write the variants in this class to PLINK2 files at
         :py:attr:`~.GenotypesPLINK.fname`
         """
-        import pgenlib
-
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()

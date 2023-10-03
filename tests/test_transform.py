@@ -261,7 +261,6 @@ def test_basic_subset(capfd):
 
 
 def test_basic_pgen_input(capfd):
-    pytest.importorskip("pgenlib")
     expected = """##fileformat=VCFv4.2
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##contig=<ID=1>
