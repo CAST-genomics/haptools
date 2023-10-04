@@ -242,6 +242,20 @@ docs = ["furo (>=2022.6.21)", "sphinx (>=5.1.1)", "sphinx-autodoc-typehints (>=1
 testing = ["covdefaults (>=2.2)", "coverage (>=6.4.2)", "pytest (>=7.1.2)", "pytest-cov (>=3)", "pytest-timeout (>=2.1)"]
 
 [[package]]
+name = "filprofiler"
+version = "2023.3.1"
+description = "A memory profiler for data batch processing applications."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+threadpoolctl = "*"
+
+[package.extras]
+dev = ["pytest", "pampy", "numpy", "cython", "black", "towncrier", "wheel", "auditwheel", "twine", "ipython", "ipykernel", "nbconvert", "jinja2 (<3.1)", "numexpr", "blosc", "psutil", "flake8"]
+
+[[package]]
 name = "fonttools"
 version = "4.38.0"
 description = "Tools to manipulate font files"
@@ -901,6 +915,14 @@ lint = ["flake8", "mypy", "docutils-stubs"]
 test = ["pytest"]
 
 [[package]]
+name = "threadpoolctl"
+version = "3.1.0"
+description = "threadpoolctl"
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -1002,7 +1024,7 @@ tests = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "a7421f8f3d75eff50320a0bfc27357a5404ef5cd6c7e30ae1e0a46f21bd5abc3"
+content-hash = "1da6bfaa7229adec4f2cb0b03c488d764a31706216a6fc8e67a4811c002ba6b4"
 
 [metadata.files]
 alabaster = [
@@ -1240,6 +1262,22 @@ exceptiongroup = [
 filelock = [
     {file = "filelock-3.8.0-py3-none-any.whl", hash = "sha256:617eb4e5eedc82fc5f47b6d61e4d11cb837c56cb4544e39081099fa17ad109d4"},
     {file = "filelock-3.8.0.tar.gz", hash = "sha256:55447caa666f2198c5b6b13a26d2084d26fa5b115c00d065664b2124680c4edc"},
+]
+filprofiler = [
+    {file = "filprofiler-2023.3.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:61be1ba4522d80292abd23c9b5e43f8e43622c992e4e655ebfe91782dbe4f71d"},
+    {file = "filprofiler-2023.3.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:970822f62a19ebb8b868075cfe98567ecf49a21749a141ef6ea69f66b9a9808a"},
+    {file = "filprofiler-2023.3.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4ecc4523e4638a37f656e75fc4525ef90d4bcfb42c2b18273478819c8a4718f4"},
+    {file = "filprofiler-2023.3.1-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:ddfccc9eb02365c9784b232d8c87c9aa257a2b280d0c246301d211047dae70d7"},
+    {file = "filprofiler-2023.3.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:89fa7a52e8162c459448cecc29a38c766f3c6bcbeac19628f20989eb3e787833"},
+    {file = "filprofiler-2023.3.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e02db2f5664928170350fcaa9f9b06ba8c11e50c4fef683393f0e32c1cb6a4c5"},
+    {file = "filprofiler-2023.3.1-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:ec9128739fa0195493932eb049a4a21575dc66f1b945c069b55d7ecc5b1250ea"},
+    {file = "filprofiler-2023.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e435787c6c3e4166bbd824c412e6fc6a9fd642e9086389118b70b0d21c5188fb"},
+    {file = "filprofiler-2023.3.1-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:fd1c0e325e6756fd0f235fa4bd229ad9b236836655faafc764a3d5c71fa3d5f0"},
+    {file = "filprofiler-2023.3.1-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:c06cfddfeed5e7bb7cf0efa5664615696c62aa98f6c941285d131bdcd6c3957c"},
+    {file = "filprofiler-2023.3.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:11a333bf0de50e243a3c2892314e3b4003408c5d7ccc0cec39a6220cc1f1c281"},
+    {file = "filprofiler-2023.3.1-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:74ba57bed56d2bc23b13ab857e9d1ab56d2d2883a064cc905854ff5b998103be"},
+    {file = "filprofiler-2023.3.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:b0b1664404398476dd7688ef8726468dee59f23cc2093089495098578173a007"},
+    {file = "filprofiler-2023.3.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b8243727c5f73a4d1537c8b73ed7b19bf35f2ce82365d37f937de2e2d68043bf"},
 ]
 fonttools = [
     {file = "fonttools-4.38.0-py3-none-any.whl", hash = "sha256:820466f43c8be8c3009aef8b87e785014133508f0de64ec469e4efb643ae54fb"},
@@ -1701,6 +1739,10 @@ sphinxcontrib-qthelp = [
 sphinxcontrib-serializinghtml = [
     {file = "sphinxcontrib-serializinghtml-1.1.5.tar.gz", hash = "sha256:aa5f6de5dfdf809ef505c4895e51ef5c9eac17d0f287933eb49ec495280b6952"},
     {file = "sphinxcontrib_serializinghtml-1.1.5-py2.py3-none-any.whl", hash = "sha256:352a9a00ae864471d3a7ead8d7d79f5fc0b57e8b3f95e9867eb9eb28999b92fd"},
+]
+threadpoolctl = [
+    {file = "threadpoolctl-3.1.0-py3-none-any.whl", hash = "sha256:8b99adda265feb6773280df41eece7b2e6561b772d21ffd52e372f999024907b"},
+    {file = "threadpoolctl-3.1.0.tar.gz", hash = "sha256:a335baacfaa4400ae1f0d8e3a58d6674d2f8828e3716bb2802c44955ad391380"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
