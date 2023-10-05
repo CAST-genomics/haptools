@@ -826,8 +826,8 @@ class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
        If vcftype=='auto', attempts to infer the type.
     Attributes
     ----------
-    vcffile : cyvcf2.VCF instance
-    vcfiter : cyvcf2.VCF iterable
+    vcffile : VCF
+    vcfiter : VCF
         Region to grab strs from within the VCF file.
     vcftype : enum
        Type of the VCF file. Must be included in VcfTypes
