@@ -309,13 +309,13 @@ class TestGenotypes:
         assert gts.data.shape[2] == gts2.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
-    def test_lazy(self):
+    def test_reorder_samples(self):
         # can we load the data from the VCF?
-        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts = Genotypes(DATADIR / "simple.vcf.gz", reorder_samples=True)
         gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00097", "HG00096", "HG00099")
 
-        gts = Genotypes(DATADIR / "simple.vcf.gz", lazy=True)
+        gts = Genotypes(DATADIR / "simple.vcf.gz", reorder_samples=False)
         gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
@@ -699,13 +699,13 @@ class TestGenotypesPLINK:
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
 
-    def test_lazy(self):
+    def test_reorder_samples(self):
         # can we load the data from the VCF?
-        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts = GenotypesPLINK(DATADIR / "simple.pgen", reorder_samples=True)
         gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00097", "HG00096", "HG00099")
 
-        gts = GenotypesPLINK(DATADIR / "simple.pgen", lazy=True)
+        gts = GenotypesPLINK(DATADIR / "simple.pgen", reorder_samples=False)
         gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
@@ -769,13 +769,13 @@ class TestGenotypesPLINKTR:
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
 
-    def test_lazy(self):
+    def test_reorder_samples(self):
         # can we load the data from the VCF?
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", reorder_samples=True)
         gts.read(samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00097", "HG00096", "HG00099")
 
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", lazy=True)
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", reorder_samples=False)
         gts.read(samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
@@ -1865,12 +1865,12 @@ class TestGenotypesVCF:
         assert gts.data.shape[2] == gts1.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
-    def test_lazy(self):
-        gts = GenotypesVCF(DATADIR / "simple.vcf.gz")
+    def test_reorder_samples(self):
+        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", reorder_samples=True)
         gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00097", "HG00096", "HG00099")
 
-        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", lazy=True)
+        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", reorder_samples=False)
         gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
@@ -1906,12 +1906,12 @@ class TestGenotypesTR:
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
 
-    def test_lazy(self):
-        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+    def test_reorder_samples(self):
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf", reorder_samples=True)
         gts.read(samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00097", "HG00096", "HG00099")
 
-        gts = GenotypesTR(DATADIR / "simple_tr.vcf", lazy=True)
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf", reorder_samples=False)
         gts.read(samples=["HG00097", "HG00096", "HG00099"])
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
