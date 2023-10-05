@@ -835,7 +835,7 @@ class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
 
     def __init__(
         self,
-        vcffile: cyvcf2.VCF,
+        vcffile: VCF,
         vcfiter: object,
         vcftype: Union[str, trh.VcfTypes] = "auto",
     ):
