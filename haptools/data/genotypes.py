@@ -820,7 +820,7 @@ class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
     """
     Parameters
     ----------
-    vcffile : cyvcf2.VCF instance
+    vcffile : VCF
     vcftype : {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}, optional
        Type of the VCF file. Default='auto'.
        If vcftype=='auto', attempts to infer the type.
