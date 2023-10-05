@@ -402,7 +402,7 @@ class Phenotypes(Data):
                 )
             name_idx = tuple(self._name_idx[name] for name in pts.names)
             if inplace:
-                self._pts.names = None
+                self._name_idx = None
             pts.data = pts.data[:, name_idx]
         if not inplace:
             return pts
