@@ -12,6 +12,8 @@ __pycache__
 .nox
 # poetry
 dist/
+# filprofiler
+fil-result/
 
 # OSX
 *.DS_Store*
