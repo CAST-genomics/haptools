@@ -44,6 +44,7 @@ ipython = ">=7.30.1"
 nox = ">=2022.8.7"
 nox-poetry = ">=1.0.1"
 coverage = {extras = ["toml"], version = ">=6.5.0"}
+filprofiler = ">=2023.3.1"
 
 [tool.poetry.extras]
 docs = [
