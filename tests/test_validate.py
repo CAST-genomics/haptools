@@ -23,7 +23,7 @@ def test_with_empty_lines():
     """
     Tests a .hap with empty lines
     """
-    assert is_hapfile_valid(DATADIR / "empty_lines.hap")
+    assert not is_hapfile_valid(DATADIR / "empty_lines.hap")
 
 
 def test_with_out_of_header_metas_sorted():
