@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from haptools.__main__ import main
@@ -143,7 +142,7 @@ def test_with_variant_inexistent_haplotype_id():
 
 def test_with_missing_variant_in_pvar():
     assert not is_hapfile_valid(
-        DATADIR / "simple.hap", pvar=DATADIR / "basic_missing_ids.pvar"
+        DATADIR / "simple.hap", pvar=DATADIR / "basic_missing_ids.pvar",
     )
 
 
