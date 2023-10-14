@@ -923,8 +923,7 @@ class HapFileValidator:
 def is_hapfile_valid(
     filename: Path,
     sorted: bool = False,
-    pvar: Path | None = None,
-    max_variants: int = 10000,
+    pvar: Path = None,
     log: logging.Logger = None,
 ) -> bool:
     """
@@ -974,10 +973,13 @@ def is_hapfile_valid(
 
     hapfile.validate_version_declarations()
 
+    variants = set()
+
     if pvar is not None:
         varfile = GenotypesPLINK(pvar.with_suffix(".pgen"))
-        varfile.read_variants(max_variants=max_variants)
+        varfile.read_variants(variants=variants)
 
+        # TODO: do this quicker by just checking whether the sets intersect
         ids = list(map(lambda v: v[0], varfile.variants))
         hapfile.compare_haps_to_pvar(ids)
 
