@@ -253,6 +253,44 @@ def test_unreadable_hapfile():
     assert not is_hapfile_valid(Path("NON_EXISTENT_FILENAME.hap"))
 
 
+def test_leading_trailing_whitespace():
+    """
+    We should fail if lines have any leading or trailing whitespace
+    """
+    basic = DATADIR / "basic.hap"
+    with open(basic, "r") as basic_file:
+        basic_lines = basic_file.readlines()
+
+    temp_basic = DATADIR / "leading_trailing_whitespace.hap"
+    lines = (0, 2, 3, 5)
+
+    # test both kinds of whitespace: tabs and spaces
+    for space_kind in (" ", "\t"):
+        # test leading whitespace
+        for line in lines:
+            with open(temp_basic, "w") as temp_basic_file:
+                new_lines = basic_lines.copy()
+                new_lines[line] = space_kind + new_lines[line]
+                temp_basic_file.writelines(new_lines)
+            assert not is_hapfile_valid(temp_basic)
+        # test trailing whitespace
+        for line in lines:
+            with open(temp_basic, "w") as temp_basic_file:
+                new_lines = basic_lines.copy()
+                new_lines[line] = new_lines[line][:-1] + space_kind + "\n"
+                temp_basic_file.writelines(new_lines)
+            assert not is_hapfile_valid(temp_basic)
+
+    # also try adding a space next to a tab
+    with open(temp_basic, "w") as temp_basic_file:
+        new_lines = basic_lines.copy()
+        new_lines[1] = new_lines[1][:2] + " " + new_lines[1][2:]
+        temp_basic_file.writelines(new_lines)
+    assert not is_hapfile_valid(temp_basic)
+
+    temp_basic.unlink()
+
+
 def test_basic(capfd):
     hp_file = DATADIR / "basic.hap"
 
