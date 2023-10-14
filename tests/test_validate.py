@@ -19,6 +19,13 @@ def test_generated_haplotypes():
     assert is_hapfile_valid(hapfile, pvar=pvarfile)
 
 
+def test_indexed():
+    """
+    Test an indexed .hap file
+    """
+    assert is_hapfile_valid(DATADIR / "basic.hap.gz")
+
+
 def test_with_empty_lines():
     """
     Tests a .hap with empty lines
