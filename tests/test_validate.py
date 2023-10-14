@@ -6,7 +6,7 @@ from haptools.__main__ import main
 from haptools.validate import is_hapfile_valid
 
 PARENT_DATADIR = Path(__file__).parent.joinpath("data")
-DATADIR = Path(__file__).parent.joinpath("data") / "valhap"
+DATADIR = Path(__file__).parent.joinpath("data") / "validate"
 
 
 def test_generated_haplotypes():
