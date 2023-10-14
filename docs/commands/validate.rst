@@ -26,7 +26,7 @@ Examples
 ~~~~~~~~
 .. code-block:: bash
 
-  haptools validate tests/data/valhap/basic.hap
+  haptools validate tests/data/validate/basic.hap
 
 Outputs a message specifying the amount of errors and warnings.
 
@@ -38,7 +38,7 @@ All warnings and errors will be logged if there are any.
 
 .. code-block:: bash
 
-  haptools validate tests/data/valhap/no_version.hap
+  haptools validate tests/data/validate/no_version.hap
 
 .. code-block::
 

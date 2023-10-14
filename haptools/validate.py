@@ -81,10 +81,10 @@ class HapFileIO:
         return is_ok
 
     def exists(self) -> bool:
-        return os.path.exists(self.filename)
+        return self.filename.exists()
 
     def is_regular(self):
-        return os.path.isfile(self.filename)
+        return self.filename.is_file()
 
     def is_readable(self) -> bool:
         return os.access(self.filename, os.R_OK)
