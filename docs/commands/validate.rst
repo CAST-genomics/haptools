@@ -4,7 +4,7 @@
 validate
 ========
 
-Validate the formatting of a sorted :doc:`.hap file </formats/haplotypes>`. Output warnings/errors explaining how the formatting of your ``.hap`` file may be improved.
+Validate the formatting of a :doc:`.hap file </formats/haplotypes>`. Output warnings/errors explaining how the formatting of your ``.hap`` file may be improved.
 
 If a :ref:`.pvar file <formats-genotypesplink>` file is provided, the SNPs and TRs present in the ``.hap`` file will be checked for existence in the ``.pvar`` file.
 
@@ -46,8 +46,8 @@ All warnings and errors will be logged if there are any.
   [    INFO] Completed .hap file validation with 0 errors and 1 warnings.
   Error: Found several warnings and / or errors in the .hap file
 
-All ``.hap`` files must be sorted before they can be validated. By default, we try our best to sort your ``.hap`` file internally before performing any validation checks.
-If your ``.hap`` file is already sorted, you should use the ``--sorted`` parameter. It will speed things up a bit by skipping the sorting step. If your ``.hap`` file is indexed, it will be assumed to be sorted.
+All ``.hap`` files must be sorted before they can be validated, so we try our best to sort your ``.hap`` file internally before performing any validation checks.
+If your ``.hap`` file is already sorted, you should use the ``--sorted`` parameter. It will speed things up a bit by skipping the sorting step. If your ``.hap`` file is indexed, it will be assumed to be sorted regardless.
 
 .. code-block:: bash
 

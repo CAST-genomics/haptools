@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import logging
-
 from re import search
 from pathlib import Path
 
@@ -18,6 +17,20 @@ def tmpex(expectation: object, received: object) -> str:
 
 
 class Line:
+    """
+    A line in the file
+
+    Attributes
+    ----------
+    columns : list[str]
+        The line split into separate columns
+    content : str
+        The content of the line as a string
+    number : int
+        The line number
+    count : int
+        The number of columns in this line
+    """
     def __init__(self, content: str, number: int):
         self.content: str = content
         self.number: int = number
@@ -26,18 +39,64 @@ class Line:
         self.count: int = len(self.columns)
 
     def __getitem__(self, index: int) -> str:
+        """
+        Index into the columns of the line
+
+        Parameters
+        ----------
+        index : int
+            The index into the line. Must be less than :py:attr:`~.Line.count`
+
+        Returns
+        -------
+        str
+            The column at this index
+        """
         return self.columns[index]
 
     def __str__(self) -> str:
+        """
+        Retrieve the line as a string
+
+        Returns
+        -------
+        str
+            The line
+        """
         return self.content
 
 
 class HapFileIO:
-    def __init__(self, filename: Path, logger=None):
+    """
+    Process lines from .hap files
+
+    Attributes
+    ----------
+    filename : Path
+        The path to the file
+    logger : logging.Logger, optional
+        A logging instance for recording errors/warnings statements
+    """
+    def __init__(self, filename: Path, logger: logging.Logger = None):
         self.filename = filename
         self.log = logger or logging.getLogger(self.__class__.__name__)
 
     def lines(self, sorted: bool = False) -> list[Line]:
+        """
+        Retrieve the lines of the file as Line instances
+
+        Sort the lines if they're unsorted
+
+        Parameters
+        ----------
+        sorted : bool, optional
+            Whether the file can be assumed to be sorted
+
+        Returns
+        -------
+        list[Line]
+            The lines of the file
+        """
         buffer = open(self.filename)
 
         content = [
@@ -64,6 +123,14 @@ class HapFileIO:
         return content
 
     def validate_existence(self) -> bool:
+        """
+        Check whether the .hap file exists and can be read
+
+        Returns
+        -------
+        bool
+            True if it exists and False otherwise
+        """
         if not self.exists():
             self.log.error(f"The file {self.filename} does not exist.")
             return False
@@ -81,12 +148,38 @@ class HapFileIO:
         return is_ok
 
     def exists(self) -> bool:
+        """
+        Check if the file exists
+
+        Returns
+        -------
+        bool
+            True if it exists and False otherwise
+        """
         return self.filename.exists()
 
     def is_regular(self):
+        """
+        Check if the file can be opened by python
+
+        Symlinks are also allowed
+
+        Returns
+        -------
+        bool
+            True if it can be opened and False otherwise
+        """
         return self.filename.is_file()
 
     def is_readable(self) -> bool:
+        """
+        Check if the file can be read by python
+
+        Returns
+        -------
+        bool
+            True if it can be read and False otherwise
+        """
         return os.access(self.filename, os.R_OK)
 
 
@@ -122,7 +215,7 @@ class HapFileValidator:
     KEY_ID: str = "HT::ID"
     KEY_ALLELE: str = "HT::Allele"
 
-    def __init__(self, logger=None):
+    def __init__(self, logger: logging.Logger = None):
         self.log = logger or logging.getLogger(self.__class__.__name__)
 
         self.vars_ex: dict[int, dict[str, type]] = {
@@ -834,6 +927,27 @@ def is_hapfile_valid(
     max_variants: int = 10000,
     log: logging.Logger = None,
 ) -> bool:
+    """
+    Checks whether a file is properly formatted
+
+    Logs suggestions (warnings and errors) if it isn't
+
+    Parameters
+    ----------
+    filename : Path
+        The path to the file
+    sorted : bool, optional
+        Whether the file can be assumed to be sorted already
+    pvar : Path, optional
+        Path to a PVAR file with SNPs from the .hap file
+    log: logging.Logger, optional
+        A logging module to which to write messages about progress and any errors
+
+    Returns
+    -------
+    bool
+        True if the file is formatted correctly and False otherwise
+    """
     if log == None:
         log = getLogger(name=LOGGER_NAME, level="CRITICAL")
 

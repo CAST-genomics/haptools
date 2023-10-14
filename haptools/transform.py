@@ -175,7 +175,7 @@ class GenotypesAncestry(data.GenotypesVCF):
         See documentation for :py:attr:`~.Genotypes.log`
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None):
+    def __init__(self, fname: Path | str, log: logging.Logger = None):
         super().__init__(fname, log)
         self.ancestry = None
         self.valid_labels = None

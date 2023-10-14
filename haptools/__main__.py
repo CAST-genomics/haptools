@@ -1057,6 +1057,12 @@ def validate(
     genotypes: Path | None = None,
     verbosity: str = "INFO",
 ):
+    """
+    Validate the formatting of a .hap file
+
+    Output warnings/errors explaining how the formatting of your .hap file may
+    be improved.
+    """
     from .logging import getLogger
     from .validate import is_hapfile_valid
 
