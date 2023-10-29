@@ -68,7 +68,7 @@ class Line:
 
 class HapFileIO:
     """
-    Process lines from .hap files
+    Process lines from a .hap file
 
     Attributes
     ----------
@@ -184,6 +184,32 @@ class HapFileIO:
 
 
 class HapFileValidator:
+    """
+    Validate lines from a .hap file
+
+    Attributes
+    ----------
+    log : logging.Logger, optional
+        A logging instance for recording errors/warnings statements
+    vars_ex : dict[int, dict[str, type]]
+        TODO
+    types_ex : dict[int, list[type]]
+        TODO
+    meta : list[Line]
+        TODO
+    data : dict[int, list[Line]]
+        TODO
+    hrids : dict[int, dict[str, Line]]
+        TODO
+    vrids : dict[str, dict[str, Line]]
+        TODO
+    referenced_chromosomes : set[str]
+        TODO
+    errc : int
+        TODO
+    warc : int
+        TODO
+    """
     # H CHROM START END ID
     MANDATORY_HAPLOTYPE_COLUMN_COUNT: int = 5
 
