@@ -192,11 +192,11 @@ class HapFileValidator:
     log : logging.Logger, optional
         A logging instance for recording errors/warnings statements
     vars_ex : dict[int, dict[str, type]]
-        TODO
+        The names of each of the extra columns for each of the line types
     types_ex : dict[int, list[type]]
-        TODO
+        The types of each of the extra columns for each of the line types
     meta : list[Line]
-        TODO
+        The metadata lines in the file
     data : dict[int, list[Line]]
         TODO
     hrids : dict[int, dict[str, Line]]
