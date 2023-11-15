@@ -5,8 +5,8 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 
 import numpy as np
+from cyvcf2 import VCF
 import numpy.typing as npt
-from cyvcf2 import VCF, Variant
 from pysam import VariantFile
 
 from . import data
@@ -80,7 +80,7 @@ class HaplotypesAncestry(data.Haplotypes):
         fname: Path | str,
         haplotype: type[HaplotypeAncestry] = HaplotypeAncestry,
         variant: type[data.Variant] = data.Variant,
-        log: Logger = None,
+        log: logging.Logger = None,
     ):
         """
         Contrasting with the base Haplotypes class: this class uses HaplotypeAncestry
@@ -171,11 +171,11 @@ class GenotypesAncestry(data.GenotypesVCF):
     ancestry : np.array
         The ancestral population of each allele in each sample of
         :py:attr:`~.GenotypesAncestry.data`
-    log: Logger
+    log: logging.Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None):
+    def __init__(self, fname: Path | str, log: logging.Logger = None):
         super().__init__(fname, log)
         self.ancestry = None
         self.valid_labels = None
@@ -230,6 +230,7 @@ class GenotypesAncestry(data.GenotypesVCF):
         samples: list[str] = None,
         variants: set[str] = None,
         max_variants: int = None,
+        reorder_samples: bool = None,
     ):
         """
         See documentation for :py:meth:`~.Genotypes.read`
@@ -298,6 +299,15 @@ class GenotypesAncestry(data.GenotypesVCF):
         self.log.info(f"Transposing genotype matrix of size {self.data.shape}.")
         self.data = self.data.transpose((1, 0, 2))
         self.ancestry = self.ancestry.transpose((1, 0, 2))
+
+        if samples is not None:
+            samples = tuple(samples)
+            if reorder_samples:
+                self.subset(samples=samples, inplace=True)
+            elif reorder_samples is None and self.samples != samples:
+                self.log.warning(
+                    "Samples in genotypes file do not match requested order"
+                )
 
     def subset(
         self,
