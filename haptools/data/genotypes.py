@@ -3,7 +3,7 @@ import re
 import gc
 from csv import reader
 from pathlib import Path
-from typing import Iterator, Union
+from typing import Iterator
 from logging import getLogger, Logger
 from collections import namedtuple, Counter
 
@@ -837,7 +837,7 @@ class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
         self,
         vcffile: VCF,
         vcfiter: object,
-        vcftype: Union[str, trh.VcfTypes] = "auto",
+        vcftype: str | trh.VcfTypes = "auto",
     ):
         super().__init__(vcffile, vcftype)
         self.vcfiter = vcfiter
