@@ -310,19 +310,29 @@ class TestGenotypes:
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
     def test_reorder_samples(self):
-        # can we load the data from the VCF?
-        gts = Genotypes(DATADIR / "simple.vcf.gz", reorder_samples=True)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+        expected = self._get_expected_genotypes()[[0, 1, 2]]
+        samples = ["HG00099", "HG00096", "HG00097"]
 
-        gts = Genotypes(DATADIR / "simple.vcf.gz", reorder_samples=False)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
+        # can we load the data from the VCF?
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
+        np.testing.assert_allclose(gts.data, expected)
+
+        # now, let's reorder
+        expected = expected[[2, 0, 1]]
+
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts.read(samples=samples, reorder_samples=True)
+        assert gts.samples == tuple(samples)
+        np.testing.assert_allclose(gts.data, expected)
 
 
 class TestGenotypesPLINK:
-    def _get_fake_genotypes_plink(self):
-        gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_refalt()
+    def _get_fake_genotypes_plink(self, with_phase: bool = False):
+        gts_ref_alt = TestGenotypesVCF()._get_fake_genotypes_refalt(
+            with_phase=with_phase
+        )
         gts = GenotypesPLINK(gts_ref_alt.fname)
         gts.data = gts_ref_alt.data
         gts.samples = gts_ref_alt.samples
@@ -700,14 +710,22 @@ class TestGenotypesPLINK:
         fname.unlink()
 
     def test_reorder_samples(self):
-        # can we load the data from the VCF?
-        gts = GenotypesPLINK(DATADIR / "simple.pgen", reorder_samples=True)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+        expected = self._get_fake_genotypes_plink(with_phase=True).data[[0, 1, 2]]
+        samples = ["HG00099", "HG00096", "HG00097"]
 
-        gts = GenotypesPLINK(DATADIR / "simple.pgen", reorder_samples=False)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
+        # can we load the data from the VCF?
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
+        np.testing.assert_allclose(gts.data, expected)
+
+        # now, let's reorder
+        expected = expected[[2, 0, 1]]
+
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts.read(samples=samples, reorder_samples=True)
+        assert gts.samples == tuple(samples)
+        np.testing.assert_allclose(gts.data, expected)
 
 
 class TestGenotypesPLINKTR:
@@ -770,14 +788,22 @@ class TestGenotypesPLINKTR:
         np.testing.assert_allclose(expected_alleles, gts.data)
 
     def test_reorder_samples(self):
-        # can we load the data from the VCF?
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", reorder_samples=True)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+        expected = self._get_fake_genotypes_multiallelic().data[[0, 1, 2]]
+        samples = ["HG00099", "HG00096", "HG00097"]
 
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", reorder_samples=False)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
+        # can we load the data from the VCF?
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
+        np.testing.assert_allclose(gts.data, expected)
+
+        # now, let's reorder
+        expected = expected[[2, 0, 1]]
+
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts.read(samples=samples, reorder_samples=True)
+        assert gts.samples == tuple(samples)
+        np.testing.assert_allclose(gts.data, expected)
 
 
 class TestPhenotypes:
@@ -1701,7 +1727,7 @@ class TestGenotypesVCF:
         )
         return gts
 
-    def _get_fake_genotypes_multiallelic(self, with_phase=False):
+    def _get_fake_genotypes_multiallelic(self, with_phase: bool = False):
         gts = self._get_fake_genotypes_refalt(with_phase=with_phase)
         # replace the necessary properties
         gts.variants["alleles"] = np.array(
@@ -1878,13 +1904,22 @@ class TestGenotypesVCF:
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
     def test_reorder_samples(self):
-        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", reorder_samples=True)
-        gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+        expected = self._get_fake_genotypes_refalt(with_phase=True).data[[0, 1, 2]]
+        samples = ["HG00099", "HG00096", "HG00097"]
 
-        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", reorder_samples=False)
-        gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
+        # can we load the data from the VCF?
+        gts = GenotypesVCF(DATADIR / "simple.vcf")
+        gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
+        np.testing.assert_allclose(gts.data, expected)
+
+        # now, let's reorder
+        expected = expected[[2, 0, 1]]
+
+        gts = GenotypesVCF(DATADIR / "simple.vcf")
+        gts.read(samples=samples, reorder_samples=True)
+        assert gts.samples == tuple(samples)
+        np.testing.assert_allclose(gts.data, expected)
 
 
 class TestGenotypesTR:
@@ -1919,13 +1954,22 @@ class TestGenotypesTR:
             np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
 
     def test_reorder_samples(self):
-        gts = GenotypesTR(DATADIR / "simple_tr.vcf", reorder_samples=True)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
+        expected = self._get_fake_tr_alleles()[[0, 1, 2]]
+        samples = ["HG00099", "HG00096", "HG00097"]
 
-        gts = GenotypesTR(DATADIR / "simple_tr.vcf", reorder_samples=False)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
+        # can we load the data from the VCF?
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
+        np.testing.assert_allclose(gts.data, expected)
+
+        # now, let's reorder
+        expected = expected[[2, 0, 1]]
+
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        gts.read(samples=samples, reorder_samples=True)
+        assert gts.samples == tuple(samples)
+        np.testing.assert_allclose(gts.data, expected)
 
 
 class TestBreakpoints:
