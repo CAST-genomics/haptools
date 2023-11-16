@@ -36,8 +36,8 @@ class TestGenotypesAncestry:
         expected[-1, -1, :] = 2
         return expected
 
-    def _get_fake_genotypes(self):
-        base_gts = TestGenotypesVCF()._get_fake_genotypes_refalt(with_phase=True)
+    def _get_fake_genotypes(self, with_phase: bool = True):
+        base_gts = TestGenotypesVCF()._get_fake_genotypes_refalt(with_phase=with_phase)
         # copy all of the fields
         gts = GenotypesAncestry(fname=None)
         gts.data = base_gts.data
@@ -125,6 +125,24 @@ class TestGenotypesAncestry:
         assert gts_sub.ancestry_labels == gts.ancestry_labels
         np.testing.assert_allclose(gts_sub.ancestry, expected_ancestry)
         assert np.array_equal(gts_sub.variants, expected_variants)
+
+    def test_reorder_samples(self):
+        expected = self._get_fake_genotypes().data[[0, 1, 2]]
+        samples = ["HG00099", "HG00096", "HG00097"]
+
+        # can we load the data from the VCF?
+        gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
+        gts.read(samples=samples, reorder_samples=False)
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+        np.testing.assert_allclose(gts.data, expected)
+
+        # now, let's reorder
+        expected = expected[[2, 0, 1]]
+
+        gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
+        gts.read(samples=samples, reorder_samples=True)
+        assert gts.samples == tuple(samples)
+        np.testing.assert_allclose(gts.data, expected)
 
     @pytest.mark.xfail(reason="not implemented yet")
     def test_write_genotypes(self):
