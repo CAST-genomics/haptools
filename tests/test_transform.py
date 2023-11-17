@@ -127,7 +127,9 @@ class TestGenotypesAncestry:
         assert np.array_equal(gts_sub.variants, expected_variants)
 
     def test_reorder_samples(self):
-        expected = self._get_fake_genotypes().data[[0, 1, 2]]
+        expected = self._get_fake_genotypes()
+        expected_ancestry = expected.ancestry[[0, 1, 2]]
+        expected = expected.data[[0, 1, 2]]
         samples = ["HG00099", "HG00096", "HG00097"]
 
         # can we load the data from the VCF?
@@ -135,27 +137,32 @@ class TestGenotypesAncestry:
         gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
+        np.testing.assert_allclose(gts.ancestry, expected_ancestry)
 
         # let's also test __iter__
         gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
         gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
         for idx, line in enumerate(gts_iter):
             np.testing.assert_allclose(line.data, expected[:, idx])
+            np.testing.assert_allclose(line.ancestry, expected_ancestry[:, idx])
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
         # now, let's reorder
         expected = expected[[2, 0, 1]]
+        expected_ancestry = expected_ancestry[[2, 0, 1]]
 
         gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+        np.testing.assert_allclose(gts.ancestry, expected_ancestry)
 
         # let's also test __iter__
         gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
         gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
         for idx, line in enumerate(gts_iter):
             np.testing.assert_allclose(line.data, expected[:, idx])
+            np.testing.assert_allclose(line.ancestry, expected_ancestry[:, idx])
         assert gts.samples == tuple(samples)
 
     @pytest.mark.xfail(reason="not implemented yet")
