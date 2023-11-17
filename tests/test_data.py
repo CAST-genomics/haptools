@@ -314,18 +314,32 @@ class TestGenotypes:
         samples = ["HG00099", "HG00096", "HG00097"]
 
         # can we load the data from the VCF?
-        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts = Genotypes(DATADIR / "simple.vcf")
         gts.read(samples=samples, reorder_samples=False)
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
 
+        # let's also test __iter__
+        gts = Genotypes(DATADIR / "simple.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
         # now, let's reorder
         expected = expected[[2, 0, 1]]
 
-        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts = Genotypes(DATADIR / "simple.vcf")
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+
+        # let's also test __iter__
+        gts = Genotypes(DATADIR / "simple.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == tuple(samples)
 
 
 class TestGenotypesPLINK:
@@ -719,6 +733,13 @@ class TestGenotypesPLINK:
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
 
+        # let's also test __iter__
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
         # now, let's reorder
         expected = expected[[2, 0, 1]]
 
@@ -726,6 +747,13 @@ class TestGenotypesPLINK:
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+
+        # let's also test __iter__
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == tuple(samples)
 
 
 class TestGenotypesPLINKTR:
@@ -797,6 +825,13 @@ class TestGenotypesPLINKTR:
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
 
+        # let's also test __iter__
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
         # now, let's reorder
         expected = expected[[2, 0, 1]]
 
@@ -804,6 +839,13 @@ class TestGenotypesPLINKTR:
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+
+        # let's also test __iter__
+        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == tuple(samples)
 
 
 class TestPhenotypes:
@@ -1913,6 +1955,13 @@ class TestGenotypesVCF:
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
 
+        # let's also test __iter__
+        gts = GenotypesVCF(DATADIR / "simple.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
         # now, let's reorder
         expected = expected[[2, 0, 1]]
 
@@ -1920,6 +1969,13 @@ class TestGenotypesVCF:
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+
+        # let's also test __iter__
+        gts = GenotypesVCF(DATADIR / "simple.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == tuple(samples)
 
 
 class TestGenotypesTR:
@@ -1963,6 +2019,13 @@ class TestGenotypesTR:
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
 
+        # let's also test __iter__
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
         # now, let's reorder
         expected = expected[[2, 0, 1]]
 
@@ -1970,6 +2033,13 @@ class TestGenotypesTR:
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+
+        # let's also test __iter__
+        gts = GenotypesTR(DATADIR / "simple_tr.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == tuple(samples)
 
 
 class TestBreakpoints:

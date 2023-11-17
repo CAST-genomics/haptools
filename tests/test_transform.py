@@ -8,8 +8,8 @@ from click.testing import CliRunner
 
 from haptools.transform import (
     HaplotypeAncestry,
-    HaplotypesAncestry,
     GenotypesAncestry,
+    HaplotypesAncestry,
 )
 from haptools.__main__ import main
 from .test_data import TestGenotypesVCF
@@ -136,6 +136,13 @@ class TestGenotypesAncestry:
         assert gts.samples == ("HG00096", "HG00097", "HG00099")
         np.testing.assert_allclose(gts.data, expected)
 
+        # let's also test __iter__
+        gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=False)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == ("HG00096", "HG00097", "HG00099")
+
         # now, let's reorder
         expected = expected[[2, 0, 1]]
 
@@ -143,6 +150,13 @@ class TestGenotypesAncestry:
         gts.read(samples=samples, reorder_samples=True)
         assert gts.samples == tuple(samples)
         np.testing.assert_allclose(gts.data, expected)
+
+        # let's also test __iter__
+        gts = GenotypesAncestry(DATADIR / "simple-ancestry.vcf")
+        gts_iter = gts.__iter__(samples=samples, reorder_samples=True)
+        for idx, line in enumerate(gts_iter):
+            np.testing.assert_allclose(line.data, expected[:, idx])
+        assert gts.samples == tuple(samples)
 
     @pytest.mark.xfail(reason="not implemented yet")
     def test_write_genotypes(self):
