@@ -163,7 +163,9 @@ class Genotypes(Data):
             warning by passing False to this parameter.
         """
         super().read()
-        records = self.__iter__(region=region, samples=samples, variants=variants)
+        records = self.__iter__(
+            region=region, samples=samples, variants=variants, reorder_samples=False,
+        )
         if variants is not None:
             max_variants = len(variants)
         # check whether we can preallocate memory instead of making copies
@@ -278,7 +280,13 @@ class Genotypes(Data):
         """
         return variant.genotype.array().astype(np.uint8)
 
-    def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
+    def _iterate(
+        self,
+        vcf: VCF,
+        region: str = None,
+        variants: set[str] = None,
+        samples_order: list[int] = None,
+    ):
         """
         A generator over the lines of a VCF
 
@@ -292,6 +300,9 @@ class Genotypes(Data):
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
+        samples_order : list[int], optional
+            The indices of the samples in the order in which they should be
+            returned
 
         Yields
         ------
@@ -318,13 +329,18 @@ class Genotypes(Data):
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased (if self._prephased is False)
             data = self._return_data(variant)
-            data = data[:, : (2 + (not self._prephased))]
+            # reorder samples if needed, as well
+            data = data[samples_order or Ellipsis, : (2 + (not self._prephased))]
             yield Record(data, variant_arr)
             num_seen += 1
         vcf.close()
 
     def __iter__(
-        self, region: str = None, samples: list[str] = None, variants: set[str] = None
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        reorder_samples: bool = None,
     ) -> Iterator[namedtuple]:
         """
         Read genotypes from a VCF line by line without storing anything
@@ -337,6 +353,8 @@ class Genotypes(Data):
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
+        reorder_samples : bool, optional
+            See documentation for :py:meth:`~.Genotypes.read`
 
         Returns
         -------
@@ -344,10 +362,23 @@ class Genotypes(Data):
             See documentation for :py:meth:`~.Genotypes._iterate`
         """
         vcf = VCF(str(self.fname), samples=samples, lazy=True)
+
         self.samples = tuple(vcf.samples)
+        samples_order = None
+        if samples is not None:
+            samples = tuple(samples)
+            if reorder_samples:
+                self.index(samples=True)
+                samples_order = [self._samp_idx[samp] for samp in samples]
+                self.samples = tuple(samples)
+            elif reorder_samples is None and self.samples != samples:
+                self.log.warning(
+                    "Samples in genotypes file do not match requested order"
+                )
+
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
-        return self._iterate(vcf, region, variants)
+        return self._iterate(vcf, region, variants, samples_order)
 
     def index(self, samples: bool = True, variants: bool = True):
         """
@@ -1383,6 +1414,7 @@ class GenotypesPLINK(GenotypesVCF):
         pgen: pgenlib.PgenReader,
         region: str = None,
         variants: set[str] = None,
+        samples_order: list[int] = None,
     ):
         """
         A generator over the lines of a PGEN-PVAR file pair
@@ -1397,6 +1429,9 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
+        samples_order : list[int], optional
+            The indices of the samples in the order in which they should be
+            returned
 
         Yields
         ------
@@ -1427,7 +1462,9 @@ class GenotypesPLINK(GenotypesVCF):
             # concatenate phasing info into the data
             if not self._prephased:
                 data = np.concatenate((data, phasing[:, np.newaxis]), axis=1)
-            # we extracted the genotypes to a matrix of size p x 3
+            # reorder samples if needed
+            data = data[samples_order or Ellipsis]
+            # we extracted the genotypes to a matrix of size n x 3
             # the last dimension has three items:
             # 1) presence of REF in strand one
             # 2) presence of REF in strand two
@@ -1436,7 +1473,11 @@ class GenotypesPLINK(GenotypesVCF):
         pgen.close()
 
     def __iter__(
-        self, region: str = None, samples: list[str] = None, variants: set[str] = None
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        reorder_samples: bool = None,
     ) -> Iterator[namedtuple]:
         """
         Read genotypes from a PGEN line by line without storing anything
@@ -1449,6 +1490,8 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
+        reorder_samples : bool, optional
+            See documentation for :py:meth:`~.Genotypes.read`
 
         Returns
         -------
@@ -1460,12 +1503,24 @@ class GenotypesPLINK(GenotypesVCF):
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         sample_idxs = self.read_samples(samples)
+        samples_order = None
+        if samples is not None:
+            samples = tuple(samples)
+            if reorder_samples:
+                self.index(samples=True)
+                samples_order = [self._samp_idx[samp] for samp in samples]
+                self.samples = tuple(samples)
+            elif reorder_samples is None and self.samples != samples:
+                self.log.warning(
+                    "Samples in genotypes file do not match requested order"
+                )
+
         pgen = pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         )
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
-        return self._iterate(pgen, region, variants)
+        return self._iterate(pgen, region, variants, samples_order)
 
     def write_samples(self):
         """
@@ -1772,6 +1827,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         pgen: pgenlib.PgenReader,
         region: str = None,
         variants: set[str] = None,
+        samples_order: list[int] = None,
     ):
         """
         A generator over the lines of a PGEN-PVAR file pair
@@ -1786,6 +1842,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
+        samples_order : list[int], optional
+            The indices of the samples in the order in which they should be
+            returned
 
         Yields
         ------
@@ -1794,7 +1853,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
             namedtuple containing each of the class properties
         """
         tr_records = self._iter_TRRecords(region, variants)
-        variants = super()._iterate(pgen, region, variants)
+        variants = super()._iterate(pgen, region, variants, samples_order)
         for variant, record in zip(variants, tr_records):
             # extract the REF and ALT allele lengths
             allele_lens = np.array(

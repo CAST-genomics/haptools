@@ -28,7 +28,7 @@ class HaplotypeAncestry(data.Haplotype):
         default=(data.Extra("ancestry", "s", "Local ancestry"),),
     )
 
-    def transform(self, genotypes: data.GenotypesVCF) -> npt.NDArray[bool]:
+    def transform(self, genotypes: data.GenotypesVCF) -> npt.NDArray:
         """
         Transform a genotypes matrix via the current haplotype and its ancestral
         population
@@ -184,7 +184,13 @@ class GenotypesAncestry(data.GenotypesVCF):
         # goes from encoding number to population code
         self.popnum_ancestry = {}
 
-    def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
+    def _iterate(
+            self,
+            vcf: VCF,
+            region: str = None,
+            variants: set[str] = None,
+            samples_order: list[int] = None,
+        ):
         """
         See documentation for :py:meth:`~.Genotypes._iterate`
         """
@@ -208,7 +214,8 @@ class GenotypesAncestry(data.GenotypesVCF):
             # 2) presence of REF in strand two
             # 3) whether the genotype is phased (if self._prephased is False)
             data = np.array(variant.genotypes, dtype=np.uint8)
-            data = data[:, : (2 + (not self._prephased))]
+            # reorder samples if needed, as well
+            data = data[samples_order or Ellipsis, : (2 + (not self._prephased))]
             # also extract the ancestral population of each variant in each individual
             ancestry = np.empty((data.shape[0], 2), dtype=np.uint8)
             for i, sample in enumerate(variant.format("POP")):
@@ -219,6 +226,8 @@ class GenotypesAncestry(data.GenotypesVCF):
                         self.popnum_ancestry[pop_count] = pop
                         pop_count += 1
                 ancestry[i] = tuple(map(self.ancestry_labels.get, pops))
+            # reorder samples in ancestry too, if needed
+            ancestry = ancestry[samples_order or Ellipsis]
             # finally, output everything
             yield Record(data, ancestry, variant_arr)
             num_seen += 1
@@ -236,7 +245,9 @@ class GenotypesAncestry(data.GenotypesVCF):
         See documentation for :py:meth:`~.Genotypes.read`
         """
         super(data.Genotypes, self).read()
-        records = self.__iter__(region=region, samples=samples, variants=variants)
+        records = self.__iter__(
+            region=region, samples=samples, variants=variants, reorder_samples=False,
+        )
         if variants is not None:
             max_variants = len(variants)
         # check whether we can preallocate memory instead of making copies
