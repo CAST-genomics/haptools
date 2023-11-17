@@ -246,20 +246,20 @@ class Genotypes(Data):
             dtype=self.variants.dtype,
         )
 
-    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str):
+    def _vcf_iter(self, vcf: VCF, region: str):
         """
         Yield all variants within a region in the VCF file.
 
         Parameters
         ----------
         vcf: VCF
-            The cyvcf2.VCF object from which to fetch variant records
+            The VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
 
         Returns
         -------
-        vcffile : cyvcf2.VCF
+        vcffile : VCF
             Iterable cyvcf2 instance.
         """
         return vcf(region)
@@ -295,7 +295,7 @@ class Genotypes(Data):
         Parameters
         ----------
         vcf: VCF
-            The cyvcf2.VCF object from which to fetch variant records
+            The VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
@@ -946,14 +946,14 @@ class GenotypesTR(Genotypes):
         genotypes.check_phase()
         return genotypes
 
-    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str = None):
+    def _vcf_iter(self, vcf: VCF, region: str = None):
         """
         Collect GTs (trh.TRRecord objects) to iterate over
 
         Parameters
         ----------
         vcf: VCF
-            The cyvcf2.VCF object from which to fetch variant records
+            The VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
 
