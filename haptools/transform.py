@@ -185,12 +185,12 @@ class GenotypesAncestry(data.GenotypesVCF):
         self.popnum_ancestry = {}
 
     def _iterate(
-            self,
-            vcf: VCF,
-            region: str = None,
-            variants: set[str] = None,
-            samples_order: list[int] = None,
-        ):
+        self,
+        vcf: VCF,
+        region: str = None,
+        variants: set[str] = None,
+        samples_order: list[int] = None,
+    ):
         """
         See documentation for :py:meth:`~.Genotypes._iterate`
         """
@@ -246,7 +246,10 @@ class GenotypesAncestry(data.GenotypesVCF):
         """
         super(data.Genotypes, self).read()
         records = self.__iter__(
-            region=region, samples=samples, variants=variants, reorder_samples=False,
+            region=region,
+            samples=samples,
+            variants=variants,
+            reorder_samples=False,
         )
         if variants is not None:
             max_variants = len(variants)

@@ -164,7 +164,10 @@ class Genotypes(Data):
         """
         super().read()
         records = self.__iter__(
-            region=region, samples=samples, variants=variants, reorder_samples=False,
+            region=region,
+            samples=samples,
+            variants=variants,
+            reorder_samples=False,
         )
         if variants is not None:
             max_variants = len(variants)
