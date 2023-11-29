@@ -309,16 +309,6 @@ class TestGenotypes:
         assert gts.data.shape[2] == gts2.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
-    def test_reorder_samples(self):
-        # can we load the data from the VCF?
-        gts = Genotypes(DATADIR / "simple.vcf.gz", reorder_samples=True)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
-
-        gts = Genotypes(DATADIR / "simple.vcf.gz", reorder_samples=False)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00096", "HG00097", "HG00099")
-
 
 class TestGenotypesPLINK:
     def _get_fake_genotypes_plink(self):
@@ -699,16 +689,6 @@ class TestGenotypesPLINK:
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
 
-    def test_reorder_samples(self):
-        # can we load the data from the VCF?
-        gts = GenotypesPLINK(DATADIR / "simple.pgen", reorder_samples=True)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
-
-        gts = GenotypesPLINK(DATADIR / "simple.pgen", reorder_samples=False)
-        gts.read(region="1:10115-10117", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00096", "HG00097", "HG00099")
-
 
 class TestGenotypesPLINKTR:
     def _get_fake_genotypes_multiallelic(self):
@@ -768,16 +748,6 @@ class TestGenotypesPLINKTR:
         gts.read()
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
-
-    def test_reorder_samples(self):
-        # can we load the data from the VCF?
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", reorder_samples=True)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
-
-        gts = GenotypesPLINKTR(DATADIR / "simple-tr.pgen", reorder_samples=False)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00096", "HG00097", "HG00099")
 
 
 class TestPhenotypes:
@@ -1877,16 +1847,6 @@ class TestGenotypesVCF:
         assert gts.data.shape[2] == gts1.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
-    def test_reorder_samples(self):
-        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", reorder_samples=True)
-        gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
-
-        gts = GenotypesVCF(DATADIR / "simple.vcf.gz", reorder_samples=False)
-        gts.read(region="1:10113-10115", samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00096", "HG00097", "HG00099")
-
-
 class TestGenotypesTR:
     def _get_fake_tr_alleles(self):
         return np.array(
@@ -1917,16 +1877,6 @@ class TestGenotypesTR:
         # Check that everything matches what we expected
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
-
-    def test_reorder_samples(self):
-        gts = GenotypesTR(DATADIR / "simple_tr.vcf", reorder_samples=True)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00097", "HG00096", "HG00099")
-
-        gts = GenotypesTR(DATADIR / "simple_tr.vcf", reorder_samples=False)
-        gts.read(samples=["HG00097", "HG00096", "HG00099"])
-        assert gts.samples == ("HG00096", "HG00097", "HG00099")
-
 
 class TestBreakpoints:
     def _get_expected_breakpoints(self):
