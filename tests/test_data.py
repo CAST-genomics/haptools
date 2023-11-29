@@ -1184,6 +1184,20 @@ class TestHaplotypes:
         haps = Haplotypes.load(DATADIR / "basic.hap.gz")
         assert expected == haps.data
 
+    def test_load_no_header(self):
+        expected = self._basic_haps()
+
+        # what if we remove the header line, can we still load it?
+        # let's try to make a version without the header
+        no_header_file = DATADIR / "basic_no_header.hap"
+        with open(DATADIR / "basic.hap", "r") as fr, open(no_header_file, "w") as fw:
+            fw.writelines([ln for ln in fr.readlines() if not ln.startswith("#\t")])
+
+        haps = Haplotypes.load(no_header_file)
+        assert expected == haps.data
+
+        no_header_file.unlink()
+
     def test_iterate(self):
         exp_full = self._basic_haps()
 
