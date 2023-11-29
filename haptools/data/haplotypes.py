@@ -1231,7 +1231,7 @@ class Haplotypes(Data):
                             # These are usually just comment lines, so we can ignore it
                             pass
                     else:
-                        if header_lines:
+                        if header_lines is not None:
                             metas, extras = self.check_header(header_lines)
                             types = self._get_field_types(extras, metas.get("order"))
                             header_lines = None
