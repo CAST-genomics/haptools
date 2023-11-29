@@ -101,7 +101,7 @@ class Extra:
 
 class classproperty(object):
     """
-    A daad-simple read-only decorator that combines the functionality of
+    A dead-simple read-only decorator that combines the functionality of
     @classmethod and @property
 
     Stolen from https://stackoverflow.com/a/13624858/16815703
