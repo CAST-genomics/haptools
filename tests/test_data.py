@@ -1847,6 +1847,7 @@ class TestGenotypesVCF:
         assert gts.data.shape[2] == gts1.data.shape[2]
         assert gts.data.shape[1] == (gts1.data.shape[1] + gts2.data.shape[1])
 
+
 class TestGenotypesTR:
     def _get_fake_tr_alleles(self):
         return np.array(
@@ -1877,6 +1878,7 @@ class TestGenotypesTR:
         # Check that everything matches what we expected
         for idx, line in enumerate(gts):
             np.testing.assert_allclose(line.data[:, :3], expected[:, idx])
+
 
 class TestBreakpoints:
     def _get_expected_breakpoints(self):

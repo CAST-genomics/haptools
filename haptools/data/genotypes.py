@@ -134,7 +134,7 @@ class Genotypes(Data):
             Defaults to loading all genotypes
         samples : set[str], optional
             A subset of the samples from which to extract genotypes
-            
+
             Note that they are loaded in the same order as in the file
 
             Defaults to loading genotypes from all samples
