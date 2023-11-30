@@ -5,8 +5,8 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 
 import numpy as np
+from cyvcf2 import VCF
 import numpy.typing as npt
-from cyvcf2 import VCF, Variant
 from pysam import VariantFile
 
 from . import data
@@ -28,7 +28,7 @@ class HaplotypeAncestry(data.Haplotype):
         default=(data.Extra("ancestry", "s", "Local ancestry"),),
     )
 
-    def transform(self, genotypes: data.GenotypesVCF) -> npt.NDArray[bool]:
+    def transform(self, genotypes: data.GenotypesVCF) -> npt.NDArray:
         """
         Transform a genotypes matrix via the current haplotype and its ancestral
         population
@@ -80,7 +80,7 @@ class HaplotypesAncestry(data.Haplotypes):
         fname: Path | str,
         haplotype: type[HaplotypeAncestry] = HaplotypeAncestry,
         variant: type[data.Variant] = data.Variant,
-        log: Logger = None,
+        log: logging.Logger = None,
     ):
         """
         Contrasting with the base Haplotypes class: this class uses HaplotypeAncestry
@@ -171,11 +171,11 @@ class GenotypesAncestry(data.GenotypesVCF):
     ancestry : np.array
         The ancestral population of each allele in each sample of
         :py:attr:`~.GenotypesAncestry.data`
-    log: Logger
+    log: logging.Logger
         See documentation for :py:attr:`~.Genotypes.log`
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None):
+    def __init__(self, fname: Path | str, log: logging.Logger = None):
         super().__init__(fname, log)
         self.ancestry = None
         self.valid_labels = None
@@ -227,7 +227,7 @@ class GenotypesAncestry(data.GenotypesVCF):
     def read(
         self,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
         max_variants: int = None,
     ):
