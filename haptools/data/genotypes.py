@@ -334,8 +334,7 @@ class Genotypes(Data):
                     "Samples cannot be loaded in a particular order. "
                     "Use subset() to reorder the samples after loading them."
                 )
-            else:
-                samples = list(samples)
+            samples = list(samples)
         vcf = VCF(str(self.fname), samples=samples, lazy=True)
         self.samples = tuple(vcf.samples)
         # call another function to force the lines above to be run immediately
