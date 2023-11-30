@@ -532,7 +532,7 @@ def transform_haps(
     genotypes: Path,
     haplotypes: Path,
     region: str = None,
-    samples: list[str] = None,
+    samples: set[str] = None,
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
     discard_missing: bool = False,
@@ -552,7 +552,7 @@ def transform_haps(
     region : str, optional
         See documentation for :py:meth:`~.data.Genotypes.read`
         and :py:meth:`~.data.Haplotypes.read`
-    samples : list[str], optional
+    samples : set[str], optional
         See documentation for :py:meth:`~.data.Genotypes.read`
     haplotype_ids: set[str], optional
         A set of haplotype IDs to obtain from the .hap file. All others are ignored.
