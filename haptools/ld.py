@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -50,7 +51,7 @@ def calc_ld(
     genotypes: Path,
     haplotypes: Path,
     region: str = None,
-    samples: list[str] = None,
+    samples: set[str] = None,
     ids: tuple[str] = None,
     chunk_size: int = None,
     discard_missing: bool = False,
@@ -72,7 +73,7 @@ def calc_ld(
     region : str, optional
         See documentation for :py:meth:`~.data.Genotypes.read`
         and :py:meth:`~.data.Haplotypes.read`
-    samples : list[str], optional
+    samples : set[str], optional
         See documentation for :py:meth:`~.data.Genotypes.read`
     ids: set[str], optional
         A subset of haplotype IDs to obtain from the .hap file. All others
