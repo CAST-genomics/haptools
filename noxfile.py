@@ -1,6 +1,5 @@
 """Nox sessions."""
 import os
-import sys
 import shutil
 from pathlib import Path
 
@@ -39,19 +38,17 @@ def lint(session: Session) -> None:
     session.install("black")
     session.run("black", "--check", ".")
 
+
 def install_handle_python_numpy(session):
     """
-        handle incompatibilities with python and numpy versions
-        see https://github.com/cjolowicz/nox-poetry/issues/1116
+    handle incompatibilities with python and numpy versions
+    see https://github.com/cjolowicz/nox-poetry/issues/1116
     """
     if session._session.python == "3.11":
-        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-        # https://github.com/chrchang/plink-ng/releases
-        session.install(".", "numpy==1.24.0")
+        session._session.install(".")
     else:
-        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-        # https://github.com/chrchang/plink-ng/releases
         session.install(".")
+
 
 # detect whether conda/mamba is installed
 if os.getenv("CONDA_EXE"):
