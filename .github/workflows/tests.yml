@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { python: "3.8", os: "ubuntu-latest", session: "lint" }
+          - { python: "3.7", os: "ubuntu-latest", session: "lint" }
           - { python: "3.7", os: "ubuntu-latest", session: "tests" }
           - { python: "3.8", os: "ubuntu-latest", session: "tests" }
           - { python: "3.9", os: "ubuntu-latest", session: "tests" }
@@ -46,7 +46,11 @@ jobs:
               print(f"VIRTUALENV_PIP={pip.__version__}", file=io)
       - name: Install Poetry
         run: |
-          pipx install --python python${{ matrix.python }} --pip-args=--constraint=.github/workflows/constraints.txt poetry
+          if [ "${{ matrix.python }}" = "3.7" ]; then
+            pipx install --python python${{ matrix.python }} poetry
+          else
+            pipx install --python python${{ matrix.python }} --pip-args=--constraint=.github/workflows/constraints.txt poetry
+          fi
           poetry --version
       - name: Install Nox
         run: |
