@@ -88,6 +88,7 @@ Follow these steps to set up a development environment.
         poetry shell
 
 Now, try importing ``haptools`` or running it on the command line.
+Note that you will need to rerun steps 2 and 4 every time you want to work with the code.
 
 ---------------------
 Managing Dependencies
