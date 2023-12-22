@@ -1865,13 +1865,15 @@ class TestGenotypesVCF:
 
 class TestGenotypesTR:
     def _get_fake_tr_alleles(self):
+        # max uint8 codes for empty ("em") genotype
+        em = np.iinfo(np.uint8).max
         return np.array(
             [
                 [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
                 [[3, 1, 1], [3, 1, 1], [1, 1, 1], [1, 1, 1], [3, 3, 1]],
                 [[3, 3, 1], [3, 3, 1], [3, 3, 1], [3, 3, 1], [3, 3, 1]],
-                [[0, 11, 1], [255, 254, 1], [7, 2, 1], [3, 4, 1], [0, 255, 1]],
-                [[5, 255, 0], [255, 255, 0], [3, 255, 0], [255, 255, 0], [255, 255, 0]],
+                [[0, 11, 1], [em, em-1, 1], [7, 2, 1], [3, 4, 1], [0, em, 1]],
+                [[5, em, 0], [em, em, 0], [3, em, 0], [em, em, 0], [em, em, 0]],
             ],
             dtype=np.uint8,
         ).transpose((1, 0, 2))

@@ -426,7 +426,8 @@ def _FilterGts(candidate_gt, index_gt, log):
     once converted to uint8 and sum alleles together.
     """
     # Check Alleles for invalid values and remove samples from both sets of alleles
-    valid_gts = np.all(candidate_gt < 254, axis=1) & np.all(index_gt < 254, axis=1)
+    miss = np.iinfo(np.uint8).max - 1
+    valid_gts = np.all(candidate_gt < miss, axis=1) & np.all(index_gt < miss, axis=1)
     candidate_gt = candidate_gt[valid_gts, :]
     index_gt = index_gt[valid_gts, :]
     log.debug(f"Valid Genotype Indices: {valid_gts}")
