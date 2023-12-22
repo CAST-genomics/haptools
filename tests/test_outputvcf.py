@@ -21,8 +21,6 @@ DATADIR = Path(__file__).parent.joinpath("data")
 
 def _get_files(plink_input=False, plink_output=False):
     log = getLogger(name="test")
-    if plink_input or plink_output:
-        pytest.importorskip("pgenlib")
     bkp_file = DATADIR / "outvcf_test.bp"
     model_file = DATADIR / "outvcf_gen.dat"
     vcf_file = DATADIR / ("outvcf_test" + (".pgen" if plink_input else ".vcf.gz"))

@@ -168,7 +168,7 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 
 GenotypesTR
 ++++++++++++
-The :class:`GenotypesTR` class *extends* :class:`Genotypes` class. The :class:`GenotypesTR` class follows the same structure of :class:`GenotypesVCF`, but can now load repeat count of tandem repeats as the alleles.
+The :class:`GenotypesTR` class *extends* the :class:`Genotypes` class. The :class:`GenotypesTR` class follows the same structure of :class:`GenotypesVCF`, but can now load repeat counts of tandem repeats as the alleles.
 
 All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesTR` class' ``load()`` function is unique to loading tandem repeat variants.
 
@@ -177,6 +177,11 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 	genotypes = data.GenotypesTR.load('tests/data/simple_tr.vcf')
 	# make the first sample have 4 and 7 repeats for the alleles of the fourth variant
 	genotypes.data[0, 3] = (4, 7)
+
+The following methods from the :class:`Genotypes` class are disabled, however.
+
+1. ``check_biallelic``
+2. ``check_maf``
 
 .. _api-data-genotypestr:
 
@@ -187,13 +192,6 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 .. figure:: https://drive.google.com/uc?export=view&id=1_JARKJQ0LX-DzL0XsHW1aiQgLCOJ1ZvC
 
 	The time required to load various genotype file formats.
-
-.. warning::
-	This class depends on the ``Pgenlib`` python library. This can be installed automatically with ``haptools`` if you specify the "files" extra requirements during installation.
-
-	.. code-block:: bash
-
-		pip install haptools[files]
 
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesVCF` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
@@ -238,6 +236,24 @@ A large ``chunk_size`` is more likely to result in memory over-use while a small
 
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', chunk_size=500)
 	genotypes.read()
+
+GenotypesPLINKTR
+++++++++++++++++
+The :class:`GenotypesPLINKTR`` class extends the :class:`GenotypesPLINK` class to support loading tandem repeat variants.
+The :class:`GenotypesPLINKTR` class works similarly to :class:`GenotypesTR` by filling the ``data`` property with repeat counts for each allele.
+
+The following methods from the :class:`GenotypesPLINK` class are disabled, however.
+
+1. ``write``
+2. ``check_maf``
+3. ``write_variants``
+4. ``check_biallelic``
+
+The :class:`GenotypesPLINKTR` uses INFO fields from the PVAR file to determine the repeat unit and the number of repeats for each allele. To ensure your PVAR file contains the necessary information, use the following command when converting from VCF.
+
+.. code-block:: bash
+
+	plink2 --vcf-half-call m --make-pgen 'pvar-cols=vcfheader,qual,filter,info' --vcf input.vcf --make-pgen --out output
 
 haplotypes.py
 ~~~~~~~~~~~~~

@@ -9,8 +9,8 @@ Using pip
 
 You can install ``haptools`` from PyPI using ``pip``.
 
-.. warning::
-   We recommend using ``pip >= 20.3`` because of `an issue in pysam <https://github.com/pysam-developers/pysam/issues/1132>`_.
+.. note::
+   We recommend using ``pip >= 20.3``.
 
    .. code-block:: bash
 
@@ -28,9 +28,6 @@ We also support installing ``haptools`` from bioconda using ``conda``.
 .. code-block:: bash
 
    conda install -c conda-forge -c bioconda haptools
-
-.. note::
-   Installing ``haptools`` from bioconda with PGEN support is not yet possible. See `issue 228 <https://github.com/chrchang/plink-ng/issues/228>`_ for current progress on this challenge.
 
 Installing the latest, unreleased version
 -----------------------------------------

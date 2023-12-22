@@ -9,7 +9,7 @@ import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile
 
-from haptools import data
+from . import data
 from .logging import getLogger
 
 
