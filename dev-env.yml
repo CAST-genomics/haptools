@@ -1,0 +1,10 @@
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - conda-forge::pip>=23.0
+  - conda-forge::python=3.8 # the lowest version of python that we formally support
+  - conda-forge::poetry==1.7.1
+  - pip:
+    - poetry-conda>=0.1.1
