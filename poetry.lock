@@ -375,23 +375,28 @@ files = [
 
 [[package]]
 name = "cyvcf2"
-version = "0.30.15"
+version = "0.30.18"
 description = "fast vcf parsing with cython + htslib"
 optional = false
 python-versions = "*"
 files = [
-    {file = "cyvcf2-0.30.15-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:45d48e9cb6c39501096900eb566d57939a066b9bf7c6d8d382ef9120ca0e2303"},
-    {file = "cyvcf2-0.30.15-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:b6a5a3c264c058efa8777340e2015a2ef324ef14f70b32c431d4c89de4c103e2"},
-    {file = "cyvcf2-0.30.15-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2cfcaab3cab43994b78df88f6122eab8b00063e695bb97fbe89fcd922d564fcf"},
-    {file = "cyvcf2-0.30.15-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:fbe2d6865cd988c7fcf27312663e1433fd2547f0437768a7e44629d4ca74a105"},
-    {file = "cyvcf2-0.30.15-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c930a93ad0f6c4e073dc8082cbcc010e40df84cec60be3af4ce3a97d11b800b7"},
-    {file = "cyvcf2-0.30.15-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:11c7729fce4b32cf74d9e554bf4aaf54c19cfd820fe053a0f6354cfdd8c20b56"},
-    {file = "cyvcf2-0.30.15-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:8e78f5b8e8787203f69110e3415e5bf90c82554cd28cb4beb5c24eaf5989d4f7"},
-    {file = "cyvcf2-0.30.15-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:167d82bffb6a7e29118b5eb07f168e19791a726aeba1cc2ac60f545be6434c1b"},
-    {file = "cyvcf2-0.30.15-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:4c0ed6135b702b465b8377a3dae9aeba2599e7ff42c1adc115a3e119f51083e7"},
-    {file = "cyvcf2-0.30.15-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:cf5da0583f9996dbd76147c1cbcb52891d965436a0bb3075caa14a70d625e925"},
-    {file = "cyvcf2-0.30.15-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:75a769ad18b09223a83d15edd32de58db8a81c21f044b8e2b4422ec34b0ac4c2"},
-    {file = "cyvcf2-0.30.15.tar.gz", hash = "sha256:8ed8b42f8518e107b471bbec02ef21478cae49f48207f348f8457dafd35c43da"},
+    {file = "cyvcf2-0.30.18-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:405d9c3a2d1c5c211a34222ce4b100b5bcf7fe32b0d25db7020311ae4ef9323d"},
+    {file = "cyvcf2-0.30.18-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f61dd4503c4d8ffc49cc1ebe4b08a990430aaa7f3963330a5a3c6d0c0ed2783c"},
+    {file = "cyvcf2-0.30.18-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ddba558daf15dddb6c58db5a5adbbb48bbf561ecda32e233b9345277b7e2e2e0"},
+    {file = "cyvcf2-0.30.18-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:b4043cd634c70edd159d10059e7e32dc598e395bee1ac879dde8d28494c9e3c1"},
+    {file = "cyvcf2-0.30.18-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:f559626fa05641782ff83f5618b6a0ad0058e48ff6ea89d7ea6d0e4686f40126"},
+    {file = "cyvcf2-0.30.18-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cae4f49c27e0db7105a2802c96b5c004e44d153d9bb2d13c942988616fc484e6"},
+    {file = "cyvcf2-0.30.18-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:a4989ccf94e0f9ad5c967ab6943cbcdaf6a0f68b1fae549a681e4b31c982ca37"},
+    {file = "cyvcf2-0.30.18-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e842e779f972628dcd0e9d162e92ade920c5515233403c2ef8f3a25d2bf24684"},
+    {file = "cyvcf2-0.30.18-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:cd1fe49b5d6e173851dbdeb76cfe5dc5c19299dc5720aef0a1db8958ba8bcb4c"},
+    {file = "cyvcf2-0.30.18-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fb847d77ad7760f679edf1f32e49ae12b16f9b6283781e62451dbe16eaca427d"},
+    {file = "cyvcf2-0.30.18-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:b5e335ffa13464e1961ed6e782cc7410e07fc6d17cbe3d6eb2658884192d6b98"},
+    {file = "cyvcf2-0.30.18-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:e5ecc74102b3b0abd352ff92e0881052f76e8a02e31d48bbceedd7ef74bab60a"},
+    {file = "cyvcf2-0.30.18-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c770cb8312fa1e54d70bd0105f8cf5722f66a6dcc76de5a6c2efc4ea8d65ccd2"},
+    {file = "cyvcf2-0.30.18-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:643989818c02a146c7f44a1f96e69102761ea0bbd4dc3780de08c4cd0aa7f72f"},
+    {file = "cyvcf2-0.30.18-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:d2728f2cb0930101be113100b2361ed30be5d39bd8a38073ca5b9db4eeed3882"},
+    {file = "cyvcf2-0.30.18-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b012b935a03304272fb9cbfe25dfa3da46c08740c8016ac1048074a2df55c14"},
+    {file = "cyvcf2-0.30.18.tar.gz", hash = "sha256:2a4de3255e8275275edccf9c2b222cf0eefdab924f0c7cc5ef5503d376f5618a"},
 ]
 
 [package.dependencies]
