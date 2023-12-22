@@ -70,7 +70,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        conda create -n haptools-dev -c conda-forge 'poetry>=1.1.15' 'python=3.7' gxx_linux-64 bzip2 zlib
+        conda create -n haptools-dev -c conda-forge 'poetry>=1.1.15' 'python=3.7'
 
 2. Activate the environment
 
