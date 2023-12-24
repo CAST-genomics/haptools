@@ -33,8 +33,6 @@ sphinx-click = ">=3.0.2"
 pytest = ">=7.4.3"
 black = ">=23.3.0"
 ipython = ">=7.34.0"
-nox = ">=23.3.2"
-nox-poetry = ">=1.0.3"
 coverage = {extras = ["toml"], version = ">=7.2.7"}
 filprofiler = ">=2023.3.1"
 
