@@ -3,8 +3,8 @@ channels:
   - bioconda
   - nodefaults
 dependencies:
-  - conda-forge::pip==23.3.2
   - conda-forge::python=3.8 # the lowest version of python that we formally support
+  - conda-forge::pip==23.3.2
   - conda-forge::poetry==1.7.1
   - pip:
     - poetry-conda==0.1.1
