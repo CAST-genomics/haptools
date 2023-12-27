@@ -7,6 +7,7 @@ dependencies:
   - conda-forge::pip==23.3.2
   - conda-forge::poetry==1.7.1
   - conda-forge::nox==2023.04.22
+  - conda-forge::poetry-plugin-export==1.6.0
   - pip:
     - nox-poetry==1.0.3
     - poetry-conda==0.1.1
