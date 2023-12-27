@@ -76,7 +76,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: psf/black@stable
-        version: "23.3.0" # TODO: grab this version directly from the poetry.lock file
+        with:
+          version: "23.3.0" # TODO: grab this version directly from the poetry.lock file
 
   large-files:
     name: File sizes
