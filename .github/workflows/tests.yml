@@ -10,7 +10,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { python: "3.7", os: "ubuntu-latest", session: "lint" }
           - { python: "3.7", os: "ubuntu-latest", session: "tests" }
           - { python: "3.8", os: "ubuntu-latest", session: "tests" }
           - { python: "3.9", os: "ubuntu-latest", session: "tests" }
@@ -48,10 +47,7 @@ jobs:
         with:
           path: ${{ env.CONDA }}/envs
           key:
-            conda-${{ runner.os }}--${{ runner.arch }}--${{
-            steps.get-date.outputs.today }}-${{
-            hashFiles('etc/example-environment-caching.yml') }}-${{ env.CACHE_NUMBER
-            }}
+            conda-${{ runner.os }}--${{ runner.arch }}--${{ steps.get-date.outputs.today }}-${{ hashFiles('dev-env.yml') }}-${{ env.CACHE_NUMBER }}
         env:
           # Increase this value to reset cache if etc/example-environment.yml has not changed
           CACHE_NUMBER: 0
@@ -65,9 +61,6 @@ jobs:
       - name: Run tests with nox
         shell: bash -el {0}
         run: |
-          nox --version
-          python --version
-          poetry --version
           nox --python=${{ matrix.python }}
 
       - name: Upload coverage data
@@ -76,6 +69,14 @@ jobs:
         with:
           name: coverage-data
           path: ".coverage.*"
+
+  lint:
+    runs-on: ubuntu-latest
+    name: lint
+    steps:
+      - uses: actions/checkout@v3
+      - uses: psf/black@stable
+        version: "23.3.0" # TODO: grab this version directly from the poetry.lock file
 
   large-files:
     name: File sizes
