@@ -28,25 +28,39 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Cache conda
-        uses: actions/cache@v3
-        env:
-          # Increase this value to reset cache if dev-env.yml has not changed
-          CACHE_NUMBER: 0
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('dev-env.yml') }}
-
-      - name: Set up conda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Setup Mambaforge
+        uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: haptools
+          miniforge-variant: Mambaforge
           auto-activate-base: false
-          channels: conda-forge,bioconda,nodefaults
+          miniforge-version: latest
           channel-priority: strict
-          environment-file: dev-env.yml
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+          use-mamba: true
+
+      - name: Get Date
+        id: get-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Conda env
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ runner.os }}--${{ runner.arch }}--${{
+            steps.get-date.outputs.today }}-${{
+            hashFiles('etc/example-environment-caching.yml') }}-${{ env.CACHE_NUMBER
+            }}
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+
+      - name: Install dev environment
+        run:
+          mamba env update -n haptools -f dev-env.yml
+        if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Run tests with nox
         shell: bash -el {0}
