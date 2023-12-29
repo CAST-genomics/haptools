@@ -40,7 +40,6 @@ def lint(session: Session) -> None:
     session.run("black", "--verbose", "--check", ".")
 
 
-
 def install_handle_python_numpy(session):
     """
     handle incompatibilities with python and numpy versions
