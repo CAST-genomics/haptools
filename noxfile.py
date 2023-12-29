@@ -1,6 +1,5 @@
 """Nox sessions."""
 import os
-import sys
 import shutil
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from nox_poetry import session
 
 package = "haptools"
 python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+locked_python_version = "3.8"
 nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
     "docs",
@@ -19,7 +19,7 @@ nox.options.sessions = (
 )
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def docs(session: Session) -> None:
     """Build the documentation."""
     args = session.posargs or ["docs", "docs/_build"]
@@ -33,11 +33,12 @@ def docs(session: Session) -> None:
     session.run("sphinx-build", *args)
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def lint(session: Session) -> None:
     """Lint our code."""
     session.install("black")
-    session.run("black", "--check", ".")
+    session.run("black", "--verbose", "--check", ".")
+
 
 
 def install_handle_python_numpy(session):
@@ -46,12 +47,8 @@ def install_handle_python_numpy(session):
     see https://github.com/cjolowicz/nox-poetry/issues/1116
     """
     if session._session.python == "3.11":
-        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-        # https://github.com/chrchang/plink-ng/releases
-        session.install(".", "numpy==1.24.0")
+        session._session.install(".")
     else:
-        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-        # https://github.com/chrchang/plink-ng/releases
         session.install(".")
 
 
@@ -96,9 +93,10 @@ else:
                 session.notify("coverage", posargs=[])
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def coverage(session: Session) -> None:
     """Produce the coverage report."""
+    session.install("coverage[toml]")
     args = session.posargs or ["report"]
 
     if not session.posargs and any(Path().glob(".coverage.*")):

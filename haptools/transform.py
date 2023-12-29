@@ -9,7 +9,7 @@ import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile
 
-from haptools import data
+from . import data
 from .logging import getLogger
 
 
@@ -93,23 +93,25 @@ class HaplotypesAncestry(data.Haplotypes):
         gts: data.GenotypesAncestry,
         hap_gts: data.GenotypesVCF = None,
     ) -> data.GenotypesVCF:
+        self.index()
+        haps = [self.data[hap] for hap in self.type_ids["H"]]
         # Initialize GenotypesVCF return value
         if hap_gts is None:
             hap_gts = data.GenotypesVCF(fname=None, log=self.log)
         hap_gts.samples = gts.samples
         hap_gts.variants = np.array(
-            [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in self.data.values()],
+            [(hap.id, hap.chrom, hap.start, ("A", "T")) for hap in haps],
             dtype=hap_gts.variants.dtype,
         )
         # build a fast data structure for querying the alleles in each haplotype:
         # a dict mapping (variant ID, allele) -> a unique index
         alleles = {}
         # and a list of arrays containing the indices of each hap's alleles
-        idxs = [None] * len(self.data)
+        idxs = [None] * len(haps)
         # and lastly, a list of ancestral population labels for each hap
-        ancestries = np.empty(len(self.data), dtype=np.uint8)
+        ancestries = np.empty(len(haps), dtype=np.uint8)
         count = 0
-        for i, hap in enumerate(self.data.values()):
+        for i, hap in enumerate(haps):
             ancestries[i] = gts.ancestry_labels.get(hap.ancestry, -1)
             idxs[i] = np.empty(len(hap.variants), dtype=np.uintc)
             for j, variant in enumerate(hap.variants):
@@ -131,15 +133,15 @@ class HaplotypesAncestry(data.Haplotypes):
             dtype=gts.data.dtype,
         )[np.newaxis, :, np.newaxis]
         # finally, obtain and merge the haplotype genotypes
-        self.log.info(f"Transforming genotypes for {len(self.data)} haplotypes")
+        self.log.info(f"Transforming genotypes for {len(haps)} haplotypes")
         equality_arr = np.equal(allele_arr, gts.data)
         self.log.debug(
             f"Allocating array with dtype {gts.data.dtype} and size "
-            f"{(len(gts.samples), len(self.data), 2)}"
+            f"{(len(gts.samples), len(haps), 2)}"
         )
-        hap_gts.data = np.empty((gts.data.shape[0], len(self.data), 2), dtype=np.bool_)
+        hap_gts.data = np.empty((gts.data.shape[0], len(haps), 2), dtype=np.bool_)
         self.log.debug("Computing haplotype genotypes. This may take a while")
-        for i in range(len(self.data)):
+        for i in range(len(haps)):
             hap_gts.data[:, i] = np.logical_and(
                 np.all(gts.ancestry[:, idxs[i]] == ancestries[i], axis=1),
                 np.all(equality_arr[:, idxs[i]], axis=1),
@@ -517,6 +519,14 @@ class GenotypesAncestry(data.GenotypesVCF):
             vcf.write(record)
         vcf.close()
 
+    def merge_variants(
+        cls, objs: tuple[data.Genotypes], check_samples: bool = True, **kwargs
+    ) -> data.Genotypes:
+        """
+        See documentation for :py:meth:`~.data.Genotypes.merge_variants`
+        """
+        raise NotImplementedError
+
 
 def transform_haps(
     genotypes: Path,
@@ -585,7 +595,7 @@ def transform_haps(
         )
 
     log.info("Extracting variants from haplotypes")
-    variants = {var.id for hap in hp.data.values() for var in hap.variants}
+    variants = {vr.id for id in hp.type_ids["H"] for vr in hp.data[id].variants}
 
     # load the genotypes, but first get the path to the breakpoints file
     if genotypes.suffix == ".gz":

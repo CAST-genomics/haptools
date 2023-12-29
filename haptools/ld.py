@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
-from haptools import data
+from . import data
 from .logging import getLogger
 from .data import Haplotype as HaplotypeBase
 
@@ -112,6 +112,14 @@ def calc_ld(
             haplotype_ids.add(target)
     hp.read(region=region, haplotypes=haplotype_ids)
 
+    # remove all repeats from the haplotypes object since we don't yet support them
+    for repeat_id in hp.type_ids["R"]:
+        del hp.data[repeat_id]
+    num_repeats = len(hp.type_ids["R"])
+    if num_repeats:
+        log.info(f"Ignoring {num_repeats} repeats in .hap file")
+        hp.type_ids["R"] = []
+
     if from_gts:
         variants = None
         if target in hp.data and ids:
@@ -120,12 +128,17 @@ def calc_ld(
             variants.update(var.id for var in hp.data[target].variants)
     else:
         log.info("Extracting variants from haplotypes")
-        variants = {var.id for hap in hp.data.values() for var in hap.variants}
+        variants = {var.id for h in hp.type_ids["H"] for var in hp.data[h].variants}
 
     # check to see whether the target was a haplotype
-    if target in hp.data:
-        log.info(f"Identified target '{target}' as a haplotype")
+    try:
         target = hp.data.pop(target)
+    except:
+        # the target is a variant, instead
+        pass
+    else:
+        log.info(f"Identified target '{target}' as a haplotype")
+        hp.index(force=True)
         if len(hp.data) == 0 and not from_gts:
             log.error(
                 "There must be at least one more haplotype in the .hap file "
@@ -206,7 +219,7 @@ def calc_ld(
         # construct a new Haplotypes object that also stores the LD values
         hp_out = data.Haplotypes(fname=output, haplotype=Haplotype, log=log)
         hp_out.data = {}
-        for hap_id in hp.data:
+        for hap_id in hp.type_ids["H"]:
             # break the BaseHaplotype instance up into its properties
             hapd = hp.data[hap_id].__dict__
             hapd_variants = hapd.pop("variants")

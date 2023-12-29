@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0](https://github.com/CAST-genomics/haptools/compare/v0.2.1...v0.3.0) (2023-06-02)
+
+
+### Features
+
+* `.snplist` input to `simphenotype` ([#217](https://github.com/CAST-genomics/haptools/issues/217)) ([cb18970](https://github.com/CAST-genomics/haptools/commit/cb18970ca65ff8ee85dc83ea68c63af3c65fda59))
+* Added ability to read tandem repeats with GenotypesTR  ([#204](https://github.com/CAST-genomics/haptools/issues/204)) ([6257264](https://github.com/CAST-genomics/haptools/commit/6257264c655752cac1324ebdd0387f1207c433d6))
+* Added ability to set vcftype for reading str files ([#214](https://github.com/CAST-genomics/haptools/issues/214)) ([0d734cd](https://github.com/CAST-genomics/haptools/commit/0d734cdd9235dca128af6d53fbf043f0f17511ee))
+* Clump ([#211](https://github.com/CAST-genomics/haptools/issues/211)) ([3740ec1](https://github.com/CAST-genomics/haptools/commit/3740ec108075594d3b43c81840600ac59283a940))
+* do not require sorting `.hap` lines by line type ([#208](https://github.com/CAST-genomics/haptools/issues/208)) ([f221397](https://github.com/CAST-genomics/haptools/commit/f2213979f66b954fa21e4ed8b953426f1736d9f8))
+* new `Phenotypes.subset()` method ([#203](https://github.com/CAST-genomics/haptools/issues/203)) ([c5594d9](https://github.com/CAST-genomics/haptools/commit/c5594d9b5d6455bd9a231f218610153117b2eec7))
+* simphenotype `--environment` option ([#216](https://github.com/CAST-genomics/haptools/issues/216)) ([bf69147](https://github.com/CAST-genomics/haptools/commit/bf69147f1e149d07d52adb6d407e5ec8a5e91ed3))
+* Simphenotype and Index Repeat Support ([#209](https://github.com/CAST-genomics/haptools/issues/209)) ([9e2ffe1](https://github.com/CAST-genomics/haptools/commit/9e2ffe1f432459ae424bf3c2cb5cdf4f78fb98dc))
+
+
+### Bug Fixes
+
+* `Covariates.__init__` after updates to parent class ([#206](https://github.com/CAST-genomics/haptools/issues/206)) ([ce2337b](https://github.com/CAST-genomics/haptools/commit/ce2337bfb5f295942dfee2e6d1bd482a440c1d5e))
+* Added logic to finding all coord files ([#201](https://github.com/CAST-genomics/haptools/issues/201)) ([be1d992](https://github.com/CAST-genomics/haptools/commit/be1d992d9a3d7651b05f66c968df354c2f71747e))
+* check missing to check for 254 ([#213](https://github.com/CAST-genomics/haptools/issues/213)) ([afeab85](https://github.com/CAST-genomics/haptools/commit/afeab85bb9b70e95ca937c253a57e5fa98599b22))
+* explicitly ignore repeats in the `ld` command ([#218](https://github.com/CAST-genomics/haptools/issues/218)) ([b9d0da1](https://github.com/CAST-genomics/haptools/commit/b9d0da13b7ff089ca31b8101a3b79de6806db224))
+* GenotypesTR to properly load repeat count instead of GT ([#212](https://github.com/CAST-genomics/haptools/issues/212)) ([93a4eb2](https://github.com/CAST-genomics/haptools/commit/93a4eb285dc2d556cc47033750723b8313a17934))
+
 ## [0.2.1](https://github.com/CAST-genomics/haptools/compare/v0.2.0...v0.2.1) (2023-03-22)
 
 

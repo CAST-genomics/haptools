@@ -1,0 +1,15 @@
+#	orderH	ancestry	beta
+#	version	0.2.0
+#H	ancestry	s	Local ancestry
+#H	beta	.2f	Effect size in linear model
+#R	beta	.2f	Effect size in linear model
+H	1	10114	8	H1	YRI	0.75
+H	1	10114	10119	H2	YRI	0.5
+R	1	10114	10999	1:10114:GTT	1
+H	1	10116	10119	H3	ASW	0.25
+V	H1	10114	10115	1:10114:T:C	T
+V	H1	10116	10117	1:10116:A:G	G
+V	H2	10114	10115	1:10114:T:C	C
+V	H2	10117	10118	1:10117:C:A	C
+V	H3	10116	10117	1:10116:A:G	A
+V	H3	10117	10118	1:10117:C:A	A

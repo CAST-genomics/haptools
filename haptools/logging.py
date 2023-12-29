@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 
 
-def getLogger(name: str = None, level: str = "ERROR"):
+def getLogger(name: str = None, level: str = "ERROR", exact_time=False):
     """
     Retrieve a Logger object
 
@@ -27,7 +27,11 @@ def getLogger(name: str = None, level: str = "ERROR"):
     ch.setLevel(level)
 
     # create formatter
-    db_time = "|%(asctime)s" if level == "DEBUG" else ""
+    db_time = (
+        ("|%(asctime)s" + (".%(msecs)03d" if exact_time else ""))
+        if level == "DEBUG"
+        else ""
+    )
     formatter = logging.Formatter(
         fmt="[%(levelname)8s" + db_time + "] %(message)s (%(filename)s:%(lineno)s)",
         datefmt="%H:%M:%S",

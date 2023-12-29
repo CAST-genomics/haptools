@@ -32,13 +32,12 @@ The abstract class requires that all classes contain methods for...
 	from haptools import data
 	data.Data
 
-All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. When not provided, Logger instances are initialized with the following settings.
+All classes are initialized with the path to the file containing the data and, optionally, a `python Logger <https://docs.python.org/3/howto/logging.html>`_ instance. All messages are written to the Logger instance. You can create your own Logger instance as follows.
 
 .. code-block:: python
 
-	import logging
-	log = logging.getLogger("haptools command")
-	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="ERROR")
+	from haptools import logging
+	log = logging.getLogger(name="name", level="ERROR")
 
 genotypes.py
 ~~~~~~~~~~~~
@@ -169,7 +168,7 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 
 GenotypesTR
 ++++++++++++
-The :class:`GenotypesTR` class *extends* :class:`Genotypes` class. The :class:`GenotypesTR` class follows the same structure of :class:`GenotypesVCF`, but can now load repeat count of tandem repeats as the alleles.
+The :class:`GenotypesTR` class *extends* the :class:`Genotypes` class. The :class:`GenotypesTR` class follows the same structure of :class:`GenotypesVCF`, but can now load repeat counts of tandem repeats as the alleles.
 
 All of the other methods in the :class:`Genotypes` class are inherited, but the :class:`GenotypesTR` class' ``load()`` function is unique to loading tandem repeat variants.
 
@@ -178,7 +177,11 @@ All of the other methods in the :class:`Genotypes` class are inherited, but the 
 	genotypes = data.GenotypesTR.load('tests/data/simple_tr.vcf')
 	# make the first sample have 4 and 7 repeats for the alleles of the fourth variant
 	genotypes.data[0, 3] = (4, 7)
-	genotypes.write()
+
+The following methods from the :class:`Genotypes` class are disabled, however.
+
+1. ``check_biallelic``
+2. ``check_maf``
 
 .. _api-data-genotypestr:
 
@@ -189,13 +192,6 @@ The :class:`GenotypesPLINK` class offers experimental support for reading and wr
 .. figure:: https://drive.google.com/uc?export=view&id=1_JARKJQ0LX-DzL0XsHW1aiQgLCOJ1ZvC
 
 	The time required to load various genotype file formats.
-
-.. warning::
-	This class depends on the ``Pgenlib`` python library. This can be installed automatically with ``haptools`` if you specify the "files" extra requirements during installation.
-
-	.. code-block:: bash
-
-		pip install haptools[files]
 
 The :class:`GenotypesPLINK` class inherits from the :class:`GenotypesVCF` class, so it has all the same methods and properties. Loading genotypes is the exact same, for example.
 
@@ -226,9 +222,8 @@ Unfortunately, reading from PGEN files can require a lot of memory, at least ini
 
 .. code-block:: python
 
-	import logging
-	log = logging.getLogger("debug_plink_mem")
-	logging.basicConfig(format="[%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)", level="DEBUG")
+	from haptools import logging
+	log = logging.getLogger(name="debug_plink_mem", level="DEBUG")
 
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', log=log)
 	genotypes.read()
@@ -242,19 +237,37 @@ A large ``chunk_size`` is more likely to result in memory over-use while a small
 	genotypes = data.GenotypesPLINK('tests/data/simple.pgen', chunk_size=500)
 	genotypes.read()
 
+GenotypesPLINKTR
+++++++++++++++++
+The :class:`GenotypesPLINKTR`` class extends the :class:`GenotypesPLINK` class to support loading tandem repeat variants.
+The :class:`GenotypesPLINKTR` class works similarly to :class:`GenotypesTR` by filling the ``data`` property with repeat counts for each allele.
+
+The following methods from the :class:`GenotypesPLINK` class are disabled, however.
+
+1. ``write``
+2. ``check_maf``
+3. ``write_variants``
+4. ``check_biallelic``
+
+The :class:`GenotypesPLINKTR` uses INFO fields from the PVAR file to determine the repeat unit and the number of repeats for each allele. To ensure your PVAR file contains the necessary information, use the following command when converting from VCF.
+
+.. code-block:: bash
+
+	plink2 --vcf-half-call m --make-pgen 'pvar-cols=vcfheader,qual,filter,info' --vcf input.vcf --make-pgen --out output
+
 haplotypes.py
 ~~~~~~~~~~~~~
 Overview
 --------
 This module supports reading and writing files that follow the **.hap** file format specification.
 
-Lines from the file are parsed into instances of the :class:`Haplotype` and :class:`Variant` classes. These classes can be *extended* (sub-classed) to support "extra" fields appended to the ends of each line.
+Lines from the file are parsed into instances of the :class:`Haplotype`, :class:`Repeat`, and :class:`Variant` classes. These classes can be *extended* (sub-classed) to support "extra" fields appended to the ends of each line.
 
 Documentation
 -------------
 
 1. The **.hap** :ref:`format specification <formats-haplotypes>`
-2. The :ref:`haplotypes.py API docs <api-haptools-data-haplotypes>` contain example usage of the :class:`Haplotypes` class and examples of sub-classing the :class:`Haplotype` and :class:`Variant` classes
+2. The :ref:`haplotypes.py API docs <api-haptools-data-haplotypes>` contain example usage of the :class:`Haplotypes` class and examples of sub-classing the :class:`Haplotype`, :class:`Repeat`, and :class:`Variant` classes
 
 Classes
 -------
@@ -285,6 +298,14 @@ Both the ``load()`` and ``read()`` methods support `region` and `haplotypes` par
 	haplotypes.read(region='21:26928472-26941960', haplotypes=["chr21.q.3365*10"])
 
 The file must be indexed if you wish to use these parameters, since in that case, the ``read()`` method can take advantage of the indexing to parse the file a bit faster. Otherwise, if the file isn't indexed, the ``read()`` method will assume the file could be unsorted and simply reads each line one-by-one. Although I haven't tested it yet, streams like stdin should be supported by this case.
+
+The **.hap** file also supports the :class:`Repeat` line which is loaded identically to the :class:`Haplotype` class, except it cannot store :class:`Variant` classes.
+
+.. code-block:: python
+
+	haplotypes = data.Haplotypes('tests/data/basic.hap', data.Haplotype, data.Variant, data.Repeat)
+	haplotypes.read()
+	haplotypes.data # returns a dictionary of Haplotype and Repeat objects
 
 Iterating over a file
 *********************
@@ -357,6 +378,37 @@ To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) 
         )
 
     haps = data.Haplotypes("file.hap", haplotype=CustomHaplotype)
+    haps.read()
+    haps.write()
+
+Repeat
+++++++
+The :class:`Repeat` class stores haplotype lines from the **.hap** file. Each property in the object is a field in the line.
+
+The :class:`Haplotypes` class will initialize :class:`Repeat` objects in its ``read()`` and ``__iter__()`` methods. It uses a few methods within the :class:`Repeat` class for this:
+
+1. ``from_hap_spec()`` - this static method initializes a Repeat object from a line in the **.hap** file.
+2. ``to_hap_spec()`` - this method converts a Repeat object into a line in the **.hap** file
+
+To read "extra" fields from a **.hap** file, one need only *extend* (sub-class) the base :class:`Repeat` class and add the extra properties that you want to load. For example, let's add an extra field called "ancestry" that is encoded as a string.
+
+.. code-block:: python
+
+    from dataclasses import dataclass, field
+    from haptools.data import Repeat, Extra
+
+    @dataclass
+    class CustomRepeat(Repeat):
+        score: float
+        _extras: tuple = field(
+            repr=False,
+            init=False,
+            default=(
+                Extra("ancestry", "s", "Local ancestry"),
+            ),
+        )
+
+    haps = data.Haplotypes("file.hap", repeat=CustomRepeat)
     haps.read()
     haps.write()
 
