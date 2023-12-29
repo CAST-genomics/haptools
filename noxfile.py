@@ -10,6 +10,7 @@ from nox_poetry import session
 
 package = "haptools"
 python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+locked_python_version = "3.8"
 nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
     "docs",
@@ -18,7 +19,7 @@ nox.options.sessions = (
 )
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def docs(session: Session) -> None:
     """Build the documentation."""
     args = session.posargs or ["docs", "docs/_build"]
@@ -32,11 +33,11 @@ def docs(session: Session) -> None:
     session.run("sphinx-build", *args)
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def lint(session: Session) -> None:
     """Lint our code."""
     session.install("black")
-    session.run("black", "--check", ".")
+    session.run("black", "--verbose", "--check", ".")
 
 
 def install_handle_python_numpy(session):
@@ -91,9 +92,10 @@ else:
                 session.notify("coverage", posargs=[])
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def coverage(session: Session) -> None:
     """Produce the coverage report."""
+    session.install("coverage[toml]")
     args = session.posargs or ["report"]
 
     if not session.posargs and any(Path().glob(".coverage.*")):
