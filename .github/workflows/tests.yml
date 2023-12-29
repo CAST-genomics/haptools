@@ -58,6 +58,11 @@ jobs:
           mamba env update -n haptools -f dev-env.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
+      - name: Try to build haptools
+        shell: bash -el {0}
+        run: |
+          poetry build --format=wheel --no-ansi
+
       - name: Run tests with nox
         shell: bash -el {0}
         run: |
