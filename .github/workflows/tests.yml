@@ -70,7 +70,7 @@ jobs:
         run: |
           du -csh dist/*
           # check that the generated dist/ directory does not exceed 0.5 MB
-          [ $(du -b dist | cut -f1) -lt 100000 ]
+          [ $(du -b dist | cut -f1) -lt 500000 ]
 
       - name: Run tests with nox
         if: matrix.session != 'dist-size'
