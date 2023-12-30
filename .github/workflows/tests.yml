@@ -18,6 +18,7 @@ jobs:
           - { python: "3.11", os: "ubuntu-latest", session: "tests" }
           # - { python: "3.11", os: "windows-latest", session: "tests" }
           - { python: "3.9", os: "macos-latest", session: "tests" }
+          - { python: "3.8", os: "ubuntu-latest", session: "dist-size" }
 
     env:
       NOXSESSION: ${{ matrix.session }}
@@ -64,7 +65,15 @@ jobs:
         run: |
           poetry build --format=wheel --no-ansi
 
+      - name: Check distribution size
+        if: matrix.session == 'dist-size'
+        run: |
+          du -csh dist/*
+          # check that the generated dist/ directory does not exceed 0.5 MB
+          [ $(du -b dist | cut -f1) -lt 500000 ]
+
       - name: Run tests with nox
+        if: matrix.session != 'dist-size'
         shell: bash -el {0}
         run: |
           nox --verbose --python=${{ matrix.python }}
@@ -81,7 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
       - name: Check for large files
         uses: actionsdesk/lfs-warning@v3.2
         with:
