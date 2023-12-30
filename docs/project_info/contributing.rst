@@ -70,25 +70,19 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        conda env create -n haptools-dev --file dev-env.yml
-2. Activate the environment
+        conda env create -n haptools -f dev-env.yml
+2. Install haptools and its dependencies into a separate environment managed by ``poetry``
 
     .. code-block:: bash
 
-        conda activate haptools-dev
-3. Install our dependencies
+        conda run -n haptools poetry install
+
+3. Now, whenever you'd like to run/import ``haptools`` or ``pytest``, you will first need to activate both environments
 
     .. code-block:: bash
 
-        poetry install --with docs,tests
-4. Enter our virtualenv
-
-    .. code-block:: bash
-
+        conda activate haptools
         poetry shell
-
-Now, try importing ``haptools`` or running it on the command line.
-Note that you will need to rerun steps 2 and 4 every time you want to work with the code.
 
 ---------------------
 Managing Dependencies
