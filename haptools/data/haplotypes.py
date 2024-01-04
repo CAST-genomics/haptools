@@ -478,6 +478,7 @@ class Haplotype:
             denotes the presence of the haplotype in one chromosome of a sample
         """
         var_IDs = self.varIDs
+        # ensure the variants in the Genotypes object are ordered according to var_IDs
         gts = genotypes.subset(variants=var_IDs)
         # check: were any of the variants absent from the genotypes?
         if len(gts.variants) < len(var_IDs):
@@ -490,14 +491,17 @@ class Haplotype:
         # note: the excessive use of square-brackets gives us shape (1, p, 1)
         # where p denotes the number of alleles in this haplotype
         # That shape is broadcastable with gts.data which has shape (n, p, 2)
-        allele_arr = np.array(
-            [
+        try:
+            allele_arr = np.array(
                 [
-                    [int(var.allele != gts.variants[i]["alleles"][0])]
-                    for i, var in enumerate(self.variants)
+                    [
+                        [gts.variants[i]["alleles"].index(var.allele)]
+                        for i, var in enumerate(self.variants)
+                    ]
                 ]
-            ]
-        )
+            )
+        except ValueError:
+            raise ValueError("Some alleles were not present in the genotypes")
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
         return np.all(allele_arr == gts.data[:, :, :2], axis=1)
@@ -1367,13 +1371,16 @@ class Haplotypes(Data):
         self.log.debug(f"Creating array denoting alt allele status")
         # initialize a np array denoting the allele integer in each haplotype
         # with shape (1, gts.data.shape[1], 1) for broadcasting later
-        allele_arr = np.array(
-            [
-                int(allele != gts.variants[i]["alleles"][0])
-                for i, (vID, allele) in enumerate(alleles)
-            ],
-            dtype=gts.data.dtype,
-        )[np.newaxis, :, np.newaxis]
+        try:
+            allele_arr = np.array(
+                [
+                    gts.variants[i]["alleles"].index(allele)
+                    for i, (vID, allele) in enumerate(alleles)
+                ],
+                dtype=gts.data.dtype,
+            )[np.newaxis, :, np.newaxis]
+        except ValueError:
+            raise ValueError("Some alleles were not present in the genotypes")
         # finally, obtain and merge the haplotype genotypes
         self.log.info(f"Transforming genotypes for {len(haps)} haplotypes")
         equality_arr = np.equal(allele_arr, gts.data[:, :, :2])
