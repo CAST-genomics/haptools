@@ -615,7 +615,6 @@ def transform_haps(
     # gt._prephased = True
     gt.read(region=region, samples=samples, variants=variants)
     gt.check_missing(discard_also=discard_missing)
-    gt.check_biallelic()
     gt.check_phase()
 
     # check that all of the variants were loaded successfully and warn otherwise
