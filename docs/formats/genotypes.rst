@@ -13,6 +13,8 @@ VCF/BCF
 
 Genotype files must be specified as VCF or BCF files. They can be bgzip-compressed.
 
+To be loaded properly, VCFs must follow the VCF specification. VCFs with duplicate variant IDs do not follow the specification; the IDs must be unique. Please validate your VCF using a tool like `gatk ValidateVariants <https://gatk.broadinstitute.org/hc/en-us/articles/360037057272-ValidateVariants>`_ before using haptools.
+
 .. _formats-genotypesplink:
 
 PLINK2 PGEN
@@ -24,11 +26,11 @@ If you run out memory when using PGEN files, consider reading/writing variants f
 
 Converting from VCF to PGEN
 ---------------------------
-To convert a VCF containing only biallelic SNPs to PGEN, use the following command.
+To convert a VCF containing only SNPs to PGEN, use the following command.
 
 .. code-block:: bash
 
-	plink2 --snps-only 'just-acgt' --max-alleles 2 --vcf input.vcf --make-pgen --out output
+	plink2 --snps-only 'just-acgt' --vcf input.vcf --make-pgen --out output
 
 To convert a VCF containing tandem repeats to PGEN, use this command, instead.
 
