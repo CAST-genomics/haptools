@@ -1177,6 +1177,9 @@ class TestHaplotypes:
         h1_vars = list(haps.data["H1"].variants)
         h1_vars[1] = Variant(start=10116, end=10117, id="1:10116:A:G", allele="T")
         haps.data["H1"].variants = tuple(h1_vars)
+        h3_vars = list(haps.data["H3"].variants)
+        h3_vars[1] = Variant(start=10122, end=10123, id="1:10122:A:G", allele="C")
+        haps.data["H3"].variants = tuple(h3_vars)
         return haps
 
     def test_load(self):
@@ -1607,7 +1610,7 @@ class TestHaplotypes:
                 [[0, 0], [0, 0], [1, 0]],
                 [[1, 0], [0, 1], [0, 0]],
                 [[0, 0], [0, 0], [0, 0]],
-                [[0, 1], [0, 1], [1, 0]],
+                [[0, 0], [0, 1], [1, 0]],
             ],
             dtype=np.uint8,
         )
@@ -1616,6 +1619,7 @@ class TestHaplotypes:
         gens = TestGenotypesVCF()._get_fake_genotypes_multiallelic()
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
+        gens.data[[1, 4], 3, 0] = 2
         hap_gt = GenotypesVCF(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
