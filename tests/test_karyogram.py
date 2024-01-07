@@ -33,6 +33,29 @@ def test_GetHaplotypeBlocks():
     assert sample_blocks[1][0]["end"] == 85.107755
 
 
+def test_centromere_chroms(capfd):
+    tmp_file = Path("test_karyogram.png")
+
+    cmd = " ".join(
+        [
+            "karyogram",
+            "--bp tests/data/outvcf_test.bp",
+            "--sample Sample_1",
+            f"--out {tmp_file}",
+            "--centromeres tests/data/centromeres_hg19.txt",
+            "--title Non_23_Chrom_Karyogram",
+            "--colors CEU:blue,YRI:red",
+        ]
+    )
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    assert result.exit_code == 0
+
+    # delete the file we just created
+    tmp_file.unlink()
+
+
 def test_basic(capfd):
     tmp_file = Path("test_karyogram.png")
 
