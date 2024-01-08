@@ -18,7 +18,7 @@ jobs:
           - { python: "3.11", os: "ubuntu-latest", session: "tests" }
           # - { python: "3.11", os: "windows-latest", session: "tests" }
           - { python: "3.9", os: "macos-latest", session: "tests" }
-          - { python: "3.8", os: "ubuntu-latest", session: "dist-size" }
+          - { python: "3.8", os: "ubuntu-latest", session: "size" }
 
     env:
       NOXSESSION: ${{ matrix.session }}
@@ -36,7 +36,6 @@ jobs:
           miniforge-variant: Mambaforge
           auto-activate-base: false
           miniforge-version: latest
-          channel-priority: strict
           use-mamba: true
 
       - name: Get Date
@@ -66,14 +65,16 @@ jobs:
           poetry build --no-ansi
 
       - name: Check distribution size
-        if: matrix.session == 'dist-size'
+        if: matrix.session == 'size'
         run: |
           du -csh dist/*
           # check that the generated dist/ directory does not exceed 0.3 MB
+          # if this check fails, it's because you forgot to list large files in a "tool.poetry.exclude" section of our pyproject.toml
+          # https://python-poetry.org/docs/pyproject/#include-and-exclude
           [ $(du -b dist | cut -f1) -lt 300000 ]
 
       - name: Run tests with nox
-        if: matrix.session != 'dist-size'
+        if: matrix.session != 'size'
         shell: bash -el {0}
         run: |
           nox --verbose --python=${{ matrix.python }}
