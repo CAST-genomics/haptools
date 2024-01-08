@@ -4,7 +4,7 @@
 simphenotype
 ============
 
-Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal haplotypes or variants by specifying them in a :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
+Simulates a complex trait, taking into account haplotype- or local-ancestry- specific effects as well as traditional variant-level effects. The user denotes causal variants or haplotypes by specifying them in a :doc:`.snplist file </formats/snplist>` or :doc:`.hap file </formats/haplotypes>`. Phenotypes are simulated from genotypes output by the :doc:`transform command </commands/transform>`.
 
 The implementation is based on the `GCTA GWAS Simulation <https://yanglab.westlake.edu.cn/software/gcta/#GWASSimulation>`_ utility.
 
@@ -14,8 +14,10 @@ Usage
 
    haptools simphenotype \
    --replications INT \
+   --environment FLOAT \
    --heritability FLOAT \
    --prevalence FLOAT \
+   --normalize \
    --region TEXT \
    --sample SAMPLE --sample SAMPLE \
    --samples-file FILENAME \
@@ -23,6 +25,7 @@ Usage
    --ids-file FILENAME \
    --chunk-size INT \
    --repeats PATH \
+   --seed INT \
    --output PATH \
    --verbosity [CRITICAL|ERROR|WARNING|INFO|DEBUG|NOTSET] \
    GENOTYPES HAPLOTYPES
@@ -43,19 +46,27 @@ where
 
 .. math::
 
-   \sigma^2 = Var[\sum_j \beta_j \vec{Z_j}] * (\frac 1 {h^2} - 1)
+   \sigma^2 = v (\frac 1 {h^2} - 1)
 
-The heritability :math:`h^2` is user-specified, but if it is not provided, then :math:`\sigma^2` will be computed purely from the effect sizes, instead:
+The variable :math:`v` can be specified via the ``--environment`` parameter. When not provided, :math:`v` is inferred from the variance of the genotypes:
+
+.. math::
+
+   v = Var[\sum_j \beta_j \vec{Z_j}]
+
+The heritability :math:`h^2` can be specified via the ``--heritability`` parameter and defaults to 0.5 when not provided.
+
+When both :math:`v` and :math:`h^2` aren't provided, :math:`\sigma^2` is computed purely from the effect sizes, instead:
 
 .. math::
 
    \sigma^2 = \Biggl \lbrace {1 - \sum \beta_j^2 \quad \quad {\sum \beta_j^2 \le 1} \atop 0 \quad \quad \quad \quad \quad \text{ otherwise }}
 
-If a prevalence for the disease is specified, the final :math:`\vec{y}` value will be thresholded to produce a binary case/control trait with the desired fraction of diseased individuals.
+If a prevalence for the disease is specified via the ``--prevalence`` parameter, the final :math:`\vec{y}` is thresholded to produce a binary case/control trait with the desired fraction of diseased individuals.
 
 Input
 ~~~~~
-Genotypes must be specified in VCF and haplotypes must be specified in the :doc:`.hap file format </formats/haplotypes>`. If you'd like to encode simple SNPs as causal variants within a ``.hap`` file, use the haptools API like in :ref:`this example <api-examples-snps2hap>`.
+Genotypes must be specified in VCF and haplotypes must be specified in the :doc:`.snplist </formats/snplist>` or :doc:`.hap file format </formats/haplotypes>`.
 
 .. note::
    Your ``.hap`` files must contain a "beta" extra field. See :ref:`this section <formats-haplotypes-extrafields-simphenotype>` of the ``.hap`` format spec for more details.
@@ -71,12 +82,20 @@ Phenotypes are output in the PLINK2-style ``.pheno`` file format. If ``--replica
 
 Examples
 ~~~~~~~~
+In its simplest usage, ``simphenotype`` can be used to simulate traits arising from SNPs in a :doc:`.snplist file </formats/snplist>`.
+
+.. code-block:: bash
+
+   haptools simphenotype tests/data/apoe.vcf.gz tests/data/apoe.snplist
+
+However, if you want to simulate haplotype-based effects, you will need to ``transform`` your SNPs into haplotypes first. You can pass the same ``.hap`` file to both commands.
+
 .. code-block:: bash
 
    haptools transform tests/data/simple.vcf tests/data/simple.hap | \
    haptools simphenotype -o simulated.pheno /dev/stdin tests/data/simple.hap
 
-By default, all of the haplotypes in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
+By default, all of the effects in the ``.hap`` file will be encoded as causal variables. Alternatively, you can select the causal variables manually via the ``--id`` or ``--ids-file`` parameters.
 
 .. code-block:: bash
 
@@ -90,25 +109,21 @@ To simulate ancestry-specific effects from a genotypes file with population labe
    haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap | \
    haptools simphenotype --id 'H1' /dev/stdin tests/data/simple.hap
 
-To simulate tandem repeat effects we require a R line in the **.hap** file and a VCF file with repeats passed to ``simphenotype`` using the ``--repeats`` option.
-
-.. code-block:: bash
-
-   haptools transform tests/data/simple.vcf tests/data/simple.hap | \
-   haptools simphenotype --repeats tests/data/simple_tr.vcf /dev/stdin tests/data/simple_tr.hap
-
-To perform simphenotype on only repeats it requires the ``--repeats`` option for the repeats VCF, but we can pass an empty path where normally the SNP VCF would be located. Please note the empty path MUST be a valid path otherwise simphenotype will error. 
-
-.. code-block:: bash
-
-   haptools simphenotype --repeats tests/data/simple_tr.vcf tests/data tests/data/only_tr.hap
-
 If speed is important, it's generally faster to use PGEN files than VCFs.
 
 .. code-block:: bash
 
    haptools transform -o simple-haps.pgen tests/data/simple.pgen tests/data/simple.hap
    haptools simphenotype --id 'H1' simple-haps.pgen tests/data/simple.hap
+
+To simulate causal tandem repeats we require an 'R' line in the **.hap** file and a genotypes file with repeats instead of haplotypes.
+
+.. code-block:: bash
+
+   haptools simphenotype --id 1:10114:GTT tests/data/simple_tr.vcf tests/data/simple_tr.hap
+
+.. note::
+   If you would like to simulate from a mix of both haplotypes and repeats, you should specify your repeats in a separate file via the ``--repeats`` argument.
 
 Let's simulate two replicates of a case/control trait that occurs in 60% of samples with a heritability of 0.8. We'll encode only two of the haplotypes in ``tests/data/simphenotype.hap`` as independent causal variables.
 

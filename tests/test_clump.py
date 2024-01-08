@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pytest
@@ -29,7 +28,7 @@ class TestClump:
         return [0.5625, 0.6071, 0.5977, 0.5398]
 
     def test_loading_snps(self):
-        gts_snps = DATADIR.joinpath("outvcf_test.vcf.gz")
+        gts_snps = DATADIR / "outvcf_test.vcf.gz"
         snpgts = GenotypesVCF.load(str(gts_snps))
         snpvars = [
             Variant("test1", "1", "10114", "0.05", "snp"),
@@ -67,8 +66,8 @@ class TestClump:
 
     def test_overlapping_samples(self):
         # Test the GetOverlappingSamples function
-        snps = GenotypesVCF(fname="NA")
-        strs = GenotypesTR(fname="NA")
+        snps = GenotypesVCF(None)
+        strs = GenotypesTR(None)
 
         # Test 1 No Matching
         snps.samples = ["Sample_02", "Sample_00", "Sample_01"]
@@ -258,8 +257,8 @@ class TestClumpCLI:
     def test_snps(self, capfd):
         out_file = Path("test_snps.clump")
         cmd = (
-            "clump --summstats-snps tests/data/test_snpstats.linear "
-            "--gts-snps tests/data/simple.vcf "
+            f"clump --summstats-snps {DATADIR}/test_snpstats.linear "
+            f"--gts-snps {DATADIR}/simple.vcf "
             "--clump-id-field ID "
             "--clump-chrom-field CHROM "
             "--clump-pos-field POS "
@@ -277,8 +276,8 @@ class TestClumpCLI:
     def test_strs(self, capfd):
         out_file = Path("test_strs.clump")
         cmd = (
-            "clump --summstats-strs tests/data/test_strstats.linear "
-            "--gts-strs tests/data/simple_tr.vcf "
+            f"clump --summstats-strs {DATADIR}/test_strstats.linear "
+            f"--gts-strs {DATADIR}/simple_tr.vcf "
             "--clump-id-field ID "
             "--clump-chrom-field CHROM "
             "--clump-pos-field POS "
@@ -293,10 +292,10 @@ class TestClumpCLI:
     def test_snps_strs(self, capfd):
         out_file = Path("test_snps_strs.clump")
         cmd = (
-            "clump --summstats-snps tests/data/test_snpstats.linear "
-            "--gts-snps tests/data/simple.vcf "
-            "--summstats-strs tests/data/test_strstats.linear "
-            "--gts-strs tests/data/simple_tr.vcf "
+            f"clump --summstats-snps {DATADIR}/test_snpstats.linear "
+            f"--gts-snps {DATADIR}/simple.vcf "
+            f"--summstats-strs {DATADIR}/test_strstats.linear "
+            f"--gts-strs {DATADIR}/simple_tr.vcf "
             "--clump-id-field ID "
             "--clump-chrom-field CHROM "
             "--clump-pos-field POS "

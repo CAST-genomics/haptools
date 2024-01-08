@@ -77,6 +77,9 @@ There is an option to *Cite this repository* on the right sidebar of `the reposi
    formats/genotypes.rst
    formats/haplotypes.rst
    formats/phenotypes.rst
+   formats/ld.rst
+   formats/linear.rst
+   formats/snplist.rst
    formats/breakpoints.rst
    formats/sample_info.rst
    formats/models.rst

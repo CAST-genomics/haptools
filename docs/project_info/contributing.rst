@@ -13,7 +13,7 @@ Types of Contributions
 ~~~~~~~~~~~~
 Report a bug
 ~~~~~~~~~~~~
-If you have found a bug, please report it on `our issues page <https://github.com/aryarm/haptools/issues>`_ rather than emailing us directly. Others may have the same issue and this helps us get that information to them.
+If you have found a bug, please report it on `our issues page <https://github.com/CAST-genomics/haptools/issues>`_ rather than emailing us directly. Others may have the same issue and this helps us get that information to them.
 
 Before you submit a bug, please search through our issues to ensure it hasn't already been reported. If you encounter an issue that has already been reported, please upvote it by reacting with a thumbs-up emoji. This helps us prioritize the issue.
 
@@ -70,7 +70,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        conda create -n haptools-dev -c conda-forge 'poetry>=1.1.14' 'python=3.7' 'gxx_linux-64'
+        conda create -n haptools-dev -c conda-forge 'poetry>=1.1.15' 'python=3.7'
 2. Activate the environment
 
     .. code-block:: bash
@@ -80,7 +80,7 @@ Follow these steps to set up a development environment.
 
     .. code-block:: bash
 
-        poetry install -E docs -E tests -E files
+        poetry install -E docs -E tests
 
 Now, try importing ``haptools`` or running it on the command line.
 
@@ -180,6 +180,15 @@ For new commands
 ++++++++++++++++
 
 After you add a new command, you should make sure to create tests for it in the `tests/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests>`_. You should also create a new page in the *Commands* section of our documentation with sections for a short description, an abbreviated usage, example commands, and a detailed usage (which is auto-generated). You can refer to :ref:`the index command <commands-index>` as an example. To ensure your new documentation page appears in our table of contents, add the name of the page to the list at the bottom of our `index.rst file <https://github.com/CAST-genomics/haptools/blob/main/docs/index.rst>`_.
+
+-----------------------------
+Modifying the ``.hap`` format
+-----------------------------
+If you modify the :doc:`.hap file format </formats/haplotypes>`, you should bump the version number, which is listed at the top of the `haptools/data/haplotypes.py <https://github.com/CAST-genomics/haptools/blob/main/haptools/data/haplotypes.py>`_ module and follows `semantic versioning <https://semver.org/>`_.
+
+Please describe any modifications or new features in :doc:`the .hap docs </formats/haplotypes>` and in the :ref:`Changelog at the bottom of that page <formats-haplotypes-changelog>`.
+
+After bumping the version number, you should also update all ``.hap`` and ``.hap.gz`` files in the `tests/data/ directory <https://github.com/CAST-genomics/haptools/tree/main/tests/data>`_ to use the new version number.
 
 .. _code-check-instructions:
 

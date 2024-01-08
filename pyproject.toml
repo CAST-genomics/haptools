@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "haptools"
-version = "0.2.1"
+version = "0.3.0"
 description = "Ancestry and haplotype aware simulation of genotypes and phenotypes for complex trait analysis"
 authors = ["Arya Massarat", "Michael Lamkin"]
 license = "MIT"
@@ -16,7 +16,7 @@ click = ">=8.0.3"
 pysam = ">=0.19.0"
 cyvcf2 = ">=0.30.14"
 matplotlib = ">=3.5.1"
-Pgenlib = { version = ">=0.81.3", optional = true }
+Pgenlib = ">=0.90.1"
 
 # docs
 # these belong in dev-dependencies, but RTD doesn't support that yet -- see
@@ -44,6 +44,7 @@ ipython = ">=7.30.1"
 nox = ">=2022.8.7"
 nox-poetry = ">=1.0.1"
 coverage = {extras = ["toml"], version = ">=6.5.0"}
+filprofiler = ">=2023.3.1"
 
 [tool.poetry.extras]
 docs = [
@@ -59,10 +60,6 @@ tests = [
     "coverage",
     "nox",
     "nox-poetry"
-]
-
-files = [
-    "Pgenlib"
 ]
 
 [tool.poetry.scripts]

@@ -56,21 +56,19 @@ As an example, let's say we would like to convert the following ``.blocks.det`` 
 
 .. _api-examples-snps2hap:
 
-Creating a ``.hap`` file of SNPs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The :ref:`simphenotype <commands-simphenotype>` command requires a ``.hap`` file containing haplotypes, but what if you want to give it SNPs, instead?
+Converting a ``.snplist`` file into a ``.hap`` file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How would you convert a :doc:`.snplist file </formats/snplist>` into a ``.hap`` file suitable for use by ``simphenotype``?
 
-Well, you can encode each SNP as a haplotype containing only a single allele. For example, let's say you have two SNPs, rs429358 and rs7412, with ALT alleles C and T respectively. Then your ``.hap`` file might look something like this.
+The basic idea is to encode each SNP as a haplotype containing only a single allele. For example, let's say your ``.snplist`` file has two SNPs like this.
 
-.. code-block::
+.. include:: ../../tests/data/apoe.snplist
+  :literal:
 
-    #	orderH	beta
-    #	version	0.1.0
-    #H	beta	.2f	Effect size in linear model
-    H	19	45411941	45411942	rs429358	0.73
-    H	19	45412079	45412080	rs7412	0.30
-    V	rs429358	45411941	45411942	rs429358	C
-    V	rs7412	45412079	45412080	rs7412	T
+Then your ``.hap`` file might look something like this.
+
+.. include:: ../../tests/data/apoe.hap
+  :literal:
 
 You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API <api-haptools-sim_phenotype>` to create such a file.
 
@@ -79,31 +77,32 @@ You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API
     from haptools import data
     from haptools.sim_phenotype import Haplotype
 
-    # which variants do we want to write to the haplotype file?
-    variants = {"rs429358", "rs7412"}
+    variants = {}
+    # load variants from the snplist file
+    with open("tests/data/apoe.snplist") as snplist_file:
+        for line in snplist_file.readlines():
+            # parse variant ID and beta from file
+            ID, beta = line.split("\t")
+            variants[ID] = float(beta)
 
     # load the genotypes file
-    # you can use either a VCF or PGEN file
     gt = data.GenotypesVCF("tests/data/apoe.vcf.gz")
-    gt.read(variants=variants)
-    # the advantage of using a PGEN file is that you can use read_variants() to load
-    # the variants quickly w/o having to load the genotypes, too
-    gt = data.GenotypesPLINK("tests/data/apoe.pgen")
-    gt.read_variants(variants=variants)
+    gt.read(variants=variants.keys())
 
     # initialize an empty haplotype file
     hp = data.Haplotypes("output.hap", haplotype=Haplotype)
     hp.data = {}
 
     for variant in gt.variants:
-        ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]
-        end = pos + len(alleles[1])
+        ID, chrom, pos, alleles = variant[["id", "chrom", "pos", "alleles"]]        
+        # we arbitrarily choose to use the ALT allele but alleles[0] will give you REF
+        allele = alleles[1]
+        end = pos + len(allele)
 
         # create a haplotype line in the .hap file
-        # you should fill out "beta" with your own value
-        hp.data[ID] = Haplotype(chrom=chrom, start=pos, end=end, id=ID, beta=0.5)
+        hp.data[ID] = Haplotype(chrom=chrom, start=pos, end=end, id=ID, beta=variants[ID])
 
-        # create variant lines for each haplotype
-        hp.data[ID].variants = (data.Variant(start=pos, end=end, id=ID, allele=alleles[1]),)
+        # create a variant line for each haplotype
+        hp.data[ID].variants = (data.Variant(start=pos, end=end, id=ID, allele=allele),)
 
     hp.write()

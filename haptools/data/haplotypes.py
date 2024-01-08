@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 from pathlib import Path
 from functools import total_ordering
 from logging import getLogger, Logger
@@ -12,6 +11,10 @@ from pysam import TabixFile
 
 from .data import Data
 from .genotypes import GenotypesVCF
+
+
+# the current version of the hap format spec
+HAP_VERSION = "0.2.0"
 
 
 @dataclass
@@ -98,7 +101,7 @@ class Extra:
 
 class classproperty(object):
     """
-    A daad-simple read-only decorator that combines the functionality of
+    A dead-simple read-only decorator that combines the functionality of
     @classmethod and @property
 
     Stolen from https://stackoverflow.com/a/13624858/16815703
@@ -497,7 +500,7 @@ class Haplotype:
         )
         # look for the presence of each allele in each chromosomal strand
         # and then just AND them together
-        return np.all(allele_arr == gts.data, axis=1)
+        return np.all(allele_arr == gts.data[:, :, :2], axis=1)
 
     def __lt__(self, other: Haplotype):
         """
@@ -749,6 +752,8 @@ class Haplotypes(Data):
     >>> haps = haplotypes.data # a dictionary of Haplotype objects
     """
 
+    version = HAP_VERSION
+
     def __init__(
         self,
         fname: Path | str,
@@ -763,7 +768,6 @@ class Haplotypes(Data):
         # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.type_ids = None
-        self.version = "0.1.0"
 
     @classmethod
     def load(
@@ -1227,7 +1231,7 @@ class Haplotypes(Data):
                             # These are usually just comment lines, so we can ignore it
                             pass
                     else:
-                        if header_lines:
+                        if header_lines is not None:
                             metas, extras = self.check_header(header_lines)
                             types = self._get_field_types(extras, metas.get("order"))
                             header_lines = None
@@ -1372,7 +1376,7 @@ class Haplotypes(Data):
         )[np.newaxis, :, np.newaxis]
         # finally, obtain and merge the haplotype genotypes
         self.log.info(f"Transforming genotypes for {len(haps)} haplotypes")
-        equality_arr = np.equal(allele_arr, gts.data)
+        equality_arr = np.equal(allele_arr, gts.data[:, :, :2])
         self.log.debug(
             f"Allocating array with dtype {gts.data.dtype} and size "
             f"{(len(gts.samples), len(haps), 2)}"

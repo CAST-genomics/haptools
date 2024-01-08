@@ -7,18 +7,25 @@ from haptools.data import Data
 from haptools.__main__ import main
 
 
+DATADIR = Path(__file__).parent.joinpath("data")
+
+
 # @pytest.mark.skip(reason="this test takes a long time (~2 mins) to run")
 def test_basic(capfd):
-    prefix = Path("tests/data/example_simgenotype.vcf")
+    prefix = DATADIR / "example_simgenotype.vcf"
+    dat_file = DATADIR / "outvcf_gen.dat"
+    map_dir = DATADIR / "map"
+    ref_vcf_file = DATADIR / "outvcf_test.vcf.gz"
+    samp_info_file = DATADIR / "outvcf_info.tab"
 
     cmd = " ".join(
         [
             "simgenotype",
-            "--model tests/data/outvcf_gen.dat",
-            "--mapdir tests/data/map/",
+            f"--model {dat_file}",
+            f"--mapdir {map_dir}",
             "--region 1:1-83000",
-            "--ref_vcf tests/data/outvcf_test.vcf.gz",
-            "--sample_info tests/data/outvcf_info.tab",
+            f"--ref_vcf {ref_vcf_file}",
+            f"--sample_info {samp_info_file}",
             "--pop_field",
             f"--out {prefix}",
         ]
@@ -36,17 +43,20 @@ def test_basic(capfd):
 
 
 def test_pgen_output(capfd):
-    pytest.importorskip("pgenlib")
-    prefix = Path("tests/data/example_simgenotype.pgen")
+    prefix = DATADIR / "example_simgenotype.pgen"
+    dat_file = DATADIR / "outvcf_gen.dat"
+    map_dir = DATADIR / "map"
+    ref_vcf_file = DATADIR / "outvcf_test.pgen"
+    samp_info_file = DATADIR / "outvcf_info.tab"
 
     cmd = " ".join(
         [
             "simgenotype",
-            "--model tests/data/outvcf_gen.dat",
-            "--mapdir tests/data/map/",
+            f"--model {dat_file}",
+            f"--mapdir {map_dir}",
             "--region 1:1-83000",
-            "--ref_vcf tests/data/outvcf_test.pgen",
-            "--sample_info tests/data/outvcf_info.tab",
+            f"--ref_vcf {ref_vcf_file}",
+            f"--sample_info {samp_info_file}",
             f"--out {prefix}",
         ]
     )

@@ -1,5 +1,5 @@
 #	orderH	ancestry	beta
-#	version	0.1.0
+#	version	0.2.0
 #H	ancestry	s	Local ancestry
 #H	beta	.2f	Effect size in linear model
 #R	beta	.2f	Effect size in linear model

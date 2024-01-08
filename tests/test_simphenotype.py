@@ -7,7 +7,7 @@ from click.testing import CliRunner
 import numpy.lib.recfunctions as rfn
 
 from haptools.__main__ import main
-from haptools.sim_phenotype import Haplotype, RepeatBeta, PhenoSimulator
+from haptools.sim_phenotype import Haplotype, Repeat, PhenoSimulator
 from haptools.data import (
     Genotypes,
     Phenotypes,
@@ -74,17 +74,11 @@ class TestSimPhenotype:
         return gts
 
     def _get_fake_haps(self):
-        fake_haps = Haplotypes("", None)
-        hap1 = Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25)
-        hap2 = Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75)
-        repeat1 = RepeatBeta("1", 10110, 10120, "1_10110_STR", 0.5)
-        fake_haps.data = {
-            "1:10114:T:C": hap1,
-            "1:10116:A:G": hap2,
-            "1_10110_STR": repeat1,
-        }
-        fake_haps.index()
-        return fake_haps
+        return [
+            Haplotype("1", 10114, 10115, "1:10114:T:C", 0.25),
+            Haplotype("1", 10116, 10117, "1:10116:A:G", 0.75),
+            Repeat("1", 10110, 10120, "1_10110_STR", 0.5),
+        ]
 
     def _get_expected_phens(self):
         pts = Phenotypes(fname=None)
@@ -120,10 +114,7 @@ class TestSimPhenotype:
 
     def test_one_hap_zero_noise(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        hps.type_ids["H"] = [hp_ids[0]]
-        hps.type_ids["R"] = []
+        hps = [self._get_fake_haps()[0]]
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
@@ -143,10 +134,7 @@ class TestSimPhenotype:
 
     def test_one_hap_zero_noise_all_same(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        hps.type_ids["H"] = [hp_ids[0]]
-        hps.type_ids["R"] = []
+        hps = [self._get_fake_haps()[0]]
         expected = self._get_expected_phens()
 
         gts_shape = list(gts.data.shape)
@@ -172,10 +160,7 @@ class TestSimPhenotype:
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_one_hap_zero_noise_all_same_nonzero_heritability(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        hps.type_ids["H"] = [hp_ids[0]]
-        hps.type_ids["R"] = []
+        hps = [self._get_fake_haps()[0]]
         expected = self._get_expected_phens()
 
         gts_shape = list(gts.data.shape)
@@ -188,7 +173,7 @@ class TestSimPhenotype:
         expected.data = np.zeros((gts_shape[0], 1), dtype=expected.data.dtype)
 
         previous_std = np.inf
-        for h2 in (0, 0.5, 1):
+        for h2 in (0, 0.8, 1):
             pt_sim = PhenoSimulator(gts, seed=42)
             data = pt_sim.run(hps, heritability=h2)
             data = data[:, np.newaxis]
@@ -207,12 +192,9 @@ class TestSimPhenotype:
         the same test as test_one_phen_zero_noise but with a negative beta this time
         """
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        hps.type_ids["H"] = [hp_ids[0]]
-        hps.type_ids["R"] = []
+        hps = [self._get_fake_haps()[0]]
         # make the beta value negative
-        hps.data[hp_ids[0]].beta = -hps.data[hp_ids[0]].beta
+        hps[0].beta = -hps[0].beta
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
@@ -233,15 +215,11 @@ class TestSimPhenotype:
     def test_two_haps_zero_noise(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        hps.type_ids["H"] = [hp_ids[0]]
-        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, heritability=1)
-        hps.type_ids["H"] = [hp_ids[1]]
-        data = pt_sim.run(hps, heritability=1)
+        pt_sim.run([hps[0]], heritability=1)
+        pt_sim.run([hps[1]], heritability=1)
         phens = pt_sim.phens
 
         # check the data and the generated phenotype object
@@ -261,9 +239,8 @@ class TestSimPhenotype:
 
     def test_combined_haps_zero_noise(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
+        hps = self._get_fake_haps()[:2]
         expected = self._get_expected_phens()
-        hps.type_ids["R"] = []
 
         pt_sim = PhenoSimulator(gts, seed=42)
         pt_sim.run(hps, heritability=1)
@@ -278,9 +255,8 @@ class TestSimPhenotype:
 
     def test_noise(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
+        hps = self._get_fake_haps()[:2]
         expected = self._get_expected_phens()
-        hps.type_ids["R"] = []
 
         pt_sim = PhenoSimulator(gts, seed=42)
         pt_sim.run(hps, heritability=1)
@@ -300,10 +276,35 @@ class TestSimPhenotype:
         diff3 = np.abs(phens.data[:, 3] - phens.data[:, 0]).sum()
         assert diff3 > diff2
 
+    def test_user_noise(self):
+        gts = self._get_fake_gens()
+        hps = self._get_fake_haps()[:2]
+        expected = self._get_expected_phens()
+
+        pt_sim = PhenoSimulator(gts, seed=42)
+        pt_sim.run(hps, environment=0)
+        pt_sim.run(hps, environment=0.04)
+        pt_sim.run(hps, environment=0.5)
+        pt_sim.run(hps, environment=0.7)
+        pt_sim.run(hps, environment=0.7, heritability=0.7)
+
+        phens = pt_sim.phens
+
+        # check the data and the generated phenotype object
+        assert phens.data.shape == (5, 5)
+        np.testing.assert_allclose(phens.data[:, 0], expected.data[:, 0])
+        diff1 = np.abs(phens.data[:, 1] - phens.data[:, 0]).sum()
+        assert diff1 > 0
+        diff2 = np.abs(phens.data[:, 2] - phens.data[:, 0]).sum()
+        assert diff2 > diff1
+        diff3 = np.abs(phens.data[:, 3] - phens.data[:, 0]).sum()
+        assert diff3 > diff2
+        diff4 = np.abs(phens.data[:, 4] - phens.data[:, 0]).sum()
+        assert diff4 < diff3
+
     def test_case_control(self):
         gts = self._get_fake_gens()
-        hps = self._get_fake_haps()
-        hps.type_ids["R"] = []
+        hps = self._get_fake_haps()[:2]
         expected = self._get_expected_phens()
         all_false = np.zeros(expected.data.shape, dtype=np.float64)
         some_true = expected.data[:, 1]
@@ -326,13 +327,10 @@ class TestSimPhenotype:
     def test_one_hap_zero_noise_no_normalize(self):
         gts = self._get_fake_gens()
         hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        hps.type_ids["H"] = [hp_ids[0]]
-        hps.type_ids["R"] = []
         expected = self._get_expected_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
-        data = pt_sim.run(hps, heritability=1, normalize=False)
+        data = pt_sim.run([hps[0]], heritability=1, normalize=False)
 
         data = data[:, np.newaxis]
         phens = pt_sim.phens
@@ -348,10 +346,7 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         tr_gts = self._get_fake_tr_gens()
         gts = Genotypes.merge_variants((gts, tr_gts), fname=None)
-        hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        tr_ids = [tr for tr in hps.type_ids["R"]]
-        hps.type_ids["H"] = [hp_ids[0]]
+        hps = [hp for i, hp in enumerate(self._get_fake_haps()) if i in (0, 2)]
         expected = self._get_expected_tr_phens()
 
         pt_sim = PhenoSimulator(gts, seed=42)
@@ -368,10 +363,7 @@ class TestSimPhenotype:
         gts = self._get_fake_gens()
         tr_gts = self._get_fake_tr_gens()
         gts = Genotypes.merge_variants((gts, tr_gts), fname=None)
-        hps = self._get_fake_haps()
-        hp_ids = [hp for hp in hps.type_ids["H"]]
-        tr_ids = [tr for tr in hps.type_ids["R"]]
-        hps.type_ids["H"] = [hp_ids[0]]
+        hps = [hp for i, hp in enumerate(self._get_fake_haps()) if i in (0, 2)]
 
         pt_sim = PhenoSimulator(gts, seed=42)
         data = pt_sim.run(hps, heritability=1, normalize=False)
@@ -422,10 +414,30 @@ class TestSimPhenotypeCLI:
 """
         return expected
 
+    def test_snplist(self, capfd):
+        gt_file = DATADIR / "apoe.vcf.gz"
+        hp_file = DATADIR / "apoe.snplist"
+
+        cmd = f"simphenotype {gt_file} {hp_file}"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
+        lines = captured.out.split("\n")
+        assert lines[0] == "#IID\trs429358-rs7412"
+        sample1, phen1 = lines[1].split("\t")
+        assert sample1 == "HG00096"
+        # try to convert it to a float
+        float(phen1)
+        assert len(lines) == 2506
+
     def test_transform_stdin(self, capfd):
         expected = self._get_transform_stdin()
+        gt_file = DATADIR / "simple.vcf"
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = "transform tests/data/simple.vcf tests/data/simple.hap"
+        cmd = f"transform {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -434,10 +446,10 @@ class TestSimPhenotypeCLI:
 
     def test_transform_ancestry_stdin(self, capfd):
         expected = self._get_transform_ancestry_stdin()
+        gt_file = DATADIR / "simple-ancestry.vcf"
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = (
-            "transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap"
-        )
+        cmd = f"transform --ancestry {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -449,8 +461,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -466,8 +479,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype -o {tmp_file} {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype -o {tmp_file} {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -484,8 +498,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --id H1 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --id H1 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -499,8 +514,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_ancestry_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --id H1 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --id H1 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -510,10 +526,12 @@ class TestSimPhenotypeCLI:
         tmp_transform.unlink()
 
     def test_pgen(self, capfd):
-        pytest.importorskip("pgenlib")
         # first, create a temporary file containing the output of transform
         tmp_tsfm = Path("simple-haps.pgen")
-        cmd = f"transform -o {tmp_tsfm} tests/data/simple.pgen tests/data/simple.hap"
+        gt_file = DATADIR / "simple.pgen"
+        hp_file = DATADIR / "simple.hap"
+
+        cmd = f"transform -o {tmp_tsfm} {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -532,7 +550,7 @@ class TestSimPhenotypeCLI:
         gts = GenotypesPLINK.load(tmp_tsfm)
         np.testing.assert_allclose(gts.data[:, 0], transform_data)
 
-        cmd = f"simphenotype --id H1 {tmp_tsfm} tests/data/simple.hap"
+        cmd = f"simphenotype --id H1 {tmp_tsfm} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -548,10 +566,10 @@ class TestSimPhenotypeCLI:
 
         # first, create a temporary file containing the output of transform
         tmp_tsfm = Path("temp-transform.vcf")
-        cmd = (
-            f"transform -o {tmp_tsfm} tests/data/example.vcf.gz"
-            " tests/data/simphenotype.hap"
-        )
+        gt_file = DATADIR / "example.vcf.gz"
+        hp_file = DATADIR / "simphenotype.hap"
+
+        cmd = f"transform -o {tmp_tsfm} {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -567,7 +585,7 @@ class TestSimPhenotypeCLI:
                 "--id chr21.q.3365*10",
                 "--id chr21.q.3365*11",
                 f"--output {tmp_file}",
-                f"{tmp_tsfm} tests/data/simphenotype.hap",
+                f"{tmp_tsfm} {hp_file}",
             ]
         )
         runner = CliRunner()
@@ -585,8 +603,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --no-normalize {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --no-normalize {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -600,8 +619,9 @@ class TestSimPhenotypeCLI:
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_transform_stdin())
+        hp_file = DATADIR / "simple.hap"
 
-        cmd = f"simphenotype --seed 42 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --seed 42 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -610,7 +630,7 @@ class TestSimPhenotypeCLI:
 
         captured1 = captured.out
 
-        cmd = f"simphenotype --seed 42 {tmp_transform} tests/data/simple.hap"
+        cmd = f"simphenotype --seed 42 {tmp_transform} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
@@ -619,32 +639,64 @@ class TestSimPhenotypeCLI:
 
         tmp_transform.unlink()
 
-    def test_repeat(self, capfd):
-        tmp_transform = Path("temp-transform.vcf")
-        with open(tmp_transform, "w") as file:
-            file.write(self._get_tr_stdin())
+    def test_seed_snplist(self, capfd):
+        gt_file = DATADIR / "apoe.vcf.gz"
+        hp_file = DATADIR / "apoe.snplist"
 
-        cmd = (
-            "simphenotype --repeats tests/data/simple_tr.vcf"
-            f" {tmp_transform} tests/data/simple_tr.hap"
-        )
+        cmd = f"simphenotype --seed 42 {gt_file} {hp_file}"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured1 = capfd.readouterr()
+        assert captured1.out
+        assert result.exit_code == 0
+
+        hp_file = DATADIR / "apoe.hap"
+        cmd = f"simphenotype --seed 42 {gt_file} {hp_file}"
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured2 = capfd.readouterr()
+        # we should get the same output from snplist as we do from the equivalent .hap
+        assert captured1.out == captured2.out
+        assert result.exit_code == 0
+
+    def test_repeat(self, capfd):
+        gt_file = DATADIR / "simple_tr.vcf"
+        hp_file = DATADIR / "simple_tr.hap"
+
+        cmd = f"simphenotype --id 1:10114:GTT {gt_file} {hp_file}"
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
         captured = capfd.readouterr()
         assert captured.out
         assert result.exit_code == 0
 
-        tmp_transform.unlink()
+    def test_repeat_with_hapgts(self, capfd):
+        tmp_transform = Path("temp-transform.vcf")
+        with open(tmp_transform, "w") as file:
+            file.write(self._get_tr_stdin())
+        gt_file = DATADIR / "simple_tr.vcf"
+        hp_file = DATADIR / "simple_tr.hap"
+
+        cmd = (
+            f"simphenotype --repeats {gt_file} --id 1:10114:GTT "
+            f"{tmp_transform} {hp_file}"
+        )
+        runner = CliRunner()
+        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+        captured = capfd.readouterr()
+        assert captured.out
+        assert result.exit_code == 0
 
     def test_mix_ids_repeat(self, capfd):
         tmp_transform = Path("temp-transform.vcf")
         with open(tmp_transform, "w") as file:
             file.write(self._get_tr_stdin())
+        gt_file = DATADIR / "simple_tr.vcf"
+        hp_file = DATADIR / "simple_tr.hap"
 
         cmd = (
-            "simphenotype --repeats tests/data/simple_tr.vcf"
-            f" -i 1:10114:GTT -i H1 {tmp_transform}"
-            " tests/data/simple_tr.hap"
+            f"simphenotype --repeats {gt_file} --id 1:10114:GTT --id H1"
+            f" {tmp_transform} {hp_file}"
         )
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
@@ -653,14 +705,3 @@ class TestSimPhenotypeCLI:
         assert result.exit_code == 0
 
         tmp_transform.unlink()
-
-    def test_only_repeat(self, capfd):
-        cmd = (
-            "simphenotype --repeats tests/data/simple_tr.vcf"
-            " tests/data tests/data/only_tr.hap"
-        )
-        runner = CliRunner()
-        result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
-        captured = capfd.readouterr()
-        assert captured.out
-        assert result.exit_code == 0

@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -8,16 +7,52 @@ import numpy as np
 import numpy.typing as npt
 
 from .logging import getLogger
-from .data import Haplotype as HaplotypeBase
 from .data import (
     Extra,
-    Repeat,
     Genotypes,
     Phenotypes,
     Haplotypes,
     GenotypesTR,
     GenotypesPLINK,
+    GenotypesPLINKTR,
+    Repeat as RepeatBase,
+    Haplotype as HaplotypeBase,
 )
+
+
+@dataclass
+class Effect:
+    """
+    A variable in the simphenotype linear model
+
+    Attributes
+    ----------
+    id : str
+        The ID of the variable; corresponds to a variant in a Genotypes object
+    beta : float
+        The effect size of the variable
+    """
+
+    id: str
+    beta: float
+
+    @classmethod
+    def from_hap_spec(cls: Effect, line: str) -> Effect:
+        """
+        Convert a .snplist line into an Effect object
+
+        Parameters
+        ----------
+        line: str
+            A line from a .snplist file
+
+        Returns
+        -------
+        Effect
+            The converted Effect instance
+        """
+        ID, beta = line.split("\t")[:2]
+        return cls(id=ID, beta=float(beta))
 
 
 @dataclass
@@ -37,11 +72,11 @@ class Haplotype(HaplotypeBase):
 
 
 @dataclass
-class RepeatBeta(Repeat):
+class Repeat(RepeatBase):
     """
     A repeat with sufficient fields for simphenotype
 
-    Properties and functions are shared with the base Repeat object, "Repeat"
+    Properties and functions are shared with the base Repeat object, "RepeatBeta"
     """
 
     beta: float
@@ -113,10 +148,11 @@ class PhenoSimulator:
 
     def run(
         self,
-        hap: Haplotypes,
+        effects: list[Effect | Haplotype | Repeat],
         heritability: float = None,
         prevalence: float = None,
         normalize: bool = True,
+        environment: float = None,
     ) -> npt.NDArray:
         """
         Simulate phenotypes for an entry in the Genotypes object
@@ -126,9 +162,8 @@ class PhenoSimulator:
 
         Parameters
         ----------
-        hap: Haplotypes
-            Haplotypes object storing all data from given .hap file.
-            Used to grab Haplotype and Repeat object data.
+        effects: list[Effect|Haplotype|Repeat]
+            A list of Haplotypes to use in an additive fashion within the simulations
         heritability: float, optional
             The simulated heritability of the trait
 
@@ -141,20 +176,21 @@ class PhenoSimulator:
         normalize: bool, optional
             If True, normalize the genotypes before using them to simulate the
             phenotypes. Otherwise, use the raw values.
+        environment: float, optional
+            The variance (aka strength) of the environmental contribution to the trait.
+            This is inferred from the betas if it isn't specified.
 
         Returns
         -------
         npt.NDArray
             The simulated phenotypes, as a np array of shape num_samples x 1
         """
-        # extract the relevant haplotype info from the Haplotype objects and GTs
-        # Collect betas, ids, and genotypes
-        ids = [hid for key in hap.type_ids.keys() for hid in hap.type_ids[key]]
-        betas = [hap.data[hid].beta for hid in ids]
-        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
-
-        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
+        # extract the relevant haplotype info from the Haplotype objects
+        ids = [effect.id for effect in effects]
+        betas = np.array([effect.beta for effect in effects])
         self.log.debug(f"Beta values are {betas}")
+        self.log.debug(f"Extracting haplotype genotypes for haps: {ids}")
+        gts = self.gens.subset(variants=ids).data[:, :, :2].sum(axis=2)
 
         if normalize:
             gts = self.normalize_gts(gts, ids)
@@ -164,22 +200,30 @@ class PhenoSimulator:
         # generate the genetic component
         pt = (betas * gts).sum(axis=1)
         # compute the heritability
-        if heritability is None:
+        if heritability is None and environment is None:
             self.log.debug("Computing heritability as the sum of the squared betas")
             heritability = np.power(betas, 2).sum()
             if heritability > 1:
+                self.log.warning(
+                    "Variance of error term exceeds 1. Check your betas! Capping at 1 "
+                    "for now."
+                )
                 heritability = 1
             # compute the environmental effect
             noise = 1 - heritability
         else:
-            # compute the environmental effect
-            noise = np.var(pt)
-            if noise == 0:
-                self.log.warning(
-                    "Your genotypes have a variance of 0. Creating artificial noise..."
-                )
-                noise = 1
-            # TODO: handle a heritability of 0 somehow
+            noise = environment
+            if environment is None:
+                # compute the environmental effect
+                noise = np.var(pt)
+                if noise == 0:
+                    self.log.warning(
+                        "Your genotypes have 0 variance. Creating artificial noise..."
+                    )
+                    noise = 1
+            elif heritability is None:
+                heritability = 0.5
+            # TODO: handle a heritability of 0 somehow?
             noise *= np.reciprocal(heritability) - 1
         self.log.info(f"Adding environmental component {noise} for h^2 {heritability}")
         # finally, add everything together to get the simulated phenotypes
@@ -254,6 +298,7 @@ def simulate_pt(
     genotypes: Path,
     haplotypes: Path,
     num_replications: int = 1,
+    environment: float = None,
     heritability: float = None,
     prevalence: float = None,
     normalize: bool = True,
@@ -325,7 +370,11 @@ def simulate_pt(
         chunks so as to use less memory. This argument is ignored if the genotypes are
         not in PGEN format.
     repeats: Path, optional
-        The path to a VCF file for repeat genotypes
+        The path to a genotypes file containing tandem repeats. This is only necessary
+        when simulating both haplotypes *and* repeats as causal effects
+    environment: float, optional
+        The variance (aka strength) of the environmental term. This will be inferred if
+        it isn't specified.
     seed: int, optional
         Seed for random processes
     output : Path, optional
@@ -336,57 +385,82 @@ def simulate_pt(
     if log is None:
         log = getLogger(name="simphenotype", level="ERROR")
 
-    log.info("Loading haplotypes")
-    hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=RepeatBeta, log=log)
-    hp.read(region=region, haplotypes=haplotype_ids)
+    load_as_haps = True
+    # either load SNPs from the snplist file or load haps/repeats from the hap file
+    if haplotypes.suffix == ".snplist":
+        log.info("Loading from .snplist")
+        with open(haplotypes) as snplist_file:
+            effects = map(Effect.from_hap_spec, snplist_file.readlines())
+        if haplotype_ids is None:
+            effects = list(effects)
+            haplotype_ids = set(effect.id for effect in effects)
+        else:
+            effects = list(filter(lambda e: e.id in haplotype_ids, effects))
+    else:
+        log.info("Loading from .hap")
+        hp = Haplotypes(haplotypes, haplotype=Haplotype, repeat=Repeat, log=log)
+        hp.read(region=region, haplotypes=haplotype_ids)
+        effects = hp.data.values()
 
-    # check if a file path was given
-    if os.path.isfile(genotypes):
+        if haplotype_ids is None:
+            haplotype_ids = set(hp.data.keys())
+
+        # check if these are all repeat IDs, haplotype IDs, or a mix of them
+        if len(hp.type_ids["R"]) >= len(haplotype_ids) and repeats is None:
+            # if they're all repeat IDs or --repeats was specified
+            log.info("Loading TR genotypes")
+            gt = GenotypesTR(fname=genotypes, log=log)
+            load_as_haps = False
+        else:
+            # the genotypes variable must contain haplotype genotypes
+            # but first, check if they're a mix but --repeats wasn't specified
+            if len(hp.type_ids["H"]) < len(haplotype_ids) and repeats is None:
+                raise ValueError(
+                    "The --repeats option must be specified when simulating a mix of"
+                    " both haplotypes and repeats as causal effects."
+                )
+
+    if load_as_haps:
+        # load these as haplotype pseudo-genotypes
         if genotypes.suffix == ".pgen":
-            log.info("Loading genotypes from PGEN file")
+            log.info("Loading haplotype genotypes from PGEN file")
             gt = GenotypesPLINK(fname=genotypes, log=log, chunk_size=chunk_size)
         else:
-            log.info("Loading genotypes from VCF/BCF file")
+            log.info("Loading haplotype genotypes from VCF/BCF file")
             gt = Genotypes(fname=genotypes, log=log)
 
-        # gt._prephased = True
-        gt.read(region=region, samples=samples, variants=hp.type_ids["H"])
-        log.info("QC-ing genotypes")
-        gt.check_missing()
-        gt.check_biallelic()
-    else:
-        gt = None
+    # gt._prephased = True
+    gt.read(region=region, samples=samples, variants=haplotype_ids)
+    log.info("QC-ing genotypes")
+    gt.check_missing()
 
-    tr_gt = None
     if repeats:
-        log.info("Loading TR genotypes")
-        tr_gt = GenotypesTR(fname=repeats, log=log)
-        tr_gt.read(region=region, samples=samples, variants=hp.type_ids["R"])
-
-    if not gt and not tr_gt:
-        raise Exception("No valid vcf file given.")
-
-    if gt and tr_gt:
+        log.info("Merging with TR genotypes")
+        if repeats.suffix == ".pgen":
+            log.info("Loading repeat genotypes from PGEN file")
+            tr_gt = GenotypesPLINKTR(fname=repeats, log=log, chunk_size=chunk_size)
+        else:
+            log.info("Loading repeat genotypes from VCF/BCF file")
+            tr_gt = GenotypesTR(fname=repeats, log=log)
+        tr_gt.read(region=region, samples=samples, variants=haplotype_ids)
+        tr_gt.check_missing()
         gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
-    # should only have repeats in the hap file in this case
-    elif tr_gt and not gt:
-        gt = tr_gt
 
     # check that all of the genotypes were loaded successfully and warn otherwise
-    all_ids = [hid for key in hp.type_ids.keys() for hid in hp.type_ids[key]]
-    if len(all_ids) < len(gt.variants):
-        diff = list(all_ids.difference(gt.variants["id"]))
+    if len(haplotype_ids) < len(gt.variants):
+        diff = list(haplotype_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
         log.warning(
-            f"{len(diff)} haplotypes could not be found in the genotypes file. Check "
-            "that the hap IDs in your .hap file correspond with those in the genotypes"
-            f" file. Here are the first few missing variants: {diff[:first_few]}"
+            f"{len(diff)} effects could not be found in the genotypes file. Check "
+            "that the IDs in your .snplist or .hap file correspond with those in the "
+            "genotypes file. Here are the first few missing variants: "
+            f"{diff[:first_few]}"
         )
 
     # Initialize phenotype simulator (haptools simphenotype)
     log.info("Simulating phenotypes")
     pt_sim = PhenoSimulator(gt, output=output, seed=seed, log=log)
     for i in range(num_replications):
-        pt_sim.run(hp, heritability, prevalence, normalize)
+        pt_sim.run(effects, heritability, prevalence, normalize, environment)
     log.info("Writing phenotypes")
     pt_sim.write()

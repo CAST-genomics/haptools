@@ -325,13 +325,17 @@ You can download an example header with a *beta* extra field from `tests/data/si
 +++++++++++++
 No extra fields are required here.
 
+.. _formats-haplotypes-changelog:
+
 Changelog
 ~~~~~~~~~
 v0.2.0
 ------
-Support for tandem repeats in the specification via a new 'R' line type that has similar fields to the 'H' line type.
+Support for tandem repeats in the specification via a new 'R' line type. See `PR #209 <https://github.com/CAST-genomics/haptools/pull/209>`_.
 
-Also, ``.hap`` files no longer need to be sorted by their first field in order to be indexed. We have updated the recommended ``sort`` command to reflect this. The new command wraps ``sort`` in a call to ``awk`` to ensure header lines are kept at the beginning of the file.
+Also, ``.hap`` files no longer need to be sorted by their first field in order to be indexed. See `PR #208 <https://github.com/CAST-genomics/haptools/pull/208>`_. We have updated the recommended ``sort`` command to reflect this. The new command wraps ``sort`` in a call to ``awk`` to ensure header lines are kept at the beginning of the file.
+
+All v0.1.0 ``.hap`` files can be automatically updated to v0.2.0 by simply bumping the listed version number.
 
 v0.1.0
 ------

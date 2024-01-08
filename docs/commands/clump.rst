@@ -4,7 +4,7 @@
 clump
 =====
 
-Clump a set of variants specified as a :doc:`.hap file </formats/genotypes>`.
+Clump a set of variants specified in a :doc:`.linear file </formats/linear>`.
 
 The ``clump`` command creates a clump file joining SNPs or STRs in LD with one another.
 

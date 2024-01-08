@@ -7,11 +7,16 @@ from typing import Iterator
 from logging import getLogger, Logger
 from collections import namedtuple, Counter
 
+import pgenlib
 import numpy as np
 import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile, TabixFile
-from . import tr_harmonizer as trh
+
+try:
+    import trtools.utils.tr_harmonizer as trh
+except ModuleNotFoundError:
+    from . import tr_harmonizer as trh
 
 from .data import Data
 
@@ -197,7 +202,7 @@ class Genotypes(Data):
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
         # transpose the GT matrix so that samples are rows and variants are columns
-        self.log.info(f"Transposing genotype matrix of size {self.data.shape}.")
+        self.log.info(f"Transposing genotype matrix of size {self.data.shape}")
         self.data = self.data.transpose((1, 0, 2))
 
     def _variant_arr(self, record: Variant):
@@ -222,7 +227,7 @@ class Genotypes(Data):
             dtype=self.variants.dtype,
         )
 
-    def _return_vcf_iter(self, vcf: cyvcf2.VCF, region: str):
+    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str):
         """
         Yield all variants within a region in the VCF file.
 
@@ -251,26 +256,10 @@ class Genotypes(Data):
 
         Returns
         -------
-        data: np.array(np.uint8)
+        data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
-        return np.array(variant.genotypes, dtype=np.uint8)
-
-    def _return_id(self, variant: Variant):
-        """
-        Collect ID from current variant
-
-        Parameters
-        ----------
-        variant: cyvcf2.Variant
-            A cyvcf2.Variant object from which to fetch metadata
-
-        Returns
-        -------
-        ID: str
-            ID of variant
-        """
-        return variant.ID
+        return variant.genotype.array().astype(np.uint8)
 
     def _iterate(self, vcf: VCF, region: str = None, variants: set[str] = None):
         """
@@ -298,8 +287,8 @@ class Genotypes(Data):
         num_seen = 0
         # iterate over each line in the VCF
         # note, this can take a lot of time if there are many samples
-        for variant in self._return_vcf_iter(vcf, region):
-            if variants is not None and self._return_id(variant) not in variants:
+        for variant in self._vcf_iter(vcf, region):
+            if variants is not None and variant.ID not in variants:
                 if num_seen >= len(variants):
                     # exit early if we've already found all the variants
                     break
@@ -610,8 +599,8 @@ class Genotypes(Data):
                 self.variants = np.delete(self.variants, idx)
                 maf = np.delete(maf, idx)
                 self.log.info(
-                    "Ignoring missing genotypes from "
-                    f"{original_num_variants - len(self.variants)} samples"
+                    f"Ignoring {original_num_variants - len(self.variants)} variants "
+                    f"with MAF < {threshold}"
                 )
                 self._var_idx = None
             else:
@@ -715,7 +704,7 @@ class GenotypesVCF(Genotypes):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.Genotypes.data`
     fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
@@ -816,7 +805,7 @@ class GenotypesTR(Genotypes):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.Genotypes.data`
     fname : Path | str
         See documentation for :py:attr:`~.Genotypes.fname`
@@ -830,26 +819,13 @@ class GenotypesTR(Genotypes):
     log: Logger
         See documentation for :py:attr:`~.Genotypes.log`
     vcftype: str
-        TR vcf type currently being read.
+        TR vcf type currently being read. Options are
         {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
     """
 
     def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto"):
         super().__init__(fname, log)
         self.vcftype = vcftype
-
-    def _variant_arr(self, record: Variant):
-        """
-        See documentation for :py:meth:`~.Genotypes._variant_arr`
-        """
-        return np.array(
-            (
-                record.record_id,
-                record.chrom,
-                record.pos,
-            ),
-            dtype=self.variants.dtype,
-        )
 
     @classmethod
     def load(
@@ -886,9 +862,9 @@ class GenotypesTR(Genotypes):
         genotypes.check_phase()
         return genotypes
 
-    def _return_vcf_iter(self, vcf: cyvcf2.VCF, region: str):
+    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str = None):
         """
-        Collect GTs to iterate over which in this case  are TRRecords.
+        Collect GTs (trh.TRRecord objects) to iterate over
 
         Parameters
         ----------
@@ -899,14 +875,16 @@ class GenotypesTR(Genotypes):
 
         Returns
         -------
-        tr_records: tr_harmonizer.TRRecord
-            TRRecord objects yielded from TRRecordHarmonizer.
+        tr_records: trh.TRRecord
+            TRRecord objects yielded from TRRecordHarmonizer
         """
-        vcfiter = vcf(region)
-        tr_records = trh.TRRecordHarmonizer(
-            vcffile=vcf, vcfiter=vcfiter, region=region, vcftype=self.vcftype
-        )
-        return tr_records
+        for record in trh.TRRecordHarmonizer(
+            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype
+        ):
+            record.ID = record.record_id
+            record.CHROM = record.chrom
+            record.POS = record.pos
+            yield record
 
     def _return_data(self, variant: trh.TRRecord):
         """
@@ -914,49 +892,42 @@ class GenotypesTR(Genotypes):
 
         Parameters
         ----------
-        variant: tr_harmonizer.TRRecord
-            TRRecord object from tr_harmonizer to collect copy number genotypes using the
-            GetLengthGenotypes function.
+        variant: trh.TRRecord
+            A trh.TRRecord object from which to collect copy number genotypes using the
+            GetLengthGenotypes() function
 
         Returns
         -------
-        data: np.array(np.uint8)
+        data: npt.NDArray[np.uint8]
             Numpy array storing all genotypes
         """
         # Grab GT Lengths and round to lowest integer
-        gts = variant.GetLengthGenotypes()
-        gts = np.rint(gts)
+        gts = np.rint(variant.GetLengthGenotypes())
 
         # If only one GT present fill rest with empty gts (-1)
         if gts.shape[1] == 2:
             self.log.warning(
                 "The current variant in the VCF only has one allele per sample."
             )
-            data = []
             # Only one GT so phase will always be 0
             zeros = np.zeros((gts.shape[0], 1))
             missing = -1 * np.ones((gts.shape[0],))
             gts = np.concatenate((gts, zeros), axis=1)
             gts[:, 1] = missing
 
-        data = np.array(gts, dtype=np.uint8)
-        return data
+        return gts.astype(np.uint8)
 
-    def _return_id(self, variant: trh.TRRecord):
+    def check_biallelic(self):
         """
-        Collect ID from current variant
-
-        Parameters
-        ----------
-        variant: TRRecord
-            A tr_harmonizer.TRRecord object from which to fetch metadata
-
-        Returns
-        -------
-        ID: str
-            ID of variant
+        See documentation for :py:meth:`~.Genotypes.check_biallelic`
         """
-        return variant.record_id
+        raise NotImplementedError
+
+    def check_maf(self):
+        """
+        See documentation for :py:meth:`~.Genotypes.check_maf`
+        """
+        raise NotImplementedError
 
 
 class GenotypesPLINK(GenotypesVCF):
@@ -965,22 +936,20 @@ class GenotypesPLINK(GenotypesVCF):
 
     Attributes
     ----------
-    data : np.array
+    data : npt.NDArray
         See documentation for :py:attr:`~.GenotypesVCF.data`
     samples : tuple
-        See documentation for :py:attr:`~.GenotypesVCF.data`
+        See documentation for :py:attr:`~.GenotypesVCF.samples`
     variants : np.array
-        See documentation for :py:attr:`~.GenotypesVCF.data`
+        See documentation for :py:attr:`~.GenotypesVCF.variants`
     log: Logger
-        See documentation for :py:attr:`~.GenotypesVCF.data`
+        See documentation for :py:attr:`~.GenotypesVCF.log`
     chunk_size: int, optional
         The max number of variants to fetch from and write to the PGEN file at any
         given time
 
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory
-    _prephased: bool
-        See documentation for :py:attr:`~.GenotypesVCF.data`
 
     Examples
     --------
@@ -990,15 +959,6 @@ class GenotypesPLINK(GenotypesVCF):
     def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
-        try:
-            global pgenlib
-            import pgenlib
-        except ImportError:
-            raise ImportError(
-                f"We cannot read PGEN files without the pgenlib library. Please "
-                f"reinstall haptools with the 'files' extra requirement via\n"
-                f"pip install haptools[files]"
-            )
 
     def read_samples(self, samples: list[str] = None):
         """
@@ -1103,12 +1063,14 @@ class GenotypesPLINK(GenotypesVCF):
         npt.NDArray
             A row from the :py:attr:`~.GenotypesPLINK.variants` array
         """
+        # Parse the REF and ALT alleles from the PVAR record
+        alleles = (record[cid["REF"]], *record[cid["ALT"]].split(","))
         return np.array(
             (
                 record[cid["ID"]],
                 record[cid["CHROM"]],
                 record[cid["POS"]],
-                (record[cid["REF"]], record[cid["ALT"]]),
+                alleles,
             ),
             dtype=self.variants.dtype,
         )
@@ -1268,11 +1230,12 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super(Genotypes, self).read()
-        import pgenlib
 
         sample_idxs = self.read_samples(samples)
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+
         with pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         ) as pgen:
             # how many variants to load?
             if variants is not None:
@@ -1329,7 +1292,7 @@ class GenotypesPLINK(GenotypesVCF):
                     # add phase info, then transpose the GT matrix so that samples are
                     # rows and variants are columns
                     self.data[:, start:end, :2] = data.reshape(
-                        (chunks, mat_shape[0], 2)
+                        (size, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
                     self.data[:, start:end, 2] = phasing.transpose()
                 else:
@@ -1340,7 +1303,7 @@ class GenotypesPLINK(GenotypesVCF):
                     # let's make them be -1 to be consistent with cyvcf2
                     data[data == -9] = -1
                     self.data[:, start:end] = data.reshape(
-                        (chunks, mat_shape[0], 2)
+                        (size, mat_shape[0], 2)
                     ).transpose((1, 0, 2))
                 del data
                 gc.collect()
@@ -1423,11 +1386,12 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:meth:`~.GenotypesPLINK._iterate`
         """
         super(Genotypes, self).read()
-        import pgenlib
+
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         sample_idxs = self.read_samples(samples)
         pgen = pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         )
         # call another function to force the lines above to be run immediately
         # see https://stackoverflow.com/a/36726497
@@ -1457,7 +1421,7 @@ class GenotypesPLINK(GenotypesVCF):
             for contig in set(self.variants["chrom"]):
                 vcf.header.contigs.add(contig)
             self.log.info("Writing PVAR records")
-            for var_idx, var in enumerate(self.variants):
+            for var in self.variants:
                 rec = {
                     "contig": var["chrom"],
                     "start": var["pos"],
@@ -1474,17 +1438,46 @@ class GenotypesPLINK(GenotypesVCF):
                 # write the record to a file
                 vcf.write(record)
 
+    def _num_unique_alleles(self, arr: npt.NDArray):
+        """
+        Obtain the number of unique elements in each row of a genotype matrix
+        Needed by https://groups.google.com/g/plink2-users/c/Sn5qVCyDlDw/m/GOWScY6tAQAJ
+
+        Adapted from https://stackoverflow.com/a/46575580
+
+        Parameters
+        ----------
+        arr : npt.NDArray
+            A genotype matrix of shape (num_variants, num_samples, 2) and type np.uint8
+
+        Returns
+        -------
+        npt.NDArray
+            An array of shape (num_variants,) and type np.uint32 containing allele
+            counts for each variant
+        """
+        nrows = arr.shape[0]
+        row_coords = np.arange(nrows)[:, np.newaxis, np.newaxis]
+        allele_cts = np.zeros((nrows, np.iinfo(np.uint8).max + 1, 2), dtype=np.bool_)
+        # ensure the arr values are interpreted as uint8's
+        if arr.dtype != np.uint8:
+            arr = arr.view("uint8")
+        # mark whichever allele indices appear in arr then sum them to obtain counts
+        allele_cts[row_coords, arr] = 1
+        allele_cts = allele_cts.any(axis=2).sum(axis=1, dtype=np.uint32)
+        # there are always at least two alleles
+        allele_cts[allele_cts < 2] = 2
+        return allele_cts
+
     def write(self):
         """
         Write the variants in this class to PLINK2 files at
         :py:attr:`~.GenotypesPLINK.fname`
         """
-        import pgenlib
-
         # write the psam and pvar files
         self.write_samples()
         self.write_variants()
-        self.log.debug(f"Transposing genotype matrix of size {self.data.shape}.")
+        self.log.debug(f"Transposing genotype matrix of size {self.data.shape}")
         # transpose the data b/c pgenwriter expects things in "variant-major" order
         # (ie where variants are rows instead of samples)
         data = self.data.transpose((1, 0, 2))[:, :, :2]
@@ -1494,10 +1487,12 @@ class GenotypesPLINK(GenotypesVCF):
             chunks = len(self.variants)
 
         # write the pgen file
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
         with pgenlib.PgenWriter(
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
+            allele_ct_limit=pv.get_max_allele_ct(),
             nonref_flags=False,
             hardcall_phase_present=True,
         ) as pgen:
@@ -1515,6 +1510,9 @@ class GenotypesPLINK(GenotypesVCF):
                     missing = np.ascontiguousarray(
                         data[start:end] == np.iinfo(np.uint8).max
                     )
+                    # obtain the number of unique alleles for each variant
+                    # https://stackoverflow.com/a/46575580
+                    allele_cts = self._num_unique_alleles(data[start:end])
                     subset_data = np.ascontiguousarray(data[start:end], dtype=np.int32)
                 except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
@@ -1525,13 +1523,228 @@ class GenotypesPLINK(GenotypesVCF):
                 missing.resize((len(self.variants), len(self.samples) * 2))
                 # convert any missing genotypes to -9
                 subset_data[missing] = -9
+                # finally, append the genotypes to the PGEN file
                 if self._prephased or self.data.shape[2] < 3:
-                    pgen.append_alleles_batch(subset_data, all_phased=True)
+                    pgen.append_alleles_batch(
+                        subset_data,
+                        all_phased=True,
+                        allele_cts=allele_cts,
+                    )
                 else:
                     # TODO: figure out why this sometimes leads to a corrupted file?
                     subset_phase = self.data[:, start:end, 2].T.copy(order="C")
-                    pgen.append_partially_phased_batch(subset_data, subset_phase)
+                    pgen.append_partially_phased_batch(
+                        subset_data,
+                        subset_phase,
+                        allele_cts=allele_cts,
+                    )
                     del subset_phase
             del subset_data
             del missing
             gc.collect()
+
+
+class GenotypesPLINKTR(GenotypesPLINK):
+    """
+    A class for processing repeat genotypes from a PLINK ``.pgen`` file
+
+    Attributes
+    ----------
+    data : npt.NDArray
+        See documentation for :py:attr:`~.GenotypesPLINK.data`
+    samples : tuple
+        See documentation for :py:attr:`~.GenotypesPLINK.samples`
+    variants : np.array
+        See documentation for :py:attr:`~.GenotypesPLINK.variants`
+    log: Logger
+        See documentation for :py:attr:`~.GenotypesPLINK.log`
+    chunk_size: int, optional
+        See documentation for :py:attr:`~.GenotypesPLINK.chunk_size`
+    vcftype: str, optional
+        See documentation for :py:attr:`~.GenotypesTR.vcftype`
+
+    Examples
+    --------
+    >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
+    """
+
+    def __init__(
+        self,
+        fname: Path | str,
+        log: Logger = None,
+        chunk_size: int = None,
+        vcftype: str = "auto",
+    ):
+        super().__init__(fname, log, chunk_size)
+        self.vcftype = vcftype
+
+    @classmethod
+    def load(
+        cls: GenotypesPLINKTR,
+        fname: Path | str,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        vcftype: str = "auto",
+    ) -> Genotypes:
+        """
+        Load STR genotypes from a VCF file
+
+        Read the file contents, check the genotype phase, and create the MAC matrix
+
+        Parameters
+        ----------
+        fname
+            See documentation for :py:attr:`~.Data.fname`
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        samples : list[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        vcftype : str, optional
+            See documentation for :py:meth:`~.GenotypesTR.vcftype`
+
+        Returns
+        -------
+        Genotypes
+            A Genotypes object with the data loaded into its properties
+        """
+        genotypes = cls(fname, log=None, chunk_size=None, vcftype=vcftype)
+        genotypes.read(region, samples, variants)
+        genotypes.check_phase()
+        return genotypes
+
+    def _iter_TRRecords(self, region: str = None, variants: set[str] = None):
+        """
+        Yield TRRecord objects from the PVAR file
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        variants : set[str], optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+
+        Yields
+        ------
+        Iterator[trh.TRRecord]
+            An iterator over each line of the PVAR file
+        """
+        vcf = VCF(self.fname.with_suffix(".pvar"))
+        tr_records = trh.TRRecordHarmonizer(
+            vcffile=vcf,
+            vcfiter=vcf(region),
+            region=region,
+            vcftype=self.vcftype,
+        )
+        # filter out TRs that we didn't want
+        if variants is not None:
+            tr_records = filter(lambda rec: rec.record_id in variants, tr_records)
+        yield from tr_records
+
+    def read(
+        self,
+        region: str = None,
+        samples: list[str] = None,
+        variants: set[str] = None,
+        max_variants: int = None,
+    ):
+        """
+        Read genotypes from a PGEN file into a numpy matrix stored in
+        :py:attr:`~.GenotypesPLINKTR.data`
+
+        Parameters
+        ----------
+        region : str, optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        samples : list[str], optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        variants : set[str], optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        max_variants : int, optional
+            See documentation for :py:attr:`~.GenotypesVCF.read`
+        """
+        super().read(region, samples, variants, max_variants)
+        num_variants = len(self.variants)
+        # initialize a jagged array of allele lengths
+        max_num_alleles = max(map(len, self.variants["alleles"]))
+        allele_lens = np.empty(
+            (len(self.variants), max_num_alleles), dtype=self.data.dtype
+        )
+        # iterate through each TR and extract the REF and ALT allele lengths
+        for idx, record in enumerate(self._iter_TRRecords(region, variants)):
+            if idx > num_variants:
+                # exit early if we've already found all the variants
+                break
+            # extract allele lengths from TRRecord object
+            allele_lens[idx, 0] = record.ref_allele_length
+            num_alleles = len(record.alt_allele_lengths) + 1
+            allele_lens[idx, 1:num_alleles] = record.alt_allele_lengths
+        # record missing entries and then set them all to REF
+        missing = self.data[:, :, :2] == np.iinfo(np.uint8).max
+        self.data[:, :, :2][missing] = 0
+        # convert from genotype indices to allele lengths
+        variant_coords = np.arange(num_variants)[:, np.newaxis]
+        self.data[:, :, :2] = allele_lens[variant_coords, self.data[:, :, :2]]
+        # restore missing entries
+        self.data[:, :, :2][missing] = np.iinfo(np.uint8).max
+        # clean up memory
+        del missing
+        del allele_lens
+        gc.collect()
+
+    def _iterate(
+        self,
+        pgen: pgenlib.PgenReader,
+        region: str = None,
+        variants: set[str] = None,
+    ):
+        """
+        A generator over the lines of a PGEN-PVAR file pair
+
+        This is a helper function for :py:meth:`~.GenotypesPLINKTR.__iter__`
+
+        Parameters
+        ----------
+        pgen: pgenlib.PgenReader
+            The pgenlib.PgenReader object from which to fetch variant records
+        region : str, optional
+            See documentation for :py:meth:`~.Genotypes.read`
+        variants : set[str], optional
+            See documentation for :py:meth:`~.Genotypes.read`
+
+        Yields
+        ------
+        Iterator[namedtuple]
+            An iterator over each line in the file, where each line is encoded as a
+            namedtuple containing each of the class properties
+        """
+        tr_records = self._iter_TRRecords(region, variants)
+        variants = super()._iterate(pgen, region, variants)
+        for variant, record in zip(variants, tr_records):
+            # extract the REF and ALT allele lengths
+            allele_lens = np.array(
+                [record.ref_allele_length, *record.alt_allele_lengths],
+                dtype=variant.data.dtype,
+            )
+            # record missing entries and then set them all to REF
+            missing = variant.data[:, :2] == np.iinfo(np.uint8).max
+            variant.data[:, :2][missing] = 0
+            # convert from genotype indices to allele lengths
+            variant.data[:, :2] = allele_lens[variant.data[:, :2]]
+            # restore missing entries
+            variant.data[:, :2][missing] = np.iinfo(np.uint8).max
+            yield variant
+
+    def write(self):
+        raise NotImplementedError
+
+    def write_variants(self):
+        raise NotImplementedError
+
+    def check_biallelic(self):
+        raise NotImplementedError
+
+    def check_maf(self):
+        raise NotImplementedError

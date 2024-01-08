@@ -9,7 +9,7 @@ import numpy.typing as npt
 from cyvcf2 import VCF, Variant
 from pysam import VariantFile
 
-from haptools import data
+from . import data
 from .logging import getLogger
 
 
@@ -525,7 +525,7 @@ class GenotypesAncestry(data.GenotypesVCF):
         """
         See documentation for :py:meth:`~.data.Genotypes.merge_variants`
         """
-        raise ValueError("Not implemented yet")
+        raise NotImplementedError
 
 
 def transform_haps(
