@@ -81,15 +81,6 @@ To match haplotypes as well as their ancestral population labels, use the ``--an
 
 	haptools transform --ancestry tests/data/simple-ancestry.vcf tests/data/simple.hap
 
-.. warning::
-	If your VCF has multi-allelic variants, they must be split into bi-allelic records before you can use ``transform``. After splitting, you should rename the IDs in your file to ensure they remain unique:
-
-	.. code-block:: bash
-
-		bcftools norm -m- -Ou input.vcf.gz | \
-		bcftools annotate -Ov --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' | \
-		haptools transform -o output.vcf.gz /dev/stdin file.hap
-
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
 

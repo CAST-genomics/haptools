@@ -491,10 +491,10 @@ def simphenotype(
         )
     if samples_file:
         with samples_file as samps_file:
-            samples = samps_file.read().splitlines()
+            samples = set(samps_file.read().splitlines())
     elif samples:
-        # needs to be converted from tuple to list
-        samples = list(samples)
+        # needs to be converted from tuple to set
+        samples = set(samples)
     else:
         samples = None
 
@@ -657,10 +657,10 @@ def transform(
         )
     if samples_file:
         with samples_file as samps_file:
-            samples = samps_file.read().splitlines()
+            samples = set(samps_file.read().splitlines())
     elif samples:
-        # needs to be converted from tuple to list
-        samples = list(samples)
+        # needs to be converted from tuple to set
+        samples = set(samples)
     else:
         samples = None
 
@@ -828,10 +828,10 @@ def ld(
         )
     if samples_file:
         with samples_file as samps_file:
-            samples = samps_file.read().splitlines()
+            samples = set(samps_file.read().splitlines())
     elif samples:
-        # needs to be converted from tuple to list
-        samples = list(samples)
+        # needs to be converted from tuple to set
+        samples = set(samples)
     else:
         samples = None
 

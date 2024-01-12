@@ -303,7 +303,7 @@ def simulate_pt(
     prevalence: float = None,
     normalize: bool = True,
     region: str = None,
-    samples: list[str] = None,
+    samples: set[str] = None,
     haplotype_ids: set[str] = None,
     chunk_size: int = None,
     repeats: Path = None,
@@ -352,13 +352,10 @@ def simulate_pt(
         match!
 
         Defaults to loading all haplotypes
-    sample : tuple[str], optional
+    samples : set[str], optional
         A subset of the samples from which to extract genotypes
 
         Defaults to loading genotypes from all samples
-    samples_file : Path, optional
-        A single column txt file containing a list of the samples (one per line) to
-        subset from the genotypes file
     haplotype_ids: set[str], optional
         A list of haplotype IDs to obtain from the .hap file. All others are ignored.
 
