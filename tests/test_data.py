@@ -2075,13 +2075,13 @@ class TestDocExamples:
 
         # iterate through lines of the .blocks.det file
         with open(DATADIR / "simple.blocks.det") as blocks_file:
-            for idx, line in enumerate(blocks_file.readlines()):
+            for idx, line in enumerate(blocks_file.read().splitlines()[1:]):
                 # initialize variables and parse line from the blocks file
                 hap_id = f"H{idx}"
                 chrom, bp1, bp2, kb, nsnps, snps = line.split("\t")
 
                 # create a haplotype line in the .hap file
-                hp.data[hap_id] = Haplotype(chrom=chrom, start=bp1, end=bp2, id=hap_id)
+                hp.data[hap_id] = Haplotype(chrom=chrom, start=int(bp1), end=int(bp2), id=hap_id)
 
                 # fetch alleles from the genotypes file
                 snp_gts = gt.subset(variants=tuple(snps.split("|")))
