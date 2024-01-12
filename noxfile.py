@@ -1,6 +1,5 @@
 """Nox sessions."""
 import os
-import sys
 import shutil
 from pathlib import Path
 
@@ -10,8 +9,9 @@ from nox_poetry import session
 
 
 package = "haptools"
-python_versions = ["3.7", "3.8", "3.9", "3.10"]
-nox.needs_version = ">= 2021.6.6"
+python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+locked_python_version = "3.8"
+nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
     "docs",
     "lint",
@@ -19,7 +19,7 @@ nox.options.sessions = (
 )
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def docs(session: Session) -> None:
     """Build the documentation."""
     args = session.posargs or ["docs", "docs/_build"]
@@ -33,11 +33,22 @@ def docs(session: Session) -> None:
     session.run("sphinx-build", *args)
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def lint(session: Session) -> None:
     """Lint our code."""
     session.install("black")
-    session.run("black", "--check", ".")
+    session.run("black", "--verbose", "--check", ".")
+
+
+def install_handle_python_numpy(session):
+    """
+    handle incompatibilities with python and numpy versions
+    see https://github.com/cjolowicz/nox-poetry/issues/1116
+    """
+    if session._session.python == "3.11":
+        session._session.install(".")
+    else:
+        session.install(".")
 
 
 # detect whether conda/mamba is installed
@@ -51,12 +62,12 @@ if os.getenv("CONDA_EXE"):
     def tests(session: Session) -> None:
         """Run the test suite."""
         session.conda_install(
-            "coverage[toml]", "pytest", "numpy>=1.20.0", channel="conda-forge"
+            "coverage[toml]",
+            "pytest",
+            "numpy>=1.20.0",
+            channel="conda-forge",
         )
-        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-        # https://github.com/chrchang/plink-ng/releases
-        session.install(".")
-
+        install_handle_python_numpy(session)
         try:
             session.run(
                 "coverage", "run", "--parallel", "-m", "pytest", *session.posargs
@@ -71,10 +82,7 @@ else:
     def tests(session: Session) -> None:
         """Run the test suite."""
         session.install("coverage[toml]", "pytest")
-        # TODO: change this to ".[files]" once plink-ng Alpha 3.8 is released
-        # https://github.com/chrchang/plink-ng/releases
-        session.install(".")
-
+        install_handle_python_numpy(session)
         try:
             session.run(
                 "coverage", "run", "--parallel", "-m", "pytest", *session.posargs
@@ -84,9 +92,10 @@ else:
                 session.notify("coverage", posargs=[])
 
 
-@session(python=python_versions[0])
+@session(python=locked_python_version)
 def coverage(session: Session) -> None:
     """Produce the coverage report."""
+    session.install("coverage[toml]")
     args = session.posargs or ["report"]
 
     if not session.posargs and any(Path().glob(".coverage.*")):
