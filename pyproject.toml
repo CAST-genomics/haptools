@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "haptools"
 version = "0.3.0"
@@ -10,7 +14,7 @@ documentation = "https://haptools.readthedocs.io"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.11"
+python = ">=3.7,<4.0"
 numpy = ">=1.20.0"
 click = ">=8.0.3"
 pysam = ">=0.19.0"
@@ -18,49 +22,19 @@ cyvcf2 = ">=0.30.14"
 matplotlib = ">=3.5.1"
 Pgenlib = ">=0.90.1"
 
-# docs
-# these belong in dev-dependencies, but RTD doesn't support that yet -- see
-# https://github.com/readthedocs/readthedocs.org/issues/4912
-Sphinx = { version = ">=4.3.2", optional = true }
-sphinx-autodoc-typehints = { version = ">=1.12.0", optional = true }
-sphinx-rtd-theme = { version = ">=1.0.0", optional = true }
-numpydoc = { version = ">=1.1.0", optional = true }
-sphinx-click = { version = ">=3.0.2", optional = true }
+[tool.poetry.group.docs.dependencies]
+Sphinx = ">=4.3.2"
+sphinx-autodoc-typehints = ">=1.12.0"
+sphinx-rtd-theme = ">=1.0.0"
+numpydoc = ">=1.1.0"
+sphinx-click = ">=3.0.2"
 
-[tool.poetry.dev-dependencies]
-
-# docs
-# these belong in dev-dependencies, but RTD doesn't support that yet -- see
-# https://github.com/readthedocs/readthedocs.org/issues/4912
-Sphinx = { version = ">=4.3.2" }
-sphinx-autodoc-typehints = { version = ">=1.12.0" }
-sphinx-rtd-theme = { version = ">=1.0.0" }
-numpydoc = { version = ">=1.1.0" }
-sphinx-click = { version = ">=3.0.2" }
-
-pytest = ">=6.2.5"
-black = ">=22.3.0"
-ipython = ">=7.30.1"
-nox = ">=2022.8.7"
-nox-poetry = ">=1.0.1"
-coverage = {extras = ["toml"], version = ">=6.5.0"}
+[tool.poetry.group.tests.dependencies]
+pytest = ">=7.4.3"
+black = ">=23.3.0"
+ipython = ">=7.34.0"
+coverage = {extras = ["toml"], version = ">=7.2.7"}
 filprofiler = ">=2023.3.1"
-
-[tool.poetry.extras]
-docs = [
-    "sphinx",
-    "sphinx-autodoc-typehints",
-    "sphinx-rtd-theme",
-    "numpydoc",
-    "sphinx-click"
-]
-
-tests = [
-    "pytest",
-    "coverage",
-    "nox",
-    "nox-poetry"
-]
 
 [tool.poetry.scripts]
 haptools = 'haptools.__main__:main'
@@ -74,7 +48,3 @@ extend-exclude = "haptools/(sim_genotype|karyogram).py"
 log_cli_level = "DEBUG"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"

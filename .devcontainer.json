@@ -18,7 +18,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "mamba create -y -n haptools -c conda-forge 'poetry>=1.1.15' 'python=3.7' && conda run -n haptools poetry install -E docs -E tests",
+	"postCreateCommand": "mamba env create -n haptools -f dev-env.yml && conda run -n haptools poetry install",
 
 	// Configure tool-specific properties.
 	"customizations": {
@@ -29,7 +29,7 @@
 				"python.defaultInterpreterPath": "/opt/conda/envs/haptools/bin/python",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
-				"python.venvFolders": ["/opt/conda/envs"],
+				"python.venvFolders": ["/home/vscode/.cache/pypoetry/virtualenvs"],
 				"terminal.integrated.environmentChangesRelaunch": true,
 				"terminal.integrated.hideOnStartup": "always"
 			}

@@ -8,7 +8,7 @@ docs/_build/
 __pycache__
 # pytest and testing-related caches
 .pytest_cache
-.coverage
+.coverage*
 .nox
 # poetry
 dist/
