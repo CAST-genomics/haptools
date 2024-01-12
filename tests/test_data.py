@@ -2066,15 +2066,15 @@ class TestDocExamples:
     def test_blocks2hap(self):
         # load the genotypes file
         # you can use either a VCF or PGEN file
-        gt = GenotypesVCF.load("input.vcf.gz")
-        gt = GenotypesPLINK.load("input.pgen")
+        gt = GenotypesVCF.load(DATADIR / "simple.vcf.gz")
+        gt = GenotypesPLINK.load(DATADIR / "simple.pgen")
 
         # load the haplotypes
         hp = Haplotypes("output.hap")
         hp.data = {}
 
         # iterate through lines of the .blocks.det file
-        with open("input.blocks.det") as blocks_file:
+        with open(DATADIR / "simple.blocks.det") as blocks_file:
             for idx, line in enumerate(blocks_file.readlines()):
                 # initialize variables and parse line from the blocks file
                 hap_id = f"H{idx}"
@@ -2095,6 +2095,12 @@ class TestDocExamples:
                 )
 
         hp.write()
+
+        # validate the output and clean up afterwards
+        with open("output.hap") as hp_file:
+            with open(DATADIR / "simple.blocks.det.hap") as expected:
+                assert hp_file.read() == expected.read()
+        hp.fname.unlink()
 
     def test_gts2hap(self):
         # load variants from the snplist file
