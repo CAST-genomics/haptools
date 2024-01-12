@@ -2061,6 +2061,39 @@ class TestBreakpoints:
 
 
 class TestDocExamples:
+    def test_blocks2hap(self):
+        # load the genotypes file
+        # you can use either a VCF or PGEN file
+        gt = GenotypesVCF.load("input.vcf.gz")
+        gt = GenotypesPLINK.load("input.pgen")
+
+        # load the haplotypes
+        hp = Haplotypes("output.hap")
+        hp.data = {}
+
+        # iterate through lines of the .blocks.det file
+        with open("input.blocks.det") as blocks_file:
+            for idx, line in enumerate(blocks_file.readlines()):
+                # initialize variables and parse line from the blocks file
+                hap_id = f"H{idx}"
+                chrom, bp1, bp2, kb, nsnps, snps = line.split("\t")
+
+                # create a haplotype line in the .hap file
+                hp.data[hap_id] = Haplotype(chrom=chrom, start=bp1, end=bp2, id=hap_id)
+
+                # fetch alleles from the genotypes file
+                snp_gts = gt.subset(variants=tuple(snps.split("|")))
+
+                # create variant lines for each haplotype
+                # Note that the .blocks.det file doesn't specify an allele, so
+                # we simply choose the first allele (ie the REF allele) for this example
+                hp.data[hap_id].variants = tuple(
+                    Variant(start=v["pos"], end=v["pos"]+len(v["alleles"][0]), id=v["id"], allele=v["alleles"][0])
+                    for v in snp_gts.variants
+                )
+
+        hp.write()
+
     def test_gts2hap(self):
         # load variants from the snplist file
         variants = {}
