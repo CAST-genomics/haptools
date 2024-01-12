@@ -1633,8 +1633,6 @@ class TRRecordHarmonizer:
     Attributes
     ----------
     vcffile : cyvcf2.VCF instance
-    region : str
-        Region to grab strs from within the VCF file.
     vcftype : enum
        Type of the VCF file. Must be included in VcfTypes
     Raises
@@ -1644,17 +1642,9 @@ class TRRecordHarmonizer:
         See :py:meth:`InferVCFType` for more details.
     """
 
-    def __init__(
-        self,
-        vcffile: cyvcf2.VCF,
-        vcfiter: object,
-        region: str,
-        vcftype: Union[str, VcfTypes] = "auto",
-    ):
+    def __init__(self, vcffile: cyvcf2.VCF, vcftype: Union[str, VcfTypes] = "auto"):
         self.vcffile = vcffile
-        self.vcfiter = vcfiter
         self.vcftype = InferVCFType(vcffile, vcftype)
-        self.region = region
 
     def MayHaveImpureRepeats(self) -> bool:
         """
@@ -1725,7 +1715,7 @@ class TRRecordHarmonizer:
 
     def __next__(self) -> TRRecord:
         """Iterate over TRRecord produced from the underlying vcf."""
-        return HarmonizeRecord(self.vcftype, next(self.vcfiter))
+        return HarmonizeRecord(self.vcftype, next(self.vcffile))
 
 
 # TODO check all users of this class for new options
