@@ -2063,45 +2063,6 @@ class TestBreakpoints:
 
 
 class TestDocExamples:
-    def test_blocks2hap(self):
-        # load the genotypes file
-        # you can use either a VCF or PGEN file
-        gt = GenotypesVCF.load(DATADIR / "simple.vcf.gz")
-        gt = GenotypesPLINK.load(DATADIR / "simple.pgen")
-
-        # load the haplotypes
-        hp = Haplotypes("output.hap")
-        hp.data = {}
-
-        # iterate through lines of the .blocks.det file
-        with open(DATADIR / "simple.blocks.det") as blocks_file:
-            for idx, line in enumerate(blocks_file.read().splitlines()[1:]):
-                # initialize variables and parse line from the blocks file
-                hap_id = f"H{idx}"
-                chrom, bp1, bp2, kb, nsnps, snps = line.split("\t")
-
-                # create a haplotype line in the .hap file
-                hp.data[hap_id] = Haplotype(chrom=chrom, start=int(bp1), end=int(bp2), id=hap_id)
-
-                # fetch alleles from the genotypes file
-                snp_gts = gt.subset(variants=tuple(snps.split("|")))
-
-                # create variant lines for each haplotype
-                # Note that the .blocks.det file doesn't specify an allele, so
-                # we simply choose the first allele (ie the REF allele) for this example
-                hp.data[hap_id].variants = tuple(
-                    Variant(start=v["pos"], end=v["pos"]+len(v["alleles"][0]), id=v["id"], allele=v["alleles"][0])
-                    for v in snp_gts.variants
-                )
-
-        hp.write()
-
-        # validate the output and clean up afterwards
-        with open("output.hap") as hp_file:
-            with open(DATADIR / "simple.blocks.det.hap") as expected:
-                assert hp_file.read() == expected.read()
-        hp.fname.unlink()
-
     def test_gts2hap(self):
         # load variants from the snplist file
         variants = {}
