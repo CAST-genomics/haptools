@@ -2088,7 +2088,12 @@ class TestDocExamples:
                 # Note that the .blocks.det file doesn't specify an allele, so
                 # we simply choose the first allele (ie the REF allele) for this example
                 hp.data[hap_id].variants = tuple(
-                    Variant(start=v["pos"], end=v["pos"]+len(v["alleles"][0]), id=v["id"], allele=v["alleles"][0])
+                    Variant(
+                        start=v["pos"],
+                        end=v["pos"] + len(v["alleles"][0]),
+                        id=v["id"],
+                        allele=v["alleles"][0],
+                    )
                     for v in snp_gts.variants
                 )
 
