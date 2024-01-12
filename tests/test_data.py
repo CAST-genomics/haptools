@@ -20,7 +20,6 @@ from haptools.data import (
     Breakpoints,
     GenotypesTR,
     GenotypesVCF,
-    GenotypesTR,
     GenotypesPLINK,
     GenotypesPLINKTR,
 )
@@ -195,7 +194,8 @@ class TestGenotypes:
 
         gts = Genotypes(DATADIR / "simple.vcf.gz")
         samples = ["HG00097", "HG00100"]
-        gts.read(region="1:10115-10117", samples=samples)
+        samples_set = set(samples)
+        gts.read(region="1:10115-10117", samples=samples_set)
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == tuple(samples)
 
@@ -203,9 +203,8 @@ class TestGenotypes:
         expected = expected[:, [1]]
 
         gts = Genotypes(DATADIR / "simple.vcf.gz")
-        samples = ["HG00097", "HG00100"]
         variants = {"1:10117:C:A"}
-        gts.read(region="1:10115-10117", samples=samples, variants=variants)
+        gts.read(region="1:10115-10117", samples=samples_set, variants=variants)
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == tuple(samples)
 
@@ -501,7 +500,8 @@ class TestGenotypesPLINK:
 
         gts = GenotypesPLINK(DATADIR / "simple.pgen")
         samples = [expected.samples[1], expected.samples[3]]
-        gts.read(region="1:10115-10117", samples=samples)
+        samples_set = set(samples)
+        gts.read(region="1:10115-10117", samples=samples_set)
         gts.check_phase()
         np.testing.assert_allclose(gts.data, expected_data)
         assert gts.samples == tuple(samples)
@@ -511,7 +511,7 @@ class TestGenotypesPLINK:
 
         gts = GenotypesPLINK(DATADIR / "simple.pgen")
         variants = {"1:10117:C:A"}
-        gts.read(region="1:10115-10117", samples=samples, variants=variants)
+        gts.read(region="1:10115-10117", samples=samples_set, variants=variants)
         gts.check_phase()
         np.testing.assert_allclose(gts.data, expected_data)
         assert gts.samples == tuple(samples)

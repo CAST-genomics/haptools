@@ -3,15 +3,15 @@ import re
 import gc
 from csv import reader
 from pathlib import Path
+from logging import Logger
 from typing import Iterator
-from logging import getLogger, Logger
 from collections import namedtuple, Counter
 
 import pgenlib
 import numpy as np
 import numpy.typing as npt
+from pysam import VariantFile
 from cyvcf2 import VCF, Variant
-from pysam import VariantFile, TabixFile
 
 try:
     import trtools.utils.tr_harmonizer as trh
@@ -77,7 +77,7 @@ class Genotypes(Data):
         cls: Genotypes,
         fname: Path | str,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
     ) -> Genotypes:
         """
@@ -91,7 +91,7 @@ class Genotypes(Data):
             See documentation for :py:attr:`~.Data.fname`
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -112,7 +112,7 @@ class Genotypes(Data):
     def read(
         self,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
         max_variants: int = None,
     ):
@@ -132,8 +132,10 @@ class Genotypes(Data):
             For this to work, the VCF must be indexed and the seqname must match!
 
             Defaults to loading all genotypes
-        samples : list[str], optional
+        samples : set[str], optional
             A subset of the samples from which to extract genotypes
+
+            Note that they are loaded in the same order as in the file
 
             Defaults to loading genotypes from all samples
         variants : set[str], optional
@@ -307,7 +309,7 @@ class Genotypes(Data):
         vcf.close()
 
     def __iter__(
-        self, region: str = None, samples: list[str] = None, variants: set[str] = None
+        self, region: str = None, samples: set[str] = None, variants: set[str] = None
     ) -> Iterator[namedtuple]:
         """
         Read genotypes from a VCF line by line without storing anything
@@ -316,7 +318,7 @@ class Genotypes(Data):
         ----------
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -326,6 +328,13 @@ class Genotypes(Data):
         Iterator[namedtuple]
             See documentation for :py:meth:`~.Genotypes._iterate`
         """
+        if samples is not None:
+            if not isinstance(samples, set):
+                self.log.warning(
+                    "Samples cannot be loaded in a particular order. "
+                    "Use subset() to reorder the samples after loading them."
+                )
+            samples = list(samples)
         vcf = VCF(str(self.fname), samples=samples, lazy=True)
         self.samples = tuple(vcf.samples)
         # call another function to force the lines above to be run immediately
@@ -797,6 +806,37 @@ class GenotypesVCF(Genotypes):
         vcf.close()
 
 
+class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
+    """
+    Parameters
+    ----------
+    vcffile : VCF
+    vcftype : {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}, optional
+       Type of the VCF file. Default='auto'.
+       If vcftype=='auto', attempts to infer the type.
+    Attributes
+    ----------
+    vcffile : VCF
+    vcfiter : VCF
+        Region to grab strs from within the VCF file.
+    vcftype : enum
+       Type of the VCF file. Must be included in VcfTypes
+    """
+
+    def __init__(
+        self,
+        vcffile: VCF,
+        vcfiter: object,
+        vcftype: str | trh.VcfTypes = "auto",
+    ):
+        super().__init__(vcffile, vcftype)
+        self.vcfiter = vcfiter
+
+    def __next__(self) -> trh.TRRecord:
+        """Iterate over TRRecord produced from the underlying vcf."""
+        return trh.HarmonizeRecord(self.vcftype, next(self.vcfiter))
+
+
 class GenotypesTR(Genotypes):
     """
     A class for processing TR genotypes from a file
@@ -823,7 +863,12 @@ class GenotypesTR(Genotypes):
         {'auto', 'gangstr', 'advntr', 'hipstr', 'eh', 'popstr'}
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, vcftype: str = "auto"):
+    def __init__(
+        self,
+        fname: Path | str,
+        log: Logger = None,
+        vcftype: str = "auto",
+    ):
         super().__init__(fname, log)
         self.vcftype = vcftype
 
@@ -832,7 +877,7 @@ class GenotypesTR(Genotypes):
         cls: GenotypesTR,
         fname: Path | str,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
         vcftype: str = "auto",
     ) -> Genotypes:
@@ -847,7 +892,7 @@ class GenotypesTR(Genotypes):
             See documentation for :py:attr:`~.Data.fname`
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -878,8 +923,8 @@ class GenotypesTR(Genotypes):
         tr_records: trh.TRRecord
             TRRecord objects yielded from TRRecordHarmonizer
         """
-        for record in trh.TRRecordHarmonizer(
-            vcffile=vcf, vcfiter=vcf(region), region=region, vcftype=self.vcftype
+        for record in TRRecordHarmonizerRegion(
+            vcffile=vcf, vcfiter=vcf(region), vcftype=self.vcftype
         ):
             record.ID = record.record_id
             record.CHROM = record.chrom
@@ -938,7 +983,7 @@ class GenotypesPLINK(GenotypesVCF):
     ----------
     data : npt.NDArray
         See documentation for :py:attr:`~.GenotypesVCF.data`
-    samples : tuple
+    samples : tuple[str]
         See documentation for :py:attr:`~.GenotypesVCF.samples`
     variants : np.array
         See documentation for :py:attr:`~.GenotypesVCF.variants`
@@ -956,11 +1001,16 @@ class GenotypesPLINK(GenotypesVCF):
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
     """
 
-    def __init__(self, fname: Path | str, log: Logger = None, chunk_size: int = None):
+    def __init__(
+        self,
+        fname: Path | str,
+        log: Logger = None,
+        chunk_size: int = None,
+    ):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
 
-    def read_samples(self, samples: list[str] = None):
+    def read_samples(self, samples: set[str] = None):
         """
         Read sample IDs from a PSAM file into a list stored in
         :py:attr:`~.GenotypesPLINK.samples`
@@ -969,7 +1019,7 @@ class GenotypesPLINK(GenotypesVCF):
 
         Parameters
         ----------
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
 
         Returns
@@ -980,6 +1030,10 @@ class GenotypesPLINK(GenotypesVCF):
         if len(self.samples) != 0:
             self.log.warning("Sample data has already been loaded. Overriding.")
         if samples is not None and not isinstance(samples, set):
+            self.log.warning(
+                "Samples cannot be loaded in a particular order. "
+                "Use subset() to reorder the samples after loading them."
+            )
             samples = set(samples)
         with self.hook_compressed(self.fname.with_suffix(".psam"), mode="r") as psam:
             psamples = reader(psam, delimiter="\t")
@@ -1210,7 +1264,7 @@ class GenotypesPLINK(GenotypesVCF):
     def read(
         self,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
         max_variants: int = None,
     ):
@@ -1222,7 +1276,7 @@ class GenotypesPLINK(GenotypesVCF):
         ----------
         region : str, optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
@@ -1366,7 +1420,7 @@ class GenotypesPLINK(GenotypesVCF):
         pgen.close()
 
     def __iter__(
-        self, region: str = None, samples: list[str] = None, variants: set[str] = None
+        self, region: str = None, samples: set[str] = None, variants: set[str] = None
     ) -> Iterator[namedtuple]:
         """
         Read genotypes from a PGEN line by line without storing anything
@@ -1375,7 +1429,7 @@ class GenotypesPLINK(GenotypesVCF):
         ----------
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -1552,7 +1606,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
     ----------
     data : npt.NDArray
         See documentation for :py:attr:`~.GenotypesPLINK.data`
-    samples : tuple
+    samples : tuple[str]
         See documentation for :py:attr:`~.GenotypesPLINK.samples`
     variants : np.array
         See documentation for :py:attr:`~.GenotypesPLINK.variants`
@@ -1562,7 +1616,6 @@ class GenotypesPLINKTR(GenotypesPLINK):
         See documentation for :py:attr:`~.GenotypesPLINK.chunk_size`
     vcftype: str, optional
         See documentation for :py:attr:`~.GenotypesTR.vcftype`
-
     Examples
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
@@ -1583,7 +1636,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         cls: GenotypesPLINKTR,
         fname: Path | str,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
         vcftype: str = "auto",
     ) -> Genotypes:
@@ -1598,7 +1651,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
             See documentation for :py:attr:`~.Data.fname`
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
             See documentation for :py:meth:`~.Genotypes.read`
@@ -1632,12 +1685,12 @@ class GenotypesPLINKTR(GenotypesPLINK):
             An iterator over each line of the PVAR file
         """
         vcf = VCF(self.fname.with_suffix(".pvar"))
-        tr_records = trh.TRRecordHarmonizer(
+        tr_records = TRRecordHarmonizerRegion(
             vcffile=vcf,
             vcfiter=vcf(region),
-            region=region,
             vcftype=self.vcftype,
         )
+
         # filter out TRs that we didn't want
         if variants is not None:
             tr_records = filter(lambda rec: rec.record_id in variants, tr_records)
@@ -1646,7 +1699,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
     def read(
         self,
         region: str = None,
-        samples: list[str] = None,
+        samples: set[str] = None,
         variants: set[str] = None,
         max_variants: int = None,
     ):
@@ -1658,7 +1711,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         ----------
         region : str, optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
-        samples : list[str], optional
+        samples : set[str], optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
@@ -1666,6 +1719,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
             See documentation for :py:attr:`~.GenotypesVCF.read`
         """
         super().read(region, samples, variants, max_variants)
+
         num_variants = len(self.variants)
         # initialize a jagged array of allele lengths
         max_num_alleles = max(map(len, self.variants["alleles"]))
