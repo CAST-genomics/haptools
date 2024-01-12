@@ -12,7 +12,7 @@ from haptools.transform import (
     GenotypesAncestry,
 )
 from haptools.__main__ import main
-from .test_data import TestGenotypesVCF
+from .test_data import TestGenotypesVCF, TestHaplotypes
 from haptools.data import Variant, GenotypesVCF, GenotypesPLINK
 
 
@@ -232,6 +232,34 @@ def test_basic(capfd):
     captured = capfd.readouterr()
     assert captured.out == expected
     assert result.exit_code == 0
+
+
+def test_basic_multiallelic(capfd):
+    expected = """##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tHG00096\tHG00097\tHG00099\tHG00100\tHG00101
+1\t10114\tH1\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t1|0\t0|0\t0|1
+1\t10114\tH2\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+1\t10116\tH3\tA\tT\t.\t.\t.\tGT\t0|0\t0|0\t0|0\t0|0\t0|0
+"""
+    gt_file = DATADIR / "simple-multiallelic.vcf"
+    hp_file = DATADIR / "simple-multiallelic.hap"
+
+    # first, create the multiallelic hap file
+    hp = TestHaplotypes()._get_dummy_haps_multiallelic()
+    hp.fname = hp_file
+    hp.write()
+
+    cmd = f"transform {gt_file} {hp_file}"
+    runner = CliRunner()
+    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    captured = capfd.readouterr()
+    assert captured.out == expected
+    assert result.exit_code == 0
+
+    hp.fname.unlink()
 
 
 def test_basic_subset(capfd):

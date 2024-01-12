@@ -1172,6 +1172,16 @@ class TestHaplotypes:
         haps.data = haplotypes
         return haps
 
+    def _get_dummy_haps_multiallelic(self):
+        haps = self._get_dummy_haps()
+        h1_vars = list(haps.data["H1"].variants)
+        h1_vars[1] = Variant(start=10116, end=10117, id="1:10116:A:G", allele="T")
+        haps.data["H1"].variants = tuple(h1_vars)
+        h3_vars = list(haps.data["H3"].variants)
+        h3_vars[1] = Variant(start=10122, end=10123, id="1:10122:A:G", allele="C")
+        haps.data["H3"].variants = tuple(h3_vars)
+        return haps
+
     def test_load(self):
         expected = self._basic_haps()
 
@@ -1553,6 +1563,23 @@ class TestHaplotypes:
         hap_gt = hap.transform(gens)
         np.testing.assert_allclose(hap_gt, expected)
 
+    def test_hap_transform_multiallelic(self):
+        expected = np.array(
+            [
+                [0, 0],
+                [0, 0],
+                [1, 0],
+                [0, 0],
+                [0, 1],
+            ],
+            dtype=np.uint8,
+        )
+
+        hap = list(self._get_dummy_haps_multiallelic().data.values())[0]
+        gens = TestGenotypesVCF()._get_fake_genotypes_multiallelic()
+        hap_gt = hap.transform(gens)
+        np.testing.assert_allclose(hap_gt, expected)
+
     def test_haps_transform(self, return_also=False):
         expected = np.array(
             [
@@ -1569,6 +1596,30 @@ class TestHaplotypes:
         gens = TestGenotypesVCF()._get_fake_genotypes_refalt()
         gens.data[[2, 4], 0, 1] = 1
         gens.data[[1, 4], 2, 0] = 1
+        hap_gt = GenotypesVCF(fname=None)
+        haps.transform(gens, hap_gt)
+        np.testing.assert_allclose(hap_gt.data, expected)
+
+        if return_also:
+            return hap_gt
+
+    def test_haps_transform_multiallelic(self, return_also=False):
+        expected = np.array(
+            [
+                [[0, 0], [0, 0], [0, 0]],
+                [[0, 0], [0, 0], [1, 0]],
+                [[1, 0], [0, 1], [0, 0]],
+                [[0, 0], [0, 0], [0, 0]],
+                [[0, 0], [0, 1], [1, 0]],
+            ],
+            dtype=np.uint8,
+        )
+
+        haps = self._get_dummy_haps_multiallelic()
+        gens = TestGenotypesVCF()._get_fake_genotypes_multiallelic()
+        gens.data[[2, 4], 0, 1] = 1
+        gens.data[[1, 4], 2, 0] = 1
+        gens.data[[1, 4], 3, 0] = 2
         hap_gt = GenotypesVCF(fname=None)
         haps.transform(gens, hap_gt)
         np.testing.assert_allclose(hap_gt.data, expected)
