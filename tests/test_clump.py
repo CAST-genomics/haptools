@@ -94,15 +94,18 @@ class TestClump:
         assert snp_inds == [0, 3] and str_inds == [1, 2]
 
     def test_gt_filter(self):
+        miss = np.iinfo(np.uint8).max
         gt1 = np.array(
-            [[254, 0], [1, 2], [1, 255], [255, 1], [125, 160], [2, 2], [3, 4]]
+            [[miss - 1, 0], [1, 2], [1, miss], [miss, 1], [125, 160], [2, 2], [3, 4]]
         )
-        gt2 = np.array([[0, 0], [255, 255], [4, 254], [0, 0], [1, 0], [2, 1], [4, 4]])
+        gt2 = np.array(
+            [[0, 0], [miss, miss], [4, miss - 1], [0, 0], [1, 0], [2, 1], [4, 4]]
+        )
         gt1, gt2 = _FilterGts(gt1, gt2, log)
         assert np.array_equal(gt1, [285, 4, 7]) and np.array_equal(gt2, [1, 3, 8])
 
-        gt1 = np.array([[255, 0]])
-        gt2 = np.array([[254, 1]])
+        gt1 = np.array([[miss, 0]])
+        gt2 = np.array([[miss - 1, 1]])
         gt1, gt2 = _FilterGts(gt1, gt2, log)
         assert np.array_equal(gt1, []) and np.array_equal(gt2, [])
 
