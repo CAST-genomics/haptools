@@ -1184,6 +1184,20 @@ class TestHaplotypes:
         haps = Haplotypes.load(DATADIR / "basic.hap.gz")
         assert expected == haps.data
 
+    def test_load_no_header(self):
+        expected = self._basic_haps()
+
+        # what if we remove the header line, can we still load it?
+        # let's try to make a version without the header
+        no_header_file = DATADIR / "basic_no_header.hap"
+        with open(DATADIR / "basic.hap", "r") as fr, open(no_header_file, "w") as fw:
+            fw.writelines([ln for ln in fr.readlines() if not ln.startswith("#\t")])
+
+        haps = Haplotypes.load(no_header_file)
+        assert expected == haps.data
+
+        no_header_file.unlink()
+
     def test_iterate(self):
         exp_full = self._basic_haps()
 
@@ -1851,13 +1865,15 @@ class TestGenotypesVCF:
 
 class TestGenotypesTR:
     def _get_fake_tr_alleles(self):
+        # max uint8 codes for empty ("em") genotype
+        em = np.iinfo(np.uint8).max
         return np.array(
             [
                 [[1, 2, 1], [3, 4, 1], [5, 6, 1], [7, 8, 1], [9, 0, 1]],
                 [[3, 1, 1], [3, 1, 1], [1, 1, 1], [1, 1, 1], [3, 3, 1]],
                 [[3, 3, 1], [3, 3, 1], [3, 3, 1], [3, 3, 1], [3, 3, 1]],
-                [[0, 11, 1], [255, 254, 1], [7, 2, 1], [3, 4, 1], [0, 255, 1]],
-                [[5, 255, 0], [255, 255, 0], [3, 255, 0], [255, 255, 0], [255, 255, 0]],
+                [[0, 11, 1], [em, em - 1, 1], [7, 2, 1], [3, 4, 1], [0, em, 1]],
+                [[5, em, 0], [em, em, 0], [3, em, 0], [em, em, 0], [em, em, 0]],
             ],
             dtype=np.uint8,
         ).transpose((1, 0, 2))
