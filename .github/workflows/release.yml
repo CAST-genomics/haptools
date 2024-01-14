@@ -30,13 +30,13 @@ jobs:
       - name: Upgrade pip
         if: ${{ steps.release.outputs.release_created }}
         run: |
-          pip install --constraint=.github/workflows/constraints.txt pip
+          pip install --upgrade pip
           pip --version
 
       - name: Install Poetry
         if: ${{ steps.release.outputs.release_created }}
         run: |
-          pip install --constraint=.github/workflows/constraints.txt poetry
+          pip install 'poetry==1.7.1'
           poetry --version
 
       - name: Bump version for developmental release
