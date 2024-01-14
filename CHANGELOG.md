@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0](https://github.com/CAST-genomics/haptools/compare/v0.3.0...v0.4.0) (2024-01-14)
+
+
+### Features
+
+* a new `GenotypesPLINKTR` class for reading TRs from PGEN files ([#222](https://github.com/CAST-genomics/haptools/issues/222)) ([3c7abe6](https://github.com/CAST-genomics/haptools/commit/3c7abe6922e8d6953debf3b0d6a02dee9610bbda))
+* allow multiallelic variants in `transform` ([#232](https://github.com/CAST-genomics/haptools/issues/232)) ([371415c](https://github.com/CAST-genomics/haptools/commit/371415cb9007522221ee800ab0c9570703aae6d4))
+* support for python 3.11 ([#207](https://github.com/CAST-genomics/haptools/issues/207)) ([8e01ed4](https://github.com/CAST-genomics/haptools/commit/8e01ed449e47eda6cf032504c9536b053f97d588))
+
+
+### Bug Fixes
+
+* `UnboundLocalError` arising from headerless `.hap` files ([#229](https://github.com/CAST-genomics/haptools/issues/229)) ([a499b0c](https://github.com/CAST-genomics/haptools/commit/a499b0cd294c7709f866c330f7ce7431320acfbd))
+* bug where `Phenotypes.subset(inplace=True)` would raise an AttributeError ([#226](https://github.com/CAST-genomics/haptools/issues/226)) ([cff6d9b](https://github.com/CAST-genomics/haptools/commit/cff6d9b0082a6170c7b0873b25445fd0915f9aab))
+* convert `samples` argument in `Genotypes.read` into a set and fix `tr_harmonizer` bug arising when TRTools is also installed ([#225](https://github.com/CAST-genomics/haptools/issues/225)) ([06cc273](https://github.com/CAST-genomics/haptools/commit/06cc273fb063d73ec65071c3807c76bf63f0d448))
+* Not having 23 chromosomes in genotype blocks when 23 chromosomes listed in centromere file resulted in Value Error ([#234](https://github.com/CAST-genomics/haptools/issues/234)) ([ef36798](https://github.com/CAST-genomics/haptools/commit/ef3679838e0e0193eefad2cacc37fc4d1b26715d))
+
+
+### Documentation
+
+* fix example of `.blocks.det` to `.hap` conversion in API docs ([#236](https://github.com/CAST-genomics/haptools/issues/236)) ([1ed9139](https://github.com/CAST-genomics/haptools/commit/1ed9139b5425c754256e1fc981259efbbde35d62))
+* handle whitespace in blocks2hap example ([#237](https://github.com/CAST-genomics/haptools/issues/237)) ([bbdacf8](https://github.com/CAST-genomics/haptools/commit/bbdacf8f53522237ea846ca1a8f2c59c978a1d7d))
+
 ## [0.3.0](https://github.com/CAST-genomics/haptools/compare/v0.2.1...v0.3.0) (2023-06-02)
 
 
