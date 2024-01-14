@@ -2129,7 +2129,7 @@ class TestDocExamples:
             for idx, line in enumerate(blocks_file.read().splitlines()[1:]):
                 # initialize variables and parse line from the blocks file
                 hap_id = f"H{idx}"
-                chrom, bp1, bp2, kb, nsnps, snps = line.split("\t")
+                chrom, bp1, bp2, kb, nsnps, snps = line.split()
 
                 # create a haplotype line in the .hap file
                 hp.data[hap_id] = Haplotype(
