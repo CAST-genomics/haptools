@@ -31,7 +31,7 @@ As an example, let's say we would like to convert `the following simple.blocks.d
         for idx, line in enumerate(blocks_file.read().splitlines()[1:]):
             # initialize variables and parse line from the blocks file
             hap_id = f"H{idx}"
-            chrom, bp1, bp2, kb, nsnps, snps = line.split()
+            chrom, bp1, bp2, kb, nsnps, snps = line.strip().split()
 
             # create a haplotype line in the .hap file
             hp.data[hap_id] = data.Haplotype(
