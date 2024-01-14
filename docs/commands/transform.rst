@@ -6,7 +6,7 @@ transform
 
 Transform a set of genotypes via a list of haplotypes. Create a new VCF containing haplotypes instead of variants.
 
-The ``transform`` command takes as input a set of genotypes and a list of haplotypes and outputs a set of haplotype *pseudo-genotypes*, where each haplotype is encoded as a bi-allelic variant record in the output. In other words, each sample will have a genotype of ``0|0``, ``1|0``, ``0|1``, or ``1|1`` indicating whether each of their two chromosome copies contains the alleles of a haplotype.
+The ``transform`` command takes as input a set of **phased** genotypes and a list of haplotypes and outputs a set of haplotype *pseudo-genotypes*, where each haplotype is encoded as a bi-allelic variant record in the output. In other words, each sample will have a genotype of ``0|0``, ``1|0``, ``0|1``, or ``1|1`` indicating whether each of their two chromosome copies contains the alleles of a haplotype.
 
 .. figure:: https://drive.google.com/uc?id=1GyluoQ3IeGXo9FjWsCC3XwaRuflr68pn
   :figwidth: 600
