@@ -6,9 +6,9 @@ examples
 
 Converting a ``.blocks.det`` file into a ``.hap`` file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You can use the :ref:`data API <api-data>` to easily convert `a PLINK 1.9 .blocks.det file <https://www.cog-genomics.org/plink/1.9/formats#blocks>`_ into a ``.hap`` file.
+You can use the :ref:`data API <api-data>` to convert `a PLINK 1.9 .blocks.det file <https://www.cog-genomics.org/plink/1.9/formats#blocks>`_ into a ``.hap`` file.
 
-As an example, let's say we would like to convert `the following .blocks.det file <https://github.com/cast-genomics/haptools/blob/main/tests/data/simple.blocks.det>`_.
+As an example, let's say we would like to convert `the following simple.blocks.det file <https://github.com/cast-genomics/haptools/blob/main/tests/data/simple.blocks.det>`_.
 
 .. include:: ../../tests/data/simple.blocks.det
   :literal:
@@ -31,7 +31,7 @@ As an example, let's say we would like to convert `the following .blocks.det fil
         for idx, line in enumerate(blocks_file.read().splitlines()[1:]):
             # initialize variables and parse line from the blocks file
             hap_id = f"H{idx}"
-            chrom, bp1, bp2, kb, nsnps, snps = line.split("\t")
+            chrom, bp1, bp2, kb, nsnps, snps = line.strip().split()
 
             # create a haplotype line in the .hap file
             hp.data[hap_id] = data.Haplotype(
@@ -72,7 +72,7 @@ Then your ``.hap`` file might look something like this.
 .. include:: ../../tests/data/apoe.hap
   :literal:
 
-You can easily use the :ref:`data API <api-data>` and the :ref:`simphenotype API <api-haptools-sim_phenotype>` to create such a file.
+You can use the :ref:`data API <api-data>` and the :ref:`simphenotype API <api-haptools-sim_phenotype>` to create such a file.
 
 .. code-block:: python
 
