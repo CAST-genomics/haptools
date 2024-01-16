@@ -26,7 +26,7 @@ Commands
 
 * :doc:`haptools ld </commands/ld>`: Compute Pearson's correlation coefficient between a target haplotype and a set of haplotypes.
 
-.. figure:: https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_
+.. figure:: https://github.com/CAST-genomics/haptools/assets/23412689/7de95547-3138-45c6-99d8-46bca5716c26
   :figwidth: 600
   :align: center
   :alt: Overview of haptools commands
