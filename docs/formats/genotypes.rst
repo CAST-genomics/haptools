@@ -4,7 +4,7 @@
 Genotypes
 =========
 
-.. figure:: https://drive.google.com/uc?export=view&id=1_JARKJQ0LX-DzL0XsHW1aiQgLCOJ1ZvC
+.. figure:: https://github.com/CAST-genomics/haptools/assets/23412689/6da88941-7520-4c19-beaa-27f540f6b047
 
 	The time required to load various genotype file formats.
 

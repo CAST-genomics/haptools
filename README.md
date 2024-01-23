@@ -11,7 +11,7 @@ Homepage: [https://haptools.readthedocs.io/](https://haptools.readthedocs.io/)
 
 Visit our homepage for installation and usage instructions.
 
-![haptools commands](https://drive.google.com/uc?id=1c0i_Hjms7579s24zRsKp5yMs7BxNHed_)
+![haptools commands](https://github.com/CAST-genomics/haptools/assets/23412689/7de95547-3138-45c6-99d8-46bca5716c26)
 
 ## citation
 There is an option to _"Cite this repository"_ on the right sidebar of [the repository homepage](https://github.com/CAST-genomics/haptools)

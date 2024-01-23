@@ -6,7 +6,7 @@ Haplotypes
 
 This document describes our custom file format specification for haplotypes: the ``.hap`` file.
 
-.. figure:: https://drive.google.com/uc?id=16GsMOCihu7qvE27iRz6ydSTtt76ZeaAY
+.. figure:: https://github.com/CAST-genomics/haptools/assets/23412689/c4177e92-e1a3-4ed0-8d8c-bd179ee9f0e3
   :figwidth: 600
   :align: center
   :alt: The .hap file format

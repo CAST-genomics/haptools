@@ -8,7 +8,7 @@ Transform a set of genotypes via a list of haplotypes. Create a new VCF containi
 
 The ``transform`` command takes as input a set of **phased** genotypes and a list of haplotypes and outputs a set of haplotype *pseudo-genotypes*, where each haplotype is encoded as a bi-allelic variant record in the output. In other words, each sample will have a genotype of ``0|0``, ``1|0``, ``0|1``, or ``1|1`` indicating whether each of their two chromosome copies contains the alleles of a haplotype.
 
-.. figure:: https://drive.google.com/uc?id=1GyluoQ3IeGXo9FjWsCC3XwaRuflr68pn
+.. figure:: https://github.com/CAST-genomics/haptools/assets/23412689/fb3accd9-4b15-4ba7-a09c-022b405aa26f
   :figwidth: 600
   :align: center
   :alt: Transforming genotypes via haplotypes
@@ -46,7 +46,7 @@ If your ``.hap`` file contains :ref:`an "ancestry" extra field <formats-haplotyp
 This will enable us to match the population labels of each haplotype against those in the genotypes output by :doc:`simgenotype </commands/simgenotype>`.
 In other words, a sample is said to contain a haplotype only if all of the alleles of the haplotype are labeled with the haplotype's ancestry.
 
-.. figure:: https://drive.google.com/uc?id=1uQ08d6X0vdbyLOXDN9evdjPlnqdpI_3k
+.. figure:: https://github.com/CAST-genomics/haptools/assets/23412689/f00553c9-8a82-4b9e-9929-042da6d95f02
   :figwidth: 600
   :align: center
   :alt: Transforming via ancestry labels
