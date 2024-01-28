@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/CAST-genomics/haptools/compare/v0.4.0...v0.4.1) (2024-01-28)
+
+
+### Documentation
+
+* move google drive images to github ([#240](https://github.com/CAST-genomics/haptools/issues/240)) ([e8b60c0](https://github.com/CAST-genomics/haptools/commit/e8b60c0a759a4fc4f03b610fb74dbae69eca2e2d))
+
 ## [0.4.0](https://github.com/CAST-genomics/haptools/compare/v0.3.0...v0.4.0) (2024-01-14)
 
 
