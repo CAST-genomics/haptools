@@ -192,23 +192,28 @@ class HapFileValidator:
     log : logging.Logger, optional
         A logging instance for recording errors/warnings statements
     vars_ex : dict[int, dict[str, type]]
-        The names of each of the extra columns for each of the line types
+        The names of each of the extra columns for each of the line types. The keys of
+        the outer dict encode each line type and the keys of the inner dict encode each
+        extra column
     types_ex : dict[int, list[type]]
-        The types of each of the extra columns for each of the line types
-    meta : list[Line]
+        The types of each of the extra columns for each of the line types. The keys of
+        the outer dict encode each line type and the keys of the inner dict encode each
+        extra column
+    meta_lines : list[Line]
         The metadata lines in the file
     data : dict[int, list[Line]]
-        TODO
+        A list of the lines, delineated by their line type (as the keys to the dict)
     hrids : dict[int, dict[str, Line]]
-        TODO
+        Each haplotype and repeat line, keyed by its ID. The outer dictionary encodes
+        line types
     vrids : dict[str, dict[str, Line]]
-        TODO
+        Each variant line, keyed by its ID. The outer dictionary encodes line types
     referenced_chromosomes : set[str]
-        TODO
+        A running list of the chromosomes that have been seen
     errc : int
-        TODO
+        A running count of the errors we've seen
     warc : int
-        TODO
+        A running count of the warnings we've seen
     """
     # H CHROM START END ID
     MANDATORY_HAPLOTYPE_COLUMN_COUNT: int = 5
@@ -256,7 +261,7 @@ class HapFileValidator:
             HapFileValidator.KEY_VARIANT: [],
         }
 
-        self.meta: list[Line] = []
+        self.meta_lines: list[Line] = []
         self.data: dict[int, list[Line]] = {
             HapFileValidator.KEY_HAPLOTYPE: [],
             HapFileValidator.KEY_REPEAT: [],
@@ -276,18 +281,45 @@ class HapFileValidator:
         self.warc: int = 0
 
     def extract_and_store_content(self, file: HapFileIO, sorted: bool = False):
+        """
+        Extract the header and data lines of a HapFileIO instance
+
+        Parameters
+        ----------
+        file : HapFileIO
+            The file object to extract and store content from.
+        sorted : bool, optional
+            Flag indicating whether the lines are already sorted
+        """
         lines = file.lines(sorted=sorted)
 
         self.extract_meta_lines(lines)
         self.extract_data_lines(lines)
 
     def extract_meta_lines(self, lines: list[Line]):
+        """
+        Identify header lines in the file
+
+        Parameters
+        ----------
+        lines : list[Line]
+            The full set of lines, from which the header lines must be extracted
+        """
         header_limit = next(
             i for i, line in enumerate(lines) if not line[0].startswith("#")
         )
         self.meta_lines = lines[:header_limit]
 
     def extract_data_lines(self, lines: list[Line]):
+        """
+        Identify non-header lines and categorize them based on their field type.
+
+        Parameters
+        ----------
+        lines : list[Line]
+            The full set of lines from the file
+        """
+        # TODO: do not encode H, R, or V here but somewhere global
         ln = [
             [ln for ln in lines if ln[0].startswith("H")],
             [ln for ln in lines if ln[0].startswith("R")],
@@ -309,6 +341,13 @@ class HapFileValidator:
     #
 
     def validate_version_declarations(self):
+        """
+        Confirm that the version declaration is in the correct format
+
+        This method extracts the version declaration and checks it's in the correct
+        format. If no version declarations are found, we assume the latest version and
+        issue a warning.
+        """
         versions = self.extract_version_declarations()
         if len(versions) == 0:
             self.log.warning(
@@ -320,6 +359,17 @@ class HapFileValidator:
         self.validate_version_format(versions[-1])
 
     def extract_version_declarations(self) -> list[Line]:
+        """
+        Extracts version declarations from the meta lines
+
+        Issues warnings for each version declaration after the first, since there
+        should only ever be one.
+
+        Returns
+        -------
+        list[Line]
+            A list of version declarations as Line objects
+        """
         decls = list(
             filter(lambda x: x.count > 1 and x[1] == "version", self.meta_lines)
         )
@@ -337,6 +387,14 @@ class HapFileValidator:
         return decls
 
     def validate_version_format(self, version: Line):
+        """
+        Validates the format of the version declaration
+
+        Parameters
+        ----------
+        version: Line
+            The line containing the version declaration
+        """
         if version.count < 3:
             self.leexfl(
                 "Not enough columns in version declaration",
@@ -356,7 +414,6 @@ class HapFileValidator:
                 version[2],
                 version,
             )
-
             self.errc += 1
 
     #
