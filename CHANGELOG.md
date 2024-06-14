@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/CAST-genomics/haptools/compare/v0.4.0...v0.4.1) (2024-06-13)
+
+
+### Bug Fixes
+
+* disable numpy 2.0 since our dependencies don't yet work with it ([#246](https://github.com/CAST-genomics/haptools/issues/246)) ([7f646b2](https://github.com/CAST-genomics/haptools/commit/7f646b2e193cbfe27b8bed07f3d10976a53b0d50))
+
+
+### Documentation
+
+* move google drive images to github ([#240](https://github.com/CAST-genomics/haptools/issues/240)) ([e8b60c0](https://github.com/CAST-genomics/haptools/commit/e8b60c0a759a4fc4f03b610fb74dbae69eca2e2d))
+
 ## [0.4.0](https://github.com/CAST-genomics/haptools/compare/v0.3.0...v0.4.0) (2024-01-14)
 
 
