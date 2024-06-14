@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/CAST-genomics/haptools/compare/v0.4.1...v0.4.2) (2024-06-14)
+
+
+### Bug Fixes
+
+* mention that versions must be synced in CI/CD ([35e14c0](https://github.com/CAST-genomics/haptools/commit/35e14c0da07325985c72c0919c02d245f0a3c635))
+
 ## [0.4.1](https://github.com/CAST-genomics/haptools/compare/v0.4.0...v0.4.1) (2024-06-13)
 
 
