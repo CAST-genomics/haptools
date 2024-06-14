@@ -25,7 +25,7 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.8' # keep synced with dev-env.yml
 
       - name: Upgrade pip
         if: ${{ steps.release.outputs.release_created }}
@@ -36,7 +36,7 @@ jobs:
       - name: Install Poetry
         if: ${{ steps.release.outputs.release_created }}
         run: |
-          pip install 'poetry==1.8.3'
+          pip install 'poetry==1.8.3'  # keep version synced with dev-env.yml
           poetry --version
 
       - name: Bump version for developmental release
