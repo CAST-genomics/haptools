@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/CAST-genomics/haptools/compare/v0.4.2...v0.5.0) (2024-06-19)
+
+
+### Features
+
+* support for numpy 2.0 ([#250](https://github.com/CAST-genomics/haptools/issues/250)) ([69192d0](https://github.com/CAST-genomics/haptools/commit/69192d0a5fc7dcd5ca15260b4505306ff742bf1b))
+
 ## [0.4.2](https://github.com/CAST-genomics/haptools/compare/v0.4.1...v0.4.2) (2024-06-14)
 
 
