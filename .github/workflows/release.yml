@@ -9,10 +9,8 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     steps:
       - uses: GoogleCloudPlatform/release-please-action@v3
         id: release
@@ -55,12 +53,31 @@ jobs:
         run: |
           poetry build --ansi
 
-      - name: Publish package on TestPyPI
+      - uses: actions/upload-artifact@v4
         if: ${{ steps.release.outputs.release_created }}
+        with:
+          name: dist
+          path: dist/
+
+  upload_pypi:
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ needs.release.outputs.release_created }}
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    steps:
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+
+      - name: Publish package on TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.8.14
         with:
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
 
       - name: Publish package on PyPI
-        if: ${{ steps.release.outputs.release_created }}
         uses: pypa/gh-action-pypi-publish@v1.8.14
