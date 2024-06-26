@@ -25,11 +25,13 @@
 		"vscode": {
 			"extensions": ["ms-python.python"],
 			"settings": {
+				"python.analysis.typeCheckingMode": "strict",
 				"python.condaPath": "/opt/conda/condabin/conda",
 				"python.defaultInterpreterPath": "/opt/conda/envs/haptools/bin/python",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
 				"python.venvFolders": ["/home/vscode/.cache/pypoetry/virtualenvs"],
+				"python.testing.pytestPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8/bin/pytest",
 				"terminal.integrated.environmentChangesRelaunch": true,
 				"terminal.integrated.hideOnStartup": "always"
 			}
