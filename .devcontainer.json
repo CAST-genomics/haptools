@@ -18,7 +18,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "mamba env create -n haptools -f dev-env.yml && conda run -n haptools poetry install",
+	"postCreateCommand": "mamba env create -n haptools -f dev-env.yml && conda run -n haptools poetry config virtualenvs.in-project true && conda run -n haptools poetry install",
 
 	// Configure tool-specific properties.
 	"customizations": {
@@ -29,11 +29,8 @@
 				"python.condaPath": "/opt/conda/condabin/conda",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
-				"python.venvFolders": ["/home/vscode/.cache/pypoetry/virtualenvs"],
-				"python.pythonPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8/bin/python",
-				"python.venvPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8",
-				"python.testing.pytestPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8/bin/pytest",
-				"python.defaultInterpreterPath": "/opt/conda/envs/haptools/bin/python",
+				"python.venvPath": "/workspace/haptools/.venv",
+				"python.defaultInterpreterPath": "/workspace/haptools/.venv/bin/python",
 				"python.testing.pytestArgs": [
 					"tests"
 				],
