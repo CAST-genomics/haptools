@@ -29,8 +29,8 @@
 				"python.condaPath": "/opt/conda/condabin/conda",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
-				"python.venvPath": "/workspace/haptools/.venv",
-				"python.defaultInterpreterPath": "/workspace/haptools/.venv/bin/python",
+				"python.venvPath": "/workspaces/haptools/.venv",
+				"python.defaultInterpreterPath": "/workspaces/haptools/.venv/bin/python",
 				"python.testing.pytestArgs": [
 					"tests"
 				],
