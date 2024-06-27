@@ -30,12 +30,15 @@
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
 				"python.venvFolders": ["/home/vscode/.cache/pypoetry/virtualenvs"],
+				"python.pythonPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8/bin/python",
+				"python.venvPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8",
 				"python.testing.pytestPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8/bin/pytest",
-				"python.defaultInterpreterPath": "/home/vscode/.cache/pypoetry/virtualenvs/haptools-pYHNOcU8-py3.8/bin/python",
+				"python.defaultInterpreterPath": "/opt/conda/envs/haptools/bin/python",
 				"python.testing.pytestArgs": [
 					"tests"
 				],
 				"python.testing.pytestEnabled": true,
+				"python.testing.unittestEnabled": false,
 				"terminal.integrated.environmentChangesRelaunch": true,
 				"terminal.integrated.hideOnStartup": "always"
 			}
