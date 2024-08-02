@@ -74,7 +74,7 @@ class Genotypes(Data):
 
     @classmethod
     def load(
-        cls: Genotypes,
+        cls,
         fname: Path | str,
         region: str = None,
         samples: set[str] = None,
@@ -874,7 +874,7 @@ class GenotypesTR(Genotypes):
 
     @classmethod
     def load(
-        cls: GenotypesTR,
+        cls,
         fname: Path | str,
         region: str = None,
         samples: set[str] = None,
@@ -1633,7 +1633,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
 
     @classmethod
     def load(
-        cls: GenotypesPLINKTR,
+        cls,
         fname: Path | str,
         region: str = None,
         samples: set[str] = None,

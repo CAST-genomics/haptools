@@ -194,7 +194,7 @@ class Variant:
 
     @classmethod
     def from_hap_spec(
-        cls: Variant,
+        cls,
         line: str,
         types: dict[str, type] = None,
     ) -> tuple[str, Variant]:
@@ -384,7 +384,7 @@ class Haplotype:
 
     @classmethod
     def from_hap_spec(
-        cls: Haplotype,
+        cls,
         line: str,
         variants: tuple[Variant] = tuple(),
         types: dict[str, type] = None,
@@ -619,7 +619,7 @@ class Repeat:
 
     @classmethod
     def from_hap_spec(
-        cls: Repeat,
+        cls,
         line: str,
         types: dict[str, type] = None,
     ) -> Repeat:
@@ -775,7 +775,7 @@ class Haplotypes(Data):
 
     @classmethod
     def load(
-        cls: Haplotypes,
+        cls,
         fname: Path | str,
         region: str = None,
         haplotypes: set[str] = None,

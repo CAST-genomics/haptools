@@ -56,7 +56,7 @@ class Breakpoints(Data):
 
     @classmethod
     def load(
-        cls: Breakpoints, fname: Path | str, samples: set[str] = None
+        cls, fname: Path | str, samples: set[str] = None
     ) -> Breakpoints:
         """
         Load breakpoints from a TSV file

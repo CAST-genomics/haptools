@@ -44,7 +44,7 @@ class Phenotypes(Data):
 
     @classmethod
     def load(
-        cls: Phenotypes, fname: Path | str, samples: set[str] = None
+        cls, fname: Path | str, samples: set[str] = None
     ) -> Phenotypes:
         """
         Load phenotypes from a pheno file

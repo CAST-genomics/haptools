@@ -37,7 +37,7 @@ class Effect:
     beta: float
 
     @classmethod
-    def from_hap_spec(cls: Effect, line: str) -> Effect:
+    def from_hap_spec(cls, line: str) -> Effect:
         """
         Convert a .snplist line into an Effect object
 

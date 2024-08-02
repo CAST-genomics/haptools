@@ -38,7 +38,7 @@ class Data(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls: Data, fname: Path):
+    def load(cls, fname: Path):
         """
         Read the file contents and perform any recommended pre-processing
 
