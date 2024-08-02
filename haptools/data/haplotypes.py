@@ -933,8 +933,10 @@ class Haplotypes(Data):
         # if there are any fields left...
         if any(exp_extras.values()):
             names = tuple(
-                f"#{t} {tval}" for t in exp_extras
-                for tval in exp_extras[t] if exp_extras[t]
+                f"#{t} {tval}"
+                for t in exp_extras
+                for tval in exp_extras[t]
+                if exp_extras[t]
             )
             err_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
