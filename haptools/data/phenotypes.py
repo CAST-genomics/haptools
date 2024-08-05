@@ -2,14 +2,20 @@ from __future__ import annotations
 from csv import reader
 from pathlib import Path
 from io import TextIOBase
-from collections.abc import Iterable
-from logging import getLogger, Logger
+from logging import Logger
+from typing import NamedTuple
 from collections import namedtuple, Counter
+from collections.abc import Iterable, Iterator
 
 import numpy as np
 import numpy.typing as npt
 
 from .data import Data
+
+
+class PhenotypeRecord(NamedTuple):
+    data: npt.NDArray[np.float64]
+    samples: str
 
 
 class Phenotypes(Data):
@@ -22,9 +28,9 @@ class Phenotypes(Data):
         The phenotypes in an n (samples) x m (phenotypes) array
     fname : Path | str
         The path to the file containing the data
-    samples : tuple
+    samples : tuple[str, ...]
         The names of each of the n samples
-    names : tuple[str]
+    names : tuple[str, ...]
         The names of the phenotypes
     log: Logger
         A logging instance for recording debug statements.
@@ -36,8 +42,8 @@ class Phenotypes(Data):
 
     def __init__(self, fname: Path | str, log: Logger = None):
         super().__init__(fname, log)
-        self.samples = tuple()
-        self.names = tuple()
+        self.samples : tuple[str, ...] = tuple()
+        self.names : tuple[str, ...] = tuple()
         self._ext = "pheno"
         self._samp_idx = None
         self._name_idx = None
@@ -90,7 +96,7 @@ class Phenotypes(Data):
         self.log.info(f"Loaded {len(self.samples)} samples from .{self._ext} file")
         # fill out the samples and data properties
         # collect data in a np array
-        self.data = np.array(data)
+        self.data = np.array(data) # type: ignore
 
     def _iterate(
         self, phens: TextIOBase, phen_text: Iterable, samples: set[str] = None
@@ -113,16 +119,15 @@ class Phenotypes(Data):
 
         Yields
         ------
-        Iterator[namedtuple]
+        Iterator[PhenotypeRecord]
             An iterator over each line in the file, where each line is encoded as a
             namedtuple containing each of the class properties
         """
         self.log.info(f"Loading {len(self.names)} columns from .{self._ext} file")
-        Record = namedtuple("Record", "data samples")
         for phen in phen_text:
             if samples is None or phen[0] in samples:
                 try:
-                    yield Record(np.array(phen[1:], dtype="float64"), phen[0])
+                    yield PhenotypeRecord(np.array(phen[1:], dtype="float64"), phen[0])
                 except:
                     self.log.error(
                         f"Every column in the .{self._ext} file (besides the sample"
@@ -130,7 +135,7 @@ class Phenotypes(Data):
                     )
         phens.close()
 
-    def __iter__(self, samples: set[str] = None) -> Iterable[namedtuple]:
+    def __iter__(self, samples: set[str] = None) -> Iterator[PhenotypeRecord]:
         """
         Read phenotypes from a pheno line by line without storing anything
 
@@ -143,7 +148,7 @@ class Phenotypes(Data):
 
         Returns
         -------
-        Iterable[namedtuple]
+        Iterator[PhenotypeRecord]
             See documentation for :py:meth:`~.Phenotypes._iterate`
         """
         phens = self.hook_compressed(self.fname, mode="r")

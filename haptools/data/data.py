@@ -1,14 +1,13 @@
 from __future__ import annotations
 import os
 import gzip
-from csv import reader
 from pathlib import Path
-from typing import Iterator, IO
 from collections import namedtuple
 from abc import ABC, abstractmethod
+from typing import Iterator, IO, Any
 from logging import getLogger, Logger
 
-import numpy as np
+import numpy.typing as npt # type: ignore
 
 
 class Data(ABC):
@@ -19,7 +18,7 @@ class Data(ABC):
     ----------
     fname : Path | str
         The path to the read-only file containing the data
-    data : np.array
+    data : npt.NDArray[Any]
         The contents of the data file, once loaded
     log: Logger
         A logging instance for recording debug statements.
@@ -38,7 +37,7 @@ class Data(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls, fname: Path):
+    def load(cls, fname: Path) -> Data:
         """
         Read the file contents and perform any recommended pre-processing
 
@@ -82,7 +81,7 @@ class Data(ABC):
         pass
 
     @staticmethod
-    def hook_compressed(filename: str, mode: str) -> IO:
+    def hook_compressed(filename: str, mode: str) -> gzip.GzipFile | IO[Any]:
         """
         A utility to help open files regardless of their compression
 
@@ -98,7 +97,7 @@ class Data(ABC):
 
         Returns
         -------
-        IO
+        gzip.GzipFile | IO[Any]
             The resolved file object
         """
         if "b" not in mode:
