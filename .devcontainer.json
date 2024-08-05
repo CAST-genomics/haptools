@@ -25,7 +25,7 @@
 		"vscode": {
 			"extensions": ["ms-python.python"],
 			"settings": {
-				"python.analysis.typeCheckingMode": "off",
+				"python.analysis.typeCheckingMode": "basic",
 				"python.condaPath": "/opt/conda/condabin/conda",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
