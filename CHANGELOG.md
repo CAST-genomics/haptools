@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/CAST-genomics/haptools/compare/v0.4.2...v0.5.0) (2024-08-07)
+
+
+### Features
+
+* support for numpy 2.0 ([#250](https://github.com/CAST-genomics/haptools/issues/250)) ([69192d0](https://github.com/CAST-genomics/haptools/commit/69192d0a5fc7dcd5ca15260b4505306ff742bf1b))
+
+
+### Bug Fixes
+
+* issue warnings instead of errors when trying to check the header of hap files and issue error when output of transform is not provided to simphenotype ([#254](https://github.com/CAST-genomics/haptools/issues/254)) ([0226653](https://github.com/CAST-genomics/haptools/commit/02266539cb5d242497658e9fffec3aa7139fe8ee))
+
 ## [0.4.2](https://github.com/CAST-genomics/haptools/compare/v0.4.1...v0.4.2) (2024-06-14)
 
 
