@@ -861,7 +861,7 @@ class Haplotypes(Data):
             Whether to also check the version of the file
         softly: bool, optional
             If True, then this function will not raise any ValueErrors. Instead, it
-            will only issue errors via the logging module, which may be ignored.
+            will only issue warnings via the logging module, which may be ignored.
 
         Raises
         ------
@@ -881,7 +881,7 @@ class Haplotypes(Data):
         if softly:
 
             def err_msgr(msg):
-                self.log.error(msg)
+                self.log.warning(msg)
 
         else:
 
@@ -932,7 +932,12 @@ class Haplotypes(Data):
                     )
         # if there are any fields left...
         if any(exp_extras.values()):
-            names = [n for name in exp_extras.values() for n in name]
+            names = tuple(
+                f"#{t} {tval}"
+                for t in exp_extras
+                for tval in exp_extras[t]
+                if exp_extras[t]
+            )
             err_msgr(
                 "Expected the input .hap file to have these extra fields, but they "
                 f"don't seem to be declared in the header: {*names,}"
