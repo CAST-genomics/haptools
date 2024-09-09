@@ -5,6 +5,7 @@ from csv import reader
 from pathlib import Path
 from logging import Logger
 from typing import Iterator
+import multiprocessing as mp
 from collections import namedtuple, Counter
 
 import pgenlib
@@ -1263,6 +1264,7 @@ class GenotypesPLINK(GenotypesVCF):
 
     def _init_mp(
         self,
+        shared_arr_: mp.Array,
         sample_idxs_: npt.NDArray,
         indices_: npt.NDArray,
     ):
@@ -1280,8 +1282,8 @@ class GenotypesPLINK(GenotypesVCF):
         indices: npt.NDArray
             The indices of the variants to read
         """
-        global sample_idxs, indices
-        sample_idxs, indices = sample_idxs_, indices_
+        global shared_arr, sample_idxs, indices
+        shared_arr, sample_idxs, indices = shared_arr_, sample_idxs_, indices_
 
     def _read_chunk(self, start: int, end: int):
         """
@@ -1298,6 +1300,7 @@ class GenotypesPLINK(GenotypesVCF):
         """
         size = end - start
         mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
+        self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         with pgenlib.PgenReader(
@@ -1386,7 +1389,8 @@ class GenotypesPLINK(GenotypesVCF):
             f"Allocating memory for genotype matrix of shape {mat_len} and dtype uint8"
         )
         # initialize the data array
-        self.data = np.empty(mat_len, dtype=np.uint8)
+        shared_arr = mp.Array("B", int(np.prod(mat_len)))
+        self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
         # how many variants should we load at once?
         chunks = self.chunk_size
         if chunks is None or chunks > mat_len[1]:
@@ -1400,9 +1404,12 @@ class GenotypesPLINK(GenotypesVCF):
             (start, min(start + chunks, mat_len[1]))
             for start in range(0, mat_len[1], chunks)
         ]
-        self._init_mp(sample_idxs, indices)
-        for chunk_args in chunks_args:
-            self._read_chunk(*chunk_args)
+        with mp.Pool(
+            initializer=self._init_mp,
+            initargs=(shared_arr, sample_idxs, indices),
+            processes=len(chunks_args),
+        ) as pool:
+            pool.starmap(self._read_chunk, chunks_args)
 
     def _iterate(
         self,
