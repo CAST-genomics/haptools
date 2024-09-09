@@ -1278,9 +1278,14 @@ class GenotypesPLINK(GenotypesVCF):
         indices_: npt.NDArray,
     ):
         """
-        A helper method for :py:meth:`~.GenotypesPLINK.read` that globalizes the
-        genotype matrix in :py:attr:`~.GenotypesPLINK.data` so that it can be used
-        in multiprocessing
+        A helper method for :py:meth:`~.GenotypesPLINK.read` that globalizes certain
+        variables so that they can be used in multiprocessing. This method should only
+        be called in each parallel child/worker process and not the parent process to
+        avoid polluting the global namespace.
+
+        This is preferable to passing these values as arguments to the
+        :py:meth:`~.GenotypesPLINK._read_chunk` method because, otherwise, python will
+        try to pickle the arguments
 
         Parameters
         ----------
