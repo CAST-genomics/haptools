@@ -5,7 +5,6 @@ from csv import reader
 from pathlib import Path
 from logging import Logger
 from typing import Iterator
-import multiprocessing as mpi
 from collections import namedtuple, Counter
 
 import pgenlib
@@ -1271,11 +1270,29 @@ class GenotypesPLINK(GenotypesVCF):
             )
         return indices
 
-    def _read_chunk(
+    def _init_mp(
         self,
-        start: int,
-        end: int,
+        sample_idxs_: npt.NDArray,
+        indices_: npt.NDArray,
     ):
+        """
+        A helper method for :py:meth:`~.GenotypesPLINK.read` that globalizes the
+        genotype matrix in :py:attr:`~.GenotypesPLINK.data` so that it can be used
+        in multiprocessing
+
+        Parameters
+        ----------
+        shared_arr: mp.Array
+            The underlying bytes of the matrix in self.data, as a shared-memory Array
+        sample_idxs: npt.NDArray
+            The indices of the samples to read
+        indices: npt.NDArray
+            The indices of the variants to read
+        """
+        global sample_idxs, indices
+        sample_idxs, indices = sample_idxs_, indices_
+
+    def _read_chunk(self, start: int, end: int):
         """
         Read a single chunk of a PGEN file between the provided start and end coords.
         Store the result in :py:attr:`~.GenotypesPLINK.data`. This is a helper function
@@ -1289,11 +1306,11 @@ class GenotypesPLINK(GenotypesVCF):
             The index of the last variant of the chunk
         """
         size = end - start
-        num_samps = len(self.samples)
+        mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         with pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=self._sample_idxs, pvar=pv
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         ) as pgen:
             self.log.debug(f"Loading from variant #{start} to variant #{end}")
             # the genotypes start out as a simple 2D array with twice the number
@@ -1301,8 +1318,8 @@ class GenotypesPLINK(GenotypesVCF):
             if not self._prephased:
                 # ...each column is a different chromosomal strand
                 try:
-                    data = np.empty((size, num_samps * 2), dtype=np.int32)
-                    phasing = np.zeros((size, num_samps), dtype=np.uint8)
+                    data = np.empty((size, mat_len[0] * 2), dtype=np.int32)
+                    phasing = np.zeros((size, mat_len[0]), dtype=np.uint8)
                 except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
                         "You don't have enough memory to load these genotypes! Try"
@@ -1312,7 +1329,7 @@ class GenotypesPLINK(GenotypesVCF):
                 # has not been implemented yet, so we need to read the genotypes
                 # in sample-major mode and then transpose them
                 pgen.read_alleles_and_phasepresent_list(
-                    self._variant_idxs[start:end], data, phasing
+                    indices[start:end], data, phasing
                 )
                 # missing alleles will have a value of -9
                 # let's make them be -1 to be consistent with cyvcf2
@@ -1320,17 +1337,17 @@ class GenotypesPLINK(GenotypesVCF):
                 # add phase info, then transpose the GT matrix so that samples are
                 # rows and variants are columns
                 self.data[:, start:end, :2] = data.reshape(
-                    (size, num_samps, 2)
+                    (size, mat_len[0], 2)
                 ).transpose((1, 0, 2))
                 self.data[:, start:end, 2] = phasing.transpose()
             else:
                 # ...each row is a different chromosomal strand
-                data = np.empty((size, num_samps * 2), dtype=np.int32)
-                pgen.read_alleles_list(self._variant_idxs[start:end], data)
+                data = np.empty((size, mat_len[0] * 2), dtype=np.int32)
+                pgen.read_alleles_list(indices[start:end], data)
                 # missing alleles will have a value of -9
                 # let's make them be -1 to be consistent with cyvcf2
                 data[data == -9] = -1
-                self.data[:, start:end] = data.reshape((size, num_samps, 2)).transpose(
+                self.data[:, start:end] = data.reshape((size, mat_len[0], 2)).transpose(
                     (1, 0, 2)
                 )
 
@@ -1358,7 +1375,7 @@ class GenotypesPLINK(GenotypesVCF):
         """
         super(Genotypes, self).read()
 
-        self._sample_idxs = self.read_samples(samples)
+        sample_idxs = self.read_samples(samples)
         pvar_fname = bytes(str(self.fname.with_suffix(".pvar")), "utf8")
         try:
             pv = pgenlib.PvarReader(pvar_fname)
@@ -1374,7 +1391,7 @@ class GenotypesPLINK(GenotypesVCF):
         num_cpus = mpi.cpu_count()
 
         with pgenlib.PgenReader(
-            bytes(str(self.fname), "utf8"), sample_subset=self._sample_idxs, pvar=pv
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
         ) as pgen:
             # how many variants to load?
             if variants is not None:
@@ -1384,38 +1401,29 @@ class GenotypesPLINK(GenotypesVCF):
                 max_variants = pgen.get_variant_ct()
             else:
                 max_variants = min(max_variants, pgen.get_variant_ct())
-        self._variant_idxs = self.read_variants(region, variants, max_variants)
-        mat_shape = (
-            len(self._sample_idxs),
-            len(self._variant_idxs),
-            (2 + (not self._prephased)),
-        )
+        indices = self.read_variants(region, variants, max_variants)
+        mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
         self.log.debug(
-            f"Allocating memory for genotype matrix of shape {mat_shape} and "
-            "dtype np.uint8"
+            f"Allocating memory for genotype matrix of shape {mat_len} and dtype uint8"
         )
         # initialize the data array
-        self.data = np.frombuffer(
-            mpi.Array("B", int(np.prod(mat_shape))).get_obj(),
-            dtype=np.uint8,
-        ).reshape(mat_shape)
+        self.data = np.empty(mat_len, dtype=np.uint8)
         # how many variants should we load at once?
         chunks = self.chunk_size
-        if chunks is None or chunks > mat_shape[1]:
-            chunks = mat_shape[1]
+        if chunks is None or chunks > mat_len[1]:
+            chunks = mat_len[1]
         self.log.info(
-            f"Reading genotypes from {mat_shape[0]} samples and "
-            f"{mat_shape[1]} variants in chunks of size {chunks} variants"
+            f"Reading genotypes from {mat_len[0]} samples and "
+            f"{mat_len[1]} variants in chunks of size {chunks} variants"
         )
         # iterate through chunks of variants
         chunks_args = [
-            (start, min(start + chunks, mat_shape[1]))
-            for start in range(0, mat_shape[1], chunks)
+            (start, min(start + chunks, mat_len[1]))
+            for start in range(0, mat_len[1], chunks)
         ]
+        self._init_mp(sample_idxs, indices)
         for chunk_args in chunks_args:
             self._read_chunk(*chunk_args)
-        # clean up variables that shouldn't be accessed anymore
-        del self._sample_idxs, self._variant_idxs
 
     def _iterate(
         self,
