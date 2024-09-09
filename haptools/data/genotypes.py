@@ -1,6 +1,7 @@
 from __future__ import annotations
 import re
 import gc
+import os
 from csv import reader
 from pathlib import Path
 from logging import Logger
@@ -1400,6 +1401,11 @@ class GenotypesPLINK(GenotypesVCF):
         chunks = self.chunk_size
         if chunks is None or chunks > mat_len[1]:
             chunks = mat_len[1]
+        # adjust chunk size to maximize CPU usage
+        num_cpus = len(os.sched_getaffinity(os.getpid()))
+        if np.ceil(mat_len[1]/chunks) < num_cpus and num_cpus <= mat_len[1]:
+            chunks = int(mat_len[1]/num_cpus)
+            self.log.info(f"Changing chunk size to maximize usage of {num_cpus} CPUs")
         self.log.info(
             f"Reading genotypes from {mat_len[0]} samples and "
             f"{mat_len[1]} variants in chunks of size {chunks} variants"
@@ -1410,9 +1416,9 @@ class GenotypesPLINK(GenotypesVCF):
             for start in range(0, mat_len[1], chunks)
         ]
         with mp.Pool(
+            processes=num_cpus,
             initializer=self._init_mp,
             initargs=(shared_arr, sample_idxs, indices),
-            processes=len(chunks_args),
         ) as pool:
             pool.starmap(self._read_chunk, chunks_args)
 
