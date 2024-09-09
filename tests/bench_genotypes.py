@@ -28,7 +28,7 @@ from haptools.data import (
 # COMMAND FOR GENERATING UKB PLOT:
 # tests/bench_genotypes.py \
 # --default-variants 18472 --default-samples 487409 --intervals-variants 1 80 4 \
-# --intervals-samples 1 80 4 -o plot.png -a results.pickle
+# --intervals-samples 1 80 4 -o plot.pdf -a results.pickle
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
