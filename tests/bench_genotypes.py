@@ -29,7 +29,7 @@ from haptools.data import (
 # tests/bench_genotypes.py \
 # --default-variants 18472 --default-samples 487409 --intervals-variants 1 80 4 \
 # --intervals-samples 1 80 4 -o plot.pdf -a results.pickle
-# (allocate an hour, 4 CPUs, and 4GB of RAM)
+# (allocate 30 mins, 4 CPUs, and 4GB of RAM)
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -492,9 +492,11 @@ def main(
         )
     ax_samples.set_xlabel(f"Number of samples\nnum_variants = {DEFAULT_VARIANTS}")
     ax_samples.set_ylim(ymin=0)
-    for file_type in FILE_TYPES.keys() and results["variants"][file_type]:
+    for file_type in FILE_TYPES.keys():
         x_vals = INTERVALS_VARIANTS
         y_vals = results["variants"][file_type]
+        if not len(y_vals):
+            continue
         # fit a line to each so that we can report the slope
         slope = np.polyfit(x_vals, y_vals, 1)[0]
         ax_variants.plot(
