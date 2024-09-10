@@ -29,6 +29,7 @@ from haptools.data import (
 # tests/bench_genotypes.py \
 # --default-variants 18472 --default-samples 487409 --intervals-variants 1 80 4 \
 # --intervals-samples 1 80 4 -o plot.pdf -a results.pickle
+# (allocate an hour and 100 GB of RAM)
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -198,27 +199,27 @@ def create_sample_files(gts, intervals, num_vars, plink2: Path = None):
     return sample_dir
 
 
-def time_vcf(vcf, max_variants, chunk_size=500):
+def time_vcf(vcf, max_variants, chunk_size=None):
     GenotypesVCF(vcf).read(max_variants=max_variants)
 
 
-def time_vcf_tr(vcf, max_variants, chunk_size=500):
+def time_vcf_tr(vcf, max_variants, chunk_size=None):
     GenotypesTR(vcf, vcftype="hipstr").read(max_variants=max_variants)
 
 
-def time_plink(pgen, max_variants, chunk_size=500):
+def time_plink(pgen, max_variants, chunk_size=None):
     GenotypesPLINK(pgen).read(max_variants=max_variants)
 
 
-def time_plink_tr(pgen, max_variants, chunk_size=500):
+def time_plink_tr(pgen, max_variants, chunk_size=None):
     GenotypesPLINKTR(pgen, vcftype="hipstr").read(max_variants=max_variants)
 
 
-def time_plink_chunk(pgen, max_variants, chunk_size=500):
+def time_plink_chunk(pgen, max_variants, chunk_size=None):
     GenotypesPLINK(pgen, chunk_size=chunk_size).read(max_variants=max_variants)
 
 
-def time_plink_chunk_tr(pgen, max_variants, chunk_size=500):
+def time_plink_chunk_tr(pgen, max_variants, chunk_size=None):
     GenotypesPLINKTR(pgen, chunk_size=chunk_size, vcftype="hipstr").read(
         max_variants=max_variants
     )
@@ -444,7 +445,7 @@ def main(
             )
             results[arg][file_type] = []
             for val in item_iter:
-                chunk_size = 500
+                chunk_size = None
                 if file_type == "vcf":
                     func = time_vcf_tr if plink2 else time_vcf
                     file = genotype_dir / f"{val}.vcf"
@@ -456,6 +457,8 @@ def main(
                     file = genotype_dir / f"{val}.pgen"
                     if file_type.startswith("chunked"):
                         chunk_size = int(file_type[len("chunked") :])
+                        if arg == "variants" and chunk_size > val:
+                            continue
                 else:
                     continue
                 times = np.empty(REPS, dtype=np.float64)
