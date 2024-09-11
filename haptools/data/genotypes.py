@@ -1425,7 +1425,7 @@ class GenotypesPLINK(GenotypesVCF):
         # adjust chunk size to maximize CPU usage
         num_cpus = len(os.sched_getaffinity(os.getpid()))
         if np.ceil(mat_len[1]/chunks) < num_cpus and num_cpus <= mat_len[1]:
-            chunks = np.ceil(mat_len[1]/num_cpus)
+            chunks = int(np.ceil(mat_len[1]/num_cpus))
             self.log.info(f"Changing chunk size to maximize usage of {num_cpus} CPUs")
         self.log.info(
             f"Reading genotypes from {mat_len[0]} samples and "

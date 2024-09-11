@@ -453,10 +453,10 @@ def main(
                     if file_type == "pgen":
                         func = time_plink_tr if plink2 else time_plink
                     else:
-                        funct = time_plink_chunk_tr if plink2 else time_plink_chunk
+                        func = time_plink_chunk_tr if plink2 else time_plink_chunk
                     file = genotype_dir / f"{val}.pgen"
                     if file_type.startswith("chunked"):
-                        chunk_size = int(file_type[len("chunked") :])
+                        chunk_size = int(file_type[len("chunked"):])
                         if arg == "variants" and chunk_size > val:
                             continue
                 else:
