@@ -6,6 +6,7 @@ from csv import reader
 from pathlib import Path
 from logging import Logger
 from typing import Iterator
+from itertools import chain
 import multiprocessing as mp
 from collections import namedtuple, Counter
 
@@ -1424,17 +1425,23 @@ class GenotypesPLINK(GenotypesVCF):
             chunks = mat_len[1]
         # adjust chunk size to maximize CPU usage
         num_cpus = len(os.sched_getaffinity(os.getpid()))
-        if np.ceil(mat_len[1]/chunks) < num_cpus and num_cpus <= mat_len[1]:
+        if np.ceil(mat_len[1]/chunks) < num_cpus:
             chunks = int(np.ceil(mat_len[1]/num_cpus))
             self.log.info(f"Changing chunk size to maximize usage of {num_cpus} CPUs")
         self.log.info(
             f"Reading genotypes from {mat_len[0]} samples and "
             f"{mat_len[1]} variants in chunks of size {chunks} variants"
         )
+        # if the chunk size doesn't perfectly divide the variants, at what point should
+        # we decrease the chunk size by 1?
+        chunk_thresh = chunks*(mat_len[1] % num_cpus)
+        chunk_starts = range(0, chunk_thresh, chunks)
+        if chunks-1 > 0:
+            chunk_starts = chain(chunk_starts, range(chunk_thresh, mat_len[1], chunks-1))
         # iterate through chunks of variants
         chunks_args = [
             (start, min(start + chunks, mat_len[1]))
-            for start in range(0, mat_len[1], chunks)
+            for start in chunk_starts
         ]
         with mp.Pool(
             processes=num_cpus,
