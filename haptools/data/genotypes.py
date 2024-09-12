@@ -1443,12 +1443,13 @@ class GenotypesPLINK(GenotypesVCF):
             (start, min(start + chunks, mat_len[1]))
             for start in chunk_starts
         ]
+        mp_chunksize = int(np.ceil(len(chunks_args)/num_cpus))
         with mp.Pool(
             processes=num_cpus,
             initializer=self._init_mp,
             initargs=(shared_arr, sample_idxs, indices),
         ) as pool:
-            pool.starmap(self._read_chunk, chunks_args)
+            pool.starmap(self._read_chunk, chunks_args, chunksize=mp_chunksize)
 
     def _iterate(
         self,
