@@ -403,10 +403,10 @@ def main(
     FILE_TYPES = {
         "vcf": "VCF",
         "pgen": "PLINK2",
-        "chunked200": "PLINK2 chunk_size: 200",
-        "chunked400": "PLINK2 chunk_size: 400",
-        "chunked600": "PLINK2 chunk_size: 600",
-        "chunked800": "PLINK2 chunk_size: 800",
+        "chunked3000": "PLINK2 chunk_size: 3000",
+        "chunked5000": "PLINK2 chunk_size: 5000",
+        "chunked7000": "PLINK2 chunk_size: 7000",
+        "chunked9000": "PLINK2 chunk_size: 9000",
     }
 
     # create the files we will try to load if they haven't been created already
