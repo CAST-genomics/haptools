@@ -1285,9 +1285,9 @@ class GenotypesPLINK(GenotypesVCF):
 
     def _init_mp(
         self,
-        shared_arr_: mp.Array,
         sample_idxs_: npt.NDArray,
         indices_: npt.NDArray,
+        shared_arr_: mp.Array = None,
     ):
         """
         A helper method for :py:meth:`~.GenotypesPLINK.read` that globalizes certain
@@ -1326,7 +1326,11 @@ class GenotypesPLINK(GenotypesVCF):
         """
         size = end - start
         mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
-        self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
+        if self.num_cpus > 1:
+            shd_data = shared_arr.get_obj()
+            self.data = np.frombuffer(shd_data, dtype=np.uint8).reshape(mat_len)
+        else:
+            self.data = np.empty(mat_len, dtype=np.uint8)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         with pgenlib.PgenReader(
@@ -1446,7 +1450,7 @@ class GenotypesPLINK(GenotypesVCF):
         # we decrease the chunk size by 1?
         chunk_thresh = chunks*(mat_len[1] % num_cpus)
         chunk_starts = range(0, chunk_thresh, chunks)
-        if chunks-1 > 0:
+        if chunks - 1 > 0:
             chunk_starts = chain(chunk_starts, range(chunk_thresh, mat_len[1], chunks-1))
         # iterate through chunks of variants
         chunks_args = [
@@ -1457,7 +1461,7 @@ class GenotypesPLINK(GenotypesVCF):
         with mp.Pool(
             processes=num_cpus,
             initializer=self._init_mp,
-            initargs=(shared_arr, sample_idxs, indices),
+            initargs=(sample_idxs, indices, shared_arr),
         ) as pool:
             pool.starmap(self._read_chunk, chunks_args, chunksize=mp_chunksize)
 
