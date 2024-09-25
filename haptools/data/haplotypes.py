@@ -1451,11 +1451,9 @@ class Haplotypes(Data):
         hps.index(force=True)
         if not inplace:
             return hps
-    
+
     @classmethod
-    def merge(
-        cls, objs: tuple[Haplotypes], **kwargs
-    ) -> Haplotypes:
+    def merge(cls, objs: tuple[Haplotypes], **kwargs) -> Haplotypes:
         """
         Merge Haplotypes objects with different sets of haplotypes together
 
