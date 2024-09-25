@@ -1710,6 +1710,15 @@ class TestHaplotypes:
 
         test_hap1.fname.unlink()
 
+    def test_merge_haps(self):
+        hap1 = Haplotypes.load(DATADIR / "basic.hap")
+        hap2 = self._get_dummy_haps()
+        hap1_vals = hap1.data.values()
+        hap2_vals = hap2.data.values()
+        hps = Haplotypes.merge((hap1, hap2), fname=None)
+        for hp in hps.data.values():
+            assert (hp in hap1_vals) or (hp in hap2_vals)
+
 
 class TestGenotypesVCF:
     def _get_fake_genotypes_refalt(self, with_phase=False):
