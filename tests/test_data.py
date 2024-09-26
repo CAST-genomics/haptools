@@ -1710,13 +1710,18 @@ class TestHaplotypes:
         test_hap1.fname.unlink()
 
     def test_merge(self):
-        hap1 = Haplotypes.load(DATADIR / "basic.hap")
-        hap2 = Haplotypes.load(DATADIR / "example.hap.gz")
-        hap1_vals = hap1.data.values()
-        hap2_vals = hap2.data.values()
-        hps = Haplotypes.merge((hap1, hap2), fname="new.hap")
-        for hp in hps.data.values():
-            assert (hp in hap1_vals) or (hp in hap2_vals)
+        haps1 = Haplotypes.load(DATADIR / "basic.hap")
+        haps2 = Haplotypes.load(DATADIR / "example.hap.gz")
+        # should raise value error because indices aren't distinct
+        with pytest.raises(ValueError) as info:
+            Haplotypes.merge((haps1, haps2), fname="new.hap")
+        haps2 = Haplotypes.load(DATADIR / "simple.hap")
+        haplotypes = Haplotypes.merge((haps1, haps2), fname="new.hap")
+        # now check that they got merged
+        haps1_vals = haps1.data.values()
+        haps2_vals = haps2.data.values()
+        for hp in haplotypes.data.values():
+            assert (hp in haps1_vals) or (hp in haps2_vals)
 
 
 class TestGenotypesVCF:
