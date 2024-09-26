@@ -365,7 +365,7 @@ You can also merge multiple Haplotypes objects using the ``merge()`` class metho
 
 	haps1 = data.Haplotypes.load('tests/data/basic.hap')
 	haps2 = data.Haplotypes.load('tests/data/example.hap.gz')
-    haplotypes = Haplotypes.merge((hap1, hap2), fname='new.hap')
+	haplotypes = Haplotypes.merge((hap1, hap2), fname='new.hap')
 
 Haplotype
 +++++++++
