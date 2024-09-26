@@ -1373,11 +1373,10 @@ class TestHaplotypes:
         assert expected == haps.data
 
     def test_subset(self):
-        expected = Haplotypes(DATADIR / "basic.hap")
+        expected = Haplotypes.load(DATADIR / "basic.hap")
         expected.read(haplotypes={"chr21.q.3365*1"})
 
-        haps = Haplotypes(DATADIR / "basic.hap")
-        haps.read()
+        haps = Haplotypes.load(DATADIR / "basic.hap")
         haps = haps.subset(haplotypes=("chr21.q.3365*1",))
 
         assert len(expected.data) == len(haps.data)
@@ -1710,12 +1709,12 @@ class TestHaplotypes:
 
         test_hap1.fname.unlink()
 
-    def test_merge_haps(self):
+    def test_merge(self):
         hap1 = Haplotypes.load(DATADIR / "basic.hap")
-        hap2 = self._get_dummy_haps()
+        hap2 = Haplotypes.load(DATADIR / "example.hap.gz")
         hap1_vals = hap1.data.values()
         hap2_vals = hap2.data.values()
-        hps = Haplotypes.merge((hap1, hap2), fname=None)
+        hps = Haplotypes.merge((hap1, hap2), fname='new.hap')
         for hp in hps.data.values():
             assert (hp in hap1_vals) or (hp in hap2_vals)
 
