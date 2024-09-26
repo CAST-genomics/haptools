@@ -1714,7 +1714,7 @@ class TestHaplotypes:
         hap2 = Haplotypes.load(DATADIR / "example.hap.gz")
         hap1_vals = hap1.data.values()
         hap2_vals = hap2.data.values()
-        hps = Haplotypes.merge((hap1, hap2), fname='new.hap')
+        hps = Haplotypes.merge((hap1, hap2), fname="new.hap")
         for hp in hps.data.values():
             assert (hp in hap1_vals) or (hp in hap2_vals)
 
