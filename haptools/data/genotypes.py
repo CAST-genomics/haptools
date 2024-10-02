@@ -203,9 +203,11 @@ class Genotypes(Data):
                 "Failed to load genotypes. If you specified a region, check that the"
                 " contig name matches! For example, double-check the 'chr' prefix."
             )
-        # transpose the GT matrix so that samples are rows and variants are columns
-        self.log.info(f"Transposing genotype matrix of size {self.data.shape}")
-        self.data = self.data.transpose((1, 0, 2))
+            self.data = np.empty(shape=(0, 0, 0), dtype=self.data.dtype)
+        else:
+            # transpose the GT matrix so that samples are rows and variants are columns
+            self.log.info(f"Transposing genotype matrix of size {self.data.shape}")
+            self.data = self.data.transpose((1, 0, 2))
 
     def _variant_arr(self, record: Variant):
         """
