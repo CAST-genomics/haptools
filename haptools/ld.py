@@ -38,9 +38,9 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float:
     Parameters
     ----------
     arrA: npt.NDArray
-        The first numpy array
+        The first 1D (or 2D) numpy array
     arrB: npt.NDArray
-        The second numpy array
+        The second 1D (or 2D) numpy array
 
     Returns
     -------
