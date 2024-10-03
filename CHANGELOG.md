@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/CAST-genomics/haptools/compare/v0.4.2...v0.5.0) (2024-10-02)
+
+
+### Features
+
+* support for Apple M1 silicon ([#255](https://github.com/CAST-genomics/haptools/issues/255)) ([3f055ac](https://github.com/CAST-genomics/haptools/commit/3f055acdb6f4effc58fde6dcff993654dbf73985))
+* support for numpy 2.0 ([#250](https://github.com/CAST-genomics/haptools/issues/250)) ([69192d0](https://github.com/CAST-genomics/haptools/commit/69192d0a5fc7dcd5ca15260b4505306ff742bf1b))
+
+
+### Bug Fixes
+
+* issue warnings instead of errors when trying to check the header of hap files and issue error when output of transform is not provided to simphenotype ([#254](https://github.com/CAST-genomics/haptools/issues/254)) ([0226653](https://github.com/CAST-genomics/haptools/commit/02266539cb5d242497658e9fffec3aa7139fe8ee))
+* load an empty array if there are no variants in `GenotypesVCF.read` ([#257](https://github.com/CAST-genomics/haptools/issues/257)) ([9eedc3a](https://github.com/CAST-genomics/haptools/commit/9eedc3afca202c0dd83bcce9cef34f339df83118))
+
 ## [0.4.2](https://github.com/CAST-genomics/haptools/compare/v0.4.1...v0.4.2) (2024-06-14)
 
 
