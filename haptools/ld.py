@@ -32,18 +32,21 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float:
     """
     Compute the Pearson correlation coefficient between two vectors (1D numpy arrays)
 
+    If 2D arrays are given instead, the rows will be treated as samples and the columns
+    as variants
+
     Parameters
     ----------
     arrA: npt.NDArray
-        The first 1D numpy array
+        The first numpy array
     arrB: npt.NDArray
-        The second 1D numpy array
+        The second numpy array
 
     Returns
     -------
     The LD between the genotypes in arrA and the genotypes in arrB
     """
-    return np.corrcoef(arrA, arrB)[1, 0]
+    return np.corrcoef(arrA, arrB, rowvar=False)[arrA.shape[1]:, :arrA.shape[1]]
 
 
 def calc_ld(
