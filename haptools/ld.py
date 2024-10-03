@@ -28,9 +28,9 @@ class Haplotype(HaplotypeBase):
     )
 
 
-def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float:
+def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float|npt.NDArray:
     """
-    Compute the Pearson correlation coefficient between two vectors (1D numpy arrays)
+    Compute the Pearson correlation coefficient (LD) between two vectors (1D arrays)
 
     If 2D arrays are given instead, the rows will be treated as samples and the columns
     as variants
@@ -45,8 +45,18 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float:
     Returns
     -------
     The LD between the genotypes in arrA and the genotypes in arrB
+
+    If either arrA or arrB is 2D, then the return value will be an array instead. In
+    that case, the rows will correspond with the variants in arrA and the columns will
+    correspond with the variants in arrB.
     """
-    return np.corrcoef(arrA, arrB, rowvar=False)[arrA.shape[1]:, :arrA.shape[1]]
+    for arr in (arrA, arrB):
+        if arr.ndim == 1:
+            arr = arr[:, np.newaxis]
+    ld_mat = np.corrcoef(arrA, arrB, rowvar=False)[arrA.shape[1]:, :arrA.shape[1]]
+    if arrA.shape[1] == 1 and arrB.shape == 1:
+        return ld_mat[0, 0]
+    return ld_mat
 
 
 def calc_ld(
