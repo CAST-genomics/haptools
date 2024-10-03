@@ -7,7 +7,7 @@
 	"features": {
 		"ghcr.io/rocker-org/devcontainer-features/miniforge:1": {
 			"version": "latest",
-			"variant": "Mambaforge"
+			"variant": "Miniforge"
 		}
 	},
 

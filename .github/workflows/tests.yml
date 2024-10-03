@@ -31,11 +31,10 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Setup Mambaforge
+      - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: haptools
-          miniforge-variant: Mambaforge
           auto-activate-base: false
           miniforge-version: latest
           use-mamba: true
