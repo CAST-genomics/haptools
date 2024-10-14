@@ -1195,11 +1195,14 @@ class TestHaplotypes:
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR / "basic.hap")
         assert expected == haps.data
+        assert len(haps) == len(expected)
+        assert len(haps.data["chr21.q.3365*1"]) == 4
 
         # also check the indexed file
         # it should be the same
         haps = Haplotypes.load(DATADIR / "basic.hap.gz")
         assert expected == haps.data
+        assert len(haps) == len(expected)
 
     def test_load_no_header(self):
         expected = self._basic_haps()
@@ -1380,11 +1383,10 @@ class TestHaplotypes:
         assert expected == haps.data
 
     def test_subset(self):
-        expected = Haplotypes(DATADIR / "basic.hap")
+        expected = Haplotypes.load(DATADIR / "basic.hap")
         expected.read(haplotypes={"chr21.q.3365*1"})
 
-        haps = Haplotypes(DATADIR / "basic.hap")
-        haps.read()
+        haps = Haplotypes.load(DATADIR / "basic.hap")
         haps = haps.subset(haplotypes=("chr21.q.3365*1",))
 
         assert len(expected.data) == len(haps.data)
@@ -1716,6 +1718,20 @@ class TestHaplotypes:
                 assert line1 == line2
 
         test_hap1.fname.unlink()
+
+    def test_merge(self):
+        haps1 = Haplotypes.load(DATADIR / "basic.hap")
+        haps2 = Haplotypes.load(DATADIR / "example.hap.gz")
+        # should raise value error because indices aren't distinct
+        with pytest.raises(ValueError) as info:
+            Haplotypes.merge((haps1, haps2), fname="new.hap")
+        haps2 = Haplotypes.load(DATADIR / "simple.hap")
+        haplotypes = Haplotypes.merge((haps1, haps2), fname="new.hap")
+        # now check that they got merged
+        haps1_vals = haps1.data.values()
+        haps2_vals = haps2.data.values()
+        for hp in haplotypes.data.values():
+            assert (hp in haps1_vals) or (hp in haps2_vals)
 
 
 class TestGenotypesVCF:

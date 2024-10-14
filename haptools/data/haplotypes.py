@@ -345,6 +345,11 @@ class Haplotype:
     variants: tuple = field(default_factory=tuple, init=False)
     _extras: tuple = field(default=tuple(), init=False, repr=False)
 
+    def __len__(self):
+        if self.variants is not None:
+            return len(self.variants)
+        return 0
+
     @property
     def ID(self):
         """
@@ -772,6 +777,11 @@ class Haplotypes(Data):
         # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.type_ids = None
+
+    def __len__(self):
+        if self.data is not None:
+            return len(self.data)
+        return 0
 
     @classmethod
     def load(
@@ -1451,3 +1461,42 @@ class Haplotypes(Data):
         hps.index(force=True)
         if not inplace:
             return hps
+
+    @classmethod
+    def merge(cls, objs: tuple[Haplotypes], **kwargs) -> Haplotypes:
+        """
+        Merge Haplotypes objects with different sets of haplotypes together
+
+        .. note::
+            The input Haplotype instances are expected to have distinct indices and
+            must all be of the same type
+
+        Parameters
+        ----------
+        objs: tuple[Haplotypes]
+            The objects that should be merged together
+        **kwargs
+            Any parameters to pass to :py:meth:`~.Haplotypes._init__`
+
+        Raises
+        ------
+        ValueError
+            If the set of indices among the haplotypes is not distinct
+
+        Returns
+        -------
+        Haplotypes
+            A new object containing all of the Haplotypes from each input object
+        """
+        hps = cls(**kwargs)
+        hps.data = {}
+        for haps in objs:
+            for hap in haps.data.values():
+                if hap.id in hps.data:
+                    raise ValueError(
+                        "Failed to merge haplotype objects because their indices are "
+                        "not distinct"
+                    )
+                hps.data[hap.id] = hap
+        hps.index()
+        return hps
