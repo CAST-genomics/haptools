@@ -345,6 +345,11 @@ class Haplotype:
     variants: tuple = field(default_factory=tuple, init=False)
     _extras: tuple = field(default=tuple(), init=False, repr=False)
 
+    def __len__(self):
+        if self.variants is not None:
+            return len(self.variants)
+        return 0
+
     @property
     def ID(self):
         """
@@ -772,6 +777,11 @@ class Haplotypes(Data):
         # otherwise, the write() method might create unsorted files
         self.types = {"H": haplotype, "V": variant, "R": repeat}
         self.type_ids = None
+
+    def __len__(self):
+        if self.data is not None:
+            return len(self.data)
+        return 0
 
     @classmethod
     def load(

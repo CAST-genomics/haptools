@@ -1188,11 +1188,14 @@ class TestHaplotypes:
         # can we load this data from the hap file?
         haps = Haplotypes.load(DATADIR / "basic.hap")
         assert expected == haps.data
+        assert len(haps) == len(expected)
+        assert len(haps.data["chr21.q.3365*1"]) == 4
 
         # also check the indexed file
         # it should be the same
         haps = Haplotypes.load(DATADIR / "basic.hap.gz")
         assert expected == haps.data
+        assert len(haps) == len(expected)
 
     def test_load_no_header(self):
         expected = self._basic_haps()
