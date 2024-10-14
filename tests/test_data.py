@@ -189,6 +189,13 @@ class TestGenotypes:
         np.testing.assert_allclose(gts.data, expected)
         assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
 
+        # what happens if we ask for a region with no variants?
+        gts = Genotypes(DATADIR / "simple.vcf.gz")
+        gts.read(region="1:10125-10140")
+        expected_empty = np.empty((0, 0, 0), dtype=np.uint8)
+        np.testing.assert_allclose(gts.data, expected_empty)
+        assert gts.samples == ("HG00096", "HG00097", "HG00099", "HG00100", "HG00101")
+
         # subset for just the samples we want
         expected = expected[[1, 3]]
 

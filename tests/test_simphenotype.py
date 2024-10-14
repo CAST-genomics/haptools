@@ -677,9 +677,10 @@ class TestSimPhenotypeCLI:
         gt_file = DATADIR / "simple_tr.vcf"
         hp_file = DATADIR / "simple_tr.hap"
 
+        # simulate from a mix of one haplotype and one repeat
         cmd = (
             f"simphenotype --repeats {gt_file} --id 1:10114:GTT "
-            f"{tmp_transform} {hp_file}"
+            f"--id H1 {tmp_transform} {hp_file}"
         )
         runner = CliRunner()
         result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
