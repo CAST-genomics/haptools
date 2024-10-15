@@ -108,3 +108,37 @@ You can use the :ref:`data API <api-data>` and the :ref:`simphenotype API <api-h
         hp.data[ID].variants = (data.Variant(start=pos, end=end, id=ID, allele=allele),)
 
     hp.write()
+
+Converting a ``.bp`` file into a ``.hanc`` per-site ancestry file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+You can obtain the ancestry of a list of variants directly from a ``.bp`` file using the :ref:`data API <api-data>`.
+
+This example demonstrates how to create a ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_.
+
+.. code-block:: python
+
+    import numpy as np
+    from pathlib import Path
+    from haptools import data
+
+    output = Path("output.hanc")
+
+    # load breakpoints from the bp file and encode each population label as an int
+    breakpoints = data.Breakpoints.load("tests/data/simple.bp")
+    breakpoints.encode()
+
+    # you can either create the variants array manually or load the variants array
+    # from a VCF/PGEN file
+    variants = np.array(
+        [("1", 10114), ("1", 10116), ("1", 10117), ("1", 10122)],
+        dtype = [("chrom", "U10"), ("pos", np.uint32)],
+    )
+    variants = data.Genotypes.load("tests/data/simple.vcf").variants[["chrom", "pos"]]
+    variants = data.GenotypesPLINK.load("tests/data/simple.pgen").variants[["chrom", "pos"]]
+
+    # create array of per-site ancestry values
+    arr = breakpoints.population_array(variants=variants)
+    arr = arr.transpose((0, 2, 1)).reshape(-1, arr.shape[1])
+
+    # write to haplotype ancestry file
+    np.savetxt(output, arr, fmt="%i", delimiter="")
