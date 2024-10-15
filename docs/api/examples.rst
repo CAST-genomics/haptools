@@ -126,18 +126,19 @@ This example demonstrates how to create a ``.hanc`` per-site ancestry file as de
     # load breakpoints from the bp file and encode each population label as an int
     breakpoints = data.Breakpoints.load("tests/data/simple.bp")
     breakpoints.encode()
+    print(breakpoints.labels)
 
-    # you can either create the variants array manually or load the variants array
+    # you can either create the SNPs array manually or load the SNPs array
     # from a VCF/PGEN file
-    variants = np.array(
+    snps = np.array(
         [("1", 10114), ("1", 10116), ("1", 10117), ("1", 10122)],
-        dtype = [("chrom", "U10"), ("pos", np.uint32)],
+        dtype=[("chrom", "U10"), ("pos", np.uint32)],
     )
-    variants = data.Genotypes.load("tests/data/simple.vcf").variants[["chrom", "pos"]]
-    variants = data.GenotypesPLINK.load("tests/data/simple.pgen").variants[["chrom", "pos"]]
+    snps = data.Genotypes.load("tests/data/simple.vcf").variants[["chrom", "pos"]]
+    snps = data.GenotypesPLINK.load("tests/data/simple.pgen").variants[["chrom", "pos"]]
 
     # create array of per-site ancestry values
-    arr = breakpoints.population_array(variants=variants)
+    arr = breakpoints.population_array(variants=snps)
     arr = arr.transpose((0, 2, 1)).reshape(-1, arr.shape[1])
 
     # write to haplotype ancestry file
