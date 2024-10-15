@@ -113,7 +113,10 @@ Converting a ``.bp`` file into a ``.hanc`` per-site ancestry file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You can obtain the ancestry of a list of variants directly from a ``.bp`` file using the :ref:`data API <api-data>`.
 
-This example demonstrates how to create a ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_.
+This example demonstrates how to create a ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_:
+
+.. include:: ../../tests/data/simple.hanc
+  :literal:
 
 .. code-block:: python
 
