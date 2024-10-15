@@ -2241,6 +2241,7 @@ class TestDocExamples:
 
         # create array of per-site ancestry values
         arr = breakpoints.population_array(variants=snps)
+        # reshape so columns are haplotypes and variants are rows
         arr = arr.transpose((0, 2, 1)).reshape(-1, arr.shape[1])
 
         # write to haplotype ancestry file

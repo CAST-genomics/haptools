@@ -111,7 +111,7 @@ You can use the :ref:`data API <api-data>` and the :ref:`simphenotype API <api-h
 
 Converting a ``.bp`` file into a ``.hanc`` per-site ancestry file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You can obtain the ancestry of a list of variants directly from a ``.bp`` file using the :ref:`data API <api-data>`.
+You can obtain the ancestry of a list of variants directly from a ``.bp`` file using the :ref:`data API <api-data-bp2anc>`.
 
 This example demonstrates how to create a ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_:
 
@@ -142,6 +142,7 @@ This example demonstrates how to create a ``.hanc`` per-site ancestry file as de
 
     # create array of per-site ancestry values
     arr = breakpoints.population_array(variants=snps)
+    # reshape so columns are haplotypes and variants are rows
     arr = arr.transpose((0, 2, 1)).reshape(-1, arr.shape[1])
 
     # write to haplotype ancestry file
