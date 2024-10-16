@@ -1236,7 +1236,8 @@ class GenotypesPLINK(GenotypesVCF):
         if variants is not None:
             max_variants = len(variants)
         if max_variants is None:
-            raise ValueError("Provide either the variants or max_variants parameter!")
+            p = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+            max_variants = p.get_variant_ct()
         # first, preallocate the array and the indices of each variant
         self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
         indices = np.empty((max_variants,), dtype=np.uint32)

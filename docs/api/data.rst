@@ -636,6 +636,8 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 	for sample, blocks in breakpoints.__iter__(samples={"HG00097", "HG00099"}):
 	    print(sample, blocks)
 
+.. _api-data-bp2anc:
+
 Obtaining ancestral labels for a list of positions
 **************************************************
 In the end, we're usually only interested in the ancestral labels of a set of variant positions, as a matrix of values. The ``population_array()`` method generates a numpy array denoting the ancestral label of each sample for each variant you specify.
