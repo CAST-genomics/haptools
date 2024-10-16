@@ -113,7 +113,11 @@ Converting a ``.bp`` file into a ``.hanc`` per-site ancestry file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You can obtain the ancestry of a list of variants directly from a ``.bp`` file using the :ref:`data API <api-data-bp2anc>`.
 
-This example demonstrates how to create a ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_:
+**Input:**
+* Breakpoints in a ``.bp`` file
+* A list of variants in a :ref:`a PLINK2 PVAR file <formats-genotypesplink>`
+
+**Output:** A ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_:
 
 .. include:: ../../tests/data/simple.hanc
   :literal:
@@ -131,18 +135,15 @@ This example demonstrates how to create a ``.hanc`` per-site ancestry file as de
     breakpoints.encode()
     print(breakpoints.labels)
 
-    # you can either create the SNPs array manually or load the SNPs array
-    # from a VCF/PGEN file
-    snps = np.array(
-        [("1", 10114), ("1", 10116), ("1", 10117), ("1", 10122)],
-        dtype=[("chrom", "U10"), ("pos", np.uint32)],
-    )
-    snps = data.Genotypes.load("tests/data/simple.vcf").variants[["chrom", "pos"]]
-    snps = data.GenotypesPLINK.load("tests/data/simple.pgen").variants[["chrom", "pos"]]
+    # load the SNPs array from a PVAR file
+    snps = data.GenotypesPLINK("tests/data/simple.pgen")
+    snps.read_variants()
+    snps = snps.variants[["chrom", "pos"]]
 
     # create array of per-site ancestry values
     arr = breakpoints.population_array(variants=snps)
-    # reshape so rows are haplotypes and columns are variants
+    # reshape from n x p x 2 to n*2 x p
+    # so rows are haplotypes and columns are variants
     arr = arr.transpose((0, 2, 1)).reshape(-1, arr.shape[1])
 
     # write to haplotype ancestry file
