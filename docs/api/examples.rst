@@ -114,10 +114,11 @@ Converting a ``.bp`` file into a ``.hanc`` per-site ancestry file
 You can obtain the ancestry of a list of variants directly from a ``.bp`` file using the :ref:`data API <api-data-bp2anc>`.
 
 **Input:**
+
 * Breakpoints in a :ref:`.bp file <formats-breakpoints>`
 * A list of variants in a :ref:`a PLINK2 PVAR file <formats-genotypesplink>`
 
-**Output:** A ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_:
+**Output:** An ``.hanc`` per-site ancestry file as described in `the admix-simu documentation <https://github.com/williamslab/admix-simu/tree/master?tab=readme-ov-file#per-site-ancestry-values>`_:
 
 .. include:: ../../tests/data/simple.hanc
   :literal:
