@@ -2221,3 +2221,31 @@ class TestDocExamples:
             with open(DATADIR / "apoe.hap") as expected:
                 assert hp_file.read() == expected.read()
         hp.fname.unlink()
+
+    def test_bp2anc(self):
+        output = Path("output.hanc")
+
+        # load breakpoints from the bp file and encode each population label as an int
+        breakpoints = Breakpoints.load(DATADIR / "simple.bp")
+        breakpoints.encode()
+        # print(breakpoints.labels)
+
+        # load the SNPs array from a PVAR file
+        snps = GenotypesPLINK(DATADIR / "simple.pgen")
+        snps.read_variants()
+        snps = snps.variants[["chrom", "pos"]]
+
+        # create array of per-site ancestry values
+        arr = breakpoints.population_array(variants=snps)
+        # reshape from n x p x 2 to n*2 x p
+        # so rows are haplotypes and columns are variants
+        arr = arr.transpose((0, 2, 1)).reshape(-1, arr.shape[1])
+
+        # write to haplotype ancestry file
+        np.savetxt(output, arr, fmt="%i", delimiter="")
+
+        # validate the output and clean up afterwards
+        with open(output) as anc_file:
+            with open(DATADIR / "simple.hanc") as expected:
+                assert anc_file.read() == expected.read()
+        output.unlink()
