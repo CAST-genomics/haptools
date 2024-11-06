@@ -32,7 +32,7 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float | npt.NDArray
     """
     Compute the Pearson correlation coefficient (LD) between two vectors (1D arrays)
 
-    If 2D arrays are given instead, the rows will be treated as samples and the columns
+    If 2D array(s) are given instead, the rows will be treated as samples and the columns
     as variants
 
     Parameters
@@ -44,11 +44,11 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float | npt.NDArray
 
     Returns
     -------
-    The LD between the genotypes in arrA and the genotypes in arrB
+    The signed LD between the genotypes in arrA and the genotypes in arrB
 
-    If either arrA or arrB is 2D, then the return value will be an array instead. In
-    that case, the rows will correspond with the variants in arrA and the columns will
-    correspond with the variants in arrB.
+    If either arrA or arrB is 2D, then the return value will be an array instead. If
+    both are 2D, the shape of the array will correspond with the second dimensions of
+    arrA and arrB, respectively. Otherwise, it will be 1D.
     """
     if arrA.ndim == 1:
         dim = 1
@@ -56,9 +56,13 @@ def pearson_corr_ld(arrA: npt.NDArray, arrB: npt.NDArray) -> float | npt.NDArray
         dim = arrA.shape[1]
     else:
         raise ValueError("We can only compute LD for 2D genotype arrays")
-    ld_mat = np.corrcoef(arrA, arrB, rowvar=False)[dim:, :dim]
-    if arrA.ndim == 1 and arrB.ndim == 1:
-        return ld_mat[0, 0]
+    ld_mat = np.corrcoef(arrA, arrB, rowvar=False)[:dim:, dim:]
+    if arrA.ndim == 1:
+        ld_mat = ld_mat[0, :]
+        if arrB.ndim == 1:
+            ld_mat = ld_mat[0]
+    elif arrB.ndim == 1:
+        ld_mat = ld_mat[:, 0]
     return ld_mat
 
 
