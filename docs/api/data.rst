@@ -350,6 +350,23 @@ Using the ``transform()`` function, you can obtain a full instance of the :class
 	hap_gts = haplotypes.transform(genotypes)
 	hap_gts   # a GenotypesVCF instance where haplotypes are variants
 
+Subsetting and merging
+**********************
+If you want to keep only a few haplotypes from an existing Haplotypes object, you can pass a tuple of haplotype IDs to the ``subset()`` method:
+
+.. code-block:: python
+
+	haplotypes = data.Haplotypes.load('tests/data/basic.hap')
+	haplotypes = haplotypes.subset(haplotypes=("chr21.q.3365*1",))
+
+You can also merge multiple Haplotypes objects using the ``merge()`` class method:
+
+.. code-block:: python
+
+	haps1 = data.Haplotypes.load('tests/data/basic.hap')
+	haps2 = data.Haplotypes.load('tests/data/simple.hap')
+	haplotypes = Haplotypes.merge((haps1, haps2), fname='new.hap')
+
 Haplotype
 +++++++++
 The :class:`Haplotype` class stores haplotype lines from the **.hap** file. Each property in the object is a field in the line. A separate ``variants`` property stores a tuple of :class:`Variant` objects belonging to this haplotype.
@@ -618,6 +635,8 @@ You'll have to call ``__iter()__`` manually if you want to specify any function 
 	breakpoints = data.Breakpoints('tests/data/simple.bp')
 	for sample, blocks in breakpoints.__iter__(samples={"HG00097", "HG00099"}):
 	    print(sample, blocks)
+
+.. _api-data-bp2anc:
 
 Obtaining ancestral labels for a list of positions
 **************************************************
