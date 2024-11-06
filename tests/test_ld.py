@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 import numpy as np
@@ -16,7 +17,7 @@ def test_ld(seed=42):
     arrB = rng.choice((0, 1, 2), size=(25,))
     ld = pearson_corr_ld(arrA, arrB)
     assert isinstance(ld, float)
-    assert ld == -0.1148198316929615
+    assert math.isclose(ld, -0.1148198316929615)
 
     arrB = arrB[:, np.newaxis]
     old_ld = ld
