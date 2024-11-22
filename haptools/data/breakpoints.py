@@ -184,6 +184,7 @@ class Breakpoints(Data):
         else:
             labels = {pop: i for i, pop in enumerate(labels)}
         pop_count = len(labels)
+        seen = set()
         for sample, blocks in self.data.items():
             for strand_num in range(len(blocks)):
                 # initialize and fill the array of integers
@@ -193,10 +194,14 @@ class Breakpoints(Data):
                         labels[pop] = pop_count
                         pop_count += 1
                     ints[i] = labels[pop]
+                    seen.add(pop)
                 # replace the "pop" labels
                 arr = rcf.drop_fields(blocks[strand_num], ["pop"])
                 blocks[strand_num] = rcf.merge_arrays((arr, ints), flatten=True)[names]
-        self.labels = labels
+        self.labels = {
+            k:v for k,v in labels.items()
+            if k in seen
+        }
 
     def recode(self):
         """
