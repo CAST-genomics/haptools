@@ -198,10 +198,7 @@ class Breakpoints(Data):
                 # replace the "pop" labels
                 arr = rcf.drop_fields(blocks[strand_num], ["pop"])
                 blocks[strand_num] = rcf.merge_arrays((arr, ints), flatten=True)[names]
-        self.labels = {
-            k:v for k,v in labels.items()
-            if k in seen
-        }
+        self.labels = {k: v for k, v in labels.items() if k in seen}
 
     def recode(self):
         """
