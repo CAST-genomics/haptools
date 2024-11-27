@@ -1203,7 +1203,7 @@ class Haplotypes(Data):
         # if the user requested a specific region or subset of haplotypes and the file
         # is indexed, then we should handle it using tabix
         # else, we use a regular text opener - b/c there's no benefit to using tabix
-        if region or (haplotypes and indexed):
+        if (region or haplotypes) and indexed:
             haps_file = TabixFile(str(self.fname))
             metas, extras = self.check_header(list(haps_file.header))
             types = self._get_field_types(extras, metas.get("order"))
@@ -1232,8 +1232,8 @@ class Haplotypes(Data):
                         )
             haps_file.close()
         else:
-            # the file is not indexed, so we can't assume it's sorted, either
-            # use hook_compressed to automatically handle gz files
+            # The file is not indexed, so we can't assume it's sorted, either
+            # Use hook_compressed to automatically handle gz files
             with self.hook_compressed(self.fname, mode="r") as haps:
                 self.log.info("Not taking advantage of indexing.")
                 header_lines = []
