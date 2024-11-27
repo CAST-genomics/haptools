@@ -1198,9 +1198,13 @@ class Haplotypes(Data):
         indexed = True
         try:
             haps_file = TabixFile(str(self.fname))
+            if region is not None:
+                haps_file.fetch(region=region, multiple_iterators=True)
         except OSError:
             indexed = False
-        # if the user requested a specific region or subset of haplotypes and the file
+        except ValueError:
+            indexed = False
+        # If the user requested a specific region or subset of haplotypes and the file
         # is indexed, then we should handle it using tabix
         # else, we use a regular text opener - b/c there's no benefit to using tabix
         if (region or haplotypes) and indexed:

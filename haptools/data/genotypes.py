@@ -805,7 +805,13 @@ class GenotypesVCF(Genotypes):
                     record.samples[sample].phased = self.data[samp_idx, var_idx, 2]
             # write the record to a file
             vcf.write(record)
-        vcf.close()
+        try:
+            vcf.close()
+        except OSError as e:
+            if e.errno == 9 and len(self.variants) == 0:
+                self.log.warning("No variants to write to VCF")
+            else:
+                raise e
 
 
 class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
