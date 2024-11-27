@@ -183,6 +183,8 @@ The following methods from the :class:`Genotypes` class are disabled, however.
 1. ``check_biallelic``
 2. ``check_maf``
 
+The constructor of the :class:`GenotypesTR` class also includes a :code:`vcftype` parameter. This can be helpful when the type of the TR file cannot be inferred automatically. Refer to `the TRTools docs <https://trtools.readthedocs.io/en/stable/trtools.utils.tr_harmonizer.html#trtools.utils.tr_harmonizer.VcfTypes>`_ for a list of accepted types.
+
 .. _api-data-genotypestr:
 
 GenotypesPLINK
