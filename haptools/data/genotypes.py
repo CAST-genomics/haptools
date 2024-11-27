@@ -809,7 +809,7 @@ class GenotypesVCF(Genotypes):
             vcf.close()
         except OSError as e:
             if e.errno == 9 and len(self.variants) == 0:
-                self.log.warning("No variants to write to VCF")
+                self.log.warning(f"No variants in {self.fname}.")
             else:
                 raise e
 
@@ -1072,7 +1072,7 @@ class GenotypesPLINK(GenotypesVCF):
             self.samples = {
                 ct: samp[col_idx]
                 for ct, samp in enumerate(psamples)
-                if (samples is None) or (samp[col_idx] in samples)
+                if len(samp) and ((samples is None) or (samp[col_idx] in samples))
             }
             indices = np.array(list(self.samples.keys()), dtype=np.uint32)
             self.samples = tuple(self.samples.values())
@@ -1295,7 +1295,18 @@ class GenotypesPLINK(GenotypesVCF):
         super(Genotypes, self).read()
 
         sample_idxs = self.read_samples(samples)
-        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+        pvar_fname = bytes(str(self.fname.with_suffix(".pvar")), "utf8")
+        try:
+            pv = pgenlib.PvarReader(pvar_fname)
+        except RuntimeError as e:
+            if e.args[0].decode("utf8").startswith("No variants in"):
+                self.log.warning(f"No variants in {pvar_fname}.")
+                self.data = np.empty(
+                    (len(sample_idxs), 0, (2 + (not self._prephased))), dtype=np.uint8
+                )
+                return
+            else:
+                raise e
 
         with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
@@ -1550,12 +1561,23 @@ class GenotypesPLINK(GenotypesVCF):
             chunks = len(self.variants)
 
         # write the pgen file
-        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+        try:
+            max_allele_ct = pgenlib.PvarReader(
+                bytes(str(self.fname.with_suffix(".pvar")), "utf8")
+            ).get_max_allele_ct()
+        except RuntimeError as e:
+            if len(self.variants) == 0:
+                # write an empty pgen file
+                with open(self.fname, "wb"):
+                    pass
+                return
+            else:
+                raise e
         with pgenlib.PgenWriter(
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
-            allele_ct_limit=pv.get_max_allele_ct(),
+            allele_ct_limit=max_allele_ct,
             nonref_flags=False,
             hardcall_phase_present=True,
         ) as pgen:
