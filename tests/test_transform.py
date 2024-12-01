@@ -386,10 +386,10 @@ def test_transform_empty_hap(capfd):
     # can we run transform with the empty hap file?
     cmd = f"transform --region 1:10116-10122 {gt_file} {hp_file}"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    result = runner.invoke(main, cmd.split(" "))
     captured = capfd.readouterr()
     assert all(line for line in captured.out.split("\n") if line.startswith("#"))
-    assert result.exit_code == 0
+    assert result.exit_code != 0
 
     # now, index the empty hap file and try again
     cmd = f"index {hp_file}"
@@ -400,13 +400,12 @@ def test_transform_empty_hap(capfd):
     assert hp_file_gz.exists()
     assert hp_file_idx.exists()
 
-    # what about now? does it still work?
+    # what about now? does it still fail?
     cmd = f"transform --region 1:10116-10122 {gt_file} {hp_file_gz}"
     runner = CliRunner()
-    result = runner.invoke(main, cmd.split(" "), catch_exceptions=False)
+    result = runner.invoke(main, cmd.split(" "))
     captured = capfd.readouterr()
-    assert all(line for line in captured.out.split("\n") if line.startswith("#"))
-    assert result.exit_code == 0
+    assert result.exit_code != 0
 
     hp_file.unlink()
     hp_file_gz.unlink()
