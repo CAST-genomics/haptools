@@ -461,7 +461,7 @@ class Haplotype:
         """
         return tuple(extra.name for extra in cls._extras)
 
-    def transform(self, genotypes: GenotypesVCF) -> npt.NDArray[bool]:
+    def transform(self, genotypes: GenotypesVCF) -> npt.NDArray:
         """
         Transform a genotypes matrix via the current haplotype
 
@@ -478,9 +478,9 @@ class Haplotype:
 
         Returns
         -------
-        npt.NDArray[bool]
-            A 2D matrix of shape (num_samples, 2) where each entry in the matrix
-            denotes the presence of the haplotype in one chromosome of a sample
+        npt.NDArray
+            A 2D matrix of shape (num_samples, 2) where each entry in the matrix is a
+            bool denoting the presence of the haplotype in one chromosome of a sample
         """
         var_IDs = self.varIDs
         # ensure the variants in the Genotypes object are ordered according to var_IDs
