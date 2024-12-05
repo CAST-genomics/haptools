@@ -2075,6 +2075,40 @@ class TestBreakpoints:
                 for obs, exp in zip(obs_strand["pop"], exp_strand["pop"]):
                     assert expected.labels[exp] == obs
 
+    def test_encode_reorder(self):
+        expected = self._get_expected_breakpoints()
+        expected.labels = {"CEU": 0, "YRI": 1}
+
+        observed = self._get_expected_breakpoints()
+        observed.encode(labels=("CEU", "YRI", "AMR"))
+
+        assert observed.labels == expected.labels
+        assert len(expected.data) == len(observed.data)
+        for sample in expected.data:
+            for strand in range(len(expected.data[sample])):
+                exp_strand = expected.data[sample][strand]
+                obs_strand = observed.data[sample][strand]
+                assert len(exp_strand) == len(observed.data[sample][strand])
+                for obs, exp in zip(obs_strand["pop"], exp_strand["pop"]):
+                    assert expected.labels[exp] == obs
+
+        # now try again with AMR in the middle
+        # In that case, it should keep the ordering when deciding the integers
+        # but the final labels should include the AMR key
+        expected.labels = {"CEU": 0, "YRI": 2}
+        observed = self._get_expected_breakpoints()
+        observed.encode(labels=("CEU", "AMR", "YRI"))
+
+        assert observed.labels == expected.labels
+        assert len(expected.data) == len(observed.data)
+        for sample in expected.data:
+            for strand in range(len(expected.data[sample])):
+                exp_strand = expected.data[sample][strand]
+                obs_strand = observed.data[sample][strand]
+                assert len(exp_strand) == len(observed.data[sample][strand])
+                for obs, exp in zip(obs_strand["pop"], exp_strand["pop"]):
+                    assert expected.labels[exp] == obs
+
     def test_recode(self):
         expected = self._get_expected_breakpoints()
 
