@@ -15,20 +15,31 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "mamba env create -n haptools -f dev-env.yml && conda run -n haptools poetry install",
+	"postCreateCommand": "mamba env create -n haptools -f dev-env.yml && conda run -n haptools poetry config virtualenvs.in-project true && conda run -n haptools poetry install",
 
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
-			"extensions": ["ms-python.python"],
+			"extensions": [
+				"ms-python.python",
+				"ms-python.black-formatter"
+			],
 			"settings": {
+				"python.analysis.typeCheckingMode": "off", // TODO: set to "strict"
 				"python.condaPath": "/opt/conda/condabin/conda",
-				"python.defaultInterpreterPath": "/opt/conda/envs/haptools/bin/python",
 				"python.terminal.activateEnvironment": true,
 				"python.terminal.activateEnvInCurrentTerminal": true,
-				"python.venvFolders": ["/home/vscode/.cache/pypoetry/virtualenvs"],
+				"python.venvPath": "/workspaces/haptools/.venv",
+				"python.defaultInterpreterPath": "/workspaces/haptools/.venv/bin/python",
+				"python.testing.pytestArgs": [
+					"tests"
+				],
+				"python.testing.pytestEnabled": true,
+				"python.testing.unittestEnabled": false,
 				"terminal.integrated.environmentChangesRelaunch": true,
-				"terminal.integrated.hideOnStartup": "always"
+				"editor.defaultFormatter": "ms-python.black-formatter",
+				"terminal.integrated.hideOnStartup": "always",
+				"files.eol": "\n"
 			}
 		}
 	}

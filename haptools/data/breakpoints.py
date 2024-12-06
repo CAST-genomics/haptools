@@ -23,7 +23,7 @@ HapBlock = [("pop", "U6"), ("chrom", "U10"), ("bp", np.uint32), ("cm", np.float6
 # This tuple lists the haplotype blocks in a sample, one set for each chromosome
 # Let's define a type alias, "SampleBlocks", for future use...
 SampleBlocks = NewType(
-    "SampleBlocks", "list[npt.NDArray[HapBlock], npt.NDArray[HapBlock]]]"
+    "SampleBlocks", "list[npt.NDArray[HapBlock], npt.NDArray[HapBlock]]]"  # type: ignore
 )
 
 

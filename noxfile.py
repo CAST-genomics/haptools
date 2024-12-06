@@ -3,9 +3,9 @@ import os
 import shutil
 from pathlib import Path
 
-import nox
-from nox_poetry import Session
-from nox_poetry import session
+import nox  # type: ignore
+from nox_poetry import Session  # type: ignore
+from nox_poetry import session  # type: ignore
 
 
 package = "haptools"
