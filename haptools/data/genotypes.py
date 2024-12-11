@@ -14,7 +14,7 @@ from pysam import VariantFile
 from cyvcf2 import VCF, Variant
 
 try:
-    import trtools.utils.tr_harmonizer as trh
+    import trtools.utils.tr_harmonizer as trh  # type: ignore
 except ModuleNotFoundError:
     from . import tr_harmonizer as trh
 
@@ -219,7 +219,7 @@ class Genotypes(Data):
         Parameters
         ----------
         record: Variant
-            A cyvcf2.Variant object from which to fetch metadata
+            A Variant object from which to fetch metadata
 
         Returns
         -------
@@ -231,20 +231,20 @@ class Genotypes(Data):
             dtype=self.variants.dtype,
         )
 
-    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str):
+    def _vcf_iter(self, vcf: VCF, region: str):
         """
         Yield all variants within a region in the VCF file.
 
         Parameters
         ----------
         vcf: VCF
-            The cyvcf2.VCF object from which to fetch variant records
+            The VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
 
         Returns
         -------
-        vcffile : cyvcf2.VCF
+        vcffile : VCF
             Iterable cyvcf2 instance.
         """
         return vcf(region)
@@ -255,8 +255,8 @@ class Genotypes(Data):
 
         Parameters
         ----------
-        variant: cyvcf2.Variant
-            A cyvcf2.Variant object from which to fetch genotypes
+        variant: Variant
+            A Variant object from which to fetch genotypes
 
         Returns
         -------
@@ -274,7 +274,7 @@ class Genotypes(Data):
         Parameters
         ----------
         vcf: VCF
-            The cyvcf2.VCF object from which to fetch variant records
+            The VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
         variants : set[str], optional
@@ -805,7 +805,13 @@ class GenotypesVCF(Genotypes):
                     record.samples[sample].phased = self.data[samp_idx, var_idx, 2]
             # write the record to a file
             vcf.write(record)
-        vcf.close()
+        try:
+            vcf.close()
+        except OSError as e:
+            if e.errno == 9 and len(self.variants) == 0:
+                self.log.warning(f"No variants in {self.fname}.")
+            else:
+                raise e
 
 
 class TRRecordHarmonizerRegion(trh.TRRecordHarmonizer):
@@ -909,14 +915,14 @@ class GenotypesTR(Genotypes):
         genotypes.check_phase()
         return genotypes
 
-    def _vcf_iter(self, vcf: cyvcf2.VCF, region: str = None):
+    def _vcf_iter(self, vcf: VCF, region: str = None):
         """
         Collect GTs (trh.TRRecord objects) to iterate over
 
         Parameters
         ----------
         vcf: VCF
-            The cyvcf2.VCF object from which to fetch variant records
+            The VCF object from which to fetch variant records
         region : str, optional
             See documentation for :py:meth:`~.Genotypes.read`
 
@@ -1066,7 +1072,7 @@ class GenotypesPLINK(GenotypesVCF):
             self.samples = {
                 ct: samp[col_idx]
                 for ct, samp in enumerate(psamples)
-                if (samples is None) or (samp[col_idx] in samples)
+                if len(samp) and ((samples is None) or (samp[col_idx] in samples))
             }
             indices = np.array(list(self.samples.keys()), dtype=np.uint32)
             self.samples = tuple(self.samples.values())
@@ -1289,7 +1295,18 @@ class GenotypesPLINK(GenotypesVCF):
         super(Genotypes, self).read()
 
         sample_idxs = self.read_samples(samples)
-        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+        pvar_fname = bytes(str(self.fname.with_suffix(".pvar")), "utf8")
+        try:
+            pv = pgenlib.PvarReader(pvar_fname)
+        except RuntimeError as e:
+            if e.args[0].decode("utf8").startswith("No variants in"):
+                self.log.warning(f"No variants in {pvar_fname}.")
+                self.data = np.empty(
+                    (len(sample_idxs), 0, (2 + (not self._prephased))), dtype=np.uint8
+                )
+                return
+            else:
+                raise e
 
         with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
@@ -1544,12 +1561,23 @@ class GenotypesPLINK(GenotypesVCF):
             chunks = len(self.variants)
 
         # write the pgen file
-        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+        try:
+            max_allele_ct = pgenlib.PvarReader(
+                bytes(str(self.fname.with_suffix(".pvar")), "utf8")
+            ).get_max_allele_ct()
+        except RuntimeError as e:
+            if len(self.variants) == 0:
+                # write an empty pgen file
+                with open(self.fname, "wb"):
+                    pass
+                return
+            else:
+                raise e
         with pgenlib.PgenWriter(
             filename=bytes(str(self.fname), "utf8"),
             sample_ct=len(self.samples),
             variant_ct=len(self.variants),
-            allele_ct_limit=pv.get_max_allele_ct(),
+            allele_ct_limit=max_allele_ct,
             nonref_flags=False,
             hardcall_phase_present=True,
         ) as pgen:

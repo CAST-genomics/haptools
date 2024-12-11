@@ -569,6 +569,20 @@ class TestGenotypesPLINK:
         fname.with_suffix(".pvar").unlink()
         fname.unlink()
 
+    def test_write_genotypes_empty(self):
+        fname = DATADIR / "test_write.pgen"
+        gts = GenotypesPLINK(fname=fname)
+        gts.data = np.empty((0, 0, 0), dtype=np.uint8)
+        gts.samples = ()
+        gts.variants = np.empty(0, dtype=gts.variants.dtype)
+        gts.write()
+        gts.read()
+
+        # clean up afterwards: delete the files we created
+        fname.with_suffix(".psam").unlink()
+        fname.with_suffix(".pvar").unlink()
+        fname.unlink()
+
     def test_write_genotypes_prephased(self):
         gts = self._get_fake_genotypes_plink()
 
@@ -1849,6 +1863,16 @@ class TestGenotypesVCF:
                 # index into col, i gets specific variant, x iterates thru
                 assert gts.variants[col][i] == x[col]
 
+        fname.unlink()
+
+    def test_write_empty(self):
+        fname = Path("test.vcf")
+        gts = GenotypesVCF(fname=fname)
+        gts.samples = ()
+        gts.variants = np.array([], dtype=gts.variants.dtype)
+        gts.data = np.empty((0, 0, 0), dtype=np.uint8)
+        gts.write()
+        gts.read()
         fname.unlink()
 
     def test_write_multiallelic(self):
