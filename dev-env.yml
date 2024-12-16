@@ -6,7 +6,7 @@ dependencies:
   - conda-forge::python=3.9 # the lowest version of python that we formally support; keep in sync with release.yml and noxfile.py
   - conda-forge::pip==24.3.1
   - conda-forge::poetry==1.8.5
-  - conda-forge::nox==2024.10.19
+  - conda-forge::nox==2024.10.9
   - conda-forge::poetry-plugin-export==1.8.0
   - pip:
     - nox-poetry==1.0.3
