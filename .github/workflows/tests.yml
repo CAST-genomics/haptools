@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { python: "3.8", os: "ubuntu-latest", session: "lint" }
+          - { python: "3.9", os: "ubuntu-latest", session: "lint" }
           - { python: "3.7", os: "ubuntu-latest", session: "tests" }
           - { python: "3.8", os: "ubuntu-latest", session: "tests" }
           - { python: "3.9", os: "ubuntu-latest", session: "tests" }
@@ -21,7 +21,7 @@ jobs:
           # - { python: "3.11", os: "windows-latest", session: "tests" }
           - { python: "3.9", os: "macos-13", session: "tests" }
           - { python: "3.11", os: "macos-latest", session: "tests" }
-          - { python: "3.8", os: "ubuntu-latest", session: "size" }
+          - { python: "3.9", os: "ubuntu-latest", session: "size" }
 
     env:
       NOXSESSION: ${{ matrix.session }}
