@@ -405,8 +405,12 @@ def simulate_pt(
         # check if these are all repeat IDs, haplotype IDs, or a mix of them
         if len(hp.type_ids["R"]) >= len(haplotype_ids) and repeats is None:
             # if they're all repeat IDs or --repeats was specified
-            log.info("Loading TR genotypes")
-            gt = GenotypesTR(fname=genotypes, log=log)
+            if genotypes.suffix == ".pgen":
+                log.info("Loading TR genotypes from PGEN file")
+                gt = GenotypesPLINKTR(fname=genotypes, log=log, chunk_size=chunk_size)
+            else:
+                log.info("Loading TR genotypes from VCF/BCF file")
+                gt = GenotypesTR(fname=genotypes, log=log)
             load_as_haps = False
         else:
             # the genotypes variable must contain haplotype genotypes
@@ -444,10 +448,10 @@ def simulate_pt(
         gt = Genotypes.merge_variants((gt, tr_gt), fname=None)
 
     # check that all of the genotypes were loaded successfully and warn otherwise
-    if len(haplotype_ids) < len(gt.variants):
+    if len(haplotype_ids) > len(gt.variants):
         diff = list(haplotype_ids.difference(gt.variants["id"]))
         first_few = 5 if len(diff) > 5 else len(diff)
-        log.warning(
+        log.error(
             f"{len(diff)} effects could not be found in the genotypes file. Check "
             "that the IDs in your .snplist or .hap file correspond with those in the "
             "genotypes file. Here are the first few missing variants: "

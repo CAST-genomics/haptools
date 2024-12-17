@@ -9,12 +9,13 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     steps:
-      - uses: GoogleCloudPlatform/release-please-action@v3
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: python
-          package-name: haptools
 
       - uses: actions/checkout@v3
         if: ${{ steps.release.outputs.release_created }}
@@ -25,7 +26,7 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-python@v4
         with:
-          python-version: '3.7'
+          python-version: '3.8' # keep synced with dev-env.yml
 
       - name: Upgrade pip
         if: ${{ steps.release.outputs.release_created }}
@@ -36,7 +37,7 @@ jobs:
       - name: Install Poetry
         if: ${{ steps.release.outputs.release_created }}
         run: |
-          pip install 'poetry==1.7.1'
+          pip install 'poetry==1.8.3'  # keep version synced with dev-env.yml
           poetry --version
 
       - name: Bump version for developmental release
@@ -51,17 +52,31 @@ jobs:
         run: |
           poetry build --ansi
 
-      - name: Publish package on TestPyPI
+      - uses: actions/upload-artifact@v4
         if: ${{ steps.release.outputs.release_created }}
-        uses: pypa/gh-action-pypi-publish@v1.5.0
         with:
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+          name: dist
+          path: dist/
+
+  upload_pypi:
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ needs.release.outputs.release_created }}
+    environment: release
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    steps:
+      - name: Get artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+
+      - name: Publish package on TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.14
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
       - name: Publish package on PyPI
-        if: ${{ steps.release.outputs.release_created }}
-        uses: pypa/gh-action-pypi-publish@v1.5.0
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@v1.8.14
