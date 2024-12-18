@@ -10,7 +10,7 @@ from nox_poetry import session  # type: ignore
 
 package = "haptools"
 python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-locked_python_version = "3.8"
+locked_python_version = "3.9"  # keep in sync with dev-env.yml
 nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
     "docs",
