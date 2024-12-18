@@ -4,12 +4,11 @@
 	"name": "Ubuntu",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/rocker-org/devcontainer-features/miniforge:2": {}
 	},
-
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -23,7 +22,8 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-vscode.live-server",
-				"ms-python.black-formatter"
+				"ms-python.black-formatter",
+				"GitHub.vscode-github-actions"
 			],
 			"settings": {
 				"python.analysis.typeCheckingMode": "off", // TODO: set to "strict"
@@ -38,9 +38,17 @@
 				"python.testing.pytestEnabled": true,
 				"python.testing.unittestEnabled": false,
 				"terminal.integrated.environmentChangesRelaunch": true,
-				"editor.defaultFormatter": "ms-python.black-formatter",
+				"[python]": {
+					"editor.defaultFormatter": "ms-python.black-formatter",
+					"editor.formatOnSave": true
+				},
+				"black-formatter.importStrategy": "fromEnvironment",
+				"black-formatter.showNotification": "always",
 				"terminal.integrated.hideOnStartup": "always",
-				"files.eol": "\n"
+				"files.eol": "\n",
+				"git.autofetch": true,
+				"git.enableSmartCommit": true,
+				"git.confirmSync": false
 			}
 		}
 	}
