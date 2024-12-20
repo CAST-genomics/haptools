@@ -24,8 +24,8 @@ def output_vcf(
         sample_field, 
         no_replacement,
         out,
-        chunk_size,
-        log
+        log,
+        chunk_size = None,
     ):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
@@ -71,6 +71,8 @@ def output_vcf(
         output prefix
     log: log object
         Outputs messages to the appropriate channel.
+    chunk_size: int, optional
+        The max number of variants to write to a PGEN file together
     """
 
     log.info(f"Outputting file {out}")

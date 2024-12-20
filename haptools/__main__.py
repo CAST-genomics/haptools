@@ -318,8 +318,8 @@ def simgenotype(
             sample_field,
             no_replacement,
             out,
-            chunk_size,
             log,
+            chunk_size,
         )
     end = time.time()
 
