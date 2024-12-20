@@ -75,6 +75,21 @@ If speed is important, it's generally faster to use PGEN files than VCFs.
   --pop_field \
   --out tests/data/example_simgenotype.pgen
 
+Writing PGEN files will require more memory than writing VCFs.
+You can reduce the memory required by this step by writing the variants in chunks. Just specify a ``--chunk-size`` value.
+
+.. code-block:: bash
+
+  haptools simgenotype \
+  --model tests/data/outvcf_gen.dat \
+  --mapdir tests/data/map/ \
+  --region 1:1-83000 \
+  --ref_vcf tests/data/outvcf_test.pgen \
+  --sample_info tests/data/outvcf_info.tab \
+  --pop_field \
+  --out tests/data/example_simgenotype.pgen \
+  --chunk-size 10000
+
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
 
