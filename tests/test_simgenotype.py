@@ -10,7 +10,6 @@ from haptools.__main__ import main
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
-# @pytest.mark.skip(reason="this test takes a long time (~2 mins) to run")
 def test_basic(capfd):
     prefix = DATADIR / "example_simgenotype.vcf"
     dat_file = DATADIR / "outvcf_gen.dat"
@@ -92,7 +91,7 @@ def test_pgen_output_chunked(capfd):
             f"--ref_vcf {ref_vcf_file}",
             f"--sample_info {samp_info_file}",
             f"--out {prefix}",
-            f"--chunk-size 1"
+            f"--chunk-size 1",
         ]
     )
     runner = CliRunner()

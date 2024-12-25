@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 import glob
 import numpy as np
 from cyvcf2 import VCF
