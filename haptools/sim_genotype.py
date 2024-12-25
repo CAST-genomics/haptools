@@ -6,7 +6,6 @@ import sys
 import glob
 import numpy as np
 from cyvcf2 import VCF
-from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 from .data import GenotypesVCF, GenotypesPLINK

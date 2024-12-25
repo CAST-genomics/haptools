@@ -38,6 +38,12 @@ To convert a VCF containing tandem repeats to PGEN, use this command, instead.
 
 	plink2 --vcf-half-call m --make-pgen 'pvar-cols=vcfheader,qual,filter,info' --vcf input.vcf --make-pgen --out output
 
+If you are seeing cryptic errors with haptools and your PGEN file, please validate it first:
+
+.. code-block:: bash
+
+	plink2 --pfile output --validate
+
 Tandem repeats
 ~~~~~~~~~~~~~~
 VCFs containing tandem repeats usually have a *type* indicating the tool from which they originated. We support whichever types are supported by `TRTools <https://trtools.readthedocs.io/en/stable/CALLERS.html>`_.
