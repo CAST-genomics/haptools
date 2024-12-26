@@ -127,8 +127,11 @@ def output_vcf(
     # Use search_sorted() numpy function to find indices in populations/samples in order to determine population and sample info
     ref_vars = vcf.variants
     output_gts = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=vcf.data.dtype)
-    output_pops = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=np.uint8)
-    output_labels = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=object)
+    if not out.endswith(".pgen"):
+        if pop_field:
+            output_pops = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=np.uint8)
+        if sample_field:
+            output_labels = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=object)
 
     # cover "chr" prefix cases
     if ref_vars["chrom"][0].startswith("chr"):
@@ -188,10 +191,11 @@ def output_vcf(
             cur_var = end_var
 
         output_gts[int(hap_ind//2), : , hap_ind % 2] = ref_gts
-        if pop_field:
-            output_pops[int(hap_ind//2), : , hap_ind % 2] = ref_pops
-        if sample_field:
-            output_labels[int(hap_ind//2), : , hap_ind % 2] = ref_labels
+        if not out.endswith(".pgen"):
+            if pop_field:
+                output_pops[int(hap_ind//2), : , hap_ind % 2] = ref_pops
+            if sample_field:
+                output_labels[int(hap_ind//2), : , hap_ind % 2] = ref_labels
 
     # output vcf header to new vcf file we create
     output_samples = [f"Sample_{hap+1}" for hap in range(int(len(breakpoints)/2))]
