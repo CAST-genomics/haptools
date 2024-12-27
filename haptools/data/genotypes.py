@@ -1599,13 +1599,13 @@ class GenotypesPLINK(GenotypesVCF):
                     # https://stackoverflow.com/a/46575580
                     allele_cts = self._num_unique_alleles(data[start:end])
                     subset_data = np.ascontiguousarray(data[start:end], dtype=np.int32)
+                    subset_data.resize((len(self.variants), len(self.samples) * 2))
+                    missing.resize((len(self.variants), len(self.samples) * 2))
                 except np.core._exceptions._ArrayMemoryError as e:
                     raise ValueError(
                         "You don't have enough memory to write these genotypes! Try"
                         " specifying a value to the chunk_size parameter, instead"
                     ) from e
-                subset_data.resize((len(self.variants), len(self.samples) * 2))
-                missing.resize((len(self.variants), len(self.samples) * 2))
                 # convert any missing genotypes to -9
                 subset_data[missing] = -9
                 # finally, append the genotypes to the PGEN file
