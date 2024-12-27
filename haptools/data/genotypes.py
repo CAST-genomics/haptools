@@ -1590,6 +1590,7 @@ class GenotypesPLINK(GenotypesVCF):
                 end = start + chunks
                 if end > len(self.variants):
                     end = len(self.variants)
+                self.log.debug(f"Writing variant #{start} through variant #{end}")
                 size = end - start
                 try:
                     missing = np.ascontiguousarray(
@@ -1606,6 +1607,8 @@ class GenotypesPLINK(GenotypesVCF):
                         "You don't have enough memory to write these genotypes! Try"
                         " specifying a value to the chunk_size parameter, instead"
                     ) from e
+                if not np.all(allele_cts <= max_allele_ct):
+                    raise ValueError("Some variants have more alleles than expected")
                 # convert any missing genotypes to -9
                 subset_data[missing] = -9
                 # finally, append the genotypes to the PGEN file

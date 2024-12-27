@@ -111,6 +111,7 @@ def output_vcf(
         vcf.read()
     else:
         vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
+    vcf.check_missing()
 
     log.debug(f"Read in variants from {variant_file}")
 
