@@ -112,7 +112,7 @@ def test_end_bkp_coords():
 
 def test_variants_greater_than_last_coord():
     log = getLogger(name="test")
-    bkp_file = DATADIR / "var_greater.bkp"
+    bkp_file = DATADIR / "var_greater.bp"
     vcf_file = DATADIR / "var_greater.vcf.gz"
     model_file = DATADIR / "outvcf_gen.dat"
     sampleinfo_file = DATADIR / "outvcf_info.tab"
