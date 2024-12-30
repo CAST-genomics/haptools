@@ -103,9 +103,12 @@ def test_end_bkp_coords():
     coords_dir = DATADIR / "map"
     chroms = ["22"]
     region = False
-    coords, np_coords, max_coords, end_coords = _prepare_coords(coords_dir, chroms, region)
+    coords, np_coords, max_coords, end_coords = _prepare_coords(
+        coords_dir, chroms, region
+    )
     assert coords[0][-1].get_bp_pos() == np.iinfo(np.int32).max
     assert end_coords[0].get_bp_pos() == np.iinfo(np.int32).max
+
 
 def test_variants_greater_than_last_coord():
     log = getLogger(name="test")
@@ -152,6 +155,7 @@ def test_variants_greater_than_last_coord():
 
     # Clean up by removing the output file from output_vcf
     out_file.unlink()
+
 
 def test_alt_chrom_name():
     # Test when the ref VCF has chr{X|\d+} form
@@ -209,6 +213,7 @@ def test_alt_chrom_name():
 
     # Clean up by removing the output file from output_vcf
     out_file.unlink()
+
 
 def test_no_replace():
     # Test too few samples to generate a VCF when sampling without replacement
