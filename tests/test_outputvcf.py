@@ -9,6 +9,7 @@ from haptools.logging import getLogger
 from haptools.data import GenotypesPLINK
 from haptools.admix_storage import HaplotypeSegment
 from haptools.sim_genotype import (
+    _prepare_coords,
     output_vcf,
     validate_params,
     simulate_gt,
@@ -98,6 +99,60 @@ def _get_expected_output():
     return gts
 
 
+def test_end_bkp_coords():
+    coords_dir = DATADIR / "map"
+    chroms = ["22"]
+    region = False
+    coords, np_coords, max_coords, end_coords = _prepare_coords(coords_dir, chroms, region)
+    assert coords[0][-1].get_bp_pos() == np.iinfo(np.int32).max
+    assert end_coords[0].get_bp_pos() == np.iinfo(np.int32).max
+
+def test_variants_greater_than_last_coord():
+    log = getLogger(name="test")
+    bkp_file = DATADIR / "var_greater.bkp"
+    vcf_file = DATADIR / "var_greater.vcf.gz"
+    model_file = DATADIR / "outvcf_gen.dat"
+    sampleinfo_file = DATADIR / "outvcf_info.tab"
+    out_file = DATADIR / "outvcf_out.vcf.gz"
+    chroms = ["1"]
+    bkps = _get_breakpoints(bkp_file, model_file)
+
+    # generate output vcf file
+    output_vcf(
+        bkps,
+        chroms,
+        model_file,
+        str(vcf_file),
+        sampleinfo_file,
+        None,
+        True,
+        True,
+        False,
+        str(out_file),
+        log,
+    )
+
+    # read in vcf file
+    vcf = VCF(str(out_file))
+    for var in vcf:
+        if var.CHROM == "chr1" and var.POS == 10114:
+            assert var.genotypes[0] == [0, 0, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "CEU,CEU"
+
+        elif var.CHROM == "chr1" and var.POS == 249403765:
+            assert var.genotypes[0] == [0, 1, True]
+            assert var.format("POP")[0] == "CEU,YRI"
+            assert var.genotypes[1] == [1, 0, True]
+            assert var.format("POP")[1] == "YRI,CEU"
+
+        else:
+            assert False
+
+    # Clean up by removing the output file from output_vcf
+    out_file.unlink()
+
 def test_alt_chrom_name():
     # Test when the ref VCF has chr{X|\d+} form
     # read in all files and breakpoints
@@ -155,8 +210,6 @@ def test_alt_chrom_name():
     # Clean up by removing the output file from output_vcf
     out_file.unlink()
 
-
-# TODO TEST THIS TO MAKE SURE IT PERFORMS HOW WE EXPECT ALTHOUGH THE ERROR MESSAGE OUTPUT SHOULD BE CHANGED SLIGHTLY SINCE WE CHECK PRIOR
 def test_no_replace():
     # Test too few samples to generate a VCF when sampling without replacement
     # read in all files and breakpoints
