@@ -1607,26 +1607,30 @@ class GenotypesPLINK(GenotypesVCF):
                         "You don't have enough memory to write these genotypes! Try"
                         " specifying a value to the chunk_size parameter, instead"
                     ) from e
-                if not np.all(allele_cts <= max_allele_ct):
-                    raise ValueError("Some variants have more alleles than expected")
                 # convert any missing genotypes to -9
                 subset_data[missing] = -9
-                # finally, append the genotypes to the PGEN file
-                if self._prephased or self.data.shape[2] < 3:
-                    pgen.append_alleles_batch(
-                        subset_data,
-                        all_phased=True,
-                        allele_cts=allele_cts,
-                    )
-                else:
-                    # TODO: figure out why this sometimes leads to a corrupted file?
-                    subset_phase = self.data[:, start:end, 2].T.copy(order="C")
-                    pgen.append_partially_phased_batch(
-                        subset_data,
-                        subset_phase,
-                        allele_cts=allele_cts,
-                    )
-                    del subset_phase
+                try:
+                    # finally, append the genotypes to the PGEN file
+                    if self._prephased or self.data.shape[2] < 3:
+                        pgen.append_alleles_batch(
+                            subset_data,
+                            all_phased=True,
+                            allele_cts=allele_cts,
+                        )
+                    else:
+                        # TODO: why does this sometimes leads to a corrupted file?
+                        subset_phase = self.data[:, start:end, 2].T.copy(order="C")
+                        pgen.append_partially_phased_batch(
+                            subset_data,
+                            subset_phase,
+                            allele_cts=allele_cts,
+                        )
+                        del subset_phase
+                except RuntimeError as e:
+                    if not np.all(allele_cts <= max_allele_ct):
+                        raise ValueError("Variant(s) have more alleles than expected")
+                    else:
+                        raise e
             del subset_data
             del missing
             gc.collect()
