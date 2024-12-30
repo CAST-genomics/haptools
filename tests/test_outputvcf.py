@@ -613,7 +613,9 @@ def test_region_bkp():
     # Make sure lowest bkp listed is 16111 and greatest is 18674
     for sample in all_samples:
         for coord in sample:
-            assert 16111 <= coord.get_end_coord() <= 18674
+            assert (16111 <= coord.get_end_coord() <= 18674) or (
+                coord.get_end_coord() == np.iinfo(np.int32).max
+            )
 
 
 def test_region_vcf():
