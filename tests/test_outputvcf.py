@@ -112,11 +112,11 @@ def test_end_bkp_coords():
 
 def test_variants_greater_than_last_coord():
     log = getLogger(name="test")
-    bkp_file = DATADIR / "var_greater.bp"
-    vcf_file = DATADIR / "var_greater.vcf"
+    bkp_file = DATADIR / "var_greater.bkp"
+    vcf_file = DATADIR / "var_greater.vcf.gz"
     model_file = DATADIR / "outvcf_gen.dat"
     sampleinfo_file = DATADIR / "outvcf_info.tab"
-    out_file = DATADIR / "outvcf_out.pgen"
+    out_file = DATADIR / "outvcf_out.vcf.gz"
     chroms = ["1"]
     bkps = _get_breakpoints(bkp_file, model_file)
 
@@ -135,22 +135,26 @@ def test_variants_greater_than_last_coord():
         log,
     )
 
-    # read in pgen file
-    vcf = GenotypesPLINK(out_file, log=log)
+    # read in vcf file
+    vcf = VCF(str(out_file))
     for var in vcf:
-        if var.variants["chrom"] == "chr1" and var.variants["pos"] == 10114:
-            np.testing.assert_allclose(var.data[0], [0, 0, 1])
-            np.testing.assert_allclose(var.data[1], [1, 1, 1])
-        elif var.variants["chrom"] == "chr1" and var.variants["pos"] == 248924809:
-            np.testing.assert_allclose(var.data[0], [0, 1, 1])
-            np.testing.assert_allclose(var.data[1], [1, 0, 1])
+        if var.CHROM == "chr1" and var.POS == 10114:
+            assert var.genotypes[0] == [0, 0, True]
+            assert var.format("POP")[0] == "YRI,YRI"
+            assert var.genotypes[1] == [1, 1, True]
+            assert var.format("POP")[1] == "CEU,CEU"
+
+        elif var.CHROM == "chr1" and var.POS == 249403765:
+            assert var.genotypes[0] == [0, 1, True]
+            assert var.format("POP")[0] == "CEU,YRI"
+            assert var.genotypes[1] == [1, 0, True]
+            assert var.format("POP")[1] == "YRI,CEU"
+
         else:
             assert False
 
     # Clean up by removing the output file from output_vcf
     out_file.unlink()
-    out_file.with_suffix(".pvar").unlink()
-    out_file.with_suffix(".psam").unlink()
 
 
 def test_alt_chrom_name():
