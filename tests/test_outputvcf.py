@@ -138,18 +138,16 @@ def test_variants_greater_than_last_coord():
     # read in vcf file
     vcf = VCF(str(out_file))
     for var in vcf:
-        if var.CHROM == "chr1" and var.POS == 10114:
+        if var.CHROM == "1" and var.POS == 10114:
             assert var.genotypes[0] == [0, 0, True]
             assert var.format("POP")[0] == "YRI,YRI"
             assert var.genotypes[1] == [1, 1, True]
             assert var.format("POP")[1] == "CEU,CEU"
-
-        elif var.CHROM == "chr1" and var.POS == 249403765:
+        elif var.CHROM == "1" and var.POS == 249403765:
             assert var.genotypes[0] == [0, 1, True]
             assert var.format("POP")[0] == "CEU,YRI"
             assert var.genotypes[1] == [1, 0, True]
             assert var.format("POP")[1] == "YRI,CEU"
-
         else:
             assert False
 

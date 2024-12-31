@@ -1,7 +1,7 @@
 ##fileformat=VCFv4.2
 ##filedate=20180225
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##contig=<ID=chr1>
+##contig=<ID=1>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00096	HG00097	HG00099	HG00100	HG00101
-chr1	10114	chr1:10114:T:C	T	C	.	.	.	GT	1|1	1|1	0|0	0|0	0|0
-chr1	249403765	chr1:249403765:A:G	A	G	.	.	.	GT	0|0	0|0	1|1	1|1	1|1
+1	10114	chr1:10114:T:C	T	C	.	.	.	GT	1|1	1|1	0|0	0|0	0|0
+1	249403765	chr1:249403765:A:G	A	G	.	.	.	GT	0|0	0|0	1|1	1|1	1|1

@@ -365,6 +365,8 @@ def _prepare_coords(coords_dir, chroms, region):
             if marker.get_bp_pos() >= region['end']:
                 end_ind = ind+1
                 break
+            else:
+                end_ind = len(coords[0])
         coords = [coords[0][start_ind:end_ind]]
 
     # Update end coords of each chromosome to have max int as the bp coordinate to
