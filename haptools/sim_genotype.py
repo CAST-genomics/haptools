@@ -1,12 +1,11 @@
+# fmt: off
 from __future__ import annotations
 
 import os
 import re
-import sys
 import glob
 import numpy as np
 from cyvcf2 import VCF
-from pysam import VariantFile
 from collections import defaultdict
 from .admix_storage import GeneticMarker, HaplotypeSegment
 from .data import GenotypesVCF, GenotypesPLINK
@@ -23,8 +22,9 @@ def output_vcf(
         pop_field, 
         sample_field, 
         no_replacement,
-        out, 
-        log
+        out,
+        log,
+        chunk_size = None,
     ):
     """
     Takes in simulated breakpoints and uses reference files, vcf and sampleinfo, 
@@ -70,6 +70,8 @@ def output_vcf(
         output prefix
     log: log object
         Outputs messages to the appropriate channel.
+    chunk_size: int, optional
+        The max number of variants to write to a PGEN file together
     """
 
     log.info(f"Outputting file {out}")
@@ -110,6 +112,7 @@ def output_vcf(
         vcf.read()
     else:
         vcf.read(region=f"{region['chr']}:{region['start']}-{region['end']}")
+    vcf.check_missing()
 
     log.debug(f"Read in variants from {variant_file}")
 
@@ -126,8 +129,11 @@ def output_vcf(
     # Use search_sorted() numpy function to find indices in populations/samples in order to determine population and sample info
     ref_vars = vcf.variants
     output_gts = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=vcf.data.dtype)
-    output_pops = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=np.uint8)
-    output_labels = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=object)
+    if not out.endswith(".pgen"):
+        if pop_field:
+            output_pops = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=np.uint8)
+        if sample_field:
+            output_labels = np.empty((int(len(breakpoints)//2), len(vcf.variants), 2), dtype=object)
 
     # cover "chr" prefix cases
     if ref_vars["chrom"][0].startswith("chr"):
@@ -187,10 +193,11 @@ def output_vcf(
             cur_var = end_var
 
         output_gts[int(hap_ind//2), : , hap_ind % 2] = ref_gts
-        if pop_field:
-            output_pops[int(hap_ind//2), : , hap_ind % 2] = ref_pops
-        if sample_field:
-            output_labels[int(hap_ind//2), : , hap_ind % 2] = ref_labels
+        if not out.endswith(".pgen"):
+            if pop_field:
+                output_pops[int(hap_ind//2), : , hap_ind % 2] = ref_pops
+            if sample_field:
+                output_labels[int(hap_ind//2), : , hap_ind % 2] = ref_labels
 
     # output vcf header to new vcf file we create
     output_samples = [f"Sample_{hap+1}" for hap in range(int(len(breakpoints)/2))]
@@ -215,7 +222,7 @@ def output_vcf(
             gts = GenotypesVCF(out, log=log)
 
     else:
-        gts = GenotypesPLINK(out, log=log)
+        gts = GenotypesPLINK(out, chunk_size=chunk_size, log=log)
     
     gts.samples = output_samples
     gts.variants = vcf.variants
@@ -305,6 +312,76 @@ def _find_coord(cur_hap, chrom, start_coord, end_coord):
     cur_hap.append((chrom, start_coord, end_coord))
     return False
 
+def _prepare_coords(coords_dir, chroms, region):
+    # coord file structure chr variant cMcoord bpcoord
+    # NOTE coord files in directory should have chr{1-22, X} in the name
+    def numeric_alpha(x):
+        chrom = re.search(r'(?<=chr)(X|\d+)', x).group()
+        if chrom == 'X':
+            return 23
+        else:
+            return int(chrom)
+
+    # sort coordinate files to ensure coords read are in sorted order
+    # remove all chr files not found in chroms list
+    all_coord_files = glob.glob(f'{coords_dir}/*.map')
+    all_coord_files = [coord_file for coord_file in all_coord_files \
+                if re.search(r'(?<=chr)(X|\d+)', coord_file) and \
+                   re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
+    all_coord_files.sort(key=numeric_alpha)
+
+    if len(all_coord_files) != len(chroms):
+        raise Exception(f"Unable to find all chromosomes {chroms} in map file directory.")
+    
+    # coords list has form chroms x coords
+    coords = []
+    for coords_file in all_coord_files:
+        file_coords = []
+        with open(coords_file, 'r') as cfile:
+            prev_coord = None
+            for line in cfile:
+                # create marker from each line and append to coords
+                data = line.strip().split()
+                if len(data) != 4:
+                    raise Exception(f"Map file contains an incorrect amount of fields {len(data)}. It should contain 4.")
+                
+                if data[0] == 'X':
+                    chrom = 23
+                else:
+                    chrom = int(data[0])
+                gen_mark = GeneticMarker(chrom, float(data[2]), 
+                                         int(data[3]), prev_coord)
+                prev_coord = gen_mark
+                file_coords.append(gen_mark)
+        coords.append(file_coords)
+
+    # subset the coordinates to be within the region
+    if region:
+        start_ind = -1
+        for ind, marker in enumerate(coords[0]):
+            if marker.get_bp_pos() >= region['start'] and start_ind < 0:
+                start_ind = ind
+
+            if marker.get_bp_pos() >= region['end']:
+                end_ind = ind+1
+                break
+            else:
+                end_ind = len(coords[0])
+        coords = [coords[0][start_ind:end_ind]]
+
+    # Update end coords of each chromosome to have max int as the bp coordinate to
+    #    prevent issues with variants in VCF file beyond the specified coordinate
+    for chrom_coord in coords:
+        chrom_coord[-1].bp_map_pos = np.iinfo(np.int32).max
+
+    # store end coords 
+    end_coords = [chrom_coord[-1] for chrom_coord in coords]
+
+    # convert coords to numpy array for easy masking
+    max_coords = max([len(chrom_coord) for chrom_coord in coords])
+    np_coords = np.zeros((len(coords), max_coords)).astype(object)
+    return coords, np_coords, max_coords, end_coords
+
 def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None):
     """
     Simulate admixed genotypes based on the parameters of model_file.
@@ -366,66 +443,8 @@ def simulate_gt(model_file, coords_dir, chroms, region, popsize, log, seed=None)
     for pop_ind, pop in enumerate(pops):
         pop_dict[pop_ind] = pop
 
-    # coord file structure chr variant cMcoord bpcoord
-    # NOTE coord files in directory should have chr{1-22, X} in the name
-    def numeric_alpha(x):
-        chrom = re.search(r'(?<=chr)(X|\d+)', x).group()
-        if chrom == 'X':
-            return 23
-        else:
-            return int(chrom)
-
-    # sort coordinate files to ensure coords read are in sorted order
-    # remove all chr files not found in chroms list
-    all_coord_files = glob.glob(f'{coords_dir}/*.map')
-    all_coord_files = [coord_file for coord_file in all_coord_files \
-                if re.search(r'(?<=chr)(X|\d+)', coord_file) and \
-                   re.search(r'(?<=chr)(X|\d+)', coord_file).group() in chroms]
-    all_coord_files.sort(key=numeric_alpha)
-
-    if len(all_coord_files) != len(chroms):
-        raise Exception(f"Unable to find all chromosomes {chroms} in map file directory.")
-    
-    # coords list has form chroms x coords
-    coords = []
-    for coords_file in all_coord_files:
-        file_coords = []
-        with open(coords_file, 'r') as cfile:
-            prev_coord = None
-            for line in cfile:
-                # create marker from each line and append to coords
-                data = line.strip().split()
-                if len(data) != 4:
-                    raise Exception(f"Map file contains an incorrect amount of fields {len(data)}. It should contain 4.")
-                
-                if data[0] == 'X':
-                    chrom = 23
-                else:
-                    chrom = int(data[0])
-                gen_mark = GeneticMarker(chrom, float(data[2]), 
-                                         int(data[3]), prev_coord)
-                prev_coord = gen_mark
-                file_coords.append(gen_mark)
-        coords.append(file_coords)
-
-    # subset the coordinates to be within the region
-    if region:
-        start_ind = -1
-        for ind, marker in enumerate(coords[0]):
-            if marker.get_bp_pos() >= region['start'] and start_ind < 0:
-                start_ind = ind
-
-            if marker.get_bp_pos() >= region['end']:
-                end_ind = ind+1
-                break
-        coords = [coords[0][start_ind:end_ind]]
-
-    # store end coords 
-    end_coords = [chrom_coord[-1] for chrom_coord in coords]
-
-    # convert coords to numpy array for easy masking
-    max_coords = max([len(chrom_coord) for chrom_coord in coords])
-    np_coords = np.zeros((len(coords), max_coords)).astype(object)
+    # Load coordinates to use for simulating
+    coords, np_coords, max_coords, end_coords = _prepare_coords(coords_dir, chroms, region)
     
     # precalculate recombination probabilities (given map pos in cM and we want M)
     #     shape: len(chroms) x max number of coords (max so not uneven)
