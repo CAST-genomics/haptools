@@ -104,7 +104,7 @@ def output_vcf(
     #      IE sample HG00097 is index 1 in a list of samples [HG00096 HG00097 HG00098]
     # create sample dictionary that holds sample name to the index in the vcf file for quick access 
     if variant_file.endswith(".pgen"):
-        vcf = GenotypesPLINK(variant_file, log=log)
+        vcf = GenotypesPLINK(variant_file, chunk_size=chunk_size, log=log)
     else:
         vcf = GenotypesVCF(variant_file, log=log)
     
