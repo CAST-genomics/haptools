@@ -66,7 +66,6 @@ if os.getenv("CONDA_EXE"):
             "pytest",
             channel="conda-forge",
         )
-        session.conda_install("pysam", channel="bioconda") # temp: until https://github.com/pysam-developers/pysam/issues/1230#issuecomment-2445293633
         install_handle_python_numpy(session)
         try:
             session.run(
