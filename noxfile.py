@@ -64,6 +64,7 @@ if os.getenv("CONDA_EXE"):
         session.conda_install(
             "coverage[toml]",
             "pytest",
+            "pysam", # temp: until https://github.com/pysam-developers/pysam/issues/1230#issuecomment-2445293633
             channel="conda-forge",
         )
         install_handle_python_numpy(session)
