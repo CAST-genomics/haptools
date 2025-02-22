@@ -101,6 +101,19 @@ You should specify a `version constraint <https://python-poetry.org/docs/master/
 
         poetry add 'click>=8.0.4'
 
+Afterward, double-check that the ``pyproject.toml`` file has been changed appropriately. Our minimum version constraints should be listed in the ``[project.dependencies]`` section and the locked versions should appear in the ``[tool.poetry.dependencies]`` section.
+Ideally, the ``[tool.poetry.dependencies]`` section should contain at least 1) the minimum supported version and 2) the latest version of each dependency.
+After making any changes to the ``pyproject.toml`` file, you must run the ``poetry lock`` command to sync it with the ``poetry.lock`` file.
+
+We try to keep the oldest version of python that is not end-of-life in our development environment (``dev-env.yml`` file), so that developers do not inadvertently make any changes that break support for that version of python.
+If, at any time, the minimum supported version of a dependency does not work with the version of python in our development environment, then you should also add the minimum working version of that dependency to our locked versions in the ``[tool.poetry.dependencies]`` section. See `this discussion thread <https://github.com/orgs/python-poetry/discussions/10142#discussioncomment-12050625>`_ for an example.
+
+Only PyPI packages can be added to our ``pyproject.toml`` file.
+So if a dependency is only available on conda, then you can add it to our ``dev-env.yml`` file instead.
+Please note that anyone who installs TRTools from PyPI will not be guaranteed to have your dependency installed, so you should design your code accordingly.
+
+Please note that any changes to our dependencies must also added to our bioconda recipe at the time of publication.
+
 
 ------------------------------------------
 Modifying our command line interface (CLI)
