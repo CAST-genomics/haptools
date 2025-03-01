@@ -7,7 +7,7 @@ from pathlib import Path
 from logging import Logger
 from typing import Iterator
 from itertools import chain
-import multiprocessing as mp
+import multiprocessing as mpi
 from collections import namedtuple, Counter
 
 import pgenlib
@@ -1308,15 +1308,16 @@ class GenotypesPLINK(GenotypesVCF):
 
         Parameters
         ----------
-        shared_arr: mp.Array
-            The underlying bytes of the matrix in self.data, as a shared-memory Array
         sample_idxs: npt.NDArray
             The indices of the samples to read
         indices: npt.NDArray
             The indices of the variants to read
+        shared_arr: mp.Array
+            The underlying bytes of the matrix in self.data, as a shared-memory Array.
+            This argument should be passed if self.num_cpus > 1
         """
-        global shared_arr, sample_idxs, indices
-        shared_arr, sample_idxs, indices = shared_arr_, sample_idxs_, indices_
+        global sample_idxs, indices, shared_arr
+        sample_idxs, indices, shared_arr = sample_idxs_, indices_, shared_arr_
 
     def _read_chunk(self, start: int, end: int):
         """
@@ -1334,10 +1335,9 @@ class GenotypesPLINK(GenotypesVCF):
         size = end - start
         mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
         if self.num_cpus > 1:
-            shd_data = shared_arr.get_obj()
-            self.data = np.frombuffer(shd_data, dtype=np.uint8).reshape(mat_len)
+            self_data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
         else:
-            self.data = np.empty(mat_len, dtype=np.uint8)
+            self_data = self.data
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         with pgenlib.PgenReader(
@@ -1367,10 +1367,10 @@ class GenotypesPLINK(GenotypesVCF):
                 data[data == -9] = -1
                 # add phase info, then transpose the GT matrix so that samples are
                 # rows and variants are columns
-                self.data[:, start:end, :2] = data.reshape(
+                self_data[:, start:end, :2] = data.reshape(
                     (size, mat_len[0], 2)
                 ).transpose((1, 0, 2))
-                self.data[:, start:end, 2] = phasing.transpose()
+                self_data[:, start:end, 2] = phasing.transpose()
             else:
                 # ...each row is a different chromosomal strand
                 data = np.empty((size, mat_len[0] * 2), dtype=np.int32)
@@ -1378,7 +1378,7 @@ class GenotypesPLINK(GenotypesVCF):
                 # missing alleles will have a value of -9
                 # let's make them be -1 to be consistent with cyvcf2
                 data[data == -9] = -1
-                self.data[:, start:end] = data.reshape((size, mat_len[0], 2)).transpose(
+                self_data[:, start:end] = data.reshape((size, mat_len[0], 2)).transpose(
                     (1, 0, 2)
                 )
 
@@ -1439,7 +1439,7 @@ class GenotypesPLINK(GenotypesVCF):
         )
         # initialize the data array
         if self.num_cpus > 1:
-            shared_arr = mp.Array("B", int(np.prod(mat_len)))
+            shared_arr = mpi.Array("B", int(np.prod(mat_len)))
             self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(
                 mat_len
             )
@@ -1449,6 +1449,7 @@ class GenotypesPLINK(GenotypesVCF):
             chunks = mat_len[1]
         # if we're only given one CPU, then don't try to parallelize
         if self.num_cpus == 1:
+            self.data = np.empty(mat_len, dtype=np.uint8)
             self._init_mp(sample_idxs, indices)
             for start in range(0, mat_len[1], chunks):
                 self._read_chunk(start, min(start + chunks, mat_len[1]))
@@ -1477,7 +1478,7 @@ class GenotypesPLINK(GenotypesVCF):
             (start, min(start + chunks, mat_len[1])) for start in chunk_starts
         ]
         mp_chunksize = int(np.ceil(len(chunks_args) / self.num_cpus))
-        with mp.Pool(
+        with mpi.Pool(
             processes=self.num_cpus,
             initializer=self._init_mp,
             initargs=(sample_idxs, indices, shared_arr),
