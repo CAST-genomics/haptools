@@ -1034,7 +1034,11 @@ class GenotypesPLINK(GenotypesVCF):
     ):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
-        self.num_cpus = num_cpus or len(os.sched_getaffinity(os.getpid()))
+        try:
+            self.num_cpus = num_cpus or len(os.sched_getaffinity(os.getpid()))
+        except AttributeError:
+            # if on macos, fallback to number of CPUs given be os.cpu_count()
+            self.num_cpus = os.cpu_count()
         if self.num_cpus < 1:
             self.num_cpus = 1
 
