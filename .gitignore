@@ -2,6 +2,7 @@ snakemake/data
 snakemake/out
 .snakemake
 .ipynb_checkpoints
+.vscode/
 # sphinx documentation
 docs/_build/
 # python cache

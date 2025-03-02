@@ -1,10 +1,13 @@
 from __future__ import annotations
 import re
 import gc
+import os
 from csv import reader
 from pathlib import Path
 from logging import Logger
 from typing import Iterator
+from itertools import chain
+import multiprocessing as mpi
 from collections import namedtuple, Counter
 
 import pgenlib
@@ -160,12 +163,23 @@ class Genotypes(Data):
         records = self.__iter__(region=region, samples=samples, variants=variants)
         if variants is not None:
             max_variants = len(variants)
+        if max_variants is None:
+            msg = ""
+            # try to get a count of the variants using cyvcf2
+            try:
+                try:
+                    max_variants = VCF(str(self.fname), lazy=True).num_records
+                except ValueError:
+                    msg = " and the VCF is not indexed"
+            except AttributeError as err:
+                msg = " and cyvcf2 < v0.30.27 is installed"
+            self.log.warning(
+                f"The max_variants parameter was not specified{msg}. We have no choice"
+                " but to append to an ever-growing array, which can lead to memory "
+                "overuse!"
+            )
         # check whether we can preallocate memory instead of making copies
         if max_variants is None:
-            self.log.warning(
-                "The max_variants parameter was not specified. We have no choice but to"
-                " append to an ever-growing array, which can lead to memory overuse!"
-            )
             variants_arr = []
             data_arr = []
             for rec in records:
@@ -1003,6 +1017,9 @@ class GenotypesPLINK(GenotypesVCF):
 
         If this value is provided, variants from the PGEN file will be loaded in
         chunks so as to use less memory
+    num_cpus: int, optional
+        The number of CPUs to use. By default, we will use as many as we've been
+        allocated.
 
     Examples
     --------
@@ -1014,9 +1031,17 @@ class GenotypesPLINK(GenotypesVCF):
         fname: Path | str,
         log: Logger = None,
         chunk_size: int = None,
+        num_cpus: int = None,
     ):
         super().__init__(fname, log)
         self.chunk_size = chunk_size
+        try:
+            self.num_cpus = num_cpus or len(os.sched_getaffinity(os.getpid()))
+        except AttributeError:
+            # if on macos, fallback to number of CPUs given be os.cpu_count()
+            self.num_cpus = mpi.cpu_count()
+        if self.num_cpus < 1:
+            self.num_cpus = 1
 
     def read_samples(self, samples: set[str] = None):
         """
@@ -1270,6 +1295,97 @@ class GenotypesPLINK(GenotypesVCF):
             )
         return indices
 
+    def _init_mp(
+        self,
+        sample_idxs_: npt.NDArray,
+        indices_: npt.NDArray,
+        shared_arr_: mpi.Array = None,
+    ):
+        """
+        A helper method for :py:meth:`~.GenotypesPLINK.read` that globalizes certain
+        variables so that they can be used in multiprocessing. This method should only
+        be called in each parallel child/worker process and not the parent process to
+        avoid polluting the global namespace.
+
+        This is preferable to passing these values as arguments to the
+        :py:meth:`~.GenotypesPLINK._read_chunk` method because, otherwise, python will
+        try to pickle the arguments
+
+        Parameters
+        ----------
+        sample_idxs: npt.NDArray
+            The indices of the samples to read
+        indices: npt.NDArray
+            The indices of the variants to read
+        shared_arr: mpi.Array
+            The underlying bytes of the matrix in self.data, as a shared-memory Array.
+            This argument should be passed if self.num_cpus > 1
+        """
+        global sample_idxs, indices, shared_arr
+        sample_idxs, indices, shared_arr = sample_idxs_, indices_, shared_arr_
+
+    def _read_chunk(self, start: int, end: int):
+        """
+        Read a single chunk of a PGEN file between the provided start and end coords.
+        Store the result in :py:attr:`~.GenotypesPLINK.data`. This is a helper function
+        that gets called by :py:meth:`~.GenotypesPLINK.read`
+
+        Parameters
+        ----------
+        start: int
+            The index of the first variant of the chunk
+        end: int
+            The index of the last variant of the chunk
+        """
+        size = end - start
+        mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
+        if self.num_cpus > 1:
+            shd_arr = shared_arr.get_obj()
+            self.data = np.frombuffer(shd_arr, dtype=np.uint8).reshape(mat_len)
+        pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+
+        with pgenlib.PgenReader(
+            bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
+        ) as pgen:
+            self.log.debug(f"Loading from variant #{start} to variant #{end}")
+            # the genotypes start out as a simple 2D array with twice the number
+            # of samples
+            if not self._prephased:
+                # ...each column is a different chromosomal strand
+                try:
+                    data = np.empty((size, mat_len[0] * 2), dtype=np.int32)
+                    phasing = np.zeros((size, mat_len[0]), dtype=np.uint8)
+                except np.core._exceptions._ArrayMemoryError as e:
+                    raise ValueError(
+                        "You don't have enough memory to load these genotypes! Try"
+                        " specifying a value to the chunk_size parameter, instead"
+                    ) from e
+                # The haplotype-major mode of read_alleles_and_phasepresent_list
+                # has not been implemented yet, so we need to read the genotypes
+                # in sample-major mode and then transpose them
+                pgen.read_alleles_and_phasepresent_list(
+                    indices[start:end], data, phasing
+                )
+                # missing alleles will have a value of -9
+                # let's make them be -1 to be consistent with cyvcf2
+                data[data == -9] = -1
+                # add phase info, then transpose the GT matrix so that samples are
+                # rows and variants are columns
+                self.data[:, start:end, :2] = data.reshape(
+                    (size, mat_len[0], 2)
+                ).transpose((1, 0, 2))
+                self.data[:, start:end, 2] = phasing.transpose()
+            else:
+                # ...each row is a different chromosomal strand
+                data = np.empty((size, mat_len[0] * 2), dtype=np.int32)
+                pgen.read_alleles_list(indices[start:end], data)
+                # missing alleles will have a value of -9
+                # let's make them be -1 to be consistent with cyvcf2
+                data[data == -9] = -1
+                self.data[:, start:end] = data.reshape((size, mat_len[0], 2)).transpose(
+                    (1, 0, 2)
+                )
+
     def read(
         self,
         region: str = None,
@@ -1319,68 +1435,64 @@ class GenotypesPLINK(GenotypesVCF):
                 max_variants = pgen.get_variant_ct()
             else:
                 max_variants = min(max_variants, pgen.get_variant_ct())
-            indices = self.read_variants(region, variants, max_variants)
-            mat_shape = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
-            self.log.debug(
-                f"Allocating memory for genotype matrix of shape {mat_shape} and "
-                "dtype np.uint8"
-            )
-            # initialize the data array
-            self.data = np.empty(mat_shape, dtype=np.uint8)
-            # how many variants should we load at once?
-            chunks = self.chunk_size
-            if chunks is None or chunks > len(indices):
-                chunks = len(indices)
+        indices = self.read_variants(region, variants, max_variants)
+        mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
+        self.log.debug(
+            f"Allocating memory for genotype matrix of shape {mat_len} and dtype uint8"
+        )
+        # initialize the data array
+        if self.num_cpus > 1:
+            shared_arr = mpi.Array("B", int(np.prod(mat_len)))
+            shd_arr = shared_arr.get_obj()
+            self.data = np.frombuffer(shd_arr, dtype=np.uint8).reshape(mat_len)
+        # how many variants should we load at once?
+        chunks = self.chunk_size
+        if chunks is None or chunks > mat_len[1]:
+            chunks = mat_len[1]
+        # if we're only given one CPU, then don't try to parallelize
+        if self.num_cpus == 1:
+            self.data = np.empty(mat_len, dtype=np.uint8)
+            self._init_mp(sample_idxs, indices)
+            for start in range(0, mat_len[1], chunks):
+                self._read_chunk(start, min(start + chunks, mat_len[1]))
+            return
+        # otherwise, let's parallelize!
+        # adjust chunk size to maximize CPU usage
+        if np.ceil(mat_len[1] / chunks) < self.num_cpus:
+            chunks = int(np.ceil(mat_len[1] / self.num_cpus))
+            if chunks <= 0:
+                chunks = 1
             self.log.info(
-                f"Reading genotypes from {len(self.samples)} samples and "
-                f"{len(indices)} variants in chunks of size {chunks} variants"
+                f"Changing chunk size to maximize usage of {self.num_cpus} CPUs"
             )
-            # iterate through chunks of variants
-            for start in range(0, len(indices), chunks):
-                end = start + chunks
-                if end > len(indices):
-                    end = len(indices)
-                size = end - start
-                self.log.debug(f"Loading from variant #{start} to variant #{end}")
-                # the genotypes start out as a simple 2D array with twice the number
-                # of samples
-                if not self._prephased:
-                    # ...each column is a different chromosomal strand
-                    try:
-                        data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
-                        phasing = np.zeros((size, len(sample_idxs)), dtype=np.uint8)
-                    except np.core._exceptions._ArrayMemoryError as e:
-                        raise ValueError(
-                            "You don't have enough memory to load these genotypes! Try"
-                            " specifying a value to the chunk_size parameter, instead"
-                        ) from e
-                    # The haplotype-major mode of read_alleles_and_phasepresent_list
-                    # has not been implemented yet, so we need to read the genotypes
-                    # in sample-major mode and then transpose them
-                    pgen.read_alleles_and_phasepresent_list(
-                        indices[start:end], data, phasing
-                    )
-                    # missing alleles will have a value of -9
-                    # let's make them be -1 to be consistent with cyvcf2
-                    data[data == -9] = -1
-                    # add phase info, then transpose the GT matrix so that samples are
-                    # rows and variants are columns
-                    self.data[:, start:end, :2] = data.reshape(
-                        (size, mat_shape[0], 2)
-                    ).transpose((1, 0, 2))
-                    self.data[:, start:end, 2] = phasing.transpose()
-                else:
-                    # ...each row is a different chromosomal strand
-                    data = np.empty((size, len(sample_idxs) * 2), dtype=np.int32)
-                    pgen.read_alleles_list(indices[start:end], data)
-                    # missing alleles will have a value of -9
-                    # let's make them be -1 to be consistent with cyvcf2
-                    data[data == -9] = -1
-                    self.data[:, start:end] = data.reshape(
-                        (size, mat_shape[0], 2)
-                    ).transpose((1, 0, 2))
-                del data
-                gc.collect()
+        # if the chunk size doesn't perfectly divide the variants, at what point should
+        # we decrease the chunk size by 1?
+        chunk_thresh = chunks * (mat_len[1] % self.num_cpus)
+        chunk_starts = range(0, chunk_thresh, chunks)
+        new_chunks = chunks
+        if chunks - 1 > 0:
+            new_chunks -= 1
+        chunk_starts = chain(chunk_starts, range(chunk_thresh, mat_len[1], new_chunks))
+        chunks_msg = (
+            f"Reading genotypes from {mat_len[0]} samples and {mat_len[1]} variants "
+            "in chunks of size "
+        )
+        if new_chunks != chunks and chunk_thresh < mat_len[0]:
+            chunks_msg += f"{chunks} and {new_chunks} variants"
+        else:
+            chunks_msg += f"{chunks} variants"
+        self.log.info(chunks_msg)
+        # iterate through chunks of variants
+        chunks_args = [
+            (start, min(start + chunks, mat_len[1])) for start in chunk_starts
+        ]
+        mp_chunksize = int(np.ceil(len(chunks_args) / self.num_cpus))
+        with mpi.Pool(
+            processes=self.num_cpus,
+            initializer=self._init_mp,
+            initargs=(sample_idxs, indices, shared_arr),
+        ) as pool:
+            pool.starmap(self._read_chunk, chunks_args, chunksize=mp_chunksize)
 
     def _iterate(
         self,
@@ -1654,6 +1766,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         See documentation for :py:attr:`~.GenotypesPLINK.chunk_size`
     vcftype: str, optional
         See documentation for :py:attr:`~.GenotypesTR.vcftype`
+    num_cpus: int, optional
+        The number of CPUs to use. By default, we will use as many as we've been
+        allocated.
     Examples
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
@@ -1665,8 +1780,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         log: Logger = None,
         chunk_size: int = None,
         vcftype: str = "auto",
+        num_cpus: int = None,
     ):
-        super().__init__(fname, log, chunk_size)
+        super().__init__(fname, log, chunk_size, num_cpus=num_cpus)
         self.vcftype = vcftype
 
     @classmethod
