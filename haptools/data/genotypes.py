@@ -1335,9 +1335,7 @@ class GenotypesPLINK(GenotypesVCF):
         size = end - start
         mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
         if self.num_cpus > 1:
-            self_data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
-        else:
-            self_data = self.data
+            self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         with pgenlib.PgenReader(
@@ -1367,10 +1365,10 @@ class GenotypesPLINK(GenotypesVCF):
                 data[data == -9] = -1
                 # add phase info, then transpose the GT matrix so that samples are
                 # rows and variants are columns
-                self_data[:, start:end, :2] = data.reshape(
+                self.data[:, start:end, :2] = data.reshape(
                     (size, mat_len[0], 2)
                 ).transpose((1, 0, 2))
-                self_data[:, start:end, 2] = phasing.transpose()
+                self.data[:, start:end, 2] = phasing.transpose()
             else:
                 # ...each row is a different chromosomal strand
                 data = np.empty((size, mat_len[0] * 2), dtype=np.int32)
@@ -1378,7 +1376,7 @@ class GenotypesPLINK(GenotypesVCF):
                 # missing alleles will have a value of -9
                 # let's make them be -1 to be consistent with cyvcf2
                 data[data == -9] = -1
-                self_data[:, start:end] = data.reshape((size, mat_len[0], 2)).transpose(
+                self.data[:, start:end] = data.reshape((size, mat_len[0], 2)).transpose(
                     (1, 0, 2)
                 )
 
