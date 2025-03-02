@@ -1038,7 +1038,7 @@ class GenotypesPLINK(GenotypesVCF):
             self.num_cpus = num_cpus or len(os.sched_getaffinity(os.getpid()))
         except AttributeError:
             # if on macos, fallback to number of CPUs given be os.cpu_count()
-            self.num_cpus = os.cpu_count()
+            self.num_cpus = mpi.cpu_count()
         if self.num_cpus < 1:
             self.num_cpus = 1
 
@@ -1422,7 +1422,6 @@ class GenotypesPLINK(GenotypesVCF):
                 return
             else:
                 raise e
-        num_cpus = mpi.cpu_count()
 
         with pgenlib.PgenReader(
             bytes(str(self.fname), "utf8"), sample_subset=sample_idxs, pvar=pv
