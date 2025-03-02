@@ -528,8 +528,7 @@ class Genotypes(Data):
                 self._var_idx = None
             else:
                 raise ValueError(
-                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
-                    .format(
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
                         *tuple(self.variants[variant_idx[0]])[:3],
                         self.samples[samp_idx[0]],
                     )
@@ -1335,7 +1334,8 @@ class GenotypesPLINK(GenotypesVCF):
         size = end - start
         mat_len = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
         if self.num_cpus > 1:
-            self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
+            shd_arr = shared_arr.get_obj()
+            self.data = np.frombuffer(shd_arr, dtype=np.uint8).reshape(mat_len)
         pv = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
 
         with pgenlib.PgenReader(
@@ -1438,7 +1438,8 @@ class GenotypesPLINK(GenotypesVCF):
         # initialize the data array
         if self.num_cpus > 1:
             shared_arr = mpi.Array("B", int(np.prod(mat_len)))
-            self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
+            shd_arr = shared_arr.get_obj()
+            self.data = np.frombuffer(shd_arr, dtype=np.uint8).reshape(mat_len)
         # how many variants should we load at once?
         chunks = self.chunk_size
         if chunks is None or chunks > mat_len[1]:
@@ -1466,9 +1467,7 @@ class GenotypesPLINK(GenotypesVCF):
         new_chunks = chunks
         if chunks - 1 > 0:
             new_chunks -= 1
-        chunk_starts = chain(
-            chunk_starts, range(chunk_thresh, mat_len[1], new_chunks)
-        )
+        chunk_starts = chain(chunk_starts, range(chunk_thresh, mat_len[1], new_chunks))
         chunks_msg = (
             f"Reading genotypes from {mat_len[0]} samples and {mat_len[1]} variants "
             "in chunks of size "

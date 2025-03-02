@@ -24,7 +24,6 @@ from haptools.data import (
     GenotypesPLINKTR,
 )
 
-
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
@@ -455,13 +454,12 @@ class TestGenotypesPLINK:
 
         # what is the ratio of num variants to available CPUs?
         ratio = int(num_variants / avail_num_cpus)
+        chunks = (1, ratio - 2, ratio - 1, ratio, ratio + 1, ratio + 2, num_variants)
+        chunks = set(filter(lambda i: i > 0, chunks))
 
         # test with different combinations of num_cpus and chunk_size
         for num_cpu in set((1, 2, int(avail_num_cpus / 2), avail_num_cpus)):
-            chunk_sizes = set(filter(lambda i: i > 0, tuple(
-                (1, ratio - 2, ratio - 1, ratio, ratio + 1, ratio + 2, num_variants)
-            )))
-            for chunk_size in chunk_sizes:
+            for chunk_size in chunks:
                 gts = GenotypesPLINK(fname, chunk_size=chunk_size, num_cpus=num_cpu)
                 gts.log.debug(f"Testing num_cpus: {num_cpu}, chunk_size: {chunk_size}")
                 gts.read()
@@ -811,13 +809,12 @@ class TestGenotypesPLINKTR:
 
         # what is the ratio of num variants to available CPUs?
         ratio = int(num_variants / avail_num_cpus)
+        chunks = (1, ratio - 2, ratio - 1, ratio, ratio + 1, ratio + 2, num_variants)
+        chunks = set(filter(lambda i: i > 0, chunks))
 
         # test with different combinations of num_cpus and chunk_size
         for num_cpu in set((1, 2, int(avail_num_cpus / 2), avail_num_cpus)):
-            chunk_sizes = set(filter(lambda i: i > 0, tuple(
-                (1, ratio - 2, ratio - 1, ratio, ratio + 1, ratio + 2, num_variants)
-            )))
-            for chunk_size in chunk_sizes:
+            for chunk_size in chunks:
                 gts = GenotypesPLINKTR(fname, chunk_size=chunk_size, num_cpus=num_cpu)
                 gts.log.debug(f"Testing num_cpus: {num_cpu}, chunk_size: {chunk_size}")
                 gts.read()
