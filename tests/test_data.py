@@ -457,7 +457,7 @@ class TestGenotypesPLINK:
         ratio = int(num_variants / avail_num_cpus)
 
         # test with different combinations of num_cpus and chunk_size
-        for num_cpu in set((1, int(avail_num_cpus / 2), avail_num_cpus)):
+        for num_cpu in set((1, 2, int(avail_num_cpus / 2), avail_num_cpus)):
             chunk_sizes = set(filter(lambda i: i > 0, tuple(
                 (1, ratio - 2, ratio - 1, ratio, ratio + 1, ratio + 2, num_variants)
             )))
@@ -471,8 +471,6 @@ class TestGenotypesPLINK:
                 for i, x in enumerate(exp.variants):
                     for col in ("chrom", "pos", "id", "alleles"):
                         assert gts.variants[col][i] == exp.variants[col][i]
-
-        # TODO: test with missing values
 
     def test_load_genotypes_prephased(self):
         expected = self._get_fake_genotypes_plink()

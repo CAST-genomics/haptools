@@ -1294,7 +1294,7 @@ class GenotypesPLINK(GenotypesVCF):
         self,
         sample_idxs_: npt.NDArray,
         indices_: npt.NDArray,
-        shared_arr_: mp.Array = None,
+        shared_arr_: mpi.Array = None,
     ):
         """
         A helper method for :py:meth:`~.GenotypesPLINK.read` that globalizes certain
@@ -1312,7 +1312,7 @@ class GenotypesPLINK(GenotypesVCF):
             The indices of the samples to read
         indices: npt.NDArray
             The indices of the variants to read
-        shared_arr: mp.Array
+        shared_arr: mpi.Array
             The underlying bytes of the matrix in self.data, as a shared-memory Array.
             This argument should be passed if self.num_cpus > 1
         """
@@ -1440,9 +1440,7 @@ class GenotypesPLINK(GenotypesVCF):
         # initialize the data array
         if self.num_cpus > 1:
             shared_arr = mpi.Array("B", int(np.prod(mat_len)))
-            self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(
-                mat_len
-            )
+            self.data = np.frombuffer(shared_arr.get_obj(), dtype=np.uint8).reshape(mat_len)
         # how many variants should we load at once?
         chunks = self.chunk_size
         if chunks is None or chunks > mat_len[1]:
@@ -1463,10 +1461,6 @@ class GenotypesPLINK(GenotypesVCF):
             self.log.info(
                 f"Changing chunk size to maximize usage of {self.num_cpus} CPUs"
             )
-        self.log.info(
-            f"Reading genotypes from {mat_len[0]} samples and "
-            f"{mat_len[1]} variants in chunks of size {chunks} variants"
-        )
         # if the chunk size doesn't perfectly divide the variants, at what point should
         # we decrease the chunk size by 1?
         chunk_thresh = chunks * (mat_len[1] % self.num_cpus)
@@ -1477,6 +1471,15 @@ class GenotypesPLINK(GenotypesVCF):
         chunk_starts = chain(
             chunk_starts, range(chunk_thresh, mat_len[1], new_chunks)
         )
+        chunks_msg = (
+            f"Reading genotypes from {mat_len[0]} samples and {mat_len[1]} variants "
+            "in chunks of size "
+        )
+        if new_chunks != chunks and chunk_thresh < mat_len[0]:
+            chunks_msg += f"{chunks} and {new_chunks} variants"
+        else:
+            chunks_msg += f"{chunks} variants"
+        self.log.info(chunks_msg)
         # iterate through chunks of variants
         chunks_args = [
             (start, min(start + chunks, mat_len[1])) for start in chunk_starts
