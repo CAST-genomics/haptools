@@ -164,6 +164,7 @@ class Genotypes(Data):
         if variants is not None:
             max_variants = len(variants)
         if max_variants is None:
+            msg = ""
             # try to get a count of the variants using cyvcf2
             try:
                 try:
