@@ -1458,6 +1458,8 @@ class GenotypesPLINK(GenotypesVCF):
         # adjust chunk size to maximize CPU usage
         if np.ceil(mat_len[1] / chunks) < self.num_cpus:
             chunks = int(np.ceil(mat_len[1] / self.num_cpus))
+            if chunks <= 0:
+                chunks = 1
             self.log.info(
                 f"Changing chunk size to maximize usage of {self.num_cpus} CPUs"
             )
@@ -1469,10 +1471,12 @@ class GenotypesPLINK(GenotypesVCF):
         # we decrease the chunk size by 1?
         chunk_thresh = chunks * (mat_len[1] % self.num_cpus)
         chunk_starts = range(0, chunk_thresh, chunks)
+        new_chunks = chunks
         if chunks - 1 > 0:
-            chunk_starts = chain(
-                chunk_starts, range(chunk_thresh, mat_len[1], chunks - 1)
-            )
+            new_chunks -= 1
+        chunk_starts = chain(
+            chunk_starts, range(chunk_thresh, mat_len[1], new_chunks)
+        )
         # iterate through chunks of variants
         chunks_args = [
             (start, min(start + chunks, mat_len[1])) for start in chunk_starts
