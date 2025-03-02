@@ -800,6 +800,34 @@ class TestGenotypesPLINKTR:
         # check genotypes
         np.testing.assert_allclose(expected_alleles, gts.data)
 
+    def test_load_genotypes_chunked_cpus(self):
+        fname = DATADIR / "simple-tr.pgen"
+        # get the expected data and the available number of CPUs and variants
+        exp = self._get_fake_genotypes_multiallelic()
+        gts = GenotypesPLINKTR(fname)
+        avail_num_cpus = gts.num_cpus
+        gts.log.debug(f"Discovered {avail_num_cpus} available CPUs")
+        num_variants = len(exp.variants)
+
+        # what is the ratio of num variants to available CPUs?
+        ratio = int(num_variants / avail_num_cpus)
+
+        # test with different combinations of num_cpus and chunk_size
+        for num_cpu in set((1, 2, int(avail_num_cpus / 2), avail_num_cpus)):
+            chunk_sizes = set(filter(lambda i: i > 0, tuple(
+                (1, ratio - 2, ratio - 1, ratio, ratio + 1, ratio + 2, num_variants)
+            )))
+            for chunk_size in chunk_sizes:
+                gts = GenotypesPLINKTR(fname, chunk_size=chunk_size, num_cpus=num_cpu)
+                gts.log.debug(f"Testing num_cpus: {num_cpu}, chunk_size: {chunk_size}")
+                gts.read()
+                # check that everything matches what we expected
+                np.testing.assert_allclose(gts.data, exp.data)
+                assert gts.samples == exp.samples
+                for i, x in enumerate(exp.variants):
+                    for col in ("chrom", "pos", "id", "alleles"):
+                        assert gts.variants[col][i] == exp.variants[col][i]
+
 
 class TestPhenotypes:
     def _get_expected_phenotypes(self):

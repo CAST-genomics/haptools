@@ -1764,6 +1764,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         See documentation for :py:attr:`~.GenotypesPLINK.chunk_size`
     vcftype: str, optional
         See documentation for :py:attr:`~.GenotypesTR.vcftype`
+    num_cpus: int, optional
+        The number of CPUs to use. By default, we will use as many as we've been
+        allocated.
     Examples
     --------
     >>> genotypes = GenotypesPLINK.load('tests/data/simple.pgen')
@@ -1775,8 +1778,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
         log: Logger = None,
         chunk_size: int = None,
         vcftype: str = "auto",
+        num_cpus: int = None,
     ):
-        super().__init__(fname, log, chunk_size)
+        super().__init__(fname, log, chunk_size, num_cpus=num_cpus)
         self.vcftype = vcftype
 
     @classmethod
