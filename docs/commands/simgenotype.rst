@@ -75,6 +75,10 @@ If speed is important, it's generally faster to use PGEN files than VCFs.
   --pop_field \
   --out tests/data/example_simgenotype.pgen
 
+.. warning::
+  Writing PGEN files will require more memory than writing VCFs. The memory will depend on the number of simulated samples and variants.
+  You can reduce the memory required for this step by writing the variants in chunks. Just specify a ``--chunk-size`` value.
+
 All files used in these examples are described :doc:`here </project_info/example_files>`.
 
 

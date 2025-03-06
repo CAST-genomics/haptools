@@ -203,6 +203,17 @@ def karyogram(bp, sample, out, title, centromeres, colors, verbosity):
     ),
 )
 @click.option(
+    "-c",
+    "--chunk-size",
+    type=int,
+    default=None,
+    show_default="all variants",
+    help=(
+        "If requesting a PGEN output file, write genotypes in chunks of X variants; "
+        "reduces memory"
+    ),
+)
+@click.option(
     "-v",
     "--verbosity",
     type=click.Choice(["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]),
@@ -224,6 +235,7 @@ def simgenotype(
     sample_field,
     no_replacement,
     only_breakpoint,
+    chunk_size,
     verbosity,
 ):
     """
@@ -307,6 +319,7 @@ def simgenotype(
             no_replacement,
             out,
             log,
+            chunk_size,
         )
     end = time.time()
 

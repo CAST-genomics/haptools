@@ -3,14 +3,14 @@ import os
 import shutil
 from pathlib import Path
 
-import nox
-from nox_poetry import Session
-from nox_poetry import session
+import nox  # type: ignore
+from nox_poetry import Session  # type: ignore
+from nox_poetry import session  # type: ignore
 
 
 package = "haptools"
-python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
-locked_python_version = "3.8"
+python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+locked_python_version = "3.9"  # keep in sync with dev-env.yml
 nox.needs_version = ">= 2022.11.21"
 nox.options.sessions = (
     "docs",
@@ -37,18 +37,7 @@ def docs(session: Session) -> None:
 def lint(session: Session) -> None:
     """Lint our code."""
     session.install("black")
-    session.run("black", "--verbose", "--check", ".")
-
-
-def install_handle_python_numpy(session):
-    """
-    handle incompatibilities with python and numpy versions
-    see https://github.com/cjolowicz/nox-poetry/issues/1116
-    """
-    if session._session.python in ["3.11", "3.12"]:
-        session._session.install(".")
-    else:
-        session.install(".")
+    session.run("black", "--diff", "--verbose", "--check", ".")
 
 
 # detect whether conda/mamba is installed
@@ -64,10 +53,9 @@ if os.getenv("CONDA_EXE"):
         session.conda_install(
             "coverage[toml]",
             "pytest",
-            "numpy>=1.20.0",
             channel="conda-forge",
         )
-        install_handle_python_numpy(session)
+        session.install(".")
         try:
             session.run(
                 "coverage", "run", "--parallel", "-m", "pytest", *session.posargs
@@ -82,7 +70,7 @@ else:
     def tests(session: Session) -> None:
         """Run the test suite."""
         session.install("coverage[toml]", "pytest")
-        install_handle_python_numpy(session)
+        session.install(".")
         try:
             session.run(
                 "coverage", "run", "--parallel", "-m", "pytest", *session.posargs
