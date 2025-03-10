@@ -727,9 +727,23 @@ description = "Decorators for Humans"
 optional = false
 python-versions = ">=3.5"
 groups = ["tests"]
+markers = "python_version <= \"3.9\""
 files = [
     {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
+]
+
+[[package]]
+name = "decorator"
+version = "5.2.1"
+description = "Decorators for Humans"
+optional = false
+python-versions = ">=3.8"
+groups = ["tests"]
+markers = "python_version > \"3.9\""
+files = [
+    {file = "decorator-5.2.1-py3-none-any.whl", hash = "sha256:d316bb415a2d9e2d2b3abcc4084c6502fc09240e292cd76a76afc106a1c8e04a"},
+    {file = "decorator-5.2.1.tar.gz", hash = "sha256:65f266143752f734b0a7cc83c46f4618af75b8c5911b00ccb61d0ac9b6da0360"},
 ]
 
 [[package]]
@@ -789,73 +803,6 @@ files = [
 
 [package.extras]
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich ; python_version >= \"3.11\""]
-
-[[package]]
-name = "filprofiler"
-version = "2023.3.1"
-description = "A memory profiler for data batch processing applications."
-optional = false
-python-versions = ">=3.7"
-groups = ["tests"]
-markers = "python_version <= \"3.9\""
-files = [
-    {file = "filprofiler-2023.3.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:61be1ba4522d80292abd23c9b5e43f8e43622c992e4e655ebfe91782dbe4f71d"},
-    {file = "filprofiler-2023.3.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:970822f62a19ebb8b868075cfe98567ecf49a21749a141ef6ea69f66b9a9808a"},
-    {file = "filprofiler-2023.3.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4ecc4523e4638a37f656e75fc4525ef90d4bcfb42c2b18273478819c8a4718f4"},
-    {file = "filprofiler-2023.3.1-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:ddfccc9eb02365c9784b232d8c87c9aa257a2b280d0c246301d211047dae70d7"},
-    {file = "filprofiler-2023.3.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:89fa7a52e8162c459448cecc29a38c766f3c6bcbeac19628f20989eb3e787833"},
-    {file = "filprofiler-2023.3.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e02db2f5664928170350fcaa9f9b06ba8c11e50c4fef683393f0e32c1cb6a4c5"},
-    {file = "filprofiler-2023.3.1-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:ec9128739fa0195493932eb049a4a21575dc66f1b945c069b55d7ecc5b1250ea"},
-    {file = "filprofiler-2023.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e435787c6c3e4166bbd824c412e6fc6a9fd642e9086389118b70b0d21c5188fb"},
-    {file = "filprofiler-2023.3.1-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:fd1c0e325e6756fd0f235fa4bd229ad9b236836655faafc764a3d5c71fa3d5f0"},
-    {file = "filprofiler-2023.3.1-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:c06cfddfeed5e7bb7cf0efa5664615696c62aa98f6c941285d131bdcd6c3957c"},
-    {file = "filprofiler-2023.3.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:11a333bf0de50e243a3c2892314e3b4003408c5d7ccc0cec39a6220cc1f1c281"},
-    {file = "filprofiler-2023.3.1-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:74ba57bed56d2bc23b13ab857e9d1ab56d2d2883a064cc905854ff5b998103be"},
-    {file = "filprofiler-2023.3.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:b0b1664404398476dd7688ef8726468dee59f23cc2093089495098578173a007"},
-    {file = "filprofiler-2023.3.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b8243727c5f73a4d1537c8b73ed7b19bf35f2ce82365d37f937de2e2d68043bf"},
-]
-
-[package.dependencies]
-threadpoolctl = "*"
-
-[package.extras]
-dev = ["auditwheel", "black", "blosc", "cython", "flake8", "ipykernel", "ipython", "jinja2 (<3.1)", "nbconvert", "numexpr", "numpy", "pampy", "psutil", "pytest", "towncrier", "twine", "wheel"]
-
-[[package]]
-name = "filprofiler"
-version = "2024.11.2"
-description = "A memory profiler for data batch processing applications."
-optional = false
-python-versions = ">=3.9"
-groups = ["tests"]
-markers = "python_version > \"3.9\""
-files = [
-    {file = "filprofiler-2024.11.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f160f2e74482f0674cac49db2a05dab60840a7ca2360159e8d84eeef7047d0cd"},
-    {file = "filprofiler-2024.11.2-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:e9405fec3c1cdf1030f3fad54df18e1499fb897f98e9fa0cec9caedd5d73839e"},
-    {file = "filprofiler-2024.11.2-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:e0d5dadabd4b98559a948bb5918485e6611d867872ec4dd1db94fede223466ee"},
-    {file = "filprofiler-2024.11.2-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:996696df7bb0ae312b566ddf1b5db202e1f7e5008446b6ca080dce326b3b7980"},
-    {file = "filprofiler-2024.11.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:4086e43b816e5a42e499afe5d97c2d6ca8e4d9cc6285a0075a5a32795c6d9751"},
-    {file = "filprofiler-2024.11.2-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:f511d530877f9fe8e64a73e08df366cc8ef3a8f6b411933f9302b2335ca4813c"},
-    {file = "filprofiler-2024.11.2-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:35369b28b962c0749785fadd60d63c13493ef55fa63450ff04a1a20b86c6e99a"},
-    {file = "filprofiler-2024.11.2-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:dfffd0c434f3276af6c067c42a4cb2108b911da22b6a9690ea77ef0a04c82970"},
-    {file = "filprofiler-2024.11.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d489873c3d94753e39d1404b190a52a8bed07a7b74e6cdcb03c513ff411353f8"},
-    {file = "filprofiler-2024.11.2-cp312-cp312-macosx_11_0_x86_64.whl", hash = "sha256:294cb5e3cdefffcd0581d2ea8e1e66e9312a7b68a5f61bc528f65a752f4499ac"},
-    {file = "filprofiler-2024.11.2-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:278bd1cf53e7581e9164059856aa5a29f8255b86b7e7b15f9d6e16557eb91255"},
-    {file = "filprofiler-2024.11.2-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:2e5a3437bc259e44e48db2cee4c5fe19ce0acc080b206b4dfe91bad285607505"},
-    {file = "filprofiler-2024.11.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0d8e5355ff0a78afa5b06ce1a2da3cda22edf711e5a4f717da907df083fe4c2e"},
-    {file = "filprofiler-2024.11.2-cp313-cp313-macosx_11_0_x86_64.whl", hash = "sha256:07fdd470cb8faae7aa4cc87a5b478ce5c96697ba769195a581f96976200ed0c5"},
-    {file = "filprofiler-2024.11.2-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:93d93a344f9999258b9b13036cff3227e38f3eeecec8646cb7c29441f0f389fd"},
-    {file = "filprofiler-2024.11.2-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:f1e05647175bfc83dbadde95e65d4ce3bfe248fff0f64fddf96ebc54c73f34de"},
-    {file = "filprofiler-2024.11.2-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:c662c341f87faf460a94af10c6fc0723295e0341b6ba49e2eae64326698b8ce7"},
-    {file = "filprofiler-2024.11.2-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:8dbdeceacd45224e843e2c2331109c958d29cb6fe469459b73730adbd64515e0"},
-    {file = "filprofiler-2024.11.2-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:1d5276bd26081aafe27359a11d62c318d874cafd50bf7ea015195dfddcd51713"},
-]
-
-[package.dependencies]
-threadpoolctl = "*"
-
-[package.extras]
-dev = ["auditwheel", "black", "blosc", "cython", "flake8", "ipykernel", "ipython", "jinja2 (<3.1)", "meson", "nbconvert", "ninja", "numexpr", "numpy (>1)", "pampy", "psutil", "pytest", "towncrier", "twine", "wheel"]
 
 [[package]]
 name = "fonttools"
@@ -1076,15 +1023,15 @@ test = ["ipykernel", "nbformat", "nose (>=0.10.1)", "numpy (>=1.17)", "pygments"
 
 [[package]]
 name = "ipython"
-version = "8.32.0"
+version = "8.34.0"
 description = "IPython: Productive Interactive Computing"
 optional = false
 python-versions = ">=3.10"
 groups = ["tests"]
 markers = "python_version > \"3.9\""
 files = [
-    {file = "ipython-8.32.0-py3-none-any.whl", hash = "sha256:cae85b0c61eff1fc48b0a8002de5958b6528fa9c8defb1894da63f42613708aa"},
-    {file = "ipython-8.32.0.tar.gz", hash = "sha256:be2c91895b0b9ea7ba49d33b23e2040c352b33eb6a519cca7ce6e0c743444251"},
+    {file = "ipython-8.34.0-py3-none-any.whl", hash = "sha256:0419883fa46e0baa182c5d50ebb8d6b49df1889fdb70750ad6d8cfe678eda6e3"},
+    {file = "ipython-8.34.0.tar.gz", hash = "sha256:c31d658e754673ecc6514583e7dda8069e47136eb62458816b7d1e6625948b5a"},
 ]
 
 [package.dependencies]
@@ -1136,14 +1083,14 @@ testing = ["Django", "attrs", "colorama", "docopt", "pytest (<9.0.0)"]
 
 [[package]]
 name = "jinja2"
-version = "3.1.5"
+version = "3.1.6"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
 groups = ["docs"]
 files = [
-    {file = "jinja2-3.1.5-py3-none-any.whl", hash = "sha256:aba0f4dc9ed8013c424088f68a5c226f7d6097ed89b246d7749c2ec4175c6adb"},
-    {file = "jinja2-3.1.5.tar.gz", hash = "sha256:8fefff8dc3034e27bb80d67c671eb8a9bc424c0ef4c0826edbff304cceff43bb"},
+    {file = "jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"},
+    {file = "jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"},
 ]
 
 [package.dependencies]
@@ -2448,15 +2395,15 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "pytest"
-version = "8.3.4"
+version = "8.3.5"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["tests"]
 markers = "python_version > \"3.9\""
 files = [
-    {file = "pytest-8.3.4-py3-none-any.whl", hash = "sha256:50e16d954148559c9a74109af1eaf0c945ba2d8f30f0a3d3335edde19788b6f6"},
-    {file = "pytest-8.3.4.tar.gz", hash = "sha256:965370d062bce11e73868e0335abac31b4d3de0e82f4007408d242b4f8610761"},
+    {file = "pytest-8.3.5-py3-none-any.whl", hash = "sha256:c69214aa47deac29fad6c2a4f590b9c4a9fdb16a403176fe154b79c0b4d4d820"},
+    {file = "pytest-8.3.5.tar.gz", hash = "sha256:f4efe70cc14e511565ac476b57c279e12a855b11f48f212af1080ef2263d3845"},
 ]
 
 [package.dependencies]
@@ -3022,32 +2969,6 @@ files = [
 widechars = ["wcwidth"]
 
 [[package]]
-name = "threadpoolctl"
-version = "3.1.0"
-description = "threadpoolctl"
-optional = false
-python-versions = ">=3.6"
-groups = ["tests"]
-markers = "python_version <= \"3.9\""
-files = [
-    {file = "threadpoolctl-3.1.0-py3-none-any.whl", hash = "sha256:8b99adda265feb6773280df41eece7b2e6561b772d21ffd52e372f999024907b"},
-    {file = "threadpoolctl-3.1.0.tar.gz", hash = "sha256:a335baacfaa4400ae1f0d8e3a58d6674d2f8828e3716bb2802c44955ad391380"},
-]
-
-[[package]]
-name = "threadpoolctl"
-version = "3.5.0"
-description = "threadpoolctl"
-optional = false
-python-versions = ">=3.8"
-groups = ["tests"]
-markers = "python_version > \"3.9\""
-files = [
-    {file = "threadpoolctl-3.5.0-py3-none-any.whl", hash = "sha256:56c1e26c150397e58c4926da8eeee87533b1e32bef131bd4bf6a2f45f3185467"},
-    {file = "threadpoolctl-3.5.0.tar.gz", hash = "sha256:082433502dd922bf738de0d8bcc4fdcbf0979ff44c42bd40f5af8a282f6fa107"},
-]
-
-[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -3285,4 +3206,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.7"
-content-hash = "f83dbb2e596c79415a4d27f51341a6083854688e05b155a8b3a223053f3e5d69"
+content-hash = "5b2270f02a3459fa465ce1064df103e03327feaa11af416414fe5e62ce102ced"

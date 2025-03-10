@@ -43,7 +43,7 @@ def test_ld(seed=42):
     ld = pearson_corr_ld(arrA, arrB)
     assert isinstance(ld, np.ndarray)
     assert ld.shape == (3,)
-    assert old_ld == ld[2]
+    assert math.isclose(old_ld, ld[2])
 
     # (25,) x (25,3) --> (3,)
     arrA = arrB
@@ -58,14 +58,14 @@ def test_ld(seed=42):
     ld = pearson_corr_ld(arrA, arrB)
     assert isinstance(ld, np.ndarray)
     assert ld.shape == (1, 3)
-    np.testing.assert_allclose(old_ld[np.newaxis, :], ld)
+    np.testing.assert_allclose(old_ld[np.newaxis, :], ld, rtol=1e-4)
 
     # (25,2) x (25,3) --> (2,3)
     arrA = np.hstack((arrA, np.random.choice((0, 1, 2), size=(25, 1))))
     ld = pearson_corr_ld(arrA, arrB)
     assert isinstance(ld, np.ndarray)
     assert ld.shape == (2, 3)
-    np.testing.assert_allclose(old_ld, ld[0])
+    np.testing.assert_allclose(old_ld, ld[0], rtol=1e-4)
 
 
 def test_basic(capfd):

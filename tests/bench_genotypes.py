@@ -28,7 +28,8 @@ from haptools.data import (
 # COMMAND FOR GENERATING UKB PLOT:
 # tests/bench_genotypes.py \
 # --default-variants 18472 --default-samples 487409 --intervals-variants 1 80 4 \
-# --intervals-samples 1 80 4 -o plot.png -a results.pickle
+# --intervals-samples 1 80 4 -o plot.pdf -a results.pickle
+# (allocate 30 mins, 4 CPUs, and 4GB of RAM)
 
 DATADIR = Path(__file__).parent.joinpath("data")
 
@@ -198,27 +199,27 @@ def create_sample_files(gts, intervals, num_vars, plink2: Path = None):
     return sample_dir
 
 
-def time_vcf(vcf, max_variants, chunk_size=500):
+def time_vcf(vcf, max_variants, chunk_size=None):
     GenotypesVCF(vcf).read(max_variants=max_variants)
 
 
-def time_vcf_tr(vcf, max_variants, chunk_size=500):
+def time_vcf_tr(vcf, max_variants, chunk_size=None):
     GenotypesTR(vcf, vcftype="hipstr").read(max_variants=max_variants)
 
 
-def time_plink(pgen, max_variants, chunk_size=500):
+def time_plink(pgen, max_variants, chunk_size=None):
     GenotypesPLINK(pgen).read(max_variants=max_variants)
 
 
-def time_plink_tr(pgen, max_variants, chunk_size=500):
+def time_plink_tr(pgen, max_variants, chunk_size=None):
     GenotypesPLINKTR(pgen, vcftype="hipstr").read(max_variants=max_variants)
 
 
-def time_plink_chunk(pgen, max_variants, chunk_size=500):
+def time_plink_chunk(pgen, max_variants, chunk_size=None):
     GenotypesPLINK(pgen, chunk_size=chunk_size).read(max_variants=max_variants)
 
 
-def time_plink_chunk_tr(pgen, max_variants, chunk_size=500):
+def time_plink_chunk_tr(pgen, max_variants, chunk_size=None):
     GenotypesPLINKTR(pgen, chunk_size=chunk_size, vcftype="hipstr").read(
         max_variants=max_variants
     )
@@ -402,10 +403,10 @@ def main(
     FILE_TYPES = {
         "vcf": "VCF",
         "pgen": "PLINK2",
-        "chunked200": "PLINK2 chunk_size: 200",
-        "chunked400": "PLINK2 chunk_size: 400",
-        "chunked600": "PLINK2 chunk_size: 600",
-        "chunked800": "PLINK2 chunk_size: 800",
+        "chunked3000": "PLINK2 chunk_size: 3000",
+        "chunked5000": "PLINK2 chunk_size: 5000",
+        "chunked7000": "PLINK2 chunk_size: 7000",
+        "chunked9000": "PLINK2 chunk_size: 9000",
     }
 
     # create the files we will try to load if they haven't been created already
@@ -444,7 +445,7 @@ def main(
             )
             results[arg][file_type] = []
             for val in item_iter:
-                chunk_size = 500
+                chunk_size = None
                 if file_type == "vcf":
                     func = time_vcf_tr if plink2 else time_vcf
                     file = genotype_dir / f"{val}.vcf"
@@ -452,10 +453,12 @@ def main(
                     if file_type == "pgen":
                         func = time_plink_tr if plink2 else time_plink
                     else:
-                        funct = time_plink_chunk_tr if plink2 else time_plink_chunk
+                        func = time_plink_chunk_tr if plink2 else time_plink_chunk
                     file = genotype_dir / f"{val}.pgen"
                     if file_type.startswith("chunked"):
                         chunk_size = int(file_type[len("chunked") :])
+                        if arg == "variants" and chunk_size > val:
+                            continue
                 else:
                     continue
                 times = np.empty(REPS, dtype=np.float64)
@@ -492,6 +495,8 @@ def main(
     for file_type in FILE_TYPES.keys():
         x_vals = INTERVALS_VARIANTS
         y_vals = results["variants"][file_type]
+        if not len(y_vals):
+            continue
         # fit a line to each so that we can report the slope
         slope = np.polyfit(x_vals, y_vals, 1)[0]
         ax_variants.plot(

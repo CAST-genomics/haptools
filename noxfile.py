@@ -37,7 +37,7 @@ def docs(session: Session) -> None:
 def lint(session: Session) -> None:
     """Lint our code."""
     session.install("black")
-    session.run("black", "--verbose", "--check", ".")
+    session.run("black", "--diff", "--verbose", "--check", ".")
 
 
 # detect whether conda/mamba is installed
