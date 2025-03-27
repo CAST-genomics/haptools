@@ -623,6 +623,13 @@ def simphenotype(
     help="Also transform using VCF 'POP' FORMAT field and 'ancestry' .hap extra field",
 )
 @click.option(
+    "--maf",
+    type=float,
+    default=None,
+    show_default="all haplotypes",
+    help="Do not output haplotypes with an MAF below this value",
+)
+@click.option(
     "-o",
     "--output",
     type=click.Path(path_type=Path),
@@ -649,6 +656,7 @@ def transform(
     chunk_size: int = None,
     discard_missing: bool = False,
     ancestry: bool = False,
+    maf: float = None,
     output: Path = Path("-"),
     verbosity: str = "INFO",
 ):
@@ -694,6 +702,7 @@ def transform(
         chunk_size,
         discard_missing,
         ancestry,
+        maf,
         output,
         log,
     )

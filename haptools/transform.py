@@ -402,8 +402,7 @@ class GenotypesAncestry(data.GenotypesVCF):
                 self._var_idx = None
             else:
                 raise ValueError(
-                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}"
-                    .format(
+                    "Variant with ID {} at POS {}:{} is multiallelic for sample {}".format(
                         *tuple(self.variants[variant_idx[0]])[:3],
                         self.samples[samp_idx[0]],
                     )
@@ -537,6 +536,7 @@ def transform_haps(
     chunk_size: int = None,
     discard_missing: bool = False,
     ancestry: bool = False,
+    maf: float = None,
     output: Path = Path("-"),
     log: logging.Logger = None,
 ):
@@ -571,6 +571,8 @@ def transform_haps(
     ancestry : bool, optional
         Whether to also match ancestral population labels from the VCF against those in
         the .hap file
+    maf : float, optional
+        If specified, only haplotypes with an MAF above this value will be output
     output : Path, optional
         The location to which to write output
     log : Logger, optional
@@ -665,6 +667,10 @@ def transform_haps(
         hp_gt = data.GenotypesVCF(fname=output, log=log)
     log.info("Transforming genotypes via haplotypes")
     hp.transform(gt, hp_gt)
+
+    if maf is not None:
+        log.info(f"Removing haplotypes with MAF < {maf}")
+        hp_gt.check_maf(threshold=maf, discard_also=True)
 
     log.info(f"Writing haplotypes to {out_file_type} file")
     hp_gt.write()
