@@ -24,7 +24,6 @@ from haptools.data import (
     GenotypesPLINKTR,
 )
 
-
 # COMMAND FOR GENERATING UKB PLOT:
 # tests/bench_genotypes.py \
 # --default-variants 18472 --default-samples 487409 --intervals-variants 1 80 4 \

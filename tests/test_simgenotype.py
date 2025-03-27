@@ -6,7 +6,6 @@ from click.testing import CliRunner
 from haptools.data import Data
 from haptools.__main__ import main
 
-
 DATADIR = Path(__file__).parent.joinpath("data")
 
 

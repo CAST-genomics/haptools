@@ -12,7 +12,6 @@ from pysam import TabixFile
 from .data import Data
 from .genotypes import GenotypesVCF
 
-
 # the current version of the hap format spec
 HAP_VERSION = "0.2.0"
 

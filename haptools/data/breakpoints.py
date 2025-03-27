@@ -12,7 +12,6 @@ import numpy.lib.recfunctions as rcf
 
 from .data import Data
 
-
 # A haplotype block consists of
 # 1) pop   - A population label (str), like 'YRI'
 # 2) chrom - A chromosome name (str), like 'chr19' or simply '19'

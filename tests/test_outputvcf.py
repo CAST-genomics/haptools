@@ -16,7 +16,6 @@ from haptools.sim_genotype import (
     write_breakpoints,
 )
 
-
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
@@ -740,8 +739,7 @@ def test_model_files():
             faulty_model, mapdir, chroms, popsize, vcf_file, sampleinfo_file, False
         )
     assert (
-        (str(e.value))
-        == "Current generation 1 - previous generation 4 = -3"
+        (str(e.value)) == "Current generation 1 - previous generation 4 = -3"
         " is less than 1. Please ensure the generations given in the first column"
         " are correct."
     )

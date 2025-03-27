@@ -17,7 +17,6 @@ matplotlib.use("Agg")
 from haptools.logging import getLogger
 from haptools.data import GenotypesVCF, Haplotypes, Haplotype, Variant
 
-
 # ---------------USAGE----------------
 # COMMAND FOR GENERATING THE MAIN PLOT:
 # tests/bench_transform.py --name 'hap-loop' --reps 5 --archive archive.pickle \

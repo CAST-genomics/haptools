@@ -24,7 +24,6 @@ from haptools.data import (
     GenotypesPLINKTR,
 )
 
-
 DATADIR = Path(__file__).parent.joinpath("data")
 
 
