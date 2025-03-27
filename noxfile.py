@@ -1,4 +1,5 @@
 """Nox sessions."""
+
 import os
 import shutil
 from pathlib import Path
@@ -6,7 +7,6 @@ from pathlib import Path
 import nox  # type: ignore
 from nox_poetry import Session  # type: ignore
 from nox_poetry import session  # type: ignore
-
 
 package = "haptools"
 python_versions = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -37,7 +37,7 @@ def docs(session: Session) -> None:
 def lint(session: Session) -> None:
     """Lint our code."""
     session.install("black")
-    session.run("black", "--verbose", "--check", ".")
+    session.run("black", "--diff", "--verbose", "--check", ".")
 
 
 # detect whether conda/mamba is installed
