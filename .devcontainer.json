@@ -22,7 +22,7 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-vscode.live-server",
-				"ms-python.black-formatter",
+				"ms-python.black-formatter@2025.2.0",
 				"GitHub.vscode-github-actions"
 			],
 			"settings": {

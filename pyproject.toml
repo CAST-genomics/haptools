@@ -69,7 +69,10 @@ sphinx-click = ">=3.0.2"
 
 [tool.poetry.group.tests.dependencies]
 pytest = ">=7.4.3"
-black = ">=23.3.0"
+black = [
+    { version = ">=23.3.0" , markers = "python_version < '3.9'" },
+    { version = ">=25.1.0" , markers = "python_version >= '3.9'" },
+]
 ipython = ">=7.34.0"
 coverage = {extras = ["toml"], version = ">=7.2.7"}
 filprofiler = ">=2023.3.1"
