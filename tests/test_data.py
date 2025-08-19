@@ -522,6 +522,12 @@ class TestGenotypesPLINK:
         np.testing.assert_allclose(gts.data, expected_data)
         assert gts.samples == tuple(samples)
 
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts.read(samples=samples_set, variants=variants)
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == tuple(samples)
+
     def test_write_genotypes_chunked(self):
         gts = self._get_fake_genotypes_plink()
 

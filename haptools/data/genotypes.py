@@ -1140,6 +1140,7 @@ class GenotypesPLINK(GenotypesVCF):
         self,
         region: str = None,
         variants: set[str] = None,
+        just_count: bool = False,
     ):
         """
         A generator over the lines of a PVAR file
@@ -1153,6 +1154,8 @@ class GenotypesPLINK(GenotypesVCF):
             See documentation for :py:attr:`~.GenotypesVCF.read`
         variants : set[str], optional
             See documentation for :py:attr:`~.GenotypesVCF.read`
+        just_count : bool, optional
+            Just return the count of the variants, without parsing the lines
 
         Yields
         ------
@@ -1167,6 +1170,10 @@ class GenotypesPLINK(GenotypesVCF):
             region = re.split(":|-", region)
             if len(region) > 1:
                 region[1:] = [int(pos) for pos in region[1:] if pos]
+        elif just_count and variants is None:
+            p = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
+            yield p.get_variant_ct()
+            return
         with self.hook_compressed(self.fname.with_suffix(".pvar"), mode="r") as pvar:
             pvariants = reader(pvar, delimiter="\t")
             # find the line that declares the header
@@ -1191,10 +1198,16 @@ class GenotypesPLINK(GenotypesVCF):
                     " are [CHROM, POS, ID, REF, ALT] in that order..."
                 )
                 # TODO: add header back in to pvariants using itertools.chain?
-            # create a dictionary that translates between the variant dtypes and thee
+            # create a dictionary that translates between the variant dtypes and the
             # columns of the PVAR file
-            cid = {item: header.index(item.upper()) for item in ("chrom", "pos", "id")}
+            try:
+                cid = {item: header.index(item.upper()) for item in ("chrom", "pos", "id")}
+            except ValueError as e:
+                raise ValueError(f"PVAR header missing required columns: {e}")
             num_seen = 0
+            if variants is not None:
+                # make a local copy of the variants that we want to observe
+                loc_variants = set(variants)
             for ct, rec in enumerate(pvariants):
                 if region and not self._check_region(
                     (rec[cid["chrom"]], int(rec[cid["pos"]])), *region
@@ -1202,11 +1215,22 @@ class GenotypesPLINK(GenotypesVCF):
                     continue
                 if variants is not None:
                     if rec[cid["id"]] not in variants:
-                        if num_seen >= len(variants):
-                            # exit early if we've already found all the variants
-                            break
+                        if not len(loc_variants):
+                            if num_seen == len(variants) :
+                                # exit early if we've already found all the variants
+                                break
+                            elif num_seen > len(variants):
+                                # just warn the user but don't error out yet
+                                self.log.warning(
+                                    "Your PVAR file doesn't have unique variant IDs"
+                                )
                         continue
-                yield ct, self._variant_arr(rec)
+                    loc_variants.discard(rec[cid["id"]])
+                num_seen += 1
+                if just_count:
+                    yield 1
+                else:
+                    yield ct, self._variant_arr(rec)
 
     def read_variants(
         self,
@@ -1241,8 +1265,8 @@ class GenotypesPLINK(GenotypesVCF):
         if variants is not None:
             max_variants = len(variants)
         if max_variants is None:
-            p = pgenlib.PvarReader(bytes(str(self.fname.with_suffix(".pvar")), "utf8"))
-            max_variants = p.get_variant_ct()
+            # try to quickly count the number of variants in the region
+            max_variants = sum(self._iterate_variants(region, variants, just_count=True))
         # first, preallocate the array and the indices of each variant
         self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
         indices = np.empty((max_variants,), dtype=np.uint32)
