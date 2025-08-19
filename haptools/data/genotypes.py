@@ -1201,7 +1201,9 @@ class GenotypesPLINK(GenotypesVCF):
             # create a dictionary that translates between the variant dtypes and the
             # columns of the PVAR file
             try:
-                cid = {item: header.index(item.upper()) for item in ("chrom", "pos", "id")}
+                cid = {
+                    item: header.index(item.upper()) for item in ("chrom", "pos", "id")
+                }
             except ValueError as e:
                 raise ValueError(f"PVAR header missing required columns: {e}")
             num_seen = 0
@@ -1216,7 +1218,7 @@ class GenotypesPLINK(GenotypesVCF):
                 if variants is not None:
                     if rec[cid["id"]] not in variants:
                         if not len(loc_variants):
-                            if num_seen == len(variants) :
+                            if num_seen == len(variants):
                                 # exit early if we've already found all the variants
                                 break
                             elif num_seen > len(variants):
@@ -1266,7 +1268,9 @@ class GenotypesPLINK(GenotypesVCF):
             max_variants = len(variants)
         if max_variants is None:
             # try to quickly count the number of variants in the region
-            max_variants = sum(self._iterate_variants(region, variants, just_count=True))
+            max_variants = sum(
+                self._iterate_variants(region, variants, just_count=True)
+            )
         # first, preallocate the array and the indices of each variant
         self.variants = np.empty((max_variants,), dtype=self.variants.dtype)
         indices = np.empty((max_variants,), dtype=np.uint32)
