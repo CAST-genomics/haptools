@@ -503,10 +503,10 @@ class TestGenotypesPLINK:
 
         # subset for just the samples we want
         expected_data = expected_data[[1, 3]]
-
-        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         samples = [expected.samples[1], expected.samples[3]]
         samples_set = set(samples)
+
+        gts = GenotypesPLINK(DATADIR / "simple.pgen")
         gts.read(region="1:10115-10117", samples=samples_set)
         gts.check_phase()
         np.testing.assert_allclose(gts.data, expected_data)
@@ -514,15 +514,54 @@ class TestGenotypesPLINK:
 
         # subset to just one of the variants
         expected_data = expected_data[:, [1]]
+        variants = {"1:10117:C:A"}
 
         gts = GenotypesPLINK(DATADIR / "simple.pgen")
-        variants = {"1:10117:C:A"}
         gts.read(region="1:10115-10117", samples=samples_set, variants=variants)
         gts.check_phase()
         np.testing.assert_allclose(gts.data, expected_data)
         assert gts.samples == tuple(samples)
 
         gts = GenotypesPLINK(DATADIR / "simple.pgen")
+        gts.read(samples=samples_set, variants=variants)
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == tuple(samples)
+
+    def test_load_genotypes_subset_dupvarIDs(self):
+        expected = self._get_fake_genotypes_plink()
+
+        # subset for the region we want
+        expected_data = expected.data[:, :3]
+
+        # can we load the data from the VCF?
+        gts = GenotypesPLINK(DATADIR / "simple-dupvarIDs.pgen")
+        gts.read(region="1:10114-10117")
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == expected.samples
+
+        # skip the rest of this test since it covers unsupported behavior
+        return
+
+        # subset for just the samples we want
+        expected_data = expected_data[[1, 3]]
+        samples = [expected.samples[1], expected.samples[3]]
+        samples_set = set(samples)
+
+        # subset to just one of the variants
+        # In this case, there are two variants with this ID but our code will only load
+        # the first one
+        expected_data = expected_data[:, [1]]
+        variants = {"1:10117:C:A"}
+
+        gts = GenotypesPLINK(DATADIR / "simple-dupvarIDs.pgen")
+        gts.read(region="1:10114-10117", samples=samples_set, variants=variants)
+        gts.check_phase()
+        np.testing.assert_allclose(gts.data, expected_data)
+        assert gts.samples == tuple(samples)
+
+        gts = GenotypesPLINK(DATADIR / "simple-dupvarIDs.pgen")
         gts.read(samples=samples_set, variants=variants)
         gts.check_phase()
         np.testing.assert_allclose(gts.data, expected_data)

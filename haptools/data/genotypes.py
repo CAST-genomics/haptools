@@ -1209,7 +1209,7 @@ class GenotypesPLINK(GenotypesVCF):
             num_seen = 0
             if variants is not None:
                 # make a local copy of the variants that we want to observe
-                loc_variants = set(variants)
+                local_variants = set(variants)
             for ct, rec in enumerate(pvariants):
                 if region and not self._check_region(
                     (rec[cid["chrom"]], int(rec[cid["pos"]])), *region
@@ -1217,17 +1217,15 @@ class GenotypesPLINK(GenotypesVCF):
                     continue
                 if variants is not None:
                     if rec[cid["id"]] not in variants:
-                        if not len(loc_variants):
-                            if num_seen == len(variants):
-                                # exit early if we've already found all the variants
-                                break
-                            elif num_seen > len(variants):
-                                # just warn the user but don't error out yet
-                                self.log.warning(
-                                    "Your PVAR file doesn't have unique variant IDs"
-                                )
+                        if not len(local_variants) and num_seen >= len(variants):
+                            # exit early if we've already found all the variants
+                            break
                         continue
-                    loc_variants.discard(rec[cid["id"]])
+                    elif rec[cid["id"]] not in local_variants:
+                        self.log.warning(
+                            "Your PVAR file doesn't have unique variant IDs"
+                        )
+                    local_variants.discard(rec[cid["id"]])
                 num_seen += 1
                 if just_count:
                     yield 1
