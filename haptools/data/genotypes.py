@@ -1340,9 +1340,7 @@ class GenotypesPLINK(GenotypesVCF):
             if variants is not None:
                 max_variants = len(variants)
             # use the pgen file to figure out how many variants there are
-            if max_variants is None:
-                max_variants = pgen.get_variant_ct()
-            else:
+            if max_variants is not None:
                 max_variants = min(max_variants, pgen.get_variant_ct())
             indices = self.read_variants(region, variants, max_variants)
             mat_shape = (len(sample_idxs), len(indices), (2 + (not self._prephased)))
