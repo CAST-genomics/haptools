@@ -43,7 +43,7 @@ def test_ld(seed=42):
     ld = pearson_corr_ld(arrA, arrB)
     assert isinstance(ld, np.ndarray)
     assert ld.shape == (3,)
-    assert old_ld == ld[2]
+    assert np.testing.assert_almost_equal(old_ld, ld[2])
 
     # (25,) x (25,3) --> (3,)
     arrA = arrB
