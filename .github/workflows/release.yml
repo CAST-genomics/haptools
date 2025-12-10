@@ -18,14 +18,14 @@ jobs:
         with:
           release-type: python
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         if: ${{ steps.release.outputs.release_created }}
         with:
           fetch-depth: 2
 
       - name: Set up Python
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10' # keep synced with dev-env.yml
 
