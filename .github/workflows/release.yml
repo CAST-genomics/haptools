@@ -14,6 +14,7 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
