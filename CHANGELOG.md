@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/CAST-genomics/haptools/compare/v0.5.0...v0.6.0) (2025-12-10)
+
+
+### Features
+
+* `--maf` option for filtering output of `transform` command ([#274](https://github.com/CAST-genomics/haptools/issues/274)) ([cf4219f](https://github.com/CAST-genomics/haptools/commit/cf4219f820a09366778bd4734ae496a18c69a902))
+* add `--chunk-size` parameter to `simgenotype` and fix RuntimeError when reference coordinates extend past the final map file coordinate ([#268](https://github.com/CAST-genomics/haptools/issues/268)) ([4c22846](https://github.com/CAST-genomics/haptools/commit/4c22846a82101f27ab7646f58c6cdaaccff882fe))
+* use chunking when reading from PGENs in `simgenotype` ([#270](https://github.com/CAST-genomics/haptools/issues/270)) ([5ae546d](https://github.com/CAST-genomics/haptools/commit/5ae546dc52364d0c96984a592dc67b8fa9e47d47))
+
+
+### Performance Improvements
+
+* use less memory when loading specific regions from PVAR files and exit quickly once a specific set of variants have been found ([#275](https://github.com/CAST-genomics/haptools/issues/275)) ([aa24abf](https://github.com/CAST-genomics/haptools/commit/aa24abf13711e05d6eb7d613ebd405ef22c36e84))
+
 ## [0.5.0](https://github.com/CAST-genomics/haptools/compare/v0.4.2...v0.5.0) (2024-12-11)
 
 
