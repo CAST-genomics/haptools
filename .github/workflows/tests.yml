@@ -4,7 +4,7 @@ on: [pull_request, workflow_call]
 
 jobs:
   tests:
-    name: ${{ matrix.session }} ${{ matrix.python }} / ${{ matrix.os }}
+    name: ${{ matrix.session }}${{ matrix.session == 'tests' && format(' {0}', matrix.python) || '' }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
