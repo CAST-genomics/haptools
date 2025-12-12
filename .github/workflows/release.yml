@@ -6,12 +6,13 @@ on:
       - main
   workflow_dispatch:
 
-permissions: write-all
-
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
     steps:
