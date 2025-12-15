@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/CAST-genomics/haptools/compare/v0.6.1...v0.6.2) (2025-12-15)
+
+
+### Documentation
+
+* refer to release-please docs for help debugging releases ([#282](https://github.com/CAST-genomics/haptools/issues/282)) ([99f3fa3](https://github.com/CAST-genomics/haptools/commit/99f3fa3928ecbb35003e78e3de66e6c3fa308891))
+
 ## [0.6.1](https://github.com/CAST-genomics/haptools/compare/v0.6.0...v0.6.1) (2025-12-10)
 
 
