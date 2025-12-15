@@ -10,9 +10,6 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
     steps:
@@ -77,11 +74,11 @@ jobs:
           merge-multiple: true
           path: dist
 
-#      - name: Publish package on TestPyPI
-#        uses: pypa/gh-action-pypi-publish@release/v1
-#        if: github.ref != 'refs/heads/main'
-#        with:
-#          repository-url: https://test.pypi.org/legacy/
+      - name: Publish package on TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: github.ref != 'refs/heads/main'
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
       - name: Publish package on PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
