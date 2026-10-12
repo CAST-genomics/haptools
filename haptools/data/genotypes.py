@@ -1748,7 +1748,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         vcf = VCF(self.fname.with_suffix(".pvar"))
         tr_records = TRRecordHarmonizerRegion(
             vcffile=vcf,
-            vcfiter=vcf(region),
+            vcfiter=vcf(region) if region is not None else vcf,
             vcftype=self.vcftype,
         )
 
