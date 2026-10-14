@@ -323,7 +323,7 @@ description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.6"
 groups = ["main", "docs", "tests"]
-markers = "python_version <= \"3.11\""
+markers = "python_version < \"3.11\""
 files = [
     {file = "click-8.0.3-py3-none-any.whl", hash = "sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3"},
     {file = "click-8.0.3.tar.gz", hash = "sha256:410e932b050f5eed773c4cda94de75971c89cdb3155a72a0831139a79e5ecb5b"},
@@ -340,7 +340,7 @@ description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.10"
 groups = ["main", "docs", "tests"]
-markers = "python_version > \"3.11\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "click-8.5.0-py3-none-any.whl", hash = "sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360"},
     {file = "click-8.5.0.tar.gz", hash = "sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34"},
@@ -357,7 +357,7 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-markers = {main = "python_version <= \"3.11\" and platform_system == \"Windows\"", docs = "platform_system == \"Windows\" and python_version <= \"3.11\" or sys_platform == \"win32\"", tests = "platform_system == \"Windows\" and python_version <= \"3.11\" or sys_platform == \"win32\""}
+markers = {main = "python_version < \"3.11\" and platform_system == \"Windows\"", docs = "sys_platform == \"win32\" or platform_system == \"Windows\" and python_version < \"3.11\"", tests = "sys_platform == \"win32\" or python_version < \"3.11\" and platform_system == \"Windows\""}
 
 [[package]]
 name = "coloredlogs"
@@ -384,7 +384,7 @@ description = "Python library for calculating contours of 2D quadrilateral grids
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "python_version > \"3.11\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "contourpy-1.3.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a045f341a77b77e1c5de31e74e966537bba9f3c4099b35bf4c2e3939dd54cdab"},
     {file = "contourpy-1.3.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:500360b77259914f7805af7462e41f9cb7ca92ad38e9f94d6c8641b089338124"},
@@ -643,7 +643,7 @@ description = "fast vcf parsing with cython + htslib"
 optional = false
 python-versions = "*"
 groups = ["main"]
-markers = "python_version <= \"3.11\""
+markers = "python_version < \"3.11\""
 files = [
     {file = "cyvcf2-0.30.14-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bb8edab00a1c6e2f10798f936537f1f24eddd24312974ef7ad7237ffa9efc759"},
     {file = "cyvcf2-0.30.14-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:95c7be48de307c50237f7f3533121de3e8c08328d2dd2df9e32ac39a329ab170"},
@@ -671,7 +671,7 @@ description = "fast vcf parsing with cython + htslib"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version > \"3.11\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "cyvcf2-0.34.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0ee6486feaaf41c85f3f610c3022d2729b767589e0e38a64ae9eb73f04798f93"},
     {file = "cyvcf2-0.34.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:81fbc6be7cc4e2be528c35427234031747ab5cdca2d7b37041aee047fd93fadd"},
@@ -1441,7 +1441,7 @@ description = "Python plotting package"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
-markers = "python_version <= \"3.11\""
+markers = "python_version < \"3.11\""
 files = [
     {file = "matplotlib-3.5.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:456cc8334f6d1124e8ff856b42d2cc1c84335375a16448189999496549f7182b"},
     {file = "matplotlib-3.5.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:8a77906dc2ef9b67407cec0bdbf08e3971141e535db888974a915be5e1e3efc6"},
@@ -1497,7 +1497,7 @@ description = "Python plotting package"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "python_version > \"3.11\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "matplotlib-3.11.2-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:5e1e923a3fc3326b99ec0a6ff1ab1338ac6c6cc62ad9d8a9c944197c7f8c6221"},
     {file = "matplotlib-3.11.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:c27e577ece613ea12a0790e00b4eb80d901c59a3e16cad474f31d8b1529690b9"},
@@ -1946,7 +1946,7 @@ description = "Python wrapper for pgenlib's basic reader and writer."
 optional = false
 python-versions = ">=3.5"
 groups = ["main"]
-markers = "python_version <= \"3.11\""
+markers = "python_version < \"3.11\""
 files = [
     {file = "Pgenlib-0.90.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0c5823a8f3bb558c2d60243eb19ca6220cc2d5c759fc50139e5c09b179353b68"},
     {file = "Pgenlib-0.90.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:758b3927228029bb10758a28a8ded86a71844da973d6196b44913c4765cdf23d"},
@@ -1967,7 +1967,7 @@ description = "Python wrapper for pgenlib's basic reader and writer."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "python_version > \"3.11\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "pgenlib-0.95.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:80aa7c513eae83cf8aa70b0b9bd823b7d7e45ee24b38b64e2bf45f8e30793f02"},
     {file = "pgenlib-0.95.1-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3e71c30bcbf0d3d9f67dde003832069f598face6796c3e3c292dd54ea246d3c5"},
@@ -2410,7 +2410,7 @@ description = "pysam"
 optional = false
 python-versions = "*"
 groups = ["main"]
-markers = "python_version <= \"3.11\""
+markers = "python_version < \"3.11\""
 files = [
     {file = "pysam-0.19.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:44de1a3af7c7eb5f404d6337f0c9c4ee88c34c2d2fee1a7896ccd8e7d2aa475a"},
     {file = "pysam-0.19.0-cp310-cp310-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:0ceb07c6253598ec70fef6ac0c0f7ab0d299562c1a91e737adb07239afba22d6"},
@@ -2442,7 +2442,7 @@ description = "Package for reading, manipulating, and writing genomic data"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version > \"3.11\""
+markers = "python_version >= \"3.11\""
 files = [
     {file = "pysam-0.24.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:3829b13896a624c47b17599e47bff28cbc87211c7777852ac1f11aa0697cc530"},
     {file = "pysam-0.24.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f842fc7638b8acccd5e470820cff3f490c5845e616fa668667531da22b686a7b"},
@@ -3281,4 +3281,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.7"
-content-hash = "d904b16e7a4d24c297d4bcd547ca88bbdac55593410d53ad9702ba30ed072e9d"
+content-hash = "5e1856fc896e24bf488778b19a621415b98d01b07b87979b56bdf6e50b4cb79f"

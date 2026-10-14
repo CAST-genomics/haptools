@@ -29,24 +29,24 @@ numpy = [
     { version = "2.5.4" , markers = "python_version > '3.11'" },
 ]
 click = [
-    { version = "8.0.3" , markers = "python_version <= '3.11'" },
-    { version = "8.5.0" , markers = "python_version > '3.11'" },
+    { version = "8.0.3" , markers = "python_version < '3.11'" },
+    { version = "8.5.0" , markers = "python_version >= '3.11'" },
 ]
 pysam = [
-    { version = "0.19.0" , markers = "python_version <= '3.11'" },
-    { version = "0.24.1" , markers = "python_version > '3.11'" },
+    { version = "0.19.0" , markers = "python_version < '3.11'" },
+    { version = "0.24.1" , markers = "python_version >= '3.11'" },
 ]
 cyvcf2 = [
-    { version = "0.30.14" , markers = "python_version <= '3.11'" },
-    { version = "0.34.0" , markers = "python_version > '3.11'" },
+    { version = "0.30.14" , markers = "python_version < '3.11'" },
+    { version = "0.34.0" , markers = "python_version >= '3.11'" },
 ]
 matplotlib = [
-    { version = "3.5.1" , markers = "python_version <= '3.11'" },
-    { version = "3.11.2" , markers = "python_version > '3.11'" },
+    { version = "3.5.1" , markers = "python_version < '3.11'" },
+    { version = "3.11.2" , markers = "python_version >= '3.11'" },
 ]
 pgenlib = [
-    { version = "0.90.1" , markers = "python_version <= '3.11'" },
-    { version = "0.95.1" , markers = "python_version > '3.11'" },
+    { version = "0.90.1" , markers = "python_version < '3.11'" },
+    { version = "0.95.1" , markers = "python_version >= '3.11'" },
 ]
 
 [project.urls]
