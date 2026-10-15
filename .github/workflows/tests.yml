@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { python: "3.10", os: "ubuntu-latest", session: "lint" }
+          - { python: "3.11", os: "ubuntu-latest", session: "lint" }
           - { python: "3.7", os: "ubuntu-latest", session: "tests" }
           - { python: "3.8", os: "ubuntu-latest", session: "tests" }
           - { python: "3.9", os: "ubuntu-latest", session: "tests" }
@@ -22,7 +22,7 @@ jobs:
           # - { python: "3.11", os: "windows-latest", session: "tests" }
           - { python: "3.11", os: "macos-15-intel", session: "tests" }
           - { python: "3.14", os: "macos-latest", session: "tests" }
-          - { python: "3.10", os: "ubuntu-latest", session: "size" }
+          - { python: "3.11", os: "ubuntu-latest", session: "size" }
 
     env:
       NOXSESSION: ${{ matrix.session }}
@@ -31,13 +31,13 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Miniforge
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           activate-environment: haptools
-          auto-activate-base: false
+          auto-activate: false
           miniforge-version: latest
           use-mamba: true
           conda-remove-defaults: "true"
@@ -48,7 +48,7 @@ jobs:
         shell: bash
 
       - name: Cache Conda env
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.CONDA }}/envs
           key:
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for large files
         uses: ppremk/lfs-warning@v3.3

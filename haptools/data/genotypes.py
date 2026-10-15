@@ -231,7 +231,7 @@ class Genotypes(Data):
             dtype=self.variants.dtype,
         )
 
-    def _vcf_iter(self, vcf: VCF, region: str):
+    def _vcf_iter(self, vcf: VCF, region: str = None):
         """
         Yield all variants within a region in the VCF file.
 
@@ -247,7 +247,9 @@ class Genotypes(Data):
         vcffile : VCF
             Iterable cyvcf2 instance.
         """
-        return vcf(region)
+        if region is not None:
+            return vcf(region)
+        return vcf
 
     def _return_data(self, variant: Variant):
         """
@@ -931,7 +933,9 @@ class GenotypesTR(Genotypes):
             TRRecord objects yielded from TRRecordHarmonizer
         """
         for record in TRRecordHarmonizerRegion(
-            vcffile=vcf, vcfiter=vcf(region), vcftype=self.vcftype
+            vcffile=vcf,
+            vcfiter=super()._vcf_iter(vcf, region),
+            vcftype=self.vcftype,
         ):
             record.ID = record.record_id
             record.CHROM = record.chrom
@@ -1748,7 +1752,7 @@ class GenotypesPLINKTR(GenotypesPLINK):
         vcf = VCF(self.fname.with_suffix(".pvar"))
         tr_records = TRRecordHarmonizerRegion(
             vcffile=vcf,
-            vcfiter=vcf(region),
+            vcfiter=super()._vcf_iter(vcf, region),
             vcftype=self.vcftype,
         )
 

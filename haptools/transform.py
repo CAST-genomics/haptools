@@ -194,7 +194,7 @@ class GenotypesAncestry(data.GenotypesVCF):
         pop_count = 0
         # iterate over each line in the VCF
         # note, this can take a lot of time if there are many samples
-        for variant in vcf(region):
+        for variant in super()._vcf_iter(vcf, region):
             if variants is not None and variant.ID not in variants:
                 if num_seen >= len(variants):
                     # exit early if we've already found all the variants
