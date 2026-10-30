@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/CAST-genomics/haptools/compare/v0.6.2...v0.6.3) (2026-10-30)
+
+
+### Bug Fixes
+
+* error with cyvcf2&gt;0.32 when loading a VCF/PVAR w/o `--region` ([#284](https://github.com/CAST-genomics/haptools/issues/284)) ([3ff41e7](https://github.com/CAST-genomics/haptools/commit/3ff41e7dcf914d9fb16b663f75f55f4a71a63eac))
+
 ## [0.6.2](https://github.com/CAST-genomics/haptools/compare/v0.6.1...v0.6.2) (2025-12-15)
 
 
