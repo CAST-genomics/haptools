@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/CAST-genomics/haptools/compare/v0.6.3...v0.6.4) (2026-11-09)
+
+
+### Documentation
+
+* fix typo in command to convert TR VCF to PGEN ([280d475](https://github.com/CAST-genomics/haptools/commit/280d4752ed0ab03ead84c43278aa6e72dee06e9e))
+
 ## [0.6.3](https://github.com/CAST-genomics/haptools/compare/v0.6.2...v0.6.3) (2026-10-30)
 
 
