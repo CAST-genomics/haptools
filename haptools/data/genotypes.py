@@ -1797,9 +1797,9 @@ class GenotypesPLINKTR(GenotypesPLINK):
                 # exit early if we've already found all the variants
                 break
             # extract allele lengths from TRRecord object
-            allele_lens[idx, 0] = record.ref_allele_length
+            allele_lens[idx, 0] = np.rint(record.ref_allele_length)
             num_alleles = len(record.alt_allele_lengths) + 1
-            allele_lens[idx, 1:num_alleles] = record.alt_allele_lengths
+            allele_lens[idx, 1:num_alleles] = np.rint(record.alt_allele_lengths)
         # record missing entries and then set them all to REF
         missing = self.data[:, :, :2] == np.iinfo(np.uint8).max
         self.data[:, :, :2][missing] = 0
